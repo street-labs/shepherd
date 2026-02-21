@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  /* Primary colors */
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+
+  /* Comment highlighting */
+  --color-comment-bg: #dbeafe;
+  --color-comment-border: #93c5fd;
+  --color-comment-gutter: #3b82f6;
+
+  /* Warning */
+  --color-warning-bg: #fef3c7;
+  --color-warning-border: #f59e0b;
+  --color-warning-text: #92400e;
+
+  /* Destructive */
+  --color-destructive-500: #ef4444;
+  --color-destructive-600: #dc2626;
+
+  /* Surfaces */
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #f9fafb;
+  --color-surface-toolbar: #f9fafb;
+  --color-surface-code: #ffffff;
+  --color-surface-sidebar: #f9fafb;
+
+  /* Borders */
+  --color-border-default: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-text-on-primary: #ffffff;
+
+  /* Code line height */
+  --spacing-line-height: 20px;
+
+  /* Font families */
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background: var(--color-surface-primary);
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-mono);
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
