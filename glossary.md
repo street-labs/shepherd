@@ -4,6 +4,11 @@ Shared vocabulary for this project. All agents should use these terms consistent
 
 **Every agent must check this glossary before introducing a new term.** If a concept already has a name here, use it. If you need a new term, add it here first.
 
+## Code Review Prompt Generator (CRPG)
+**Definition**: The core application of the Shepherd project. A client-side web app that lets developers load a source file, annotate it with inline comments, and generate a structured prompt for AI coding assistants. Available as a local web app and (planned) as a standalone CLI.
+**Also known as**: CRPG, the app
+**Not to be confused with**: The slash command (which is a launcher for the CRPG, not the CRPG itself)
+
 ## Code Viewer
 **Definition**: The main panel of the application that displays a loaded source file with line numbers, syntax highlighting, and a comment gutter. Read-only — users cannot edit file content.
 **Also known as**: File viewer
@@ -83,6 +88,26 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Definition**: A state indicating that the generated prompt is out of date because the user has modified comments or the preamble since the last generation. Visually indicated by a yellow banner in the prompt preview with a "Regenerate" link.
 **Also known as**: Outdated prompt
 **Not to be confused with**: An empty prompt (no prompt has been generated at all)
+
+## Slash Command
+**Definition**: A shortcut invoked by typing `/shepherd <filepath>` in a supported AI coding agent (e.g., Claude Code). Launches the CRPG web app with the specified file auto-loaded. Implemented as a Claude Code custom command (`.claude/commands/shepherd.md`) for in-repo use, and as a standalone CLI binary for global use.
+**Also known as**: Custom command, agent command
+**Not to be confused with**: Shell commands (executed in a terminal, not an agent conversation)
+
+## File-Serving API
+**Definition**: A localhost-only HTTP endpoint (`GET /api/file?path=<encoded-path>`) exposed by the local server that reads a file from the filesystem and returns its content as plain text. Used by the CRPG web app to load files specified via URL parameters from the slash command.
+**Also known as**: File API, local file endpoint
+**Not to be confused with**: The CRPG's in-browser file loading (drag-drop, upload, paste), which does not involve a server
+
+## Lockfile
+**Definition**: A file at `~/.shepherd/server.lock` that records the PID and port of a running CRPG server instance. Used to detect and reuse existing server instances across multiple slash command invocations, and to enable explicit shutdown via `--stop`.
+**Also known as**: Server lockfile, PID file
+**Not to be confused with**: `pnpm-lock.yaml` (dependency lockfile)
+
+## Auto-Load
+**Definition**: The behavior where the CRPG web app automatically loads a file on startup when a `?file=<path>` URL query parameter is present. Bypasses the normal drop zone interaction. Clears any existing session without confirmation.
+**Also known as**: URL-based file loading, query parameter loading
+**Not to be confused with**: Manual file loading (drag-drop, upload, paste via the drop zone)
 
 <!--
 Entry template:

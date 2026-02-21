@@ -44,6 +44,30 @@ Append-only record of key decisions made during this project. Newest entries at 
 **Consequences**: All styling is utility-class-based in JSX. Custom theme tokens defined in `src/styles/app.css`.
 **Slug references**: `NFR-crp-responsive-layout`
 
+## 2026-02-21 -- Two-mode slash command architecture (Claude Code command + standalone CLI)
+**Context**: The user wants to invoke the CRPG via `/shepherd <filepath>` from an AI coding agent. Need to decide how the command is distributed and executed.
+**Decision**: Implement two modes: (1) A Claude Code custom command file (`.claude/commands/shepherd.md`) for in-repo use — zero code, just a markdown prompt that instructs the agent. (2) A standalone Node.js CLI package (`engineering/apps/cli/`) for global installation via npm.
+**Alternatives considered**: CLI-only (would require npm install for everyone, even in-repo users), Claude Code command-only (wouldn't work outside Claude Code or outside the repo), VS Code extension (too platform-specific).
+**Rationale**: The Claude Code custom command is the simplest possible solution for the primary use case — it's just a `.md` file. The standalone CLI provides distribution for users outside the repo or using other agents. Both share the same file-serving API and CRPG web app.
+**Consequences**: Two entry points to maintain. The Vite dev server needs a file-serving API plugin. The CLI needs to bundle built web assets and run its own HTTP server.
+**Slug references**: `FR-sc-invoke-command`, `FR-sc-install`, `FR-sc-app-serve`
+
+## 2026-02-21 -- Vite plugin for file-serving API (no additional dependencies)
+**Context**: The CRPG needs a localhost API endpoint to read local files when launched via the slash command. In dev mode, Vite serves the app.
+**Decision**: Implement the `/api/file` endpoint as a Vite plugin using the `configureServer` hook, requiring zero additional npm dependencies.
+**Alternatives considered**: Express middleware (adds a dependency), separate sidecar server (more complex), reading files directly in the browser (not possible — browser can't access filesystem by path).
+**Rationale**: Vite's `configureServer` hook provides direct access to the dev server's Connect middleware. This keeps the file API colocated with the dev server, adds no dependencies, and works identically in dev and preview modes.
+**Consequences**: The file API only exists when served by Vite (dev/preview) or the standalone CLI server. The built static assets alone cannot serve files — they need a server with the API.
+**Slug references**: `FR-sc-file-api`, `FR-sc-auto-load-file`
+
+## 2026-02-21 -- Prompt format changed to code-snippet-per-comment (no full file, no line numbers)
+**Context**: During testing of the CRPG, the user identified that including the full file content and line numbers in the generated prompt was problematic — line numbers change as the file is edited, making them unreliable references.
+**Decision**: The generated prompt now includes only the file path/language and each comment paired with the actual code snippet it references. No full file content, no line numbers.
+**Alternatives considered**: Keep full file with line numbers (original spec), include only changed regions with surrounding context.
+**Rationale**: Code snippets are stable references that remain meaningful even after the file is edited. The prompt is also shorter and more focused. Comments may be feedback, questions, or affirmations — not always change requests.
+**Consequences**: The `buildPrompt()` function extracts code slices per comment instead of formatting the entire file. Prompt output size scales with comment count, not file length.
+**Slug references**: `FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`
+
 <!--
 Entry template:
 

@@ -1,4 +1,5 @@
-// Implements: FR-crp-file-load, FR-crp-file-display, NFR-crp-responsive-layout
+// Implements: FR-crp-file-load, FR-crp-file-display, NFR-crp-responsive-layout,
+// FR-sc-auto-load-file, AC-sc-session-clear-on-new-file
 
 import { useAppStore } from '@/store/appStore';
 import { Toolbar } from '@/components/Toolbar';
@@ -9,6 +10,7 @@ import { PreambleInput } from '@/components/PreambleInput';
 import { PromptPreview } from '@/components/PromptPreview';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { ToastNotification } from '@/components/ToastNotification';
+import { useFileFromUrl } from '@/hooks/useFileFromUrl';
 import { useState, useEffect } from 'react';
 
 function useWindowWidth() {
@@ -30,6 +32,7 @@ export function App() {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const windowWidth = useWindowWidth();
   const isTooNarrow = windowWidth < 1024;
+  const urlFile = useFileFromUrl();
 
   const handleClearRequest = () => {
     // AC-crp-clear-no-confirm-empty: no confirmation if no comments
@@ -67,7 +70,18 @@ export function App() {
       <Toolbar onClearRequest={handleClearRequest} />
 
       <main className="flex-1 min-h-0">
-        {!file ? (
+        {urlFile.loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-text-secondary">Loading file...</p>
+          </div>
+        ) : urlFile.error ? (
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="text-center max-w-md">
+              <p className="text-sm font-medium text-destructive-600">Failed to load file</p>
+              <p className="text-xs text-text-secondary mt-1">{urlFile.error}</p>
+            </div>
+          </div>
+        ) : !file ? (
           <FileDropZone />
         ) : (
           <div className="flex h-full">

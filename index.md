@@ -279,6 +279,180 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/code-review-prompt.md`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-binary-file-rejected-upload`, `TC-crp-binary-file-rejected-drag-drop`, `TC-crp-binary-file-rejected-no-crash`
 
+### `FR-sc-invoke-command`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-help-flag`, `TC-sc-install-claude-code-command`, `TC-sc-edge-exit-codes`
+
+### `FR-sc-file-resolution`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-absolute-path-inrepo`, `TC-sc-absolute-path-standalone`, `TC-sc-resolve-relative-path`, `TC-sc-resolve-symlink`, `TC-sc-edge-spaces-in-path`, `TC-sc-edge-unicode-filename`, `TC-sc-edge-very-long-path`, `TC-sc-path-handling-windows`
+
+### `FR-sc-file-validation`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`, `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-file-not-found-cli`, `TC-sc-binary-rejected-cli`, `TC-sc-permission-denied-cli`, `TC-sc-directory-rejected-cli`, `TC-sc-large-file-warning-cli`, `TC-sc-output-errors-stderr`, `TC-sc-edge-empty-file`, `TC-sc-edge-file-with-only-null-bytes`, `TC-sc-edge-symlink-to-directory`, `TC-sc-edge-file-deleted-after-validation`, `TC-sc-edge-exit-codes`
+
+### `FR-sc-app-serve`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-server-starts-available-port`, `TC-sc-server-serves-static-assets`, `TC-sc-server-reuse-lockfile`, `TC-sc-edge-port-in-use`
+
+### `FR-sc-browser-open`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-browser-open-url`, `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-edge-browser-open-fails`
+
+### `FR-sc-auto-load-file`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/apps/web/src/App.tsx`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-auto-load-from-url-param`, `TC-sc-auto-load-clears-url-param`, `TC-sc-auto-load-error-state`, `TC-sc-auto-load-no-param`, `TC-sc-session-clear-on-new-file`
+
+### `FR-sc-file-api`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-api-200-valid-file`, `TC-sc-api-400-missing-param`, `TC-sc-api-403-permission`, `TC-sc-api-403-non-localhost`, `TC-sc-api-404-not-found`, `TC-sc-api-404-directory`, `TC-sc-api-415-binary`, `TC-sc-api-headers`, `TC-sc-api-path-traversal`, `TC-sc-edge-api-concurrent-requests`
+
+### `FR-sc-install`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
+- **QA**: `qa/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`, `TC-sc-install-claude-code-command`
+
+### `FR-sc-server-shutdown`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-lockfile-write`, `TC-sc-lockfile-stale-cleanup`, `TC-sc-idle-shutdown-fires`, `TC-sc-idle-shutdown-resets`, `TC-sc-explicit-stop-running`, `TC-sc-explicit-stop-not-running`, `TC-sc-signal-handler-cleanup`, `TC-sc-server-reuse-lockfile`, `TC-sc-edge-concurrent-invocations`, `TC-sc-edge-lockfile-directory-missing`
+
+### `FR-sc-output-feedback`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-output-success-format`, `TC-sc-output-reuse-note`, `TC-sc-output-errors-stderr`
+
+### `NFR-sc-launch-speed`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launch-speed-cold`, `TC-sc-launch-speed-warm`
+
+### `NFR-sc-no-global-deps`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-install-global`
+
+### `NFR-sc-cross-platform`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-path-handling-windows`
+
+### `NFR-sc-localhost-only`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-server-binds-localhost`, `TC-sc-api-403-non-localhost`, `TC-sc-api-path-traversal`
+
+### `NFR-sc-no-telemetry`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-no-outbound-network`
+
+### `NFR-sc-minimal-footprint`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-package-size`, `TC-sc-server-memory`
+
+### `AC-sc-launch-happy-path`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/apps/web/src/App.tsx`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-launch-happy-standalone`, `TC-sc-auto-load-from-url-param`, `TC-sc-api-200-valid-file`, `TC-sc-output-success-format`
+
+### `AC-sc-absolute-path`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-absolute-path-inrepo`, `TC-sc-absolute-path-standalone`
+
+### `AC-sc-file-not-found`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-file-not-found-cli`, `TC-sc-file-not-found-api`, `TC-sc-api-404-not-found`
+
+### `AC-sc-binary-file-rejected`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-binary-rejected-cli`, `TC-sc-binary-rejected-api`, `TC-sc-api-415-binary`
+
+### `AC-sc-permission-denied`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-permission-denied-cli`, `TC-sc-permission-denied-api`, `TC-sc-api-403-permission`
+
+### `AC-sc-directory-rejected`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-directory-rejected-cli`, `TC-sc-directory-rejected-api`, `TC-sc-api-404-directory`
+
+### `AC-sc-no-args-usage`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-no-args-usage`, `TC-sc-help-flag`
+
+### `AC-sc-large-file-warning`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-large-file-warning-cli`, `TC-sc-large-file-warning-e2e`
+
+### `AC-sc-server-reuse`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-server-reuse-lockfile`, `TC-sc-server-reuse-output`, `TC-sc-output-reuse-note`, `TC-sc-edge-concurrent-invocations`
+
+### `AC-sc-server-manual-stop`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-explicit-stop-running`, `TC-sc-explicit-stop-not-running`
+
+### `AC-sc-install-global`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
+- **QA**: `qa/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`
+
+### `AC-sc-session-clear-on-new-file`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-session-clear-on-new-file`
+
+### `AC-sc-cross-platform-open`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`
+
 <!--
 Entry template -- copy this when adding a new slug:
 
