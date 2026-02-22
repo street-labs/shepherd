@@ -144,6 +144,31 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: DiffLineId
 **Not to be confused with**: Line number (used in file view for comment anchoring)
 
+## Shepherd Review
+**Definition**: A slash command (`/shepherd-review`) that orchestrates a multi-file code review workflow within an AI coding agent conversation. Discovers the changeset of the current branch vs main, filters out uninteresting files, and iterates through the remaining files one by one, invoking the `/shepherd` command for each.
+**Also known as**: Review command, review loop
+**Not to be confused with**: The `/shepherd` command (which opens a single file), or the CRPG itself (the web app used to annotate files)
+
+## Changeset
+**Definition**: The set of files that have been modified, added, renamed, or deleted on the current branch relative to the base branch (typically `main`). Determined using `git diff --name-status` against the merge base.
+**Also known as**: Changed files, diff set
+**Not to be confused with**: A git commit (a changeset may span multiple commits)
+
+## File Filtering
+**Definition**: The heuristic process of excluding uninteresting files from the review changeset. Filters out lockfiles, generated/build output, binary files, IDE config, and snapshot files based on path patterns. Does not read file contents.
+**Also known as**: Noise filtering, file exclusion
+**Not to be confused with**: Git's `--diff-filter` flag (which filters by change type like added/deleted)
+
+## Merge Base
+**Definition**: The most recent common ancestor commit between the current branch and a base branch (typically `main`). Used by `/shepherd-review` to determine the exact point where the feature branch diverged, ensuring only branch-specific changes are included in the changeset. Computed via `git merge-base HEAD main`.
+**Also known as**: Branch point, divergence point
+**Not to be confused with**: The tip of the base branch (which may have moved forward since the branch was created)
+
+## Review Iteration Loop
+**Definition**: The interactive cycle in `/shepherd-review` where the agent announces a file, opens it in the CRPG via `/shepherd`, waits for the user to finish, and then moves to the next file. The user controls pace with commands: next, skip, list, quit.
+**Also known as**: Review loop, iteration loop
+**Not to be confused with**: The engineering-QA iteration loop (which is a development process, not a user-facing feature)
+
 <!--
 Entry template:
 

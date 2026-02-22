@@ -118,6 +118,54 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: The Toolbar loses one button (Generate/Regenerate). The Zustand store no longer has a `generatePrompt` action or `isPromptStale` flag — instead, `buildPrompt()` is called inside `addComment`, `updateComment`, `deleteComment`, and `setPreamble`. The PromptPreview component drops its `stale` variant. QA test cases referencing the Generate button are updated to test auto-generation behavior.
 **Slug references**: `FR-crp-prompt-generate`, `AC-crp-generate-prompt-no-comments`, `FR-crp-prompt-preview`
 
+## 2026-02-21 -- Working tree diff (not committed-only) for changeset detection
+**Context**: The initial implementation of `/shepherd-review` used `git diff --name-status MERGE_BASE...HEAD`, which only shows changes committed on the branch. When tested, this produced an empty changeset because the new files hadn't been committed yet. The whole point of the tool is to review changes before committing.
+**Decision**: Use `git diff --name-status MERGE_BASE` (no dots, no `...HEAD`) to compare the working tree against the merge base, plus `git ls-files --others --exclude-standard` to capture untracked new files. This gives the full picture of what differs from main.
+**Alternatives considered**: `git diff --name-status MERGE_BASE...HEAD` (committed only — misses the primary use case), `git status --porcelain` (only shows uncommitted changes, misses committed branch changes), `git diff --name-status HEAD` (only uncommitted changes relative to HEAD, misses branch changes vs main).
+**Rationale**: The developer's mental model is "what's different from main in my working copy." This includes committed branch changes, staged changes, unstaged changes, and new untracked files. The no-dots form of `git diff` against the merge base captures exactly this.
+**Consequences**: The changeset may include files that are modified in the working tree but will be reverted before committing. This is acceptable — the user can skip files during the review.
+**Slug references**: `FR-sr-changeset-detection`
+
+## 2026-02-21 -- Guided review: priority ordering, context, and feedback collection
+**Context**: During first live test of `/shepherd-review`, the user identified three issues: (1) files were presented alphabetically rather than by importance, (2) there was no context about what changed in each file before opening it, (3) there was no way to collect review feedback for later action.
+**Decision**: Add three features: priority-based file ordering using a general-purpose heuristic (source code > config > docs > supporting > tests), per-file context summaries derived from reading the actual diffs, and a feedback collection mechanism that accumulates CRPG output across files and presents it at the end for action.
+**Alternatives considered**: For ordering — let the user manually reorder (too much friction), use file extension as sole heuristic (too crude). For context — show raw diff stats only (not enough insight), skip context and let the CRPG speak for itself (misses the guided aspect). For feedback — act on feedback immediately per-file (user explicitly wanted batch processing at the end), write to a file per-file (fragmented).
+**Rationale**: The whole point of `/shepherd-review` is to be a *guided* review experience, not just a file iterator. The agent should leverage its ability to read and understand diffs to provide value at every step. Feedback collection makes the review a complete workflow: review, annotate, then act.
+**Consequences**: The command now uses `Read` tool in addition to `Bash` (to read diffs for context). The iteration loop has a new "feedback" user action. The completion step includes a feedback handoff phase.
+**Slug references**: `FR-sr-priority-ordering`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`, `FR-sr-feedback-collection`
+
+## 2026-02-21 -- Three scope modes for changeset detection (default, --staged, --unstaged)
+**Context**: After implementing working-tree-based changeset detection, the user requested the ability to differentiate between staged and unstaged changes. The use case: stage files you're happy with, then use `--unstaged` to review what's left, or use `--staged` to review exactly what will be committed.
+**Decision**: Add an optional `$ARGUMENTS` parameter with three modes: default (all changes vs main), `--staged` (only staged files relative to merge base), `--unstaged` (only unstaged modifications + untracked files).
+**Alternatives considered**: Separate commands (`/shepherd-review-staged`), interactive mode selection during the review, config file.
+**Rationale**: A single command with a flag is the simplest interface. The three modes map directly to common git workflows: review everything, review what I'm about to commit, review what I haven't staged yet.
+**Consequences**: The command now uses `$ARGUMENTS`. The scope label is shown in the file list header so the user knows which mode they're in.
+**Slug references**: `FR-sr-scope-argument`
+
+## 2026-02-21 -- Pure prompt file for /shepherd-review (no compiled code)
+**Context**: Need to implement a multi-file review workflow that discovers git changesets, filters files, and iterates through them. Could be a compiled CLI tool, a shell script, or a Claude Code prompt file.
+**Decision**: Implement `/shepherd-review` as a pure Claude Code custom command file (`.claude/commands/shepherd-review.md`) — a markdown prompt that instructs the agent to run git commands, apply filtering logic, and manage the review loop conversationally.
+**Alternatives considered**: Shell script wrapper (would need to handle interactive I/O with the agent, awkward), Node.js CLI (unnecessary complexity — the agent can run git commands directly), compiled binary (massive overkill for a conversational workflow).
+**Rationale**: The agent is already the execution environment. It can run `git diff`, parse output, apply filtering rules, track state in conversation context, and invoke `/shepherd` for each file. A prompt file achieves all of this with zero dependencies, zero compilation, and zero additional infrastructure. The existing `/shepherd` command proves this pattern works.
+**Consequences**: The command's behavior depends on how well the agent interprets the prompt instructions. Exact formatting may vary slightly between invocations. This is acceptable for v1 — the command orchestrates a human-in-the-loop review, so minor output variations are tolerable.
+**Slug references**: `FR-sr-command-file`, `FR-sr-no-args`, `NFR-sr-no-dependencies`, `NFR-sr-agent-native`
+
+## 2026-02-21 -- Path-based file filtering only (no content reading)
+**Context**: The review command needs to filter out "uninteresting" files from the changeset. Could inspect file contents (e.g., read bytes to detect binary) or use path patterns.
+**Decision**: Filter purely by file path and extension patterns. Do not read file contents during filtering.
+**Alternatives considered**: Read file headers to detect binary content (more accurate but slower), use `git diff --stat` to filter by change size (interesting but doesn't address file-type filtering), use `.gitattributes` (not all repos have this configured).
+**Rationale**: Path-based filtering is fast (no I/O), simple to implement in a prompt, and catches the vast majority of uninteresting files. The agent can list all patterns inline in the prompt instructions. Files that pass filtering but turn out to be uninteresting can be skipped by the user during the review loop.
+**Consequences**: Some edge cases may slip through (e.g., a `.ts` file that is entirely auto-generated but doesn't match any exclusion pattern). The user can skip these manually. Custom exclusion patterns are deferred to v2.
+**Slug references**: `FR-sr-file-filtering`, `NFR-sr-startup-speed`
+
+## 2026-02-21 -- Default to main as base branch (no auto-detection in v1)
+**Context**: The review command compares the current branch against a base branch. Repositories use different default branch names (`main`, `master`, `develop`).
+**Decision**: Default to `main` as the base branch. No auto-detection or override argument in v1.
+**Alternatives considered**: Auto-detect via `git symbolic-ref refs/remotes/origin/HEAD` (not always configured, adds complexity), accept an optional `--base` argument (adds argument parsing to the prompt).
+**Rationale**: `main` is the overwhelmingly common default for new repositories. The user already knows they're comparing against main. Auto-detection and override arguments are natural v2 enhancements that don't affect the core architecture.
+**Consequences**: Users with `master` or other default branch names will get an error ("No changes found relative to main"). This is a known limitation for v1 and is documented in the product spec's Open Questions.
+**Slug references**: `FR-sr-changeset-detection`, `AC-sr-no-changes`
+
 <!--
 Entry template:
 

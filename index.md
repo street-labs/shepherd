@@ -657,6 +657,180 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/diff-view.md`
 - **QA**: `qa/diff-view.md` -> `TC-diff-expand-then-comment-happy`, `TC-diff-expand-then-comment-gutter-hover`
 
+### `FR-sr-changeset-detection`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files`
+
+### `FR-sr-file-filtering`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-filters-lockfiles`, `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`, `TC-sr-filters-binary`, `TC-sr-filters-ide-files`, `TC-sr-filters-snapshot-files`, `TC-sr-includes-config-files`, `TC-sr-unknown-file-included`
+
+### `FR-sr-file-list-display`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-file-list-format`, `TC-sr-sorted-file-list`, `TC-sr-file-list-exclusion-count`
+
+### `FR-sr-iteration-loop`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`, `TC-sr-skip-file`, `TC-sr-quit-early`, `TC-sr-list-command-mid-review`, `TC-sr-user-input-synonyms`, `TC-sr-unrecognized-input`
+
+### `FR-sr-completion-summary`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-quit-early`, `TC-sr-completion-summary-all-skipped`
+
+### `FR-sr-command-file`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-command-file-exists`
+
+### `FR-sr-install`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `scripts/install-command.sh`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-install-global-symlink`
+
+### `FR-sr-no-args`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`
+
+### `FR-sr-git-required`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-not-git-repo`
+
+### `NFR-sr-startup-speed`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-startup-speed`
+
+### `NFR-sr-no-dependencies`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-no-external-dependencies`
+
+### `NFR-sr-agent-native`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`
+
+### `NFR-sr-cross-platform`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-cross-platform-git-commands`
+
+### `AC-sr-happy-path`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`
+
+### `AC-sr-filters-lockfiles`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-filters-lockfiles`
+
+### `AC-sr-filters-generated`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`
+
+### `AC-sr-filters-binary`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-filters-binary`
+
+### `AC-sr-includes-config`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-includes-config-files`
+
+### `AC-sr-excludes-deleted`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-excludes-deleted-files`
+
+### `AC-sr-skip-file`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-skip-file`
+
+### `AC-sr-quit-early`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-quit-early`
+
+### `AC-sr-no-changes`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`
+
+### `AC-sr-all-filtered`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-all-filtered`
+
+### `AC-sr-not-git-repo`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-not-git-repo`
+
+### `AC-sr-invokes-shepherd`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-invokes-shepherd-per-file`
+
+### `AC-sr-list-command`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-list-command-mid-review`
+
+### `AC-sr-completion-summary`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-quit-early`
+
+### `AC-sr-sorted-file-list`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-sorted-file-list`
+
+### `AC-sr-install-global`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-install-global-symlink`
+
 <!--
 Entry template -- copy this when adding a new slug:
 
