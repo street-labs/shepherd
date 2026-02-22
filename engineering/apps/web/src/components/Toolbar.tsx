@@ -39,6 +39,10 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
   const navigateDiffComment = useAppStore((s) => s.navigateDiffComment);
   const copyPrompt = useAppStore((s) => s.copyPrompt);
 
+  const isSlashCommandMode = useAppStore((s) => s.isSlashCommandMode);
+  const doneState = useAppStore((s) => s.doneState);
+  const sendPromptToAgent = useAppStore((s) => s.sendPromptToAgent);
+
   const hasFile = file !== null;
   const hasComments = commentCount > 0;
   const hasPrompt = generatedPrompt !== null;
@@ -60,6 +64,13 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const metaOrCtrl = e.metaKey || e.ctrlKey;
+
+      // Cmd+Shift+D: send prompt to agent (Done)
+      if (metaOrCtrl && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        if (isSlashCommandMode && doneState === 'idle') void sendPromptToAgent();
+        return;
+      }
 
       // Cmd+Shift+C: copy prompt
       if (metaOrCtrl && e.shiftKey && e.key === 'C') {
@@ -89,7 +100,7 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
 
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [hasComments, hasPrompt, copyPrompt, handleNavigate]);
+  }, [hasComments, hasPrompt, copyPrompt, handleNavigate, isSlashCommandMode, doneState, sendPromptToAgent]);
 
   return (
     <header
@@ -159,6 +170,21 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
           <div className="w-px h-5 bg-border-default" role="separator" />
 
           {/* Actions */}
+          {isSlashCommandMode && (
+            <button
+              onClick={() => void sendPromptToAgent()}
+              disabled={doneState === 'sending' || doneState === 'sent'}
+              className={`px-3 py-1 text-xs font-medium rounded ${
+                doneState === 'sent'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed'
+              }`}
+              title="Send prompt to agent (&#x2318;&#x21E7;D)"
+            >
+              {doneState === 'sending' ? 'Sending...' : doneState === 'sent' ? 'Sent \u2713' : 'Done'}
+            </button>
+          )}
+
           <button
             onClick={() => void copyPrompt()}
             disabled={!hasPrompt}

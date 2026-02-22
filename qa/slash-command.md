@@ -20,11 +20,12 @@
 | `AC-sc-install-symlink` | `TC-sc-install-symlink`, `TC-sc-install-update-propagation` | Not started |
 | `AC-sc-session-clear-on-new-file` | `TC-sc-session-clear-on-new-file` | Not started |
 | `AC-sc-cross-platform-open` | `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows` | Not started |
+| `AC-sc-standalone-window` | `TC-sc-app-window-chrome`, `TC-sc-app-window-chromium-fallback`, `TC-sc-app-window-browser-fallback`, `TC-sc-app-window-subsequent` | Not started |
 | `FR-sc-invoke-command` | `TC-sc-launch-happy-inrepo`, `TC-sc-no-args-usage` | Not started |
 | `FR-sc-file-resolution` | `TC-sc-absolute-path-inrepo`, `TC-sc-resolve-relative-path`, `TC-sc-resolve-symlink` | Not started |
 | `FR-sc-file-validation` | `TC-sc-file-not-found-cli`, `TC-sc-binary-rejected-cli`, `TC-sc-permission-denied-cli`, `TC-sc-directory-rejected-cli`, `TC-sc-large-file-warning-cli` | Not started |
 | `FR-sc-app-serve` | `TC-sc-server-starts-vite`, `TC-sc-server-serves-static-assets` | Not started |
-| `FR-sc-browser-open` | `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows` | Not started |
+| `FR-sc-browser-open` | `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-app-window-chrome`, `TC-sc-app-window-browser-fallback` | Not started |
 | `FR-sc-auto-load-file` | `TC-sc-auto-load-from-url-param`, `TC-sc-auto-load-clears-url-param`, `TC-sc-auto-load-error-state`, `TC-sc-auto-load-no-param` | Not started |
 | `FR-sc-file-api` | `TC-sc-api-200-valid-file`, `TC-sc-api-400-missing-param`, `TC-sc-api-403-permission`, `TC-sc-api-403-non-localhost`, `TC-sc-api-404-not-found`, `TC-sc-api-404-directory`, `TC-sc-api-415-binary`, `TC-sc-api-headers` | Not started |
 | `FR-sc-install` | `TC-sc-install-symlink`, `TC-sc-install-update-propagation`, `TC-sc-install-claude-code-command` | Not started |
@@ -35,6 +36,15 @@
 | `NFR-sc-localhost-only` | `TC-sc-api-403-non-localhost` | Not started |
 | `NFR-sc-no-telemetry` | `TC-sc-no-outbound-network` | Not started |
 | `NFR-sc-minimal-footprint` | `TC-sc-install-symlink` | Not started |
+| `FR-sc-prompt-receive` | `TC-sc-watcher-detects-file`, `TC-sc-watcher-deletes-after-read`, `TC-sc-feedback-loop-e2e`, `TC-sc-feedback-loop-resend` | Not started |
+| `FR-sc-prompt-output-api` | `TC-sc-prompt-api-write-happy`, `TC-sc-prompt-api-creates-dir`, `TC-sc-prompt-api-overwrites`, `TC-sc-prompt-api-method-check`, `TC-sc-prompt-api-no-collision`, `TC-sc-feedback-loop-e2e` | Not started |
+| `FR-sc-prompt-cleanup` | `TC-sc-watcher-cleanup-stale` | Not started |
+| `NFR-sc-watcher-low-overhead` | `TC-sc-watcher-timeout` | Not started |
+| `AC-sc-prompt-received` | `TC-sc-watcher-detects-file`, `TC-sc-feedback-loop-e2e` | Not started |
+| `AC-sc-prompt-watcher-timeout` | `TC-sc-watcher-timeout` | Not started |
+| `AC-sc-prompt-cleanup-stale` | `TC-sc-watcher-cleanup-stale` | Not started |
+| `AC-sc-prompt-output-api-success` | `TC-sc-prompt-api-write-happy` | Not started |
+| `AC-sc-prompt-output-api-localhost-only` | `TC-sc-prompt-api-localhost-only` | Not started |
 
 ---
 
@@ -626,10 +636,10 @@
 - **Preconditions**: Running on macOS. The `/shepherd` command is available.
 - **Steps**:
   1. Type `/shepherd somefile.ts` in Claude Code.
-  2. Observe whether the default browser opens.
-- **Expected Result**: The default macOS browser opens with the CRPG URL. The agent uses the `open` command.
+  2. Observe whether a browser window opens.
+- **Expected Result**: If Chrome or Chromium is installed, the CRPG opens in a chromeless app-mode window (no address bar, no tab strip). If neither is installed, the default macOS browser opens the CRPG as a regular tab via the `open` command.
 - **Edge Cases**:
-  - Default browser is not set: `open` command may fail; the agent should report the URL and a warning.
+  - Default browser is not set and Chrome/Chromium not installed: `open` command may fail; the agent should report the URL and a warning.
 
 ---
 
@@ -637,13 +647,13 @@
 
 - **Type**: E2E
 - **Covers**: `AC-sc-cross-platform-open`, `NFR-sc-cross-platform`, `FR-sc-browser-open`
-- **Preconditions**: Running on Linux with `xdg-open` installed. The `/shepherd` command is available.
+- **Preconditions**: Running on Linux. The `/shepherd` command is available.
 - **Steps**:
   1. Type `/shepherd somefile.ts` in Claude Code.
-  2. Observe whether the default browser opens.
-- **Expected Result**: The default Linux browser opens. The agent uses `xdg-open`.
+  2. Observe whether a browser window opens.
+- **Expected Result**: If Chrome or Chromium is installed, the CRPG opens in a chromeless app-mode window (no address bar, no tab strip). If neither is installed, the default Linux browser opens the CRPG as a regular tab via `xdg-open`.
 - **Edge Cases**:
-  - Headless Linux server without `xdg-open`: the agent should report the URL and a warning: `Warning: Could not open the browser automatically. Open the URL above in your browser.` The server is still started and the file is still served.
+  - Headless Linux server without `xdg-open` and no Chrome/Chromium: the agent should report the URL and a warning: `Warning: Could not open the browser automatically. Open the URL above in your browser.` The server is still started and the file is still served.
   - Linux with Wayland vs X11: `xdg-open` should work in both environments.
 
 ---
@@ -655,8 +665,8 @@
 - **Preconditions**: Running on Windows. The `/shepherd` command is available.
 - **Steps**:
   1. Type `/shepherd somefile.ts` in Claude Code.
-  2. Observe whether the default browser opens.
-- **Expected Result**: The default Windows browser opens. The agent uses `cmd /c start`.
+  2. Observe whether a browser window opens.
+- **Expected Result**: If Chrome or Chromium is installed, the CRPG opens in a chromeless app-mode window (no address bar, no tab strip). If neither is installed, the default Windows browser opens the CRPG as a regular tab via `cmd /c start`.
 - **Edge Cases**:
   - N/A (focused platform test).
 
@@ -674,6 +684,62 @@
 - **Expected Result**: Both commands succeed. The `?file=` parameter contains the OS-native path format (`C:\Users\dev\project\main.py`), URL-encoded.
 - **Edge Cases**:
   - UNC paths (e.g., `\\server\share\file.txt`): behavior is unspecified in the product spec; this should be flagged if it fails.
+
+---
+
+### Standalone App Window
+
+---
+
+#### `TC-sc-app-window-chrome`: Opens as app-mode window with Chrome
+
+- **Type**: E2E
+- **Covers**: `AC-sc-standalone-window`, `FR-sc-browser-open`
+- **Preconditions**: Chrome is installed.
+- **Steps**:
+  1. Run `/shepherd <file>`. Observe the opened window.
+- **Expected Result**: CRPG opens in a chromeless window -- no address bar, no tab strip, no browser navigation buttons. The window title is the page title, not a URL.
+- **Edge Cases**:
+  - Chrome is installed but not the default browser: should still use Chrome's `--app` flag for the chromeless window.
+
+---
+
+#### `TC-sc-app-window-chromium-fallback`: Falls back to Chromium if Chrome not installed
+
+- **Type**: E2E
+- **Covers**: `AC-sc-standalone-window`
+- **Preconditions**: Chrome is NOT installed, Chromium IS installed.
+- **Steps**:
+  1. Run `/shepherd <file>`.
+- **Expected Result**: CRPG opens in a Chromium app-mode window (same chromeless appearance).
+- **Edge Cases**:
+  - Multiple Chromium-based browsers installed (e.g., Brave, Edge): the agent should prefer Chromium over other Chromium-based browsers for app-mode consistency.
+
+---
+
+#### `TC-sc-app-window-browser-fallback`: Falls back to default browser if no Chrome/Chromium
+
+- **Type**: E2E
+- **Covers**: `AC-sc-standalone-window`, `FR-sc-browser-open`
+- **Preconditions**: Neither Chrome nor Chromium is installed.
+- **Steps**:
+  1. Run `/shepherd <file>`.
+- **Expected Result**: CRPG opens in the default browser as a regular tab. No error.
+- **Edge Cases**:
+  - Default browser is also a Chromium-based browser (e.g., Edge): the fallback should still open as a regular tab, not attempt `--app` mode on an untested browser.
+
+---
+
+#### `TC-sc-app-window-subsequent`: Subsequent invocation reuses or opens new app window
+
+- **Type**: E2E
+- **Covers**: `AC-sc-standalone-window`
+- **Preconditions**: Chrome installed, CRPG already open in app-mode window.
+- **Steps**:
+  1. Run `/shepherd <another-file>`.
+- **Expected Result**: New file loads in the browser (new window or URL navigation). No duplicate windows pile up.
+- **Edge Cases**:
+  - Running `/shepherd` with the same file that's already open: should not create a second window or error.
 
 ---
 
@@ -725,6 +791,211 @@
 - **Expected Result**: Zero outbound network connections are made. The server only listens for inbound connections on `127.0.0.1`. No DNS lookups, no HTTP requests to external services, no telemetry, no update checks.
 - **Edge Cases**:
   - Vite may perform HMR-related operations during development, but these should be limited to the localhost WebSocket connection.
+
+---
+
+### Prompt Feedback Loop -- API
+
+---
+
+#### `TC-sc-prompt-api-write-happy`: POST /api/prompt-output writes file
+
+- **Type**: Unit
+- **Covers**: `FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success`
+- **Preconditions**: Vite dev server running. `~/.shepherd/` directory exists.
+- **Steps**:
+  1. Send `POST /api/prompt-output` with text body "test prompt content" from localhost.
+  2. Inspect the response status.
+  3. Read the file at `~/.shepherd/prompt-output.md`.
+- **Expected Result**: Response status is 200. The file `~/.shepherd/prompt-output.md` exists with content "test prompt content".
+- **Edge Cases**:
+  - Empty body: should still write the file (with empty content) and return 200.
+  - Very large body (1 MB of text): should write successfully.
+
+---
+
+#### `TC-sc-prompt-api-creates-dir`: API creates ~/.shepherd/ directory if missing
+
+- **Type**: Unit
+- **Covers**: `FR-sc-prompt-output-api`
+- **Preconditions**: Vite dev server running. `~/.shepherd/` directory does NOT exist (renamed or removed temporarily for this test).
+- **Steps**:
+  1. Ensure `~/.shepherd/` does not exist.
+  2. Send `POST /api/prompt-output` with text body "test content" from localhost.
+  3. Inspect the response status and filesystem.
+- **Expected Result**: Response status is 200. The `~/.shepherd/` directory was created. The file `~/.shepherd/prompt-output.md` exists with content "test content".
+- **Edge Cases**:
+  - Parent directory (`~/`) always exists, so this only tests creation of the `.shepherd` subdirectory.
+
+---
+
+#### `TC-sc-prompt-api-overwrites`: API overwrites existing output file
+
+- **Type**: Unit
+- **Covers**: `FR-sc-prompt-output-api`
+- **Preconditions**: Vite dev server running. `~/.shepherd/prompt-output.md` already exists with content "old content".
+- **Steps**:
+  1. Send `POST /api/prompt-output` with text body "new content" from localhost.
+  2. Read the file at `~/.shepherd/prompt-output.md`.
+- **Expected Result**: Response status is 200. File content is "new content" (the old content is fully replaced).
+- **Edge Cases**:
+  - N/A (focused test).
+
+---
+
+#### `TC-sc-prompt-api-localhost-only`: API rejects non-localhost requests
+
+- **Type**: Unit
+- **Covers**: `AC-sc-prompt-output-api-localhost-only`
+- **Preconditions**: Vite dev server running.
+- **Steps**:
+  1. Send `POST /api/prompt-output` with an `Origin` header set to `http://evil.com` and text body "malicious content".
+  2. Inspect the response status.
+  3. Check that `~/.shepherd/prompt-output.md` was NOT written (or not overwritten if it existed).
+- **Expected Result**: Response status is 403. The file is not written.
+- **Edge Cases**:
+  - `Origin: http://localhost:9999` (different port but still localhost): should be accepted.
+  - `Origin: http://127.0.0.1:<port>` (IP address form): should be accepted.
+  - No `Origin` header (same-origin request): should be accepted.
+  - `Origin: http://localhost.evil.com`: should be rejected.
+
+---
+
+#### `TC-sc-prompt-api-method-check`: API rejects non-POST methods
+
+- **Type**: Unit
+- **Covers**: `FR-sc-prompt-output-api`
+- **Preconditions**: Vite dev server running.
+- **Steps**:
+  1. Send `GET /api/prompt-output` from localhost.
+  2. Inspect the response status.
+- **Expected Result**: Response status is 405 or another appropriate error (not 200). The file is not written.
+- **Edge Cases**:
+  - `PUT /api/prompt-output`: should also be rejected.
+  - `DELETE /api/prompt-output`: should also be rejected.
+
+---
+
+#### `TC-sc-prompt-api-no-collision`: Prompt API and file API don't interfere
+
+- **Type**: Integration
+- **Covers**: `FR-sc-prompt-output-api`, `FR-sc-file-api`
+- **Preconditions**: Vite dev server running. A valid text file exists at a known path.
+- **Steps**:
+  1. Send `GET /api/file?path=<url-encoded-path>` from localhost.
+  2. Inspect the response (should be 200 with file content).
+  3. Send `POST /api/prompt-output` with text body "prompt text" from localhost.
+  4. Inspect the response (should be 200).
+  5. Send `GET /api/file?path=<url-encoded-path>` again.
+  6. Inspect the response (should be 200 with same file content as step 2).
+- **Expected Result**: Both endpoints work correctly and independently. The file API returns the correct file content before and after the prompt API is called. The prompt API writes its own file without affecting the file API.
+- **Edge Cases**:
+  - Calling both endpoints concurrently: both should succeed without interference.
+
+---
+
+### Prompt Feedback Loop -- Watcher
+
+---
+
+#### `TC-sc-watcher-detects-file`: Watcher detects prompt output file
+
+- **Type**: Integration
+- **Covers**: `FR-sc-prompt-receive`, `AC-sc-prompt-received`
+- **Preconditions**: The watcher script/polling loop is running. `~/.shepherd/prompt-output.md` does NOT exist.
+- **Steps**:
+  1. Write content "Test prompt from CRPG" to `~/.shepherd/prompt-output.md`.
+  2. Wait up to 2 seconds.
+  3. Observe the watcher output.
+- **Expected Result**: The watcher detects the file within 2 seconds (1-second polling interval + processing time). The watcher outputs the file content ("Test prompt from CRPG"). The file is deleted after being read.
+- **Edge Cases**:
+  - File appears then disappears before watcher polls: this is a race condition; the watcher should handle "file not found" gracefully (retry on next poll).
+
+---
+
+#### `TC-sc-watcher-cleanup-stale`: Stale file cleaned up before watcher starts
+
+- **Type**: Unit
+- **Covers**: `FR-sc-prompt-cleanup`, `AC-sc-prompt-cleanup-stale`
+- **Preconditions**: `~/.shepherd/prompt-output.md` exists from a previous session (stale file).
+- **Steps**:
+  1. Run the stale cleanup command (`rm -f ~/.shepherd/prompt-output.md`) as part of the watcher startup sequence.
+  2. Verify the file no longer exists.
+  3. Start the watcher.
+  4. Observe the watcher state.
+- **Expected Result**: The stale file is deleted. The watcher starts fresh and waits for a new file to appear. It does NOT process the stale file as if it were a new prompt.
+- **Edge Cases**:
+  - No stale file exists: cleanup should be a no-op (no error from `rm -f`).
+  - `~/.shepherd/` directory does not exist: cleanup should not error.
+
+---
+
+#### `TC-sc-watcher-timeout`: Watcher times out after configured period
+
+- **Type**: Integration
+- **Covers**: `AC-sc-prompt-watcher-timeout`, `NFR-sc-watcher-low-overhead`
+- **Preconditions**: Watcher running with a short timeout (e.g., 5 seconds for testing purposes instead of the full 30 minutes).
+- **Steps**:
+  1. Start the watcher with a 5-second timeout.
+  2. Do NOT create the `~/.shepherd/prompt-output.md` file.
+  3. Wait for the timeout to expire.
+  4. Observe the watcher output.
+- **Expected Result**: The watcher exits gracefully with a timeout message after 5 seconds. No crash occurs. No zombie processes remain.
+- **Edge Cases**:
+  - File appears 1 second before timeout: watcher should still detect and process it (the file check happens before the timeout check in each iteration).
+  - File appears exactly at timeout boundary: behavior may vary; either detection or timeout is acceptable.
+
+---
+
+#### `TC-sc-watcher-deletes-after-read`: Watcher deletes file after reading
+
+- **Type**: Integration
+- **Covers**: `FR-sc-prompt-receive`
+- **Preconditions**: Watcher is running.
+- **Steps**:
+  1. Write "prompt content" to `~/.shepherd/prompt-output.md`.
+  2. Wait for the watcher to detect and process the file.
+  3. Check if `~/.shepherd/prompt-output.md` still exists.
+- **Expected Result**: The file is deleted after being read. The watcher output contains "prompt content". Subsequent watcher polls do not re-process the same content.
+- **Edge Cases**:
+  - File deletion fails (e.g., permissions changed): the watcher should still output the content but may log a warning about the failed deletion.
+
+---
+
+### Prompt Feedback Loop -- End-to-End
+
+---
+
+#### `TC-sc-feedback-loop-e2e`: Full feedback loop from Done click to agent
+
+- **Type**: E2E
+- **Covers**: `FR-sc-prompt-receive`, `FR-sc-prompt-output-api`, `FR-crp-done-action`, `FR-crp-prompt-handoff`, `AC-sc-prompt-received`
+- **Preconditions**: The `/shepherd` command has been run. The CRPG is open with a file loaded via `?file=` URL param. The watcher is running (started by the slash command). A comment has been added.
+- **Steps**:
+  1. Add a comment in the CRPG (e.g., "Rename this variable").
+  2. Click the Done button.
+  3. Observe the CRPG UI (button state, toast).
+  4. Observe the watcher/agent output.
+  5. Check that the file `~/.shepherd/prompt-output.md` is cleaned up.
+- **Expected Result**: The CRPG sends a POST to `/api/prompt-output` with the generated prompt. The server writes the prompt to `~/.shepherd/prompt-output.md`. The watcher detects the file, reads its content, outputs the prompt, and deletes the file. The CRPG shows "Sent ✓" and the success toast. The full loop completes without manual intervention.
+- **Edge Cases**:
+  - Watcher detects the file before the CRPG receives the 200 response: this is fine -- the file write is what matters, not the HTTP response timing.
+
+---
+
+#### `TC-sc-feedback-loop-resend`: Can send multiple prompts in one session
+
+- **Type**: E2E
+- **Covers**: `FR-sc-prompt-receive`, `FR-crp-done-action`
+- **Preconditions**: Same as `TC-sc-feedback-loop-e2e`. The first Done was successful and the watcher consumed the file.
+- **Steps**:
+  1. Add another comment in the CRPG.
+  2. Observe the Done button (should have reverted to "Done" after the comment was added).
+  3. Click Done again.
+  4. Observe the watcher/agent output.
+- **Expected Result**: A new prompt (including the new comment) is sent via POST. A new file is written. A new watcher instance (or the continued watcher loop) detects and processes the new file. The previous output does not interfere.
+- **Edge Cases**:
+  - Rapid successive Done clicks across multiple edits: each should be treated independently.
 
 ---
 
@@ -892,6 +1163,10 @@ The slash command introduces changes to the existing CRPG web application and ad
 
 3. **Vite dev server configuration**: Adding the `fileApiPlugin` to `vite.config.ts` could potentially interfere with existing middleware or routing. **Regression test**: `TC-sc-auto-load-no-param` and general CRPG E2E tests should be run to ensure no regressions.
 
+4. **Prompt output API and file API coexistence**: Adding the `/api/prompt-output` POST endpoint could interfere with the existing `/api/file` GET endpoint if route matching is not specific enough. **Regression test**: `TC-sc-prompt-api-no-collision` verifies both endpoints work independently.
+
+5. **Watcher polling and file cleanup**: The file watcher uses simple polling with file deletion. If the cleanup logic has bugs, stale files could trigger false prompts on the next session. **Regression test**: `TC-sc-watcher-cleanup-stale` verifies stale files are removed before the watcher starts.
+
 ### Recommended regression suite
 
 Run the following test cases as a minimum regression suite after any slash command changes:
@@ -913,3 +1188,11 @@ Also run the existing CRPG regression suite from `qa/code-review-prompt.md`:
 - `TC-crp-generate-prompt-structure-happy`
 - `TC-crp-copy-clipboard-happy`
 - `TC-crp-clear-confirmation-confirm-clears`
+
+And the prompt feedback loop tests:
+- `TC-sc-prompt-api-write-happy` (prompt output API works)
+- `TC-sc-prompt-api-localhost-only` (security check works for prompt API)
+- `TC-sc-prompt-api-no-collision` (prompt API doesn't break file API)
+- `TC-sc-watcher-detects-file` (watcher detects prompt file)
+- `TC-sc-watcher-cleanup-stale` (stale file cleanup works)
+- `TC-sc-feedback-loop-e2e` (full end-to-end feedback loop)

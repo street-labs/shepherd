@@ -3,8 +3,9 @@
 import type { Plugin } from 'vite';
 import type { ServerResponse, IncomingMessage } from 'http';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
-import { execFileSync } from 'child_process';
+import { execFile, execFileSync } from 'child_process';
 
 const BINARY_CHECK_BYTES = 8192;
 
@@ -155,10 +156,66 @@ function handleHeadRequest(_req: IncomingMessage, res: ServerResponse, url: URL)
   res.end(content);
 }
 
+// Implements: FR-sc-prompt-feedback
+
+/** Best-effort: activate the user's terminal app after writing the prompt file. */
+function activateTerminal() {
+  if (process.platform !== 'darwin') return;
+
+  // The server process inherits TERM_PROGRAM from the terminal that launched it.
+  // Map its value to the macOS app name that `open -a` expects.
+  const termProgram = process.env.TERM_PROGRAM;
+  if (!termProgram) return;
+
+  const appNames: Record<string, string> = {
+    'iTerm.app': 'iTerm',
+    'Apple_Terminal': 'Terminal',
+    'WarpTerminal': 'Warp',
+    'Hyper': 'Hyper',
+    'Alacritty': 'Alacritty',
+    'kitty': 'kitty',
+    'vscode': 'Visual Studio Code',
+  };
+
+  const appName = appNames[termProgram] ?? termProgram;
+  execFile('open', ['-a', appName], { timeout: 3000 }, () => {
+    // fire-and-forget — ignore errors
+  });
+}
+
+function handlePromptOutput(req: IncomingMessage, res: ServerResponse) {
+  const chunks: Buffer[] = [];
+  req.on('data', (chunk: Buffer) => chunks.push(chunk));
+  req.on('end', () => {
+    const body = Buffer.concat(chunks).toString('utf-8');
+
+    const homeDir = os.homedir();
+    const shepherdDir = path.join(homeDir, '.shepherd');
+    const outputPath = path.join(shepherdDir, 'prompt-output.md');
+
+    try {
+      fs.mkdirSync(shepherdDir, { recursive: true });
+      fs.writeFileSync(outputPath, body, 'utf-8');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+      activateTerminal();
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `Failed to write prompt output: ${(err as Error).message}` }));
+    }
+  });
+}
+
 export function fileApiPlugin(): Plugin {
   return {
     name: 'shepherd-file-api',
     configureServer(server) {
+      // Prompt output endpoint (must be registered before /api/file middleware)
+      server.middlewares.use((req, res, next) => {
+        if (req.url !== '/api/prompt-output' || req.method !== 'POST') return next();
+        handlePromptOutput(req, res);
+      });
+
       server.middlewares.use((req, res, next) => {
         if (!req.url?.startsWith('/api/file')) return next();
 

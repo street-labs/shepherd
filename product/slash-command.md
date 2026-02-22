@@ -25,6 +25,9 @@ The slash command is distributed as a command file in the Shepherd repository (`
 ### US-SC-5: Launch without worrying about the server lifecycle
 **As a** developer, **I want** the command to handle starting and stopping the local server for me, **so that** I do not need to manually manage a dev server or build process.
 
+### US-SC-6: Receive the prompt back automatically after annotation
+**As a** developer, **I want** the prompt I create in the CRPG to automatically return to my agent conversation when I click Done, **so that** I don't have to copy-paste between the browser and terminal.
+
 ## Requirements
 
 ### Functional Requirements
@@ -45,8 +48,8 @@ Before launching the CRPG, the command validates the target file:
 #### `FR-sc-app-serve` -- Serve the CRPG web application
 The command instructs the agent to start the Vite dev server (`pnpm dev`) in the Shepherd repository if it is not already running. The agent detects a running instance by checking whether the expected port is responding. If the server is already running, it is reused. The server binds to `localhost` and the port is communicated to the browser URL. No pre-built assets or standalone server binary is required — the user must have the repo cloned.
 
-#### `FR-sc-browser-open` -- Open the CRPG in the user's browser
-After the server is running, the command opens the CRPG in the user's default browser. The URL includes a query parameter that tells the app which file to load (e.g., `http://localhost:<port>?file=<encoded-path>`). If the browser is already open to the CRPG from a previous invocation, the new file replaces the previously loaded file.
+#### `FR-sc-browser-open` -- Open the CRPG in a standalone app window
+After the server is running, the command opens the CRPG in a standalone app-mode browser window (not a regular browser tab). The URL includes a query parameter that tells the app which file to load (e.g., `http://localhost:<port>?file=<encoded-path>`). App-mode windows have no address bar, tabs, or browser chrome — they look and feel like a standalone application. The command attempts to open in app mode using Chrome/Chromium's `--app` flag; if Chrome is not available, it falls back to opening in the default browser as a regular tab. If the CRPG app window is already open from a previous invocation, the new file replaces the previously loaded file.
 
 #### `FR-sc-auto-load-file` -- Automatically load the file in the CRPG
 When the CRPG web app starts (or is already open) and receives a file path via the URL query parameter, it reads the file from the local filesystem via the local server and loads it into the code viewer. The file name displayed in the UI is derived from the file path (the basename). The language detection and syntax highlighting follow the existing behavior defined in `FR-crp-syntax-highlight`. The app clears any existing session (file, comments, preamble) when a new file is loaded via the slash command, without requiring confirmation even if comments exist. This is intentional: the slash command is a "start fresh with this file" operation.
@@ -68,16 +71,25 @@ After a successful launch, the command outputs a brief confirmation message to t
 
 Error messages are written to stderr. Success messages are written to stdout.
 
+#### `FR-sc-prompt-receive` -- Receive prompt back from CRPG
+After launching the CRPG, the slash command instructs the agent to wait for the user to finish annotating. The agent runs a blocking watcher that monitors for the prompt output file (`~/.shepherd/prompt-output.md`). When the file appears (written by the CRPG's Done action per `FR-crp-done-action`), the agent reads its contents and receives the complete generated prompt. The watcher then deletes the output file to prevent stale data. The watcher has a configurable timeout (default: 30 minutes) after which it exits with a message that the user can still paste the prompt manually.
+
+#### `FR-sc-prompt-output-api` -- Prompt output API endpoint
+The local server exposes `POST /api/prompt-output` that accepts the generated prompt text in the request body and writes it to `~/.shepherd/prompt-output.md`. The endpoint creates the `~/.shepherd/` directory if it doesn't exist. The endpoint only accepts requests from localhost (same security model as `FR-sc-file-api`). The endpoint overwrites any existing file at that path (in case of stale output from a previous session).
+
+#### `FR-sc-prompt-cleanup` -- Cleanup of stale output files
+On startup, the slash command checks for and removes any existing `~/.shepherd/prompt-output.md` file before starting the watcher. This prevents the watcher from immediately picking up stale output from a previous session.
+
 ### Non-Functional Requirements
 
 #### `NFR-sc-launch-speed` -- Fast launch time
-The time from invoking `/shepherd <filepath>` to the browser tab opening must be under 3 seconds when the Vite dev server is already running. The file should be visible in the code viewer within 5 seconds total (including browser render time). These targets assume a warm filesystem cache and a reasonably modern machine. If the dev server needs to be started, initial launch will be longer.
+The time from invoking `/shepherd <filepath>` to the app window opening must be under 3 seconds when the Vite dev server is already running. The file should be visible in the code viewer within 5 seconds total (including browser render time). These targets assume a warm filesystem cache and a reasonably modern machine. If the dev server needs to be started, initial launch will be longer.
 
 #### `NFR-sc-no-global-deps` -- No global dependencies beyond Node.js
 The slash command must not require any global dependencies beyond Node.js (v18+). It must not require the user to have Vite, React, or any other tool installed globally. All dependencies are installed locally via the repo's `node_modules`.
 
 #### `NFR-sc-cross-platform` -- Cross-platform support
-The slash command must work on macOS, Linux, and Windows. Browser-opening behavior uses the platform-appropriate mechanism (`open` on macOS, `xdg-open` on Linux, `start` on Windows).
+The slash command must work on macOS, Linux, and Windows. App-mode window opening uses Chrome/Chromium's `--app` flag where available, with platform-appropriate fallbacks (`open` on macOS, `xdg-open` on Linux, `start` on Windows) when Chrome is not installed.
 
 #### `NFR-sc-localhost-only` -- Localhost-only server binding
 The local server must bind exclusively to `127.0.0.1` (localhost). It must not be accessible from other machines on the network. This prevents accidental exposure of local file contents over the network.
@@ -88,10 +100,16 @@ The slash command and its local server must not make any outbound network reques
 #### `NFR-sc-minimal-footprint` -- Minimal disk and memory footprint
 The running Vite dev server process should use less than 100 MB of memory. This is a target guideline, not a hard limit. Disk footprint is governed by the repo and its `node_modules`.
 
+#### `NFR-sc-watcher-low-overhead` -- Low-overhead file watcher
+The file watcher that monitors for the prompt output file must use minimal system resources. A simple polling loop with 1-second sleep intervals is sufficient. No filesystem event libraries (inotify, fsevents) are required.
+
 ## Acceptance Criteria
 
 #### `AC-sc-launch-happy-path` -- Slash command launches CRPG with a file
-**Given** the slash command is installed and a file `src/utils.ts` exists in the current directory, **when** the user types `/shepherd src/utils.ts` in their AI coding agent, **then** the CRPG opens in the default browser with `src/utils.ts` loaded in the code viewer, syntax highlighted as TypeScript, with the file name "utils.ts" displayed.
+**Given** the slash command is installed and a file `src/utils.ts` exists in the current directory, **when** the user types `/shepherd src/utils.ts` in their AI coding agent, **then** the CRPG opens in a standalone app-mode browser window with `src/utils.ts` loaded in the code viewer, syntax highlighted as TypeScript, with the file name "utils.ts" displayed.
+
+#### `AC-sc-standalone-window` -- CRPG opens as a standalone app window
+**Given** Chrome or Chromium is installed, **when** the user runs `/shepherd <filepath>`, **then** the CRPG opens in a chromeless app-mode window (no address bar, no tabs, no browser navigation chrome). If Chrome is not available, the CRPG falls back to opening in the default browser as a regular tab.
 
 #### `AC-sc-absolute-path` -- Absolute paths are accepted
 **Given** a file exists at `/Users/dev/project/main.py`, **when** the user types `/shepherd /Users/dev/project/main.py`, **then** the CRPG opens with that file loaded, regardless of the current working directory.
@@ -126,8 +144,23 @@ The running Vite dev server process should use less than 100 MB of memory. This 
 #### `AC-sc-session-clear-on-new-file` -- New file via slash command clears existing session
 **Given** the CRPG is already open with a file loaded and comments added, **when** the user runs `/shepherd another-file.ts`, **then** the previous file, all comments, and the preamble are cleared, and the new file is loaded without any confirmation dialog.
 
-#### `AC-sc-cross-platform-open` -- Browser opens on all supported platforms
-**Given** the slash command is installed on macOS, Linux, or Windows, **when** the user runs `/shepherd <filepath>`, **then** the CRPG opens in the platform's default browser using the appropriate mechanism for that OS.
+#### `AC-sc-cross-platform-open` -- App window opens on all supported platforms
+**Given** the slash command is installed on macOS, Linux, or Windows, **when** the user runs `/shepherd <filepath>`, **then** the CRPG opens in an app-mode window using the platform-appropriate mechanism. Falls back to the default browser if app-mode is not available.
+
+#### `AC-sc-prompt-received` -- Agent receives prompt automatically after Done
+**Given** the user has launched `/shepherd file.ts` and the agent is waiting (the watcher is running), **when** the user clicks Done in the CRPG, **then** the agent receives the generated prompt text and can proceed to act on it without the user needing to copy-paste.
+
+#### `AC-sc-prompt-watcher-timeout` -- Watcher exits after timeout
+**Given** the watcher has been waiting for 30 minutes without receiving a prompt output file, **then** it exits gracefully and the agent informs the user that the session timed out, with instructions to paste the prompt manually.
+
+#### `AC-sc-prompt-cleanup-stale` -- Stale output file is cleaned up on launch
+**Given** a stale `~/.shepherd/prompt-output.md` file exists from a previous session, **when** the user runs `/shepherd file.ts`, **then** the stale file is deleted before the watcher starts, so the watcher does not pick up old output.
+
+#### `AC-sc-prompt-output-api-success` -- Prompt output API writes file and returns 200
+**Given** the CRPG sends a `POST` to `/api/prompt-output` with the generated prompt text in the request body, **then** the server writes the text to `~/.shepherd/prompt-output.md` and returns HTTP 200.
+
+#### `AC-sc-prompt-output-api-localhost-only` -- Prompt output API rejects non-localhost requests
+**Given** a `POST` to `/api/prompt-output` originates from a non-localhost source, **then** the server rejects it with HTTP 403.
 
 ## Open Questions
 

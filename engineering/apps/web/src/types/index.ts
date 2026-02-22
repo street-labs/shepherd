@@ -170,4 +170,8 @@ export interface DiffState {
   diffSelectedRange: { startIndex: number; endIndex: number } | null;
   /** Editor state for diff-mode comment editing. */
   diffEditorState: DiffEditorState | null;
+  /** Whether the CRPG is in slash command mode (file loaded via ?file= URL param). */
+  isSlashCommandMode: boolean;
+  /** State of the Done button: idle, sending, or sent. */
+  doneState: 'idle' | 'sending' | 'sent';
 }

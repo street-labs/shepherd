@@ -19,6 +19,7 @@ export function useFileFromUrl(): FileFromUrlState {
   const setFileSource = useAppStore((s) => s.setFileSource);
   const setFilePath = useAppStore((s) => s.setFilePath);
   const setViewMode = useAppStore((s) => s.setViewMode);
+  const setSlashCommandMode = useAppStore((s) => s.setSlashCommandMode);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -41,6 +42,7 @@ export function useFileFromUrl(): FileFromUrlState {
         loadFile(content, fileName, language);
         setFileSource('server');
         setFilePath(filePath);
+        setSlashCommandMode(true);
         // Default to diff view for server-loaded files
         setViewMode('diff');
         setState({ loading: false, error: null });

@@ -151,7 +151,8 @@ All toolbar items update to their active states:
 | **Comment count** | Active | Displays "N comments" (e.g., "3 comments"). Updates live as comments are added/deleted. `FR-crp-comment-count` |
 | **Previous comment** | Enabled when >= 1 comment exists | Navigates to the previous comment in line order. Wraps from first to last. `FR-crp-comment-navigation` |
 | **Next comment** | Enabled when >= 1 comment exists | Navigates to the next comment in line order. Wraps from last to first. `FR-crp-comment-navigation` |
-| **Copy** | Enabled when >= 1 comment exists | Copies prompt to clipboard. `FR-crp-prompt-copy` |
+| **Done** | Only rendered in slash command mode. Enabled when >= 1 comment exists | Sends generated prompt to the agent via POST and copies to clipboard. `FR-crp-done-action`, `FR-crp-prompt-handoff` |
+| **Copy** | Enabled when >= 1 comment exists. Primary style when not in slash command mode; secondary/outlined style when Done is visible | Copies prompt to clipboard. `FR-crp-prompt-copy` |
 | **Clear** | Always enabled when a file is loaded | Clears the session. `FR-crp-clear-session` |
 
 #### States
@@ -163,6 +164,9 @@ All toolbar items update to their active states:
 | **Comment editing** | User opens the inline comment editor | InlineCommentEditor is inserted below the target line(s) in the code viewer. Rest of the code is pushed down. |
 | **Line range selection** | User is selecting a range of lines (`FR-crp-line-range-comment`) | Selected lines are highlighted with a blue background (`#DBEAFE`). Selection indicator shows "Lines N-M selected". |
 | **Prompt copied** | User clicks Copy | A toast notification appears: "Copied to clipboard" for 3 seconds. The Copy button briefly changes label to "Copied!" with a checkmark icon, then reverts after 2 seconds. `AC-crp-copy-clipboard` |
+| **Prompt sent (auto-close)** | User clicks Done in app-mode window (`AC-crp-done-auto-close`) | Done button transitions: "Done" -> "Sending..." (with spinner). On success, `window.close()` is called and the window closes. The user never sees the "Sent" state because the window is gone. |
+| **Prompt sent (fallback)** | User clicks Done but `window.close()` fails (not app-mode) (`AC-crp-done-confirmation`) | Done button transitions: "Done" -> "Sending..." (with spinner) -> "Sent" (green checkmark, disabled). A toast notification appears: "Prompt sent to agent! Switch back to your terminal." The "Sent" state persists until the user modifies comments or preamble, at which point the button resets to "Done". |
+| **Prompt send failed** | Done POST request fails (`AC-crp-done-fallback-clipboard`) | Done button reverts from "Sending..." to "Done". A toast notification appears: "Could not send to agent. Prompt copied to clipboard -- paste it manually." The prompt is still available on the clipboard. |
 | **Large file warning** | File exceeds 10,000 lines (`NFR-crp-large-file-perf`) | A dismissible yellow banner appears at the top of the code viewer: "This file has N lines. Performance may be affected for very large files." Dismissing sets a session-only flag (`largeFileWarningDismissed`). If the user clears and loads another large file, the banner appears again. |
 
 ---
@@ -303,6 +307,45 @@ All toolbar items update to their active states:
 4. User presses `Enter` or `c` to open the InlineCommentEditor for the selected range.
 5. Remainder of the flow follows Flow 5.
 
+### Flow 15: Done -- Send Prompt to Agent (`FR-crp-done-action`, `FR-crp-prompt-handoff`, `AC-crp-done-sends-prompt`, `AC-crp-done-auto-close`, `AC-crp-done-confirmation`)
+
+> This flow applies only in slash command mode (see "Slash Command Mode Detection" below).
+
+1. User finishes annotating lines in the code viewer. At least one inline comment exists.
+2. User clicks the "Done" button in the toolbar (positioned to the left of Copy).
+3. The Done button transitions to its "Sending..." state: the label changes to "Sending..." and a spinner icon replaces the checkmark icon.
+4. Two operations execute in parallel:
+   a. A POST request is sent to `/api/prompt-output` with the generated prompt text as the request body (Content-Type: `text/plain; charset=utf-8`).
+   b. The generated prompt is copied to the system clipboard via `navigator.clipboard.writeText()`.
+5. On POST success (200 response):
+   a. The prompt is on the clipboard (from step 4b).
+   b. The CRPG calls `window.close()` (`AC-crp-done-auto-close`). This is the **primary success path**.
+   c. **If the window closes** (app-mode): Done. The user is back at the terminal -- the last active window before the CRPG opened. The agent has received the prompt via the file watcher (see `design/slash-command.md`, Flow 10).
+   d. **If the window does NOT close** (not in app-mode, or browser security restrictions prevent it): Fall back to the confirmation UI. The Done button transitions to its "Sent" state: label changes to "Sent" with a green checkmark icon. The button becomes disabled (no further clicks). A toast notification appears (success variant): "Prompt sent to agent! Switch back to your terminal." Auto-dismisses after 5 seconds (longer than the standard 3 seconds, since the user needs to read the instruction).
+6. If the fallback confirmation UI is shown (step 5d), the user manually switches back to their terminal.
+7. If the user returns to the CRPG and modifies any comment (add, edit, delete) or changes the preamble, the Done button resets from "Sent" to its normal "Done" state, ready to send again.
+
+### Flow 16: Done -- Error Fallback (`AC-crp-done-fallback-clipboard`)
+
+1. User clicks the "Done" button in the toolbar.
+2. The Done button transitions to its "Sending..." state.
+3. The POST request to `/api/prompt-output` fails (network error, server not running, non-200 response).
+4. The clipboard write may have succeeded or failed independently. If it succeeded, the prompt is on the clipboard.
+5. The Done button reverts to its normal "Done" state (not "Sent", since the handoff failed).
+6. A toast notification appears (warning variant): "Could not send to agent. Prompt copied to clipboard -- paste it manually." Auto-dismisses after 5 seconds.
+7. The user can retry by clicking "Done" again, or manually paste the prompt into their terminal.
+
+#### Slash Command Mode Detection
+
+The CRPG determines whether it is in slash command mode based on how the file was loaded:
+
+- **Slash command mode = true**: The file was loaded via a `?file=` URL parameter (i.e., the `useFileFromUrl` hook successfully fetched a file from the server API). This means the local server is running and the agent is waiting for the prompt.
+- **Slash command mode = false**: The file was loaded via paste, upload, or drag-and-drop (normal standalone usage). No local server is assumed.
+
+When not in slash command mode, the Done button is not rendered at all (`AC-crp-done-standalone-hidden`). The Copy button retains its primary styling and remains the sole action for getting the prompt out of the app.
+
+The mode is tracked as a boolean flag in application state (e.g., `isSlashCommandMode`), set to `true` when `useFileFromUrl` successfully loads a file, and `false` otherwise. Clearing the session (via the Clear button) resets this flag to `false`, returning the app to standalone mode.
+
 ---
 
 ## Component Specs
@@ -380,28 +423,52 @@ The persistent toolbar at the top of the application. Always visible.
   - `commentCount: number` — Total number of comments.
   - `currentCommentIndex: number | null` — Index of the currently focused comment (for navigation display).
   - `hasFile: boolean` — Whether a file is loaded.
+  - `isSlashCommandMode: boolean` — Whether the CRPG was launched via the slash command. Controls Done button visibility.
+  - `doneState: 'idle' | 'sending' | 'sent'` — Current state of the Done button.
+  - `onDone: () => void` — Callback when Done is clicked.
   - `onCopy: () => void`
   - `onClear: () => void`
   - `onPrevComment: () => void`
   - `onNextComment: () => void`
 
 - **Visual Structure**:
+
+  When **not** in slash command mode (standalone):
   ```
   +---[Logo/Title]---[Comment Nav]---[Comment Count]------[Copy][Clear]---+
   ```
+
+  When in **slash command mode**:
+  ```
+  +---[Logo/Title]---[Comment Nav]---[Comment Count]---[Done][Copy][Clear]---+
+  ```
+
   - Left section: Application title "Code Review Prompt Generator" (or abbreviated to "CRPG" on narrower viewports approaching 1024px).
   - Center section: Comment navigation group — `[< Prev]` `Comment 2 of 5` `[Next >]`. The label shows "No comments" when count is 0.
-  - Right section: Action buttons — "Copy" (secondary style), "Clear" (ghost/text style, red on hover for destructive affordance).
+  - Right section: Action buttons. In slash command mode, "Done" (primary/filled style, blue background) appears to the left of "Copy" (secondary/outlined style). In standalone mode, "Done" is not rendered and "Copy" uses primary style. "Clear" always uses ghost/text style, red on hover for destructive affordance.
+
+- **Done Button States** (`FR-crp-done-action`):
+
+  | State | Label | Icon | Style | Clickable |
+  |---|---|---|---|---|
+  | **idle** | "Done" | Checkmark (`check`) | Primary (filled blue `#2563EB`, white text) | Yes (when >= 1 comment) |
+  | **sending** | "Sending..." | Spinner (animated) | Primary (filled blue, white text) | No |
+  | **sent** | "Sent" | Green checkmark | Success (filled green `#16A34A`, white text) | No | _(Fallback only -- in app-mode, the window closes via `window.close()` before this state is shown. This state is only visible when auto-close fails.)_ |
+  | **disabled** | "Done" | Checkmark (muted) | Primary (reduced opacity 0.5) | No |
+
+  The Done button resets from `sent` to `idle` whenever the user adds, edits, or deletes a comment, or modifies the preamble.
 
 - **States**:
 
-  | Application State | Copy | Clear | Navigation |
-  |---|---|---|---|
-  | Empty (no file) | Disabled | Disabled | Disabled |
-  | File loaded, 0 comments | Disabled | Enabled | Disabled |
-  | File loaded, >= 1 comment | Enabled | Enabled | Enabled |
+  | Application State | Done (slash command mode) | Copy | Clear | Navigation |
+  |---|---|---|---|---|
+  | Empty (no file) | Not rendered | Disabled | Disabled | Disabled |
+  | File loaded, 0 comments | Disabled | Disabled | Enabled | Disabled |
+  | File loaded, >= 1 comment | Enabled (idle) | Enabled | Enabled | Enabled |
+  | File loaded, >= 1 comment, NOT slash command mode | Not rendered | Enabled (primary style) | Enabled | Enabled |
 
   **Disabled button tooltips (all states)**:
+  - Done disabled (0 comments): "Add at least one comment"
   - Copy disabled (empty state): "Load a file to get started"
   - Copy disabled (file loaded, 0 comments): "Add at least one comment"
   - Clear disabled (empty state): "No session to clear"
@@ -411,6 +478,7 @@ The persistent toolbar at the top of the application. Always visible.
   - All buttons are focusable with `Tab`.
   - `Enter` or `Space` activates the focused button.
   - Keyboard shortcuts (displayed in button tooltips):
+    - Done: `Cmd+Shift+D` / `Ctrl+Shift+D` (only active in slash command mode)
     - Copy: `Cmd+Shift+C` / `Ctrl+Shift+C`
     - Previous comment: `[`
     - Next comment: `]`
@@ -710,8 +778,9 @@ Ephemeral notification for the clipboard copy confirmation. Implements `AC-crp-c
   - `role="status"` and `aria-live="polite"` for screen reader announcement.
 
 - **Variants**:
-  - `success` — Green checkmark icon. Background: `#1E293B` (dark). Used for "Copied to clipboard".
+  - `success` — Green checkmark icon. Background: `#1E293B` (dark). Used for "Copied to clipboard" and "Prompt sent to agent! Switch back to your terminal." (`AC-crp-done-confirmation`).
   - `error` — Warning triangle icon. Background: `#991B1B` (dark red). Text: `#FFFFFF`. Used for error messages such as "Failed to copy. Try selecting the text manually." or "Syntax highlighting unavailable for this file. Displaying as plain text."
+  - `warning` — Warning triangle icon. Background: `#92400E` (dark amber). Text: `#FFFFFF`. Used for fallback messages such as "Could not send to agent. Prompt copied to clipboard -- paste it manually." (`AC-crp-done-fallback-clipboard`).
   - `info` — Info icon. Background: `#1E293B`. Used for informational messages such as "Loaded [filename]. Only one file can be loaded at a time." (when multiple files are dropped).
 
 ---
@@ -790,6 +859,7 @@ All core workflows are achievable via keyboard:
 | **Delete a comment** | `Tab` to comment bubble, `Tab` to Delete button, `Enter` |
 | **Navigate comments** | `[` for previous, `]` for next |
 | **Copy prompt** | `Cmd+Shift+C` / `Ctrl+Shift+C` |
+| **Send prompt (Done)** | `Cmd+Shift+D` / `Ctrl+Shift+D` (slash command mode only) |
 | **Clear session** | `Tab` to Clear button, `Enter` |
 
 ### Focus Management
@@ -839,6 +909,8 @@ All core workflows are achievable via keyboard:
 | Destructive hover | Darker red | `#B91C1C` |
 | Error background | Pale red | `#FEF2F2` |
 | Error text | Dark red | `#991B1B` |
+| Warning toast background | Dark amber | `#92400E` |
+| Done button sent state | Green | `#16A34A` |
 | Toolbar background | White | `#FFFFFF` |
 | Toolbar border | Light gray | `#E2E8F0` |
 | Code viewer background | White | `#FFFFFF` |
@@ -903,6 +975,8 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-filename-display` | FileHeader within Code Viewer Panel; FileDropZone (paste-mode file name input) |
 | `FR-crp-line-range-comment` | CodeViewer (range selection); Flow 5; Flow 14 |
 | `FR-crp-comment-navigation` | Toolbar (previous/next buttons); Flow 11 |
+| `FR-crp-done-action` | Toolbar Done button; Done Button States table; Flow 15; Slash Command Mode Detection |
+| `FR-crp-prompt-handoff` | Flow 15 (POST to `/api/prompt-output`); Flow 16 (error fallback) |
 
 ### Non-Functional Requirements
 
@@ -940,3 +1014,9 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-comment-navigation-next` | Flow 11; Toolbar navigation buttons |
 | `AC-crp-keyboard-add-comment` | Flow 13; CodeViewer keyboard accessibility |
 | `AC-crp-binary-file-rejected` | FileDropZone error state; Flows 2, 3 (binary check) |
+| `AC-crp-done-sends-prompt` | Flow 15 (POST + clipboard copy in parallel) |
+| `AC-crp-done-auto-close` | Flow 15 step 5b-c (`window.close()` as primary success path); File Loaded Screen "Prompt sent (auto-close)" state |
+| `AC-crp-done-confirmation` | Flow 15 step 5d (fallback when auto-close fails); File Loaded Screen "Prompt sent (fallback)" state |
+| `AC-crp-done-fallback-clipboard` | Flow 16 (error fallback, prompt on clipboard); File Loaded Screen "Prompt send failed" state; ToastNotification warning variant |
+| `AC-crp-done-disabled-no-comments` | Toolbar States table (Done disabled when 0 comments); Done Button States table (disabled state) |
+| `AC-crp-done-standalone-hidden` | Toolbar States table (Done not rendered outside slash command mode); Slash Command Mode Detection |

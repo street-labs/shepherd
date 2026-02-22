@@ -38,7 +38,7 @@ The command file instructs the agent to:
 3. Validate the file: check existence, check it is not a directory, check readability, check for binary content (first 8,192 bytes for null bytes), count lines (`FR-sc-file-validation`, `AC-sc-file-not-found`, `AC-sc-binary-file-rejected`, `AC-sc-permission-denied`, `AC-sc-directory-rejected`).
 4. If lines > 10,000, warn about potential performance degradation (`AC-sc-large-file-warning`).
 5. Check if the Vite dev server is already running by looking for a process listening on port 5173 (or by checking if `http://localhost:5173` responds). If not running, start it with `cd engineering/apps/web && pnpm dev` in the background (`FR-sc-app-serve`).
-6. Open the default browser to `http://localhost:5173?file=<url-encoded-absolute-path>` (`FR-sc-browser-open`).
+6. Open the CRPG in a Chrome/Chromium app-mode window using the platform-specific fallback chain (see [Cross-Platform Browser Opening](#cross-platform-browser-opening) below). Falls back to the default browser if Chrome is not available (`FR-sc-browser-open`, `AC-sc-standalone-window`).
 7. Print the success message with the URL and file info to the conversation (`FR-sc-output-feedback`).
 
 ### Why a Prompt File, Not a Script
@@ -236,14 +236,17 @@ export default defineConfig({
 
 ### Web App State Changes
 
-The existing Zustand store (`engineering/apps/web/src/store/appStore.ts`) requires no changes. The `loadFile` action already accepts `(content, fileName, language)` and resets all session state, which is exactly what the URL-parameter auto-load needs (`AC-sc-session-clear-on-new-file`).
+The existing Zustand store (`engineering/apps/web/src/store/appStore.ts`) is extended with two new state fields and two new actions for the prompt feedback loop. See `../engineering/code-review-prompt.md` section "Done Action & Prompt Handoff" for full details.
 
-The `useFileFromUrl` hook calls `store.loadFile()` on successful API fetch. This:
-- Sets the file content, name, and language.
-- Clears all comments, preamble, and generated prompt.
-- Resets the UI state (editor closed, no focused comment, no selection).
+**New state fields:**
+- `isSlashCommandMode: boolean` -- set to `true` by `useFileFromUrl` after successful URL file load; reset by `clearSession`.
+- `doneState: 'idle' | 'sending' | 'sent'` -- tracks the Done button lifecycle; resets to `'idle'` on comment/preamble changes.
 
-No new store actions are needed. The hook is a consumer of the existing store API.
+**New actions:**
+- `setSlashCommandMode(mode: boolean)` -- called by `useFileFromUrl` hook and `clearSession`.
+- `sendPromptToAgent()` -- POSTs generated prompt to `/api/prompt-output` and copies to clipboard in parallel.
+
+The existing `loadFile` action behavior is unchanged -- it still accepts `(content, fileName, language)` and resets all session state, which is exactly what the URL-parameter auto-load needs (`AC-sc-session-clear-on-new-file`). The `useFileFromUrl` hook now additionally calls `store.setSlashCommandMode(true)` after `store.loadFile()`.
 
 ### Loading and Error State
 
@@ -270,6 +273,195 @@ In all error cases, the FileDropZone remains functional -- the user can manually
 
 ---
 
+## Prompt Feedback Loop
+
+> Implements: `FR-sc-prompt-receive`, `FR-sc-prompt-output-api`, `FR-sc-prompt-cleanup`, `NFR-sc-watcher-low-overhead`
+> See requirements in `../product/slash-command.md`
+> See design in `../design/slash-command.md`
+
+This section covers the mechanism by which the CRPG web app sends the completed prompt back to the Claude Code agent. The handoff uses a file-based approach: the web app POSTs the prompt to a Vite dev server endpoint, the server writes it to a well-known file path, and the slash command's file watcher detects and reads the file.
+
+### Prompt Output API Endpoint
+
+A new route handler is added to the existing Vite plugin at `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`.
+
+#### API Contract
+
+**Request**: `POST /api/prompt-output`
+
+| Header | Value |
+|---|---|
+| `Content-Type` | `text/plain` |
+
+The request body is the generated prompt text (plain text string).
+
+**Response**:
+
+| Status | Condition | Content-Type | Body |
+|---|---|---|---|
+| 200 | Prompt written successfully | `application/json` | `{"status": "ok"}` |
+| 403 | Non-localhost origin | `application/json` | `{"error": "Forbidden"}` |
+| 405 | Non-POST method | `application/json` | `{"error": "Method not allowed"}` |
+| 500 | File write error | `application/json` | `{"error": "Failed to write prompt output"}` |
+
+#### Implementation
+
+```typescript
+server.middlewares.use('/api/prompt-output', async (req, res) => {
+  // Only accept POST
+  if (req.method !== 'POST') {
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
+  }
+
+  // Reuse the same localhost/origin validation as /api/file
+  if (!isLocalhostRequest(req)) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Forbidden' }));
+    return;
+  }
+
+  // Read request body as text (no body-parser dependency)
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  const body = Buffer.concat(chunks).toString('utf-8');
+
+  try {
+    const shepherdDir = path.join(os.homedir(), '.shepherd');
+    fs.mkdirSync(shepherdDir, { recursive: true });
+    const outputPath = path.join(shepherdDir, 'prompt-output.md');
+    fs.writeFileSync(outputPath, body, 'utf-8');
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok' }));
+  } catch (err) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Failed to write prompt output' }));
+  }
+});
+```
+
+Key implementation details:
+- **Localhost validation**: Reuses the same `isLocalhostRequest()` function already implemented for the `GET /api/file` endpoint. This function checks the `Origin` and `Host` headers to ensure the request comes from `127.0.0.1` or `localhost` (`AC-sc-prompt-output-api-localhost-only`).
+- **No body-parser**: The request body is read via Node.js async iteration on the request stream, avoiding any additional npm dependency.
+- **Directory creation**: `fs.mkdirSync(path.join(os.homedir(), '.shepherd'), { recursive: true })` ensures the `~/.shepherd/` directory exists before writing. The `recursive: true` flag is a no-op if the directory already exists.
+- **File write**: `fs.writeFileSync(outputPath, body, 'utf-8')` provides an atomic-ish write. For the expected use case (single writer, single reader), this is sufficient.
+- **Imports**: Uses `os` (for `homedir()`), `path`, and `fs` -- all Node.js built-ins already used by the existing plugin.
+
+### Claude Code Custom Command Changes
+
+> Modifies: `.claude/commands/shepherd.md`
+
+The existing slash command prompt is extended with three additional steps after the browser-open step. These steps implement the prompt feedback loop (`FR-sc-prompt-receive`, `FR-sc-prompt-cleanup`).
+
+After the existing steps (validate file, start server, open browser, print success), add:
+
+**Step 8: Clean up stale prompt output**
+
+```bash
+rm -f ~/.shepherd/prompt-output.md
+```
+
+This ensures any stale file from a previous session does not immediately trigger the watcher (`AC-sc-prompt-cleanup-stale`).
+
+**Step 9: Inform the user**
+
+Print a message to the conversation:
+
+> "The file is loaded in the Code Review Prompt Generator. Annotate your code and click Done when you're finished. I'll wait for your prompt."
+
+This sets expectations that the agent is in a waiting state.
+
+**Step 10: Run the file watcher**
+
+A blocking loop that polls for the existence of `~/.shepherd/prompt-output.md`:
+
+```bash
+i=0; while [ ! -f ~/.shepherd/prompt-output.md ] && [ $i -lt 1800 ]; do sleep 1; i=$((i+1)); done
+if [ -f ~/.shepherd/prompt-output.md ]; then cat ~/.shepherd/prompt-output.md; rm ~/.shepherd/prompt-output.md; else echo "SHEPHERD_TIMEOUT"; fi
+```
+
+The agent interprets the output:
+- **If the file exists** (loop exited because the file appeared, exit is not `SHEPHERD_TIMEOUT`): The output is the prompt text. The agent reads it and proceeds to execute the code review based on the prompt content (`AC-sc-prompt-received`).
+- **If the output is `SHEPHERD_TIMEOUT`** (loop ran for 1800 iterations = 30 minutes): The agent tells the user the session timed out and they can paste the prompt manually from their clipboard (`AC-sc-prompt-watcher-timeout`).
+- **If the command fails for another reason**: The agent tells the user to paste the prompt manually.
+
+#### Cross-Platform Watcher Considerations
+
+The watcher script uses only POSIX shell built-ins (`[`, `sleep`, arithmetic expansion) and standard utilities (`cat`, `rm`), ensuring compatibility across platforms:
+
+- **macOS**: Works natively. No dependency on `timeout` (which requires coreutils/Homebrew).
+- **Linux**: Works natively.
+- **Windows**: The slash command is a markdown prompt, so the Claude Code agent adapts the shell commands to the available shell. On Windows, the file path is `%USERPROFILE%\.shepherd\prompt-output.md` and the agent uses PowerShell equivalents:
+  ```powershell
+  $i=0; while (-not (Test-Path "$env:USERPROFILE\.shepherd\prompt-output.md") -and $i -lt 1800) { Start-Sleep -Seconds 1; $i++ }
+  if (Test-Path "$env:USERPROFILE\.shepherd\prompt-output.md") { Get-Content "$env:USERPROFILE\.shepherd\prompt-output.md"; Remove-Item "$env:USERPROFILE\.shepherd\prompt-output.md" } else { Write-Output "SHEPHERD_TIMEOUT" }
+  ```
+
+The portable POSIX version is preferred in the command file since Claude Code primarily runs on macOS and Linux. The agent can adapt for Windows when it detects a Windows environment (`NFR-sc-watcher-low-overhead`).
+
+#### Watcher Performance
+
+The watcher uses 1-second `sleep` intervals. This means:
+- **CPU overhead**: Negligible. Each iteration is one `stat` syscall (file existence check) plus a 1-second sleep. No inotify/fswatch dependency.
+- **Latency**: Up to 1 second between the file being written and the agent reading it. This is imperceptible to the user who just clicked Done.
+- **Memory**: The watcher runs in the agent's shell session. No background processes, no daemons.
+
+### Cross-Platform Browser Opening
+
+> Implements: `AC-sc-standalone-window`
+
+The slash command opens the CRPG in a Chrome/Chromium **app-mode window** (`--app` flag) rather than a regular browser tab. App-mode windows have no address bar, tabs, or browser chrome -- they look and behave like a standalone application. This also enables `window.close()` to work after the Done action (see `../engineering/code-review-prompt.md`), since the browser permits closing windows that were opened programmatically.
+
+The agent detects the platform (via `uname` on Unix or by recognizing the shell environment on Windows) and uses the appropriate fallback chain. Each chain tries Chrome/Chromium variants first, then falls back to the default system browser (which opens a regular tab).
+
+**macOS:**
+
+```bash
+URL="http://localhost:5173?file=<encoded-path>"
+open -na "Google Chrome" --args --app="$URL" 2>/dev/null || \
+open -na "Google Chrome Canary" --args --app="$URL" 2>/dev/null || \
+open -na "Chromium" --args --app="$URL" 2>/dev/null || \
+open "$URL"
+```
+
+**Linux:**
+
+```bash
+URL="http://localhost:5173?file=<encoded-path>"
+google-chrome --app="$URL" 2>/dev/null || \
+chromium-browser --app="$URL" 2>/dev/null || \
+chromium --app="$URL" 2>/dev/null || \
+xdg-open "$URL"
+```
+
+**Windows (PowerShell):**
+
+```powershell
+$URL = "http://localhost:5173?file=<encoded-path>"
+try { Start-Process chrome -ArgumentList "--app=$URL" -ErrorAction Stop }
+catch { Start-Process $URL }
+```
+
+**Fallback behavior**: If none of the Chrome/Chromium variants are found, the final command in each chain opens the URL in the system's default browser. In this case, the CRPG opens in a regular browser tab. The `window.close()` auto-close behavior will not work in a regular tab (browsers block it), so the CRPG falls back to showing a toast notification instead (see `AC-crp-done-auto-close`).
+
+### Security
+
+The POST endpoint follows the same security model as the existing `GET /api/file`:
+- **Localhost-only**: Origin/Host header validation ensures only requests from `127.0.0.1` or `localhost` are accepted (`AC-sc-prompt-output-api-localhost-only`).
+- **No CORS headers**: Cross-origin requests from other pages are blocked by the browser's same-origin policy.
+- **No outbound network calls**: The server writes to a local file and responds. No external communication.
+
+The output file is written to `~/.shepherd/prompt-output.md`:
+- The `~/.shepherd/` directory is created under the user's home directory, inheriting the home directory's permissions (typically `700` on Unix systems).
+- The file is ephemeral -- it is deleted immediately after the agent reads it.
+- The file contains only the prompt text that the user explicitly chose to send. No secrets or credentials are written.
+
+---
+
 ## Performance Considerations
 
 ### Launch Speed (`NFR-sc-launch-speed`)
@@ -282,8 +474,8 @@ For the Claude Code custom command, the agent overhead adds time for command int
 |---|---|---|
 | File validation | ~5ms | Single `stat` + read 8 KB + line count |
 | Dev server check | ~50ms | HTTP request to localhost:5173 |
-| Browser open | ~200ms | Shell command to open URL |
-| **Total (server already running)** | **~255ms** | Well under 3s budget |
+| Browser open | ~200-600ms | App-mode fallback chain tries Chrome first, then falls back (see [Cross-Platform Browser Opening](#cross-platform-browser-opening)). Each failed attempt adds ~100ms before the next try. |
+| **Total (server already running)** | **~255-855ms** | Well under 3s budget even in worst-case fallback |
 
 If the Vite dev server is not already running, startup adds several seconds (Vite cold start). However, this is a one-time cost per development session, and the developer would typically already have the dev server running.
 
@@ -299,7 +491,7 @@ The file-serving API endpoint reads arbitrary files from the local filesystem. W
 
 2. **No directory listing**: The API only accepts explicit file paths. There is no endpoint for listing directory contents, browsing the filesystem, or discovering files.
 
-3. **No file writing**: The API is read-only. There are no write, delete, or modify endpoints.
+3. **Controlled file writing**: The `POST /api/prompt-output` endpoint writes only to a single well-known path (`~/.shepherd/prompt-output.md`). The path is not user-controllable -- there is no path parameter. The existing `GET /api/file` endpoint remains read-only.
 
 4. **Binary file rejection**: Binary files are rejected before their content is transmitted, preventing accidental exposure of binary secrets (e.g., SSH keys in binary format).
 
@@ -325,6 +517,12 @@ Unit tests for the file API plugin (`fileApiPlugin.ts`) using Vitest:
 | Returns 403 for unreadable file | `FR-sc-file-api`, `AC-sc-permission-denied` |
 | Returns 415 for binary file | `FR-sc-file-api`, `AC-sc-binary-file-rejected` |
 | Rejects non-localhost origin | `NFR-sc-localhost-only` |
+| POST /api/prompt-output writes file to ~/.shepherd/ | `FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success` |
+| POST /api/prompt-output creates ~/.shepherd/ directory if missing | `FR-sc-prompt-output-api` |
+| POST /api/prompt-output rejects non-localhost origin | `AC-sc-prompt-output-api-localhost-only` |
+| POST /api/prompt-output returns 405 for GET requests | `FR-sc-prompt-output-api` |
+| POST /api/prompt-output returns 500 on write error | `FR-sc-prompt-output-api` |
+| GET /api/file still works after adding prompt-output route (regression) | Regression |
 
 ### Web App Integration Tests
 
@@ -338,6 +536,15 @@ Component/integration tests for the `useFileFromUrl` hook and `App.tsx` changes:
 | App clears `?file=` from URL after load | `NFR-crp-no-data-persistence` |
 | Existing session is cleared without confirmation | `AC-sc-session-clear-on-new-file` |
 | App works normally when `?file=` is not present | Regression check |
+| `isSlashCommandMode` set to true after URL file load | `FR-crp-done-action` |
+| `sendPromptToAgent` posts to /api/prompt-output | `FR-crp-prompt-handoff`, `AC-crp-done-sends-prompt` |
+| `sendPromptToAgent` copies to clipboard in parallel | `FR-crp-done-action`, `AC-crp-done-sends-prompt` |
+| `doneState` transitions: idle -> sending -> sent | `AC-crp-done-confirmation` |
+| `doneState` resets to idle on comment change | `FR-crp-done-action` |
+| `doneState` resets to idle on preamble change | `FR-crp-done-action` |
+| Done button hidden when not in slash command mode | `AC-crp-done-standalone-hidden` |
+| Done button disabled when no comments | `AC-crp-done-disabled-no-comments` |
+| Fallback to clipboard on POST failure | `AC-crp-done-fallback-clipboard` |
 
 ### End-to-End Tests
 
@@ -351,6 +558,9 @@ Playwright E2E tests that validate the full flow (these test the Vite plugin pat
 | Navigate to `?file=<binary>` shows error | `AC-sc-binary-file-rejected` |
 | File loaded via URL clears existing session | `AC-sc-session-clear-on-new-file` |
 | Large file loaded via URL shows warning | `AC-sc-large-file-warning` |
+| Done button visible when loaded via URL, click sends prompt to /api/prompt-output | `FR-crp-done-action`, `AC-crp-done-sends-prompt`, `FR-crp-prompt-handoff` |
+| Done button shows sent confirmation after successful send | `AC-crp-done-confirmation` |
+| Done button hidden when file loaded via paste (no URL param) | `AC-crp-done-standalone-hidden` |
 
 ---
 
@@ -395,7 +605,7 @@ New and modified files across the monorepo:
 shepherd/                                 (project root)
   .claude/
     commands/
-      shepherd.md                         NEW -- Claude Code custom slash command
+      shepherd.md                         NEW -- Claude Code custom slash command (includes watcher steps)
 
   scripts/
     install-command.sh                    NEW -- symlink installer for global use
@@ -407,10 +617,14 @@ shepherd/                                 (project root)
         vite.config.ts                    MODIFIED -- add fileApiPlugin
         src/
           App.tsx                          MODIFIED -- integrate useFileFromUrl hook
+          store/
+            appStore.ts                   MODIFIED -- add isSlashCommandMode, doneState, sendPromptToAgent
+          components/
+            Toolbar.tsx                   MODIFIED -- add Done button (conditional, state-driven)
           hooks/
-            useFileFromUrl.ts             NEW -- URL parameter handling hook
+            useFileFromUrl.ts             NEW -- URL parameter handling hook (sets slash command mode)
           vite-plugins/
-            fileApiPlugin.ts              NEW -- Vite dev server file API plugin
+            fileApiPlugin.ts              NEW -- Vite dev server file API plugin (GET /api/file + POST /api/prompt-output)
 ```
 
 ---
@@ -430,6 +644,9 @@ shepherd/                                 (project root)
 | `FR-sc-file-api` | Vite plugin (`fileApiPlugin.ts`); API contract defined in this spec |
 | `FR-sc-install` | Claude Code project-level commands (automatic for in-repo); `scripts/install-command.sh` (symlink for global use) |
 | `FR-sc-output-feedback` | Claude Code command file (prompt instructs agent to print output with URL, file info, and line count) |
+| `FR-sc-prompt-receive` | Claude Code command file (`.claude/commands/shepherd.md`) -- file watcher loop polls for `~/.shepherd/prompt-output.md`, reads and deletes on detection |
+| `FR-sc-prompt-output-api` | Vite plugin (`fileApiPlugin.ts`) -- `POST /api/prompt-output` endpoint; writes request body to `~/.shepherd/prompt-output.md` |
+| `FR-sc-prompt-cleanup` | Claude Code command file -- `rm -f ~/.shepherd/prompt-output.md` before starting watcher |
 
 ### Non-Functional Requirements
 
@@ -438,6 +655,7 @@ shepherd/                                 (project root)
 | `NFR-sc-launch-speed` | Vite dev server typically already running; file validation and browser open are sub-second. Performance budget analysis in this spec. |
 | `NFR-sc-localhost-only` | Vite dev server binds to `127.0.0.1` by default; origin validation in file API plugin |
 | `NFR-sc-no-telemetry` | No outbound network requests in any component |
+| `NFR-sc-watcher-low-overhead` | File watcher uses 1-second `sleep` polling loop; single `stat` syscall per iteration; no inotify/fswatch dependency; no background daemon |
 
 ### Acceptance Criteria
 
@@ -452,3 +670,9 @@ shepherd/                                 (project root)
 | `AC-sc-no-args-usage` | Claude Code command file (prompt handles no-args case) |
 | `AC-sc-large-file-warning` | Claude Code command file (agent warns when lines > 10,000); web app shows large file warning banner (existing behavior in `CodeViewer`) |
 | `AC-sc-session-clear-on-new-file` | `useFileFromUrl` hook calls `store.loadFile()` which resets all state; no confirmation dialog |
+| `AC-sc-prompt-received` | Claude Code command file watcher detects `~/.shepherd/prompt-output.md`, reads contents, deletes file, agent proceeds with prompt |
+| `AC-sc-prompt-watcher-timeout` | Claude Code command file watcher loop exits after 1800 iterations (30 minutes), agent prints timeout message |
+| `AC-sc-prompt-cleanup-stale` | Claude Code command file runs `rm -f ~/.shepherd/prompt-output.md` before starting watcher |
+| `AC-sc-prompt-output-api-success` | Vite plugin `POST /api/prompt-output` returns 200 and writes body to `~/.shepherd/prompt-output.md` |
+| `AC-sc-standalone-window` | Claude Code command file (`.claude/commands/shepherd.md`) -- platform-specific Chrome/Chromium app-mode fallback chain opens CRPG in a standalone window; falls back to default browser if Chrome unavailable |
+| `AC-sc-prompt-output-api-localhost-only` | Vite plugin `POST /api/prompt-output` returns 403 for non-localhost requests (reuses `isLocalhostRequest()` from `GET /api/file`) |

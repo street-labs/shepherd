@@ -21,8 +21,10 @@ This feature spans two surfaces: the agent conversation (Claude Code) and the ex
 
 | Surface | What Changes |
 |---|---|
-| **Agent conversation (Claude Code)** | New -- the `/shepherd` custom command produces output inline in the conversation |
+| **Agent conversation (Claude Code)** | New -- the `/shepherd` custom command produces output inline in the conversation, then enters a waiting state for the prompt feedback loop |
+| **CRPG web app -- Standalone window** | New -- the CRPG opens in a chromeless app-mode browser window (no address bar, no tabs) via Chrome's `--app` flag, rather than a regular browser tab. Falls back to a normal browser tab if Chrome is unavailable. |
 | **CRPG web app -- App root** | Modified -- reads `?file=` query parameter on load and triggers file fetch |
+| **CRPG web app -- Toolbar** | Modified -- Done button appears in slash command mode (see `design/code-review-prompt.md`, Toolbar component spec) |
 | **CRPG web app -- FileDropZone** | Modified -- bypassed when a file is auto-loaded via URL parameter |
 | **CRPG web app -- FileHeader** | Unchanged -- displays the basename from the auto-loaded file path |
 | **CRPG web app -- Toolbar** | Unchanged -- session clear behavior applies when a new file replaces an existing one |
@@ -40,7 +42,7 @@ This feature spans two surfaces: the agent conversation (Claude Code) and the ex
 - `--help` displays the usage message (same content as the no-args output).
 - No other flags or options exist in v1.
 
-When invoked as a slash command in Claude Code (e.g., `/shepherd src/utils.ts`), the agent executes the instructions in the custom command file. The agent validates the file, ensures the Vite dev server is running, and opens the browser with the appropriate URL.
+When invoked as a slash command in Claude Code (e.g., `/shepherd src/utils.ts`), the agent executes the instructions in the custom command file. The agent validates the file, ensures the Vite dev server is running, opens the browser with the appropriate URL, and then enters a **waiting state** where it runs a blocking file watcher for `~/.shepherd/prompt-output.md`. The agent remains blocked until the user clicks "Done" in the CRPG (which writes the prompt to the watched file) or the watcher times out after 30 minutes (`FR-sc-prompt-receive`).
 
 ### Output Format (`FR-sc-output-feedback`)
 
@@ -51,11 +53,32 @@ All output is plain text reported by the agent in the conversation. No colors, n
 ```
 Opened Code Review Prompt Generator at http://localhost:5173
 Loaded: src/utils.ts (142 lines, TypeScript)
+The file is loaded in the Code Review Prompt Generator. Annotate your code and click Done when you're finished. I'll wait for your prompt.
 ```
 
 Output fields:
 - **Line 1**: The full URL where the CRPG is accessible. Always present.
 - **Line 2**: The file that was loaded. Format: `Loaded: <relative-or-original-path> (<line-count> lines, <language>)`. The path shown is the same path the user typed (not the resolved absolute path), so it matches their mental model. The line count is the number of newline-delimited lines. The language is detected from the file extension using the same detection logic as `FR-crp-syntax-highlight`; if unknown, shows "Plain Text".
+- **Line 3**: The waiting message. Tells the user to annotate and click Done, and confirms the agent will wait. Always present after a successful launch.
+
+#### Prompt received (`FR-sc-prompt-receive`)
+
+After the user clicks "Done" in the CRPG and the watcher detects the prompt output file:
+
+```
+Received review prompt (3 comments on src/utils.ts)
+```
+
+Output fields:
+- **Line 1**: Confirmation that the prompt was received. Format: `Received review prompt (<comment-count> comments on <filename>)`. The comment count and filename are extracted from the prompt content.
+
+#### Watcher timeout (`AC-sc-prompt-watcher-timeout`)
+
+If the user does not click Done within 30 minutes:
+
+```
+The annotation session timed out. You can still paste your prompt here -- it should be on your clipboard if you clicked Copy or Done in the tool.
+```
 
 #### Large file warning (`AC-sc-large-file-warning`)
 
@@ -121,7 +144,7 @@ Error messages always show the **resolved absolute path** (after path resolution
 5. Agent checks whether the Vite dev server is already running (e.g., by checking if `http://localhost:5173` responds).
    - If the server is running, reuse it.
    - If the server is not running, start it with `pnpm dev`.
-6. Agent opens the default browser with `http://localhost:5173?file=<url-encoded-absolute-path>` (`FR-sc-browser-open`).
+6. Agent opens a standalone app-mode window with `http://localhost:5173?file=<url-encoded-absolute-path>` (`FR-sc-browser-open`). See Cross-Platform Behavior for the fallback chain.
 7. Agent reports the success output in the conversation.
 8. In the browser, the CRPG app reads the `?file=` query parameter, fetches the file content from `GET /api/file?path=<encoded-path>`, and loads it into the code viewer (`FR-sc-auto-load-file`). Any existing session is cleared without confirmation (`AC-sc-session-clear-on-new-file`).
 
@@ -186,6 +209,29 @@ Error messages always show the **resolved absolute path** (after path resolution
 3. The script creates a symlink at `~/.claude/commands/shepherd.md` pointing to the repo's `.claude/commands/shepherd.md` file.
 4. The `/shepherd` command is now available globally in all Claude Code sessions.
 5. Updates to the command file propagate automatically through the symlink -- when the user runs `git pull`, any changes to `.claude/commands/shepherd.md` are immediately reflected without re-running the install script.
+
+### Flow 10: Prompt Feedback Loop -- Agent Receives Prompt (`FR-sc-prompt-receive`, `FR-sc-prompt-output-api`, `AC-sc-prompt-received`)
+
+1. User types `/shepherd src/utils.ts` in their Claude Code session.
+2. Agent validates the file and opens the CRPG in the browser (existing Flow 1, steps 1-7).
+3. Agent prints: "The file is loaded in the Code Review Prompt Generator. Annotate your code and click Done when you're finished. I'll wait for your prompt."
+4. Agent cleans up any stale prompt output file at `~/.shepherd/prompt-output.md` (`FR-sc-prompt-cleanup`, `AC-sc-prompt-cleanup-stale`).
+5. Agent runs the file watcher -- a blocking shell loop that polls for the existence of `~/.shepherd/prompt-output.md`. The loop checks once per second and exits on one of two conditions: the file appears, or 30 minutes elapse.
+6. User annotates code in the CRPG (minutes pass). The agent conversation is blocked during this time.
+7. User clicks "Done" in the CRPG toolbar.
+8. The CRPG sends a POST request to `/api/prompt-output` with the generated prompt text. The server-side handler writes the prompt content to `~/.shepherd/prompt-output.md` (`FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success`).
+9. On POST success, the CRPG calls `window.close()`. In app-mode, the window closes and focus returns to the terminal (the last active window). If the window cannot be closed (not in app-mode), the CRPG falls back to showing the "Sent" confirmation state (see `design/code-review-prompt.md`, Flow 15).
+10. The watcher detects the file on its next poll iteration (within 1 second). It reads the file contents, outputs them to stdout, and deletes the file.
+11. The agent receives the prompt text from the watcher's stdout. It reports: "Received review prompt (3 comments on src/utils.ts)" and proceeds to act on the prompt content.
+
+### Flow 11: Prompt Feedback Loop -- Timeout (`AC-sc-prompt-watcher-timeout`)
+
+1. User types `/shepherd src/utils.ts` in their Claude Code session.
+2. Agent validates, launches, and enters the waiting state (Flow 10, steps 1-5).
+3. User does not click "Done" within 30 minutes. The user may have closed the browser, gotten distracted, or chosen to copy the prompt manually instead.
+4. The watcher's timeout elapses. The loop exits with a timeout status.
+5. Agent reports: "The annotation session timed out. You can still paste your prompt here -- it should be on your clipboard if you clicked Copy or Done in the tool."
+6. The agent conversation is unblocked. The user can paste the prompt manually or run `/shepherd` again.
 
 ---
 
@@ -271,6 +317,37 @@ The endpoint only accepts requests from the same origin (localhost). The `Origin
 
 The response for a 200 also includes a `X-File-Lines` header with the total line count and a `X-File-Language` header with the detected language (e.g., `TypeScript`, `Python`, `Plain Text`). This allows the CRPG app to display file metadata without parsing the content itself.
 
+### Prompt Output API Endpoint (`FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success`, `AC-sc-prompt-output-api-localhost-only`)
+
+The Vite dev server exposes a prompt output endpoint via the same Vite plugin as the file API. The CRPG web app calls this endpoint when the user clicks "Done" (see `design/code-review-prompt.md`, Flow 15).
+
+```
+POST /api/prompt-output
+```
+
+**Request**:
+- Content-Type: `text/plain; charset=utf-8`
+- Body: The full generated prompt text.
+
+**Responses**:
+
+| Status | Condition | Body |
+|---|---|---|
+| 200 OK | Prompt written successfully | `{"status": "ok"}` as `application/json` |
+| 403 Forbidden | Request not from localhost | `{"error": "Forbidden"}` as `application/json` |
+| 500 Internal Server Error | Failed to write file | `{"error": "Failed to write prompt output"}` as `application/json` |
+
+**Server-side behavior**:
+1. Validate that the request originates from localhost (`127.0.0.1` or `::1`), same as the file API endpoint (`AC-sc-prompt-output-api-localhost-only`).
+2. Read the request body as UTF-8 text.
+3. Ensure the `~/.shepherd/` directory exists (create if needed).
+4. Write the prompt text to `~/.shepherd/prompt-output.md`, overwriting any existing content.
+5. Return 200 with `{"status": "ok"}`.
+
+If the write fails for any reason (permission denied, disk full, etc.), return 500.
+
+---
+
 ### Error Display in the CRPG App
 
 When the `/api/file` endpoint returns an error, the CRPG app displays the error in the FileDropZone's existing `error` variant (defined in `design/code-review-prompt.md`):
@@ -333,17 +410,21 @@ The install script creates a single symlink. No binaries, no npm packages, no gl
 
 ## Cross-Platform Behavior (`NFR-sc-cross-platform`, `AC-sc-cross-platform-open`)
 
-### Browser Opening (`FR-sc-browser-open`)
+### Browser Opening (`FR-sc-browser-open`, `AC-sc-standalone-window`)
 
-The agent uses the platform-appropriate mechanism to open the default browser:
+The agent opens the CRPG in a **standalone app-mode window** -- a chromeless browser window with no address bar, tabs, or browser chrome. This uses Chrome/Chromium's `--app=<url>` flag. If Chrome is not available, the agent falls back through a chain until one succeeds.
 
-| Platform | Mechanism |
-|---|---|
-| macOS | `open <url>` |
-| Linux | `xdg-open <url>` |
-| Windows | `start <url>` (via `cmd /c start`) |
+**Why app-mode**: App-mode windows feel like a standalone tool rather than a website. More importantly, when the user clicks Done and the window closes, focus naturally returns to the terminal -- the last active window before the CRPG opened.
 
-If the browser-open command fails (e.g., `xdg-open` not installed on a headless Linux server), the agent reports the URL and a note:
+| Platform | Primary (app mode) | Fallback |
+|---|---|---|
+| macOS | `open -na "Google Chrome" --args --app=<url>` | Try Chromium, then `open <url>` |
+| Linux | `google-chrome --app=<url>` | Try `chromium --app=<url>`, then `xdg-open <url>` |
+| Windows | `start chrome --app=<url>` | `start <url>` |
+
+The fallback chain is: Chrome app mode -> Chromium app mode -> default browser. Each step is tried only if the previous one fails (e.g., the command is not found or returns an error). The final fallback (default browser) opens a regular browser tab, which still works but does not have the chromeless appearance or the auto-close-on-Done behavior.
+
+If all browser-open attempts fail (e.g., `xdg-open` not installed on a headless Linux server), the agent reports the URL and a note:
 
 ```
 Opened Code Review Prompt Generator at http://localhost:5173
@@ -373,11 +454,14 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-sc-file-resolution` | Command Syntax (relative/absolute); Flow 1 step 3; Flow 8 (absolute path) |
 | `FR-sc-file-validation` | Error Message Format; Flow 1 step 4; Flows 3-6 (error cases) |
 | `FR-sc-app-serve` | Server Management section; Flow 1 step 5-6 |
-| `FR-sc-browser-open` | Flow 1 step 6; Cross-Platform Behavior (browser opening) |
+| `FR-sc-browser-open` | Flow 1 step 6; Cross-Platform Behavior (browser opening, app-mode window, fallback chain) |
 | `FR-sc-auto-load-file` | CRPG Web App Changes -- App Root Component; Flow 1 step 8 |
 | `FR-sc-file-api` | CRPG Web App Changes -- File-Serving API Endpoint |
 | `FR-sc-install` | Installation Flow section |
 | `FR-sc-output-feedback` | Output Format |
+| `FR-sc-prompt-receive` | Command Syntax (waiting state); Flow 10; Output Format -- Prompt received |
+| `FR-sc-prompt-output-api` | Prompt Output API Endpoint section; Flow 10 step 8 |
+| `FR-sc-prompt-cleanup` | Flow 10 step 4 |
 
 ### Non-Functional Requirements
 
@@ -405,4 +489,10 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-sc-server-reuse` | Flow 2 |
 | `AC-sc-install-symlink` | Installation Flow section |
 | `AC-sc-session-clear-on-new-file` | CRPG Web App Changes -- Session Clear on New File |
-| `AC-sc-cross-platform-open` | Cross-Platform Behavior -- Browser Opening |
+| `AC-sc-standalone-window` | Cross-Platform Behavior -- Browser Opening (app-mode window); Interface Inventory; Flow 1 step 6 |
+| `AC-sc-cross-platform-open` | Cross-Platform Behavior -- Browser Opening (platform table, fallback chain) |
+| `AC-sc-prompt-received` | Flow 10 steps 10-11; Output Format -- Prompt received |
+| `AC-sc-prompt-watcher-timeout` | Flow 11; Output Format -- Watcher timeout |
+| `AC-sc-prompt-cleanup-stale` | Flow 10 step 4 |
+| `AC-sc-prompt-output-api-success` | Prompt Output API Endpoint (200 response); Flow 10 step 8 |
+| `AC-sc-prompt-output-api-localhost-only` | Prompt Output API Endpoint (403 response, localhost check) |

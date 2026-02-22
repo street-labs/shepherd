@@ -28,6 +28,9 @@ This bridges the gap between a developer's code review observations and an actio
 ### US-6: Customize the generated prompt
 **As a** developer, **I want to** add a high-level instruction or context preamble to the generated prompt, **so that** I can guide the AI's overall approach in addition to the line-specific comments.
 
+### US-7: Send the prompt back to the AI agent automatically
+**As a** developer, **I want to** click "Done" when I've finished annotating, **so that** the generated prompt is automatically sent back to my AI agent without manual copy-paste.
+
 ## Requirements
 
 ### Functional Requirements
@@ -83,6 +86,12 @@ The generated prompt must follow a consistent, machine-readable structure. The f
 
 The prompt does not include the full file content or line numbers. Instead, each comment is paired directly with the code snippet it references. This ensures the prompt remains accurate even if line numbers shift during editing.
 
+#### `FR-crp-done-action` -- Done action that signals annotation is complete
+When the user clicks "Done", the generated prompt is sent to the local server for handoff back to the AI agent. The prompt is also copied to the system clipboard as a fallback. The Done button is only enabled when at least one inline comment exists (same condition as the Copy button per `FR-crp-prompt-copy`). After a successful send, the CRPG automatically closes its browser window (`window.close()`). If the window cannot be closed (browser security restrictions in non-app-mode windows), the CRPG shows a confirmation state indicating the prompt has been sent and instructs the user to switch back to the terminal. The Done button is only visible when the CRPG is running in slash command mode (served by the local server); when loaded standalone (paste/upload/drag-and-drop), the Done button is not shown and the Copy button remains the primary action.
+
+#### `FR-crp-prompt-handoff` -- Prompt handoff to agent via server
+When the Done action is triggered, the CRPG sends the generated prompt text to the local server via `POST /api/prompt-output`. The request body is the prompt text (the same text that would be copied to the clipboard). The server writes this to a known file location (`~/.shepherd/prompt-output.md`). This endpoint is only available when the CRPG is served by the local server (slash command mode), not when loaded standalone. If the POST fails, the prompt is still copied to the clipboard and the user is informed to paste manually.
+
 #### `FR-crp-clear-session` -- Clear / reset session
 The user can clear the current session (file + all comments + preamble) and return to the initial empty state. The application must ask for confirmation before clearing if any comments exist.
 
@@ -107,7 +116,7 @@ A file under 1,000 lines must render in the viewer within 500ms of being loaded.
 Prompt generation must complete within 300ms for files up to 10,000 lines with up to 200 comments.
 
 #### `NFR-crp-client-only` -- Client-side only architecture
-The entire application must run client-side in the browser with no server-side component required. No file content or comments are sent to any external service. This ensures user code remains private.
+The entire application must run client-side in the browser with no server-side component required. No file content or comments are sent to any external service. This ensures user code remains private. In slash command mode, the CRPG makes same-origin requests to the local dev server for file loading (`FR-sc-file-api`) and prompt handoff (`FR-crp-prompt-handoff`). No data leaves the local machine.
 
 #### `NFR-crp-browser-support` -- Browser compatibility
 The application must work in the latest stable versions of Chrome, Firefox, Safari, and Edge.
@@ -179,6 +188,24 @@ The application is not required to persist sessions across page reloads in this 
 
 #### `AC-crp-binary-file-rejected` -- Binary files are rejected gracefully
 **Given** the application is in the initial empty state, **when** the user attempts to upload a binary file (e.g., an image or compiled executable), **then** the application displays an error message indicating that only text files are supported and does not crash or display garbled content.
+
+#### `AC-crp-done-sends-prompt` -- Done action sends prompt to server and clipboard
+**Given** inline comments exist and the CRPG is running in slash command mode (served by the local server), **when** the user clicks Done, **then** the generated prompt is sent to the server via `POST /api/prompt-output` and written to `~/.shepherd/prompt-output.md`, and the prompt is also copied to the system clipboard.
+
+#### `AC-crp-done-auto-close` -- Window closes automatically after Done succeeds
+**Given** the CRPG is running in an app-mode browser window and the user clicks Done and the handoff succeeds, **then** the browser window closes automatically via `window.close()`, returning focus to the terminal (which was the previously active window). If the window cannot be closed (e.g., opened as a regular browser tab instead of app mode), the CRPG falls back to showing the confirmation state.
+
+#### `AC-crp-done-confirmation` -- Done action shows confirmation state (fallback)
+**Given** the user clicks Done, the prompt handoff succeeds, but the window cannot be auto-closed (not in app-mode), **then** the CRPG shows a confirmation message (e.g., "Prompt sent to agent! Switch back to your terminal.") and the Done button changes to a "Sent" state.
+
+#### `AC-crp-done-fallback-clipboard` -- Done action falls back to clipboard on server failure
+**Given** the user clicks Done but the `POST /api/prompt-output` request fails, **then** the prompt is still copied to the system clipboard and the user sees a message indicating they should paste manually.
+
+#### `AC-crp-done-disabled-no-comments` -- Done button disabled when no comments exist
+**Given** no inline comments exist, **then** the Done button is disabled (same condition as the Copy button).
+
+#### `AC-crp-done-standalone-hidden` -- Done button hidden in standalone mode
+**Given** the CRPG is not running in slash command mode (e.g., loaded via paste/upload/drag-and-drop, no local server), **then** the Done button is not shown. The Copy button remains the primary action.
 
 ## Open Questions
 

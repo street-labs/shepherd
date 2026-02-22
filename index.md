@@ -307,7 +307,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/slash-command.md`
 - **Design**: `design/slash-command.md`
 - **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-browser-open-url`, `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-edge-browser-open-fails`
+- **QA**: `qa/slash-command.md` -> `TC-sc-browser-open-url`, `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-edge-browser-open-fails`, `TC-sc-app-window-chrome`, `TC-sc-app-window-browser-fallback`
 
 ### `FR-sc-auto-load-file`
 - **Defined in**: `product/slash-command.md`
@@ -452,6 +452,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/slash-command.md`
 - **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
 - **QA**: `qa/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`
+
+### `AC-sc-standalone-window`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-app-window-chrome`, `TC-sc-app-window-chromium-fallback`, `TC-sc-app-window-browser-fallback`, `TC-sc-app-window-subsequent`
 
 ### `FR-diff-mode-toggle`
 - **Defined in**: `product/diff-view.md`
@@ -831,6 +837,107 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/shepherd-review.md`
 - **QA**: `qa/shepherd-review.md` -> `TC-sr-install-global-symlink`
 
+### `FR-crp-done-action`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-reset-on-comment-add`, `TC-crp-done-reset-on-comment-edit`, `TC-crp-done-reset-on-comment-delete`, `TC-crp-done-reset-on-preamble-change`, `TC-crp-done-resend-after-failure`, `TC-crp-done-rapid-double-click`, `TC-crp-done-copy-still-works`, `TC-crp-done-auto-close-app-mode`
+
+### `FR-crp-prompt-handoff`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/slash-command.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-happy`
+
+### `AC-crp-done-sends-prompt`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-clipboard-parallel`, `TC-crp-done-auto-close-clipboard`
+
+### `AC-crp-done-confirmation`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-auto-close-fallback`
+
+### `AC-crp-done-auto-close`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-auto-close-app-mode`, `TC-crp-done-auto-close-fallback`, `TC-crp-done-auto-close-clipboard`
+
+### `AC-crp-done-fallback-clipboard`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/lib/clipboard.ts`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-fallback-clipboard`, `TC-crp-done-resend-after-failure`
+
+### `AC-crp-done-disabled-no-comments`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/Toolbar.tsx`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-disabled-no-comments`
+
+### `AC-crp-done-standalone-hidden`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/apps/web/src/store/appStore.ts`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-hidden-standalone`, `TC-crp-done-hidden-after-clear`
+
+### `FR-sc-prompt-receive`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-detects-file`, `TC-sc-watcher-deletes-after-read`, `TC-sc-feedback-loop-e2e`, `TC-sc-feedback-loop-resend`
+
+### `FR-sc-prompt-output-api`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-prompt-api-write-happy`, `TC-sc-prompt-api-creates-dir`, `TC-sc-prompt-api-overwrites`, `TC-sc-prompt-api-localhost-only`, `TC-sc-prompt-api-method-check`, `TC-sc-prompt-api-no-collision`, `TC-sc-feedback-loop-e2e`
+
+### `FR-sc-prompt-cleanup`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-cleanup-stale`
+
+### `NFR-sc-watcher-low-overhead`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-timeout`
+
+### `AC-sc-prompt-received`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-detects-file`, `TC-sc-feedback-loop-e2e`
+
+### `AC-sc-prompt-watcher-timeout`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-timeout`
+
+### `AC-sc-prompt-cleanup-stale`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-cleanup-stale`
+
+### `AC-sc-prompt-output-api-success`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-prompt-api-write-happy`
+
+### `AC-sc-prompt-output-api-localhost-only`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/slash-command.md` -> `TC-sc-prompt-api-localhost-only`
 <!--
 Entry template -- copy this when adding a new slug:
 

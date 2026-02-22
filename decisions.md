@@ -166,6 +166,43 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: Users with `master` or other default branch names will get an error ("No changes found relative to main"). This is a known limitation for v1 and is documented in the product spec's Open Questions.
 **Slug references**: `FR-sr-changeset-detection`, `AC-sr-no-changes`
 
+## 2026-02-21 -- Test decision entry
+**Context**: Testing the merge script.
+**Decision**: This is a test.
+**Alternatives considered**: None.
+**Rationale**: Smoke test.
+**Consequences**: None.
+**Slug references**: N/A
+
+## DEC: File-based handoff for prompt feedback loop
+**Date**: 2026-02-21
+**Context**: The user wanted a way to get the generated prompt from the CRPG back to the Claude Code agent without manual copy-paste. Multiple approaches were considered: (A) file handoff + manual confirm, (B) file-based watcher with blocking script, (C) clipboard + terminal focus switching, (D) SSE/streaming.
+**Decision**: Use file-based handoff with a blocking watcher (Approach B). The CRPG POSTs the prompt to the server, which writes it to `~/.shepherd/prompt-output.md`. The slash command runs a blocking shell script that polls for the file every 1 second. When found, it reads and deletes the file.
+**Rationale**: This is the simplest approach that achieves the "click Done and it just works" experience. The watcher is ~3 lines of portable POSIX shell. No filesystem event libraries, no WebSocket infrastructure, no platform-specific hacks. The 1-second polling interval is a good balance between responsiveness and resource usage. Clipboard copy runs in parallel as a fallback.
+**Alternatives rejected**:
+- Manual confirm (Approach A): Still requires 3 user steps (click Done, switch apps, tell agent). Doesn't meet the user's goal.
+- Clipboard + focus (Approach C): Platform-specific (macOS AppleScript, etc.), fragile (which terminal app?), and still requires manual paste.
+- SSE/streaming (Approach D): More robust than file polling but adds WebSocket/SSE complexity for marginal benefit over a 1-second poll.
+## DEC: Done button visibility conditional on slash command mode
+**Date**: 2026-02-21
+**Context**: The CRPG can be used in two modes: standalone (paste/upload/drag-drop) and slash command mode (launched via `/shepherd`). The Done button only makes sense in slash command mode because there's no agent watcher in standalone mode.
+**Decision**: The Done button is only rendered when `isSlashCommandMode` is true. In standalone mode, Copy remains the primary action. Slash command mode is detected by whether the file was loaded via the `?file=` URL parameter.
+**Rationale**: Showing Done in standalone mode would be confusing — the POST would succeed but nobody would be listening. Hiding it keeps the UI clean and avoids a dead-end action.
+## DEC: 30-minute watcher timeout
+**Date**: 2026-02-21
+**Context**: The file watcher blocks the agent while the user annotates in the browser. Need a timeout to prevent indefinite blocking.
+**Decision**: 30-minute timeout. After timeout, the watcher exits and the agent informs the user they can paste manually.
+**Rationale**: 30 minutes is generous enough for thorough annotation sessions but prevents abandoned watchers from running indefinitely. The clipboard fallback ensures the user can still complete the workflow even after timeout.
+## DEC: App-mode browser window instead of regular tab
+**Date**: 2026-02-22
+**Context**: The CRPG was opening as a regular browser tab. This meant: (1) it mixed in with the user's other tabs, (2) closing it required finding the right tab, and (3) when the user clicked Done, they had to manually switch back to the terminal.
+**Decision**: Open the CRPG using Chrome/Chromium's `--app` flag, which creates a chromeless standalone window. Fall back to the default browser if Chrome is not available.
+**Rationale**: App-mode windows feel like a standalone tool rather than a website. When the window closes (via `window.close()` after Done), focus naturally returns to the terminal — the last active window. This eliminates the "switch back to terminal" step entirely. Chrome is the most common developer browser, so the `--app` flag is widely available. The fallback chain (Chrome → Chromium → default browser) ensures the feature never breaks.
+## DEC: Auto-close window after Done action
+**Date**: 2026-02-22
+**Context**: After clicking Done, the user previously had to manually switch back to the terminal. With the app-mode window, we can close it programmatically.
+**Decision**: After a successful prompt handoff, call `window.close()` to close the CRPG window. Use a 500ms timeout to detect if the close worked; if not, fall back to showing the "Sent" confirmation toast.
+**Rationale**: `window.close()` works in Chrome app-mode windows because they are opened programmatically (via `--app`). In regular browser tabs, `window.close()` is blocked by browser security. The 500ms fallback ensures the user always sees feedback — either the window closes (best case) or they see the toast (fallback). Clipboard copy happens in parallel before the close attempt, so the prompt is always available.
 <!--
 Entry template:
 

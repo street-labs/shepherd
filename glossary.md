@@ -169,6 +169,25 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: Review loop, iteration loop
 **Not to be confused with**: The engineering-QA iteration loop (which is a development process, not a user-facing feature)
 
+## Slash Command Mode
+**Definition**: The operational state of the CRPG when it was launched via the `/shepherd` slash command (i.e., the file was loaded from a `?file=` URL parameter via the local server API). In this mode, the Done button is visible in the toolbar, enabling the prompt feedback loop. The CRPG typically opens in an app-mode browser window (no address bar or tabs). The mode is tracked in the app's state and resets when the session is cleared.
+**Also known as**: Server mode, agent-connected mode
+**Not to be confused with**: Standalone mode (when the CRPG is used via paste/upload/drag-drop without the slash command)
+
+## App-Mode Window
+**Definition**: A browser window opened with Chrome/Chromium's `--app` flag that removes all browser chrome (address bar, tab strip, navigation buttons). The CRPG appears as a standalone application rather than a website. App-mode windows allow `window.close()` to work, enabling auto-close after the Done action. If Chrome is not available, the CRPG falls back to a regular browser tab.
+**Also known as**: Chromeless window, standalone window, app window
+**Not to be confused with**: A regular browser tab (which has address bar, tabs, and does not allow `window.close()`)
+
+## Prompt Handoff
+**Definition**: The mechanism by which the generated prompt is sent from the CRPG web app back to the AI coding agent. The CRPG POSTs the prompt to the local server's `/api/prompt-output` endpoint, which writes it to `~/.shepherd/prompt-output.md`. A file watcher running in the agent's terminal detects the file and feeds its contents back to the agent.
+**Also known as**: Feedback loop, prompt return path
+**Not to be confused with**: Prompt copy (which puts the prompt on the clipboard for manual pasting)
+
+## Prompt Output File
+**Definition**: A temporary file at `~/.shepherd/prompt-output.md` used as the handoff mechanism between the CRPG and the AI agent. Written by the server when the user clicks Done, read by the agent's file watcher, and deleted immediately after reading. Stale files from previous sessions are cleaned up on each new slash command invocation.
+**Also known as**: Output file, handoff file
+**Not to be confused with**: The generated prompt (which is the content written to the file, not the file itself)
 <!--
 Entry template:
 

@@ -27,6 +27,14 @@
 | `AC-crp-comment-navigation-next` | `TC-crp-comment-navigation-next-happy`, `TC-crp-comment-navigation-prev-happy`, `TC-crp-comment-navigation-wrap-around` | Not started |
 | `AC-crp-keyboard-add-comment` | `TC-crp-keyboard-add-comment-happy`, `TC-crp-keyboard-range-select` | Not started |
 | `AC-crp-binary-file-rejected` | `TC-crp-binary-file-rejected-upload`, `TC-crp-binary-file-rejected-drag-drop`, `TC-crp-binary-file-rejected-no-crash` | Not started |
+| `AC-crp-done-sends-prompt` | `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-clipboard-parallel`, `TC-crp-done-auto-close-clipboard` | Not started |
+| `AC-crp-done-auto-close` | `TC-crp-done-auto-close-app-mode`, `TC-crp-done-auto-close-fallback`, `TC-crp-done-auto-close-clipboard` | Not started |
+| `AC-crp-done-confirmation` | `TC-crp-done-happy`, `TC-crp-done-auto-close-fallback` | Not started |
+| `AC-crp-done-fallback-clipboard` | `TC-crp-done-fallback-clipboard`, `TC-crp-done-resend-after-failure` | Not started |
+| `AC-crp-done-disabled-no-comments` | `TC-crp-done-disabled-no-comments` | Not started |
+| `AC-crp-done-standalone-hidden` | `TC-crp-done-hidden-standalone`, `TC-crp-done-hidden-after-clear` | Not started |
+| `FR-crp-done-action` | `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-reset-on-comment-add`, `TC-crp-done-reset-on-comment-edit`, `TC-crp-done-reset-on-comment-delete`, `TC-crp-done-reset-on-preamble-change`, `TC-crp-done-resend-after-failure`, `TC-crp-done-rapid-double-click`, `TC-crp-done-copy-still-works`, `TC-crp-done-auto-close-app-mode` | Not started |
+| `FR-crp-prompt-handoff` | `TC-crp-done-happy` | Not started |
 
 ---
 
@@ -776,6 +784,252 @@
 
 ---
 
+### Done Action & Prompt Handoff
+
+---
+
+#### `TC-crp-done-happy`: Done sends prompt and shows confirmation
+
+- **Type**: E2E
+- **Covers**: `AC-crp-done-sends-prompt`, `AC-crp-done-confirmation`, `FR-crp-done-action`, `FR-crp-prompt-handoff`
+- **Preconditions**: File loaded via slash command mode (`?file=` URL param). At least one comment exists.
+- **Steps**:
+  1. Click the Done button in the toolbar.
+  2. Observe the network request, button state, and window/toast behavior.
+  3. Paste into an external text editor to verify clipboard content.
+- **Expected Result**: A POST request is sent to `/api/prompt-output` with the prompt text as the body. The prompt is also copied to the clipboard. If opened in app-mode window (via Chrome/Chromium `--app` flag), the window closes automatically after POST succeeds (see `TC-crp-done-auto-close-app-mode`). If opened as a regular browser tab, the button changes to "Sending..." then to "Sent ✓" and a toast notification appears: "Prompt sent to agent! Switch back to your terminal." (see `TC-crp-done-auto-close-fallback`).
+- **Edge Cases**:
+  - Done button is positioned to the left of the Copy button, with primary styling (per design spec).
+
+---
+
+#### `TC-crp-done-keyboard-shortcut`: Done triggered via keyboard
+
+- **Type**: E2E
+- **Covers**: `FR-crp-done-action`
+- **Preconditions**: File loaded via slash command mode (`?file=` URL param). At least one comment exists.
+- **Steps**:
+  1. Press `Cmd+Shift+D` (macOS) or `Ctrl+Shift+D` (other platforms).
+  2. Observe the button state and toast notification.
+- **Expected Result**: Same behavior as clicking Done: POST request sent, button transitions through "Sending..." -> "Sent ✓", toast appears, prompt copied to clipboard.
+- **Edge Cases**:
+  - Pressing the shortcut when Done is disabled (no comments): nothing should happen.
+  - Pressing the shortcut when Done is hidden (standalone mode): nothing should happen.
+
+---
+
+#### `TC-crp-done-clipboard-parallel`: Clipboard copy happens in parallel with POST
+
+- **Type**: Integration
+- **Covers**: `AC-crp-done-sends-prompt`
+- **Preconditions**: Slash command mode, comments exist.
+- **Steps**:
+  1. Click Done.
+  2. Verify clipboard content immediately after the POST completes.
+- **Expected Result**: Clipboard contains the same prompt text that was POSTed. The clipboard write is not blocked by or dependent on the POST response.
+- **Edge Cases**:
+  - If clipboard write fails but POST succeeds: the "Sent ✓" state should still show (the primary action succeeded).
+
+---
+
+#### `TC-crp-done-auto-close-app-mode`: Window closes after Done in app-mode
+
+- **Type**: E2E
+- **Covers**: `AC-crp-done-auto-close`, `FR-crp-done-action`
+- **Preconditions**: CRPG opened in app-mode window (via `/shepherd`), comments exist.
+- **Steps**:
+  1. Click Done. Observe what happens after POST succeeds.
+- **Expected Result**: Window closes automatically via `window.close()`. No toast or "Sent" state is shown (user is back at terminal).
+- **Edge Cases**:
+  - If `window.close()` is called but the browser blocks it (e.g., the window was not opened via script): falls back to "Sent ✓" state and toast (see `TC-crp-done-auto-close-fallback`).
+
+---
+
+#### `TC-crp-done-auto-close-fallback`: Toast shown when auto-close fails
+
+- **Type**: E2E
+- **Covers**: `AC-crp-done-auto-close`, `AC-crp-done-confirmation`
+- **Preconditions**: CRPG opened as regular browser tab (not app-mode), comments exist.
+- **Steps**:
+  1. Click Done.
+- **Expected Result**: Window does NOT close. Done button shows "Sent ✓". Toast appears: "Prompt sent to agent! Switch back to your terminal."
+- **Edge Cases**:
+  - Opening CRPG directly by navigating to the URL manually (not via `/shepherd`): should also show the toast fallback since `window.close()` only works for script-opened windows.
+
+---
+
+#### `TC-crp-done-auto-close-clipboard`: Clipboard has prompt even when window auto-closes
+
+- **Type**: Integration
+- **Covers**: `AC-crp-done-auto-close`, `AC-crp-done-sends-prompt`
+- **Preconditions**: CRPG in app-mode, comments exist.
+- **Steps**:
+  1. Click Done. After window closes, check clipboard contents.
+- **Expected Result**: Clipboard contains the generated prompt text (copied in parallel before close).
+- **Edge Cases**:
+  - If clipboard write is slower than the window close: the clipboard write should be initiated before `window.close()` is called. Both operations (POST + clipboard write) happen in parallel, and `window.close()` is called only after POST succeeds.
+
+---
+
+#### `TC-crp-done-reset-on-comment-add`: Done resets after adding a comment
+
+- **Type**: Integration
+- **Covers**: `FR-crp-done-action`
+- **Preconditions**: Slash command mode. Done was clicked and shows "Sent ✓".
+- **Steps**:
+  1. Add a new comment on any line.
+  2. Observe the Done button state.
+- **Expected Result**: Done button reverts to "Done" (idle state), ready to send again.
+- **Edge Cases**:
+  - N/A (focused test).
+
+---
+
+#### `TC-crp-done-reset-on-comment-edit`: Done resets after editing a comment
+
+- **Type**: Integration
+- **Covers**: `FR-crp-done-action`
+- **Preconditions**: Slash command mode. Done was clicked and shows "Sent ✓". At least one comment exists.
+- **Steps**:
+  1. Edit an existing comment's text.
+  2. Observe the Done button state.
+- **Expected Result**: Done button reverts to "Done" (idle state).
+- **Edge Cases**:
+  - N/A (focused test).
+
+---
+
+#### `TC-crp-done-reset-on-comment-delete`: Done resets after deleting a comment
+
+- **Type**: Integration
+- **Covers**: `FR-crp-done-action`
+- **Preconditions**: Slash command mode. Done was clicked and shows "Sent ✓". At least 2 comments exist (so deleting one doesn't disable Done).
+- **Steps**:
+  1. Delete a comment.
+  2. Observe the Done button state.
+- **Expected Result**: Done button reverts to "Done" (idle state).
+- **Edge Cases**:
+  - Deleting the last comment: Done should revert to idle AND become disabled (no comments remain).
+
+---
+
+#### `TC-crp-done-reset-on-preamble-change`: Done resets after preamble change
+
+- **Type**: Integration
+- **Covers**: `FR-crp-done-action`
+- **Preconditions**: Slash command mode. Done was clicked and shows "Sent ✓".
+- **Steps**:
+  1. Modify the preamble text.
+  2. Observe the Done button state.
+- **Expected Result**: Done button reverts to "Done" (idle state).
+- **Edge Cases**:
+  - Clearing the preamble entirely: Done should still revert to idle (the prompt content changed).
+
+---
+
+#### `TC-crp-done-disabled-no-comments`: Done disabled when no comments
+
+- **Type**: Integration
+- **Covers**: `AC-crp-done-disabled-no-comments`
+- **Preconditions**: Slash command mode (`?file=` URL param), no comments exist.
+- **Steps**:
+  1. Observe the Done button in the toolbar.
+  2. Attempt to click the Done button.
+- **Expected Result**: Done button is visible but disabled (grayed out, `aria-disabled="true"`). Clicking it has no effect. No POST request is sent.
+- **Edge Cases**:
+  - Adding a comment after observing the disabled state: Done should become enabled.
+  - Adding a comment then deleting it: Done should return to disabled.
+
+---
+
+#### `TC-crp-done-hidden-standalone`: Done hidden in standalone mode
+
+- **Type**: E2E
+- **Covers**: `AC-crp-done-standalone-hidden`
+- **Preconditions**: File loaded via paste, upload, or drag-and-drop (NOT via `?file=` URL param).
+- **Steps**:
+  1. Load a file using any non-slash-command method.
+  2. Add a comment.
+  3. Observe the toolbar.
+- **Expected Result**: Done button is NOT shown in the toolbar. The Copy button has primary styling. All other toolbar buttons function normally.
+- **Edge Cases**:
+  - The keyboard shortcut `Cmd+Shift+D` / `Ctrl+Shift+D` should have no effect in standalone mode.
+
+---
+
+#### `TC-crp-done-hidden-after-clear`: Done hidden after session clear
+
+- **Type**: E2E
+- **Covers**: `AC-crp-done-standalone-hidden`
+- **Preconditions**: File loaded via slash command mode (`?file=` URL param). Done button is visible.
+- **Steps**:
+  1. Clear the session (click Clear, confirm if prompted).
+  2. Load a new file via paste (standalone mode).
+  3. Observe the toolbar.
+- **Expected Result**: Done button is NOT shown (the app is no longer in slash command mode after clearing and loading a new file manually).
+- **Edge Cases**:
+  - N/A (focused test).
+
+---
+
+#### `TC-crp-done-fallback-clipboard`: Fallback to clipboard on POST failure
+
+- **Type**: E2E
+- **Covers**: `AC-crp-done-fallback-clipboard`
+- **Preconditions**: Slash command mode, comments exist. The server `/api/prompt-output` endpoint is unreachable or returns an error (simulated via Playwright network interception or by stopping the server).
+- **Steps**:
+  1. Click Done.
+  2. Observe the button state, toast notification, and clipboard content.
+- **Expected Result**: Button shows "Sending..." briefly, then reverts to "Done" (idle state, not "Sent ✓"). A toast notification appears: "Could not send to agent. Prompt copied to clipboard -- paste it manually." The clipboard contains the prompt text.
+- **Edge Cases**:
+  - Server returns 500: same fallback behavior.
+  - Network timeout: same fallback behavior (button should not stay in "Sending..." indefinitely).
+
+---
+
+#### `TC-crp-done-resend-after-failure`: Can retry Done after failure
+
+- **Type**: E2E
+- **Covers**: `FR-crp-done-action`
+- **Preconditions**: Previous Done attempt failed (per `TC-crp-done-fallback-clipboard`). The server issue has been resolved.
+- **Steps**:
+  1. Click Done again.
+  2. Observe the button state and toast notification.
+- **Expected Result**: POST succeeds. Button transitions through "Sending..." -> "Sent ✓". Success toast appears.
+- **Edge Cases**:
+  - N/A (focused test).
+
+---
+
+#### `TC-crp-done-rapid-double-click`: Double-clicking Done doesn't send twice
+
+- **Type**: E2E
+- **Covers**: `FR-crp-done-action`
+- **Preconditions**: Slash command mode, comments exist.
+- **Steps**:
+  1. Double-click Done rapidly.
+  2. Monitor network requests.
+- **Expected Result**: Only one POST request is sent to `/api/prompt-output`. The button transitions normally through its states. No duplicate toasts appear.
+- **Edge Cases**:
+  - Triple-clicking: still only one POST.
+
+---
+
+#### `TC-crp-done-copy-still-works`: Copy button still works alongside Done
+
+- **Type**: Integration
+- **Covers**: `FR-crp-done-action`
+- **Preconditions**: Slash command mode, comments exist.
+- **Steps**:
+  1. Click the Copy button (not Done).
+  2. Observe clipboard content, toast, and network requests.
+  3. Observe the Done button state.
+- **Expected Result**: Prompt is copied to clipboard. The "Copied to clipboard" toast appears. No POST request is sent. The Done button is not affected (remains in its current state).
+- **Edge Cases**:
+  - Clicking Copy after Done shows "Sent ✓": Copy should work normally, and Done should remain in "Sent ✓" state.
+
+---
+
 ## Edge Cases & Error Scenarios
 
 This section covers additional edge cases and error conditions not directly mapped to a single AC slug but important for comprehensive coverage.
@@ -1073,6 +1327,8 @@ Since this is a greenfield single-page application with no existing features, tr
 
 6. **Comment order consistency**: The sort-by-startLine-then-createdAt behavior is critical for prompt generation and navigation. Any changes to comment data structures or insertion logic should verify sort order.
 
+7. **Done button and prompt handoff**: Changes to the prompt generation pipeline, clipboard logic, or toolbar layout could break the Done action flow. The Done button's visibility depends on slash command mode detection (`?file=` URL param), so changes to URL handling or the `useFileFromUrl` hook could hide/show the button incorrectly.
+
 ### Recommended regression suite
 
 Run the following test cases as a minimum regression suite before any release:
@@ -1088,3 +1344,6 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-keyboard-add-comment-happy` (keyboard accessibility works)
 - `TC-crp-large-file-scroll-no-jank` (performance holds)
 - `TC-crp-binary-file-rejected-upload` (error handling works)
+- `TC-crp-done-happy` (Done action sends prompt and confirms)
+- `TC-crp-done-hidden-standalone` (Done hidden in standalone mode)
+- `TC-crp-done-fallback-clipboard` (fallback works on server failure)

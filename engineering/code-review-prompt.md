@@ -508,12 +508,124 @@ A 10,000-line file with 100-character average lines is ~1 MB of text. Syntax tok
 
 ---
 
+## Done Action & Prompt Handoff
+
+> Implements: `FR-crp-done-action`, `FR-crp-prompt-handoff`
+> See requirements in `../product/code-review-prompt.md`
+> See design in `../design/code-review-prompt.md`
+
+This section covers the "Done" button feature that sends the generated prompt back to the Claude Code agent via a file-based handoff through the Vite dev server.
+
+### State Management Changes
+
+The existing Zustand store (`src/store/appStore.ts`) gains two new state fields and two new actions.
+
+#### New State Fields
+
+```typescript
+// Added to AppState interface
+isSlashCommandMode: boolean;    // true when file was loaded via ?file= URL param
+doneState: 'idle' | 'sending' | 'sent';  // Done button lifecycle state
+```
+
+- **`isSlashCommandMode`**: Set to `true` by the `useFileFromUrl` hook when it successfully loads a file from the `?file=` URL parameter. Reset to `false` when the session is cleared via `clearSession`. This determines whether the Done button is visible. In standalone mode (file loaded via paste/upload/drag-drop), this remains `false` and the Done button is hidden (`AC-crp-done-standalone-hidden`).
+- **`doneState`**: Tracks the Done button's lifecycle. Transitions: `'idle'` -> `'sending'` -> `'sent'`. Resets to `'idle'` whenever comments or preamble change (hooked into the existing `addComment`, `updateComment`, `deleteComment`, and `setPreamble` actions). This reset ensures the user knows they need to re-send after making changes.
+
+#### New Actions
+
+```typescript
+// Added to AppStore interface
+setSlashCommandMode: (mode: boolean) => void;
+sendPromptToAgent: () => Promise<void>;
+```
+
+- **`setSlashCommandMode(mode)`**: Simple setter for `isSlashCommandMode`. Called by `useFileFromUrl` on successful file load (`true`) and by `clearSession` (`false`).
+- **`sendPromptToAgent()`**: Orchestrates the Done action. Implementation:
+  1. Set `doneState` to `'sending'`.
+  2. In parallel (`Promise.all`):
+     - POST the current `generatedPrompt` to `/api/prompt-output` as `text/plain`. The `fetch` call uses an `AbortController` with a 10-second timeout to prevent the Done button from being stuck in the 'Sending...' state if the local server hangs.
+     - Copy the prompt to clipboard via the existing `clipboard.ts` module.
+  3. If POST succeeds:
+     a. Set `doneState` to `'sent'`.
+     b. Call `window.close()` to close the app-mode window (`AC-crp-done-auto-close`). In a Chrome app-mode window (opened via `--app` flag), `window.close()` is permitted because the window was opened programmatically by the shell, not by user navigation. If the close succeeds, the JS context is destroyed immediately -- no further code executes, and the user is returned to their terminal.
+     c. Set a 500ms `setTimeout` fallback. If `window.close()` did not work (e.g., the CRPG is running in a regular browser tab where `window.close()` is blocked), the timeout fires and shows a success toast ("Prompt sent to agent! Switch back to your terminal."). This detection works because if `window.close()` succeeds, the JS context is destroyed and the timeout callback never fires.
+     d. No further state updates are needed after calling `window.close()` if the close succeeds -- the JS context is destroyed along with the Zustand store.
+  4. If POST fails: set `doneState` to `'idle'`, show warning toast ("Could not send to agent. Prompt copied to clipboard — paste it manually."). The clipboard copy happens in parallel and is fire-and-forget, so the prompt is on the clipboard regardless of the POST result (`AC-crp-done-fallback-clipboard`).
+
+  The `window.close()` + fallback pattern in code:
+
+  ```typescript
+  // After successful POST:
+  store.setState({ doneState: 'sent' });
+  window.close();
+  // If we're still here after 500ms, the close didn't work — show fallback
+  setTimeout(() => {
+    showToast('Prompt sent to agent! Switch back to your terminal.', 'success');
+  }, 500);
+  ```
+
+#### doneState Reset Logic
+
+The `doneState` field resets to `'idle'` inside these existing actions:
+- `addComment` — after inserting the comment and rebuilding the prompt
+- `updateComment` — after updating the text and rebuilding the prompt
+- `deleteComment` — after removing the comment and rebuilding the prompt
+- `setPreamble` — after updating the preamble and rebuilding the prompt
+
+This ensures the Done button returns to its actionable state whenever the prompt content changes, signaling to the user that the new prompt has not yet been sent (`AC-crp-done-confirmation`).
+
+### Toolbar Component Changes
+
+The existing `Toolbar` component gains:
+
+- **Store subscriptions**: Read `isSlashCommandMode`, `doneState`, and `sendPromptToAgent` from the store (in addition to existing subscriptions).
+- **Conditional rendering**: The Done button renders only when `isSlashCommandMode` is `true` (`AC-crp-done-standalone-hidden`).
+- **Button priority swap**: When Done is visible, Done uses primary styling (filled) and Copy uses secondary styling (outlined/ghost). When Done is not visible, Copy retains its existing primary styling. This follows the design spec's visual hierarchy for slash command mode.
+- **Done button disabled state**: Disabled when `commentCount === 0` (same condition as Copy) (`AC-crp-done-disabled-no-comments`), or when `doneState === 'sent'` (already sent, awaiting change).
+- **Done button label states**:
+  - `doneState === 'idle'`: "Done" (or "Done" with the send icon)
+  - `doneState === 'sending'`: "Sending..." with a spinner, disabled
+  - `doneState === 'sent'`: "Sent" with a check icon, disabled, green tint. **Note**: In app-mode windows, the user typically never sees this state because `window.close()` closes the window immediately after `doneState` transitions to `'sent'`. The "Sent" UI is a fallback for when the CRPG is running in a regular browser tab where `window.close()` is blocked (`AC-crp-done-auto-close`).
+- **Keyboard shortcut**: Register `Cmd+Shift+D` (macOS) / `Ctrl+Shift+D` (Windows/Linux) via the existing `useEffect` keydown listener on `document`. Only active when `isSlashCommandMode` is `true`. Calls `sendPromptToAgent()`.
+
+Maps to: `FR-crp-done-action`, `AC-crp-done-sends-prompt`, `AC-crp-done-confirmation`, `AC-crp-done-auto-close`, `AC-crp-done-disabled-no-comments`, `AC-crp-done-standalone-hidden`.
+
+### useFileFromUrl Hook Changes
+
+> See existing hook spec in `../engineering/slash-command.md`
+
+Minor addition: after successfully loading a file from the URL parameter (after calling `store.loadFile()`), also call `store.setSlashCommandMode(true)`. This is the single signal that places the CRPG into slash command mode for the duration of the session.
+
+The `clearSession` action resets `isSlashCommandMode` to `false`, so clearing the session returns the app to standalone mode.
+
+### POST /api/prompt-output Client-Side Call
+
+The `sendPromptToAgent` store action makes the following call:
+
+```typescript
+const response = await fetch('/api/prompt-output', {
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  body: generatedPrompt,
+});
+```
+
+This is a same-origin request (the CRPG and the Vite dev server share the same origin). No special CORS headers or authentication are needed. The server-side endpoint is defined in `../engineering/slash-command.md`.
+
+Error handling:
+- Network error (fetch throws): catch, set `doneState` to `'idle'`, show warning toast.
+- Non-200 response: treat as failure, set `doneState` to `'idle'`, show warning toast.
+- In both failure cases, the clipboard copy has already completed (it runs in parallel), so the prompt is available for manual paste (`AC-crp-done-fallback-clipboard`).
+
+---
+
 ## Security Considerations
 
 ### Privacy (`NFR-crp-client-only`)
 
-- No file content leaves the browser. There are no `fetch` calls, no analytics, no telemetry.
-- Content Security Policy headers should be configured to block all outbound network requests except those needed to load the app's own assets.
+- In standalone mode, no file content leaves the browser. There are no `fetch` calls, no analytics, no telemetry.
+- In slash command mode, the only network call is `POST /api/prompt-output` to the same-origin Vite dev server on localhost. The prompt text is written to a local file (`~/.shepherd/prompt-output.md`) and never transmitted over the network. This is consistent with the spirit of `NFR-crp-client-only` -- all data stays on the developer's machine.
+- Content Security Policy headers should be configured to block all outbound network requests except those needed to load the app's own assets and the same-origin API endpoints (`/api/file`, `/api/prompt-output`).
 - Shiki WASM grammars are bundled with the application and served from the same origin -- no CDN dependency at runtime.
 
 ### Input Safety
@@ -573,19 +685,20 @@ engineering/
             promptBuilder.test.ts
             binaryDetect.test.ts
             languageDetect.test.ts
-            appStore.test.ts
+            appStore.test.ts          (includes Done action + slash command mode tests)
           component/
             FileDropZone.test.tsx
             CodeViewer.test.tsx
             CommentBubble.test.tsx
             InlineCommentEditor.test.tsx
-            Toolbar.test.tsx
+            Toolbar.test.tsx          (includes Done button rendering/state tests)
             PromptPreview.test.tsx
           e2e/
             load-file.spec.ts
             add-comment.spec.ts
             auto-prompt.spec.ts
             keyboard-navigation.spec.ts
+            done-action.spec.ts       NEW -- Done button E2E flow in slash command mode
 ```
 
 > **Multi-platform note**: The `apps/` directory is structured as a pnpm workspace monorepo. Future platform targets (macOS, iOS) would be added as sibling directories to `apps/web/`. When shared logic is needed across platforms, it can be extracted into a `packages/core/` workspace package containing types, promptBuilder, binaryDetect, languageDetect, and other platform-agnostic modules.
@@ -603,7 +716,7 @@ Pure logic functions tested in isolation:
 | `promptBuilder.ts` | Correct format with preamble; without preamble; single-line comments; range comments; line number padding; ascending sort order; empty edge cases. Validates `FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`. |
 | `binaryDetect.ts` | Detects null bytes; passes clean UTF-8; handles empty input; handles exactly 8,192 bytes boundary. Validates `AC-crp-binary-file-rejected`. |
 | `languageDetect.ts` | Maps all 14+ extensions correctly; returns "plaintext" for unknown; case-insensitive extension matching. Validates `FR-crp-syntax-highlight`. |
-| `appStore.ts` | `loadFile` sets file and resets state; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment removed); `navigateComment` wraps correctly; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including `generatedPrompt` to null. Validates store-level behavior for most FR and AC slugs. |
+| `appStore.ts` | `loadFile` sets file and resets state; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment removed); `navigateComment` wraps correctly; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including `generatedPrompt` to null; `setSlashCommandMode` sets the flag; `sendPromptToAgent` posts to `/api/prompt-output` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false`. Validates store-level behavior for most FR and AC slugs. |
 
 ### Component Tests (React Testing Library)
 
@@ -613,7 +726,7 @@ Components tested with mocked store state:
 |---|---|
 | `FileDropZone` | Renders empty state instructions (`AC-crp-empty-state`); file upload triggers `loadFile` (`AC-crp-load-upload`); paste mode works (`AC-crp-load-paste`); binary file shows error (`AC-crp-binary-file-rejected`). |
 | `CodeViewer` | Renders line numbers; click on gutter opens editor (`AC-crp-add-comment-single-line`); Shift+click selects range (`AC-crp-add-comment-line-range`); keyboard navigation works (`AC-crp-keyboard-add-comment`). |
-| `Toolbar` | Copy button disabled until prompt exists (auto-generated when comments present); comment count displays correctly; no Generate button (prompt auto-generates). |
+| `Toolbar` | Copy button disabled until prompt exists (auto-generated when comments present); comment count displays correctly; no Generate button (prompt auto-generates); Done button hidden when `isSlashCommandMode` is false (`AC-crp-done-standalone-hidden`); Done button visible when `isSlashCommandMode` is true; Done button disabled when no comments (`AC-crp-done-disabled-no-comments`); Done button shows "Sending..." during send; Done button shows "Sent" after successful send (`AC-crp-done-confirmation`); Done button triggers `sendPromptToAgent`; Copy becomes secondary when Done is visible; Cmd+Shift+D keyboard shortcut fires `sendPromptToAgent` (`FR-crp-done-action`). |
 | `PromptPreview` | Shows empty variant when no comments (prompt is null); shows populated variant with current prompt text when comments exist; prompt always reflects latest comments and preamble. |
 | `ConfirmationDialog` | Renders with correct text; confirm button triggers callback; cancel closes dialog; escape closes dialog (`AC-crp-clear-confirmation`). |
 
@@ -630,6 +743,11 @@ Full user flows tested in a real browser:
 | Keyboard-only comment flow | `AC-crp-keyboard-add-comment` |
 | Large file scroll performance | `AC-crp-large-file-scroll` (measure frame timing) |
 | Comment navigation | `AC-crp-comment-navigation-next` |
+| Done button sends prompt in slash command mode, shows confirmation | `FR-crp-done-action`, `AC-crp-done-sends-prompt`, `AC-crp-done-confirmation` |
+| Done button hidden in standalone mode | `AC-crp-done-standalone-hidden` |
+| Done button disabled with no comments | `AC-crp-done-disabled-no-comments` |
+| Done fallback copies to clipboard on POST failure | `AC-crp-done-fallback-clipboard` |
+| Keyboard shortcut Cmd+Shift+D sends prompt | `FR-crp-done-action` |
 
 ### Cross-Browser Testing (`NFR-crp-browser-support`)
 
@@ -739,6 +857,8 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-filename-display` | `FileHeader` component; store `file.name` |
 | `FR-crp-line-range-comment` | `CodeViewer` range selection (mouse drag, Shift+click); `InlineCommentEditor` with range anchor |
 | `FR-crp-comment-navigation` | `Toolbar` prev/next buttons; store `navigateComment` action; `CodeViewer` `scrollToIndex` |
+| `FR-crp-done-action` | `Toolbar` Done button (conditional render, state display, keyboard shortcut); store `doneState` field, `sendPromptToAgent` action, `isSlashCommandMode` field; `useFileFromUrl` hook (sets slash command mode) |
+| `FR-crp-prompt-handoff` | Store `sendPromptToAgent` action (POST to `/api/prompt-output`); Vite plugin endpoint (see `../engineering/slash-command.md`) |
 
 ### Non-Functional Requirements
 
@@ -776,3 +896,9 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-comment-navigation-next` | Store `navigateComment('next')`; `CodeViewer` `scrollToIndex`; `Toolbar` nav buttons |
 | `AC-crp-keyboard-add-comment` | `CodeViewer` keyboard handlers (ArrowUp/Down, Enter/`c`); `InlineCommentEditor` Cmd+Enter |
 | `AC-crp-binary-file-rejected` | `binaryDetect.ts`; `FileDropZone` error variant |
+| `AC-crp-done-sends-prompt` | Store `sendPromptToAgent` action (POST + clipboard in parallel); `Toolbar` Done button click handler |
+| `AC-crp-done-confirmation` | Store `doneState` transitions (`idle` -> `sending` -> `sent`); `Toolbar` Done button label/icon states; `doneState` reset on comment/preamble change |
+| `AC-crp-done-fallback-clipboard` | Store `sendPromptToAgent` error handling (clipboard copy succeeds even if POST fails); warning toast with manual paste instructions |
+| `AC-crp-done-disabled-no-comments` | `Toolbar` Done button disabled state (same `commentCount === 0` check as Copy) |
+| `AC-crp-done-auto-close` | Store `sendPromptToAgent` action calls `window.close()` after successful POST; 500ms `setTimeout` fallback detects if close was blocked and shows toast instead. App-mode windows (opened via Chrome `--app` flag) permit `window.close()`. Regular browser tabs fall back to toast notification. |
+| `AC-crp-done-standalone-hidden` | `Toolbar` conditional render (`isSlashCommandMode === false` hides Done); `useFileFromUrl` sets mode; `clearSession` resets mode |

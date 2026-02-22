@@ -298,4 +298,163 @@ describe('appStore', () => {
       expect(useAppStore.getState().focusedDiffCommentId).toBeNull();
     });
   });
+
+  // ─── Slash command mode ────────────────────────────────────
+
+  describe('isSlashCommandMode', () => {
+    it('defaults to false', () => {
+      expect(useAppStore.getState().isSlashCommandMode).toBe(false);
+    });
+
+    it('can be set to true', () => {
+      useAppStore.getState().setSlashCommandMode(true);
+      expect(useAppStore.getState().isSlashCommandMode).toBe(true);
+    });
+
+    it('resets on clearSession', () => {
+      useAppStore.getState().setSlashCommandMode(true);
+      useAppStore.getState().clearSession();
+      expect(useAppStore.getState().isSlashCommandMode).toBe(false);
+    });
+  });
+
+  // ─── doneState ──────────────────────────────────────────────
+
+  describe('doneState', () => {
+    it('defaults to idle', () => {
+      expect(useAppStore.getState().doneState).toBe('idle');
+    });
+
+    it('resets to idle on addComment', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.setState({ doneState: 'sent' });
+      useAppStore.getState().addComment(1, 1, 'test');
+      expect(useAppStore.getState().doneState).toBe('idle');
+    });
+
+    it('resets to idle on updateComment', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'original');
+      useAppStore.setState({ doneState: 'sent' });
+      const id = useAppStore.getState().commentOrder[0]!;
+      useAppStore.getState().updateComment(id, 'updated');
+      expect(useAppStore.getState().doneState).toBe('idle');
+    });
+
+    it('resets to idle on deleteComment', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'to delete');
+      useAppStore.setState({ doneState: 'sent' });
+      const id = useAppStore.getState().commentOrder[0]!;
+      useAppStore.getState().deleteComment(id);
+      expect(useAppStore.getState().doneState).toBe('idle');
+    });
+
+    it('resets to idle on setPreamble', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.setState({ doneState: 'sent' });
+      useAppStore.getState().setPreamble('new preamble');
+      expect(useAppStore.getState().doneState).toBe('idle');
+    });
+
+    it('resets to idle on addDiffComment', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.setState({
+        doneState: 'sent',
+        diffLines: [
+          { index: 0, type: 'context', oldLineNumber: 1, newLineNumber: 1, content: 'ctx' },
+          { index: 1, type: 'added', oldLineNumber: null, newLineNumber: 2, content: 'new' },
+        ],
+      });
+      useAppStore.getState().addDiffComment(0, 0, 'diff note');
+      expect(useAppStore.getState().doneState).toBe('idle');
+    });
+
+    it('resets to idle on updateDiffComment', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.setState({
+        diffLines: [
+          { index: 0, type: 'context', oldLineNumber: 1, newLineNumber: 1, content: 'ctx' },
+        ],
+      });
+      useAppStore.getState().addDiffComment(0, 0, 'original');
+      useAppStore.setState({ doneState: 'sent' });
+      const id = useAppStore.getState().diffCommentOrder[0]!;
+      useAppStore.getState().updateDiffComment(id, 'updated');
+      expect(useAppStore.getState().doneState).toBe('idle');
+    });
+
+    it('resets to idle on deleteDiffComment', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.setState({
+        diffLines: [
+          { index: 0, type: 'context', oldLineNumber: 1, newLineNumber: 1, content: 'ctx' },
+        ],
+      });
+      useAppStore.getState().addDiffComment(0, 0, 'to delete');
+      useAppStore.setState({ doneState: 'sent' });
+      const id = useAppStore.getState().diffCommentOrder[0]!;
+      useAppStore.getState().deleteDiffComment(id);
+      expect(useAppStore.getState().doneState).toBe('idle');
+    });
+  });
+
+  // ─── sendPromptToAgent ──────────────────────────────────────
+
+  describe('sendPromptToAgent', () => {
+    it('sends empty string when generatedPrompt is null', async () => {
+      expect(useAppStore.getState().generatedPrompt).toBeNull();
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+      const closeSpy = vi.fn();
+      vi.stubGlobal('close', closeSpy);
+
+      await useAppStore.getState().sendPromptToAgent();
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        '/api/prompt-output',
+        expect.objectContaining({ body: '' }),
+      );
+      expect(useAppStore.getState().doneState).toBe('sent');
+      vi.restoreAllMocks();
+    });
+
+    it('sets doneState to sending then sent on success', async () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'test');
+      expect(useAppStore.getState().generatedPrompt).not.toBeNull();
+
+      const states: string[] = [];
+      const unsub = useAppStore.subscribe((s) => {
+        if (!states.includes(s.doneState)) states.push(s.doneState);
+      });
+
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+      // Mock window.close
+      const closeSpy = vi.fn();
+      vi.stubGlobal('close', closeSpy);
+
+      await useAppStore.getState().sendPromptToAgent();
+
+      expect(states).toContain('sending');
+      expect(useAppStore.getState().doneState).toBe('sent');
+
+      unsub();
+      vi.restoreAllMocks();
+    });
+
+    it('reverts doneState to idle on failure', async () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'test');
+
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+
+      await useAppStore.getState().sendPromptToAgent();
+
+      expect(useAppStore.getState().doneState).toBe('idle');
+      expect(useAppStore.getState().toast).not.toBeNull();
+      expect(useAppStore.getState().toast!.type).toBe('error');
+
+      vi.restoreAllMocks();
+    });
+  });
 });
