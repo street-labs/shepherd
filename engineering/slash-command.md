@@ -33,13 +33,10 @@ This is a Claude Code custom slash command file. When a user types `/shepherd RE
 
 The command file instructs the agent to:
 
+**Note**: The command file has been simplified to delegate all heavy lifting to `scripts/shepherd-launch.sh`. The agent's role is reduced to a single shell invocation.
+
 1. Validate that `$ARGUMENTS` is provided. If empty, print usage instructions and stop (`AC-sc-no-args-usage`).
-2. Resolve the file path relative to the current working directory (`FR-sc-file-resolution`).
-3. Validate the file: check existence, check it is not a directory, check readability, check for binary content (first 8,192 bytes for null bytes), count lines (`FR-sc-file-validation`, `AC-sc-file-not-found`, `AC-sc-binary-file-rejected`, `AC-sc-permission-denied`, `AC-sc-directory-rejected`).
-4. If lines > 10,000, warn about potential performance degradation (`AC-sc-large-file-warning`).
-5. Check if the Vite dev server is already running by looking for a process listening on port 5173 (or by checking if `http://localhost:5173` responds). If not running, start it with `cd engineering/apps/web && pnpm dev` in the background (`FR-sc-app-serve`).
-6. Open the CRPG in a Chrome/Chromium app-mode window using the platform-specific fallback chain (see [Cross-Platform Browser Opening](#cross-platform-browser-opening) below). Falls back to the default browser if Chrome is not available (`FR-sc-browser-open`, `AC-sc-standalone-window`).
-7. Print the success message with the URL and file info to the conversation (`FR-sc-output-feedback`).
+2. Run `scripts/shepherd-launch.sh "$ARGUMENTS"` and relay the output to the user. The launcher script handles all of the following in a single invocation: resolve the file path relative to the current working directory (`FR-sc-file-resolution`), validate the file (existence, not a directory, readability, binary detection, line count) (`FR-sc-file-validation`, `AC-sc-file-not-found`, `AC-sc-binary-file-rejected`, `AC-sc-permission-denied`, `AC-sc-directory-rejected`), warn if lines > 10,000 (`AC-sc-large-file-warning`), check if the Vite dev server is running and start it if needed (`FR-sc-app-serve`), open the CRPG in a Chrome/Chromium app-mode window with platform-specific fallback chain (`FR-sc-browser-open`, `AC-sc-standalone-window`), and print the success message (`FR-sc-output-feedback`).
 
 ### Why a Prompt File, Not a Script
 
@@ -56,6 +53,76 @@ This is the simplest possible architecture. It requires no npm packages, no comp
 - Only works with Claude Code (other AI agents have different command mechanisms).
 - Depends on the Vite dev server, which binds to a fixed port (5173 by default).
 - The agent performs the validation, so exact error message formatting depends on the prompt instructions rather than deterministic code.
+
+---
+
+## Launcher Shell Script
+
+> Implements: `FR-sc-launcher-script`, `AC-sc-single-tool-call`, `AC-sc-warm-launch-2s`, `AC-sc-cold-launch-8s`
+
+### Problem: Agent Overhead Dominates Launch Time
+
+The original architecture had the Claude Code agent interpret the `shepherd.md` prompt step-by-step. Each step (resolve path, validate file, check server, start server, URL-encode, open browser) required a separate AI inference round-trip and tool call. While the shell operations themselves take ~255ms total, the agent overhead adds multiple seconds of AI inference time per step.
+
+### Solution: Single Shell Script Invocation
+
+A shell script at `scripts/shepherd-launch.sh` encapsulates all launch logic. The slash command file (`.claude/commands/shepherd.md`) invokes this single script, reducing the agent's role to one tool call: `bash scripts/shepherd-launch.sh <filepath>`.
+
+### File: `scripts/shepherd-launch.sh`
+
+#### Interface
+
+```bash
+shepherd-launch.sh <filepath>
+```
+
+- **Input**: A file path (relative or absolute).
+- **Stdout**: A one-line summary on success (e.g., `Opened CRPG at http://localhost:5173 — loaded utils.ts (142 lines) (reusing server)`).
+- **Stderr**: Error messages and warnings (e.g., large file warning).
+- **Exit codes**: 0 on success, 1 on validation error, 2 on server startup failure.
+
+#### Algorithm
+
+1. **Resolve path**: Resolve `$1` to an absolute path using `realpath` (or `readlink -f` on Linux). If the path does not exist, print error to stderr and exit 1.
+2. **Validate file**:
+   - Check it is not a directory (`-d` test). If it is, print error and exit 1.
+   - Check readability (`-r` test). If not readable, print error and exit 1.
+   - Binary detection: read first 8,192 bytes and check for null bytes (`head -c 8192 | tr -cd '\0' | wc -c`). If null bytes found, print error and exit 1.
+   - Count lines: `wc -l < "$filepath"`. If > 10,000, print warning to stderr (but continue).
+3. **Check server**: `curl -s -o /dev/null -w '%{http_code}' --connect-timeout 1 http://localhost:5173` — if 200, set `server_reused=true`.
+4. **Start server if needed**: If server is not running:
+   - Determine the repo root by finding the script's own directory and navigating up.
+   - Start `pnpm dev` in the background: `cd "$repo_root/engineering/apps/web" && pnpm dev &>/dev/null &`
+   - Poll `http://localhost:5173` every 0.5s for up to 8 seconds. If it never responds, print error to stderr and exit 2.
+   - Set `server_reused=false`.
+5. **URL-encode the path**: Use a portable shell-based percent-encoding function (encode everything except `[A-Za-z0-9._~/-]`).
+6. **Open browser**: Platform-aware:
+   - macOS: `open "http://localhost:5173?file=$encoded_path"`
+   - Linux: `xdg-open "http://localhost:5173?file=$encoded_path"`
+   - Windows (Git Bash/WSL): `cmd.exe /c start "http://localhost:5173?file=$encoded_path"`
+7. **Print summary**: Print the one-line summary to stdout with filename, line count, and whether the server was reused.
+
+#### Portability
+
+- Uses only POSIX shell builtins plus `curl`, `head`, `tr`, `wc`, `realpath`/`readlink` — all standard on macOS and Linux.
+- No Node.js, Python, or other runtime required for the script itself (Node.js is only needed for the Vite server).
+- The `realpath` command is available on macOS 13+ and all modern Linux distros. For older macOS, the script falls back to `cd "$(dirname "$1")" && pwd -P)/$(basename "$1")`.
+
+#### Performance Budget (Shell Execution Only)
+
+These timings cover the script's shell execution. The agent tool call overhead (~500-1500ms) is additional. See the Performance Considerations section for the full end-to-end budget.
+
+| Step | Expected Time |
+|---|---|
+| Path resolution + validation | ~10ms |
+| Server check (warm) | ~50ms |
+| URL encoding | ~5ms |
+| Browser open | ~200ms |
+| **Total warm (shell only)** | **~265ms** |
+| Server startup (cold) | ~3-6s |
+| **Total cold (shell only)** | **~3-6s** |
+
+The shell execution total (~265ms warm) is well under the 2-second `NFR-sc-launch-speed` target. The remaining budget (~1.7s) accommodates the single agent tool call. End-to-end warm launch: ~760-1760ms; cold launch: ~3.5-7.5s.
 
 ---
 
@@ -466,18 +533,19 @@ The output file is written to `~/.shepherd/prompt-output.md`:
 
 ### Launch Speed (`NFR-sc-launch-speed`)
 
-Target: Browser tab opening under 3 seconds from command invocation.
+Target: Browser tab opening under 2 seconds from command invocation (warm launch); under 8 seconds for cold launch.
 
-For the Claude Code custom command, the agent overhead adds time for command interpretation and shell execution, but the actual operations (file validation, server check, browser open) are fast:
+The launcher script architecture (`FR-sc-launcher-script`) eliminates the dominant source of latency: per-step AI inference overhead. The previous architecture required the agent to make 5-7 sequential tool calls, each with AI inference time. The new architecture requires exactly one tool call (invoking the script).
 
 | Step | Expected Time | Notes |
 |---|---|---|
-| File validation | ~5ms | Single `stat` + read 8 KB + line count |
-| Dev server check | ~50ms | HTTP request to localhost:5173 |
-| Browser open | ~200-600ms | App-mode fallback chain tries Chrome first, then falls back (see [Cross-Platform Browser Opening](#cross-platform-browser-opening)). Each failed attempt adds ~100ms before the next try. |
-| **Total (server already running)** | **~255-855ms** | Well under 3s budget even in worst-case fallback |
-
-If the Vite dev server is not already running, startup adds several seconds (Vite cold start). However, this is a one-time cost per development session, and the developer would typically already have the dev server running.
+| Agent processes command + invokes script | ~500-1500ms | Single AI inference + tool call |
+| Script: file validation | ~10ms | `stat` + read 8 KB + line count |
+| Script: server check | ~50ms | HTTP request to localhost:5173 |
+| Script: browser open | ~200-600ms | App-mode fallback chain tries Chrome first, then falls back (see [Cross-Platform Browser Opening](#cross-platform-browser-opening)). Each failed attempt adds ~100ms before the next try. |
+| **Total warm launch** | **~760-2150ms** | Under 2s budget (typical ~1s) |
+| Script: server startup (cold) | ~3-6s | Vite cold start |
+| **Total cold launch** | **~3.5-7.5s** | Under 8s budget |
 
 ---
 
@@ -546,6 +614,22 @@ Component/integration tests for the `useFileFromUrl` hook and `App.tsx` changes:
 | Done button disabled when no comments | `AC-crp-done-disabled-no-comments` |
 | Fallback to clipboard on POST failure | `AC-crp-done-fallback-clipboard` |
 
+### Launcher Script Tests
+
+Shell-based tests for `scripts/shepherd-launch.sh`:
+
+| Test Case | Coverage |
+|---|---|
+| Exits 0 and prints summary for valid file (server running) | `FR-sc-launcher-script`, `AC-sc-warm-launch-2s` |
+| Exits 1 with error for missing file | `FR-sc-file-validation`, `AC-sc-file-not-found` |
+| Exits 1 with error for directory path | `FR-sc-file-validation`, `AC-sc-directory-rejected` |
+| Exits 1 with error for binary file | `FR-sc-file-validation`, `AC-sc-binary-file-rejected` |
+| Exits 1 with error for unreadable file | `FR-sc-file-validation`, `AC-sc-permission-denied` |
+| Prints warning to stderr for files > 10,000 lines | `AC-sc-large-file-warning` |
+| Starts server when not running, exits 0 | `FR-sc-app-serve`, `AC-sc-cold-launch-8s` |
+| Prints "reusing server" when server already running | `AC-sc-server-reuse` |
+| Opens browser with correct URL | `FR-sc-browser-open` |
+
 ### End-to-End Tests
 
 Playwright E2E tests that validate the full flow (these test the Vite plugin path and the web app changes):
@@ -581,7 +665,21 @@ Playwright E2E tests that validate the full flow (these test the Vite plugin pat
 
 **Slug coverage**: `FR-sc-file-api`, `FR-sc-auto-load-file`, `AC-sc-launch-happy-path`, `AC-sc-absolute-path`, `AC-sc-file-not-found`, `AC-sc-binary-file-rejected`, `AC-sc-permission-denied`, `AC-sc-directory-rejected`, `AC-sc-session-clear-on-new-file`, `AC-sc-large-file-warning`, `NFR-sc-localhost-only`.
 
-### Phase 2: Claude Code Command File + Install Script (estimated 0.5-1 day)
+### Phase 2: Launcher Shell Script (estimated 0.5 day)
+
+**Goal**: All slash command logic (validation, server management, browser open) runs in a single shell invocation.
+
+1. Create `scripts/shepherd-launch.sh` implementing the algorithm defined in the Launcher Shell Script section of this spec.
+2. Update `.claude/commands/shepherd.md` to invoke the script instead of instructing the agent to perform each step.
+3. Test warm launch (server already running): verify browser opens within 2 seconds.
+4. Test cold launch (server not running): verify browser opens within 8 seconds.
+5. Test all error cases: missing file, directory, binary file, permission denied, no arguments.
+
+**Delivers**: The `/shepherd` command launches in under 2 seconds (warm) by executing a single shell script instead of multiple agent tool calls.
+
+**Slug coverage**: `FR-sc-launcher-script`, `AC-sc-warm-launch-2s`, `AC-sc-cold-launch-8s`, `AC-sc-single-tool-call`.
+
+### Phase 3: Claude Code Command File + Install Script (estimated 0.5-1 day)
 
 **Goal**: The `/shepherd` command is usable from within any Claude Code session.
 
@@ -609,6 +707,7 @@ shepherd/                                 (project root)
 
   scripts/
     install-command.sh                    NEW -- symlink installer for global use
+    shepherd-launch.sh                    NEW -- all-in-one launch script (validation, server, browser)
 
   engineering/
     slash-command.md                       NEW -- this spec
@@ -647,6 +746,7 @@ shepherd/                                 (project root)
 | `FR-sc-prompt-receive` | Claude Code command file (`.claude/commands/shepherd.md`) -- file watcher loop polls for `~/.shepherd/prompt-output.md`, reads and deletes on detection |
 | `FR-sc-prompt-output-api` | Vite plugin (`fileApiPlugin.ts`) -- `POST /api/prompt-output` endpoint; writes request body to `~/.shepherd/prompt-output.md` |
 | `FR-sc-prompt-cleanup` | Claude Code command file -- `rm -f ~/.shepherd/prompt-output.md` before starting watcher |
+| `FR-sc-launcher-script` | Shell script (`scripts/shepherd-launch.sh`); invoked by `.claude/commands/shepherd.md` |
 
 ### Non-Functional Requirements
 
@@ -676,3 +776,6 @@ shepherd/                                 (project root)
 | `AC-sc-prompt-output-api-success` | Vite plugin `POST /api/prompt-output` returns 200 and writes body to `~/.shepherd/prompt-output.md` |
 | `AC-sc-standalone-window` | Claude Code command file (`.claude/commands/shepherd.md`) -- platform-specific Chrome/Chromium app-mode fallback chain opens CRPG in a standalone window; falls back to default browser if Chrome unavailable |
 | `AC-sc-prompt-output-api-localhost-only` | Vite plugin `POST /api/prompt-output` returns 403 for non-localhost requests (reuses `isLocalhostRequest()` from `GET /api/file`) |
+| `AC-sc-warm-launch-2s` | Launcher script warm path (~265ms shell time); single agent tool call budget (~1.7s) |
+| `AC-sc-cold-launch-8s` | Launcher script cold path (server startup ~3-6s + validation + browser open) |
+| `AC-sc-single-tool-call` | `.claude/commands/shepherd.md` delegates to single `scripts/shepherd-launch.sh` invocation |

@@ -89,6 +89,11 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: Custom command, agent command
 **Not to be confused with**: Shell commands (executed in a terminal, not an agent conversation)
 
+## Launcher Script
+**Definition**: A shell script (`scripts/shepherd-launch.sh`) that encapsulates all slash command logic — file validation, server lifecycle management, URL encoding, and browser opening — in a single invocation. The slash command delegates to this script to minimize AI agent overhead and achieve sub-2-second warm launch times.
+**Also known as**: shepherd-launch.sh, launch script
+**Not to be confused with**: The slash command itself (which is the `.claude/commands/shepherd.md` prompt file that invokes the launcher script)
+
 ## File-Serving API
 **Definition**: A localhost-only HTTP endpoint (`GET /api/file?path=<encoded-path>`) exposed by the local server that reads a file from the filesystem and returns its content as plain text. Used by the CRPG web app to load files specified via URL parameters from the slash command.
 **Also known as**: File API, local file endpoint

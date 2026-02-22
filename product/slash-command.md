@@ -28,6 +28,9 @@ The slash command is distributed as a command file in the Shepherd repository (`
 ### US-SC-6: Receive the prompt back automatically after annotation
 **As a** developer, **I want** the prompt I create in the CRPG to automatically return to my agent conversation when I click Done, **so that** I don't have to copy-paste between the browser and terminal.
 
+### US-SC-7: Fast launch with minimal agent overhead
+**As a** developer, **I want** the `/shepherd` command to launch the CRPG as fast as possible, **so that** the command feels instant and I don't lose my train of thought waiting for the app to open.
+
 ## Requirements
 
 ### Functional Requirements
@@ -63,6 +66,9 @@ The slash command lives at `.claude/commands/shepherd.md` in the Shepherd reposi
 #### `FR-sc-server-shutdown` -- Server lifecycle management
 The local server is the Vite dev server (`pnpm dev`), managed by the agent or manually by the user. The agent starts the dev server if it is not already running (detected by checking whether the expected port is responding). The user can stop the server manually (e.g., Ctrl-C in the terminal) or the agent can stop it when appropriate. No lockfile, PID tracking, or idle timeout is required.
 
+#### `FR-sc-launcher-script` -- Launcher shell script
+The command delegates all validation and launch logic to a shell script (`scripts/shepherd-launch.sh`) rather than having the AI agent perform each step individually. The script handles file path resolution, file validation (existence, readability, binary detection, size warning), server lifecycle (detect running server, start if needed, wait for readiness), URL encoding, and browser opening. The slash command file (`.claude/commands/shepherd.md`) invokes this single script and relays its output. This minimizes the number of agent tool calls required to a single shell invocation, eliminating the per-step AI inference overhead that dominates launch latency.
+
 #### `FR-sc-output-feedback` -- Command output and feedback
 After a successful launch, the command outputs a brief confirmation message to the agent conversation:
 - The URL where the CRPG is running (e.g., `Opened Code Review Prompt Generator at http://localhost:3847`)
@@ -83,7 +89,7 @@ On startup, the slash command checks for and removes any existing `~/.shepherd/p
 ### Non-Functional Requirements
 
 #### `NFR-sc-launch-speed` -- Fast launch time
-The time from invoking `/shepherd <filepath>` to the app window opening must be under 3 seconds when the Vite dev server is already running. The file should be visible in the code viewer within 5 seconds total (including browser render time). These targets assume a warm filesystem cache and a reasonably modern machine. If the dev server needs to be started, initial launch will be longer.
+The time from invoking `/shepherd <filepath>` to the app window opening must be under 2 seconds when the Vite dev server is already running (warm launch). The file should be visible in the code viewer within 4 seconds total (including browser render time). Cold launch (server not running) should complete within 8 seconds. These targets assume a warm filesystem cache and a reasonably modern machine. The previous target of 3 seconds for warm launch assumed agent-mediated step-by-step execution; the launcher script architecture reduces this by eliminating per-step AI inference overhead.
 
 #### `NFR-sc-no-global-deps` -- No global dependencies beyond Node.js
 The slash command must not require any global dependencies beyond Node.js (v18+). It must not require the user to have Vite, React, or any other tool installed globally. All dependencies are installed locally via the repo's `node_modules`.
@@ -161,6 +167,15 @@ The file watcher that monitors for the prompt output file must use minimal syste
 
 #### `AC-sc-prompt-output-api-localhost-only` -- Prompt output API rejects non-localhost requests
 **Given** a `POST` to `/api/prompt-output` originates from a non-localhost source, **then** the server rejects it with HTTP 403.
+
+#### `AC-sc-warm-launch-2s` -- Warm launch completes within 2 seconds
+**Given** the Vite dev server is already running and a valid file path is provided, **when** the user types `/shepherd <filepath>`, **then** the browser tab opens within 2 seconds of the command being invoked.
+
+#### `AC-sc-cold-launch-8s` -- Cold launch completes within 8 seconds
+**Given** the Vite dev server is not running and a valid file path is provided, **when** the user types `/shepherd <filepath>`, **then** the browser tab opens within 8 seconds of the command being invoked, including server startup time.
+
+#### `AC-sc-single-tool-call` -- Command uses a single agent tool call
+**Given** the `/shepherd` command is invoked with a file path, **when** the agent processes the command, **then** the entire launch operation (validation, server check, browser open) is completed in a single shell invocation rather than multiple sequential agent tool calls. This ensures launch speed is bounded by shell execution time, not AI inference time.
 
 ## Open Questions
 

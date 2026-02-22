@@ -203,6 +203,14 @@ This log provides **historical context for how the project evolved** — why cho
 **Context**: After clicking Done, the user previously had to manually switch back to the terminal. With the app-mode window, we can close it programmatically.
 **Decision**: After a successful prompt handoff, call `window.close()` to close the CRPG window. Use a 500ms timeout to detect if the close worked; if not, fall back to showing the "Sent" confirmation toast.
 **Rationale**: `window.close()` works in Chrome app-mode windows because they are opened programmatically (via `--app`). In regular browser tabs, `window.close()` is blocked by browser security. The 500ms fallback ensures the user always sees feedback — either the window closes (best case) or they see the toast (fallback). Clipboard copy happens in parallel before the close attempt, so the prompt is always available.
+
+## 2026-02-21 -- Launcher shell script to eliminate agent overhead in slash command
+**Context**: The `/shepherd` slash command was too slow. The Claude Code custom command (`.claude/commands/shepherd.md`) instructed the agent to perform 5-7 sequential steps (resolve path, validate file, check server, start server, URL-encode, open browser), each requiring a separate AI inference round-trip and tool call. While the shell operations themselves took ~255ms total, the agent overhead added multiple seconds of AI inference time per step, making the total launch time unacceptably slow.
+**Decision**: Create a launcher shell script (`scripts/shepherd-launch.sh`) that handles all validation and launch logic in a single invocation. The slash command file delegates to this script, reducing the agent's role to one tool call: `bash scripts/shepherd-launch.sh <filepath>`.
+**Alternatives considered**: (1) Optimizing the prompt to reduce agent steps (marginal improvement — still multiple tool calls), (2) Pre-building the app and serving with a lightweight server (helps cold start but doesn't fix the agent overhead problem), (3) A Node.js CLI launcher (adds a runtime dependency; a shell script is simpler and needs only POSIX tools).
+**Rationale**: A shell script eliminates the per-step AI inference overhead entirely. The script uses only standard POSIX tools (curl, head, tr, wc, realpath) and runs in ~265ms for a warm launch. Combined with a single agent tool call (~500-1500ms), this achieves the updated NFR target of <2 seconds for warm launches.
+**Consequences**: The slash command file becomes a thin wrapper that invokes the script. Validation logic moves from agent-mediated shell commands to deterministic script logic, making error messages and exit codes consistent. The script must be kept in sync with any changes to the validation rules or server management approach.
+**Slug references**: `FR-sc-launcher-script`, `NFR-sc-launch-speed`, `AC-sc-warm-launch-2s`, `AC-sc-cold-launch-8s`, `AC-sc-single-tool-call`
 <!--
 Entry template:
 

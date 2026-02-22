@@ -1,6 +1,6 @@
 Open the Code Review Prompt Generator (CRPG) with the specified file.
 
-Allowed tools: Bash, Read
+Allowed tools: Bash
 
 Arguments: $ARGUMENTS
 
@@ -14,59 +14,26 @@ If no file argument was provided (empty or blank), respond with: "Usage: /shephe
 
 Otherwise, do the following steps:
 
-### Step 1: Validate the file
+### Step 1: Run the launcher script
 
-Resolve the path relative to the current working directory. Verify:
-- The file exists (if not: "Error: File not found: <resolved-path>")
-- It is a file, not a directory (if not: "Error: Path is a directory, not a file: <resolved-path>")
-- It is readable (if not: "Error: Permission denied: <resolved-path>")
-- It is not binary — check the first 8192 bytes for null bytes (if binary: "Error: Binary file not supported: <resolved-path>")
-- Count the lines. If > 10000, warn: "Warning: <file> has <N> lines. Performance may be degraded."
+Run the launcher script to validate the file, ensure the dev server is running, and open the CRPG in an app-mode browser window:
 
-If validation fails, report the error and stop. Do NOT continue to the next steps.
-
-### Step 2: Ensure the dev server is running
-
-Check if http://localhost:5173 is responding:
-```bash
-curl -s -o /dev/null -w '%{http_code}' http://localhost:5173
+```
+bash "$REPO_ROOT/scripts/shepherd-launch.sh" "$ARGUMENTS"
 ```
 
-If not responding, start the dev server in the background:
-```bash
-cd /Users/lstreet/Development/shepherd/engineering/apps/web && pnpm dev &
-```
-Then wait up to 10 seconds for it to respond.
+Where `$REPO_ROOT` is the root of the Shepherd repository (the directory containing this `.claude/` folder). The script handles file validation, dev server management, and browser opening — all in one shot.
 
-### Step 3: Open the CRPG in an app-mode window
+Relay the script's stdout as a summary message. If the script exits non-zero, relay its stderr as an error message instead.
 
-URL-encode the absolute file path. Open the CRPG in a Chrome/Chromium app-mode window (standalone, no browser chrome). Use the platform-appropriate fallback chain:
-
-**macOS:**
-```bash
-open -na 'Google Chrome' --args --app='http://localhost:5173?file=<encoded-path>' 2>/dev/null || open -na 'Chromium' --args --app='http://localhost:5173?file=<encoded-path>' 2>/dev/null || open 'http://localhost:5173?file=<encoded-path>'
-```
-
-**Linux:**
-```bash
-google-chrome --app='http://localhost:5173?file=<encoded-path>' 2>/dev/null || chromium-browser --app='http://localhost:5173?file=<encoded-path>' 2>/dev/null || xdg-open 'http://localhost:5173?file=<encoded-path>'
-```
-
-### Step 4: Report success
-
-Print a brief summary:
-```
-Opened CRPG at http://localhost:5173 — loaded <filename> (<N> lines)
-```
-
-### Step 5: Clean up stale prompt output
+### Step 2: Clean up stale prompt output
 
 Remove any leftover output file from a previous session:
 ```bash
 rm -f ~/.shepherd/prompt-output.md
 ```
 
-### Step 6: Wait for the prompt
+### Step 3: Wait for the prompt
 
 Tell the user: "Annotate your code and click **Done** when you're finished. I'll wait for your prompt."
 

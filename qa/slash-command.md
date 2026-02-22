@@ -30,7 +30,11 @@
 | `FR-sc-file-api` | `TC-sc-api-200-valid-file`, `TC-sc-api-400-missing-param`, `TC-sc-api-403-permission`, `TC-sc-api-403-non-localhost`, `TC-sc-api-404-not-found`, `TC-sc-api-404-directory`, `TC-sc-api-415-binary`, `TC-sc-api-headers` | Not started |
 | `FR-sc-install` | `TC-sc-install-symlink`, `TC-sc-install-update-propagation`, `TC-sc-install-claude-code-command` | Not started |
 | `FR-sc-output-feedback` | `TC-sc-output-success-format`, `TC-sc-output-reuse-note`, `TC-sc-output-errors-stderr` | Not started |
-| `NFR-sc-launch-speed` | `TC-sc-launch-speed-cold`, `TC-sc-launch-speed-warm` | Not started |
+| `AC-sc-warm-launch-2s` | `TC-sc-launcher-warm-launch` | Not started |
+| `AC-sc-cold-launch-8s` | `TC-sc-launcher-cold-launch` | Not started |
+| `AC-sc-single-tool-call` | `TC-sc-single-tool-call` | Not started |
+| `FR-sc-launcher-script` | `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`, `TC-sc-single-tool-call`, `TC-sc-launcher-script-validation`, `TC-sc-launcher-server-start` | Not started |
+| `NFR-sc-launch-speed` | `TC-sc-launch-speed-cold`, `TC-sc-launch-speed-warm`, `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch` | Not started |
 | `NFR-sc-no-global-deps` | `TC-sc-install-symlink` | Not started |
 | `NFR-sc-cross-platform` | `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-path-handling-windows` | Not started |
 | `NFR-sc-localhost-only` | `TC-sc-api-403-non-localhost` | Not started |
@@ -750,12 +754,12 @@
 #### `TC-sc-launch-speed-cold`: Cold launch completes quickly
 
 - **Type**: E2E / Performance
-- **Covers**: `NFR-sc-launch-speed`
+- **Covers**: `NFR-sc-launch-speed`, `AC-sc-cold-launch-8s`
 - **Preconditions**: The Vite dev server is not running.
 - **Steps**:
   1. Type `/shepherd somefile.ts` in Claude Code.
   2. Observe the time from invocation to browser opening.
-- **Expected Result**: The agent completes file validation, starts the Vite dev server, and opens the browser within a reasonable time. Vite's dev server starts quickly since it does not require a full build.
+- **Expected Result**: The agent completes file validation, starts the Vite dev server, and opens the browser within 8 seconds. Vite's dev server starts quickly since it does not require a full build. With the launcher script optimization, this includes one AI inference round-trip plus the launcher script handling server startup.
 - **Edge Cases**:
   - Cold filesystem cache (first run after reboot): may be slightly slower due to disk I/O.
 
@@ -764,14 +768,97 @@
 #### `TC-sc-launch-speed-warm`: Warm launch (server reuse) completes quickly
 
 - **Type**: E2E / Performance
-- **Covers**: `NFR-sc-launch-speed`
+- **Covers**: `NFR-sc-launch-speed`, `AC-sc-warm-launch-2s`
 - **Preconditions**: The Vite dev server is already running from a previous invocation.
 - **Steps**:
   1. Type `/shepherd anotherfile.ts` in Claude Code.
   2. Observe the time from invocation to browser opening.
-- **Expected Result**: The agent completes file validation and opens the browser quickly. Expected to be faster than cold start (no server startup needed).
+- **Expected Result**: The agent completes file validation and opens the browser within 2 seconds. Expected to be faster than cold start (no server startup needed). With the launcher script optimization, this is achieved via a single shell invocation (~265ms) plus one AI inference round-trip.
 - **Edge Cases**:
   - N/A (focused performance test).
+
+---
+
+### Launcher Script
+
+---
+
+#### `TC-sc-launcher-warm-launch`: Warm launch timing
+
+- **Priority**: High
+- **Type**: Performance / Automated
+- **Covers**: `AC-sc-warm-launch-2s`, `NFR-sc-launch-speed`, `FR-sc-launcher-script`
+- **Preconditions**: Vite dev server is running on localhost:5173. A valid text file exists.
+- **Steps**:
+  1. Record the current timestamp.
+  2. Invoke `/shepherd <filepath>` in Claude Code.
+  3. Record the timestamp when the browser tab opens (or when the `open` command returns).
+  4. Calculate elapsed time.
+- **Expected Result**: Elapsed time is under 2 seconds.
+- **Notes**: The timing includes one agent tool call overhead plus the launcher script execution (~265ms). Most of the budget is consumed by the single AI inference round-trip.
+
+---
+
+#### `TC-sc-launcher-cold-launch`: Cold launch timing
+
+- **Priority**: High
+- **Type**: Performance / Manual
+- **Covers**: `AC-sc-cold-launch-8s`, `NFR-sc-launch-speed`, `FR-sc-launcher-script`
+- **Preconditions**: Vite dev server is NOT running. A valid text file exists. The Shepherd repository is cloned with `node_modules` installed.
+- **Steps**:
+  1. Ensure no process is listening on port 5173.
+  2. Record the current timestamp.
+  3. Invoke `/shepherd <filepath>` in Claude Code.
+  4. Record the timestamp when the browser tab opens.
+  5. Calculate elapsed time.
+- **Expected Result**: Elapsed time is under 8 seconds (including Vite dev server startup).
+
+---
+
+#### `TC-sc-single-tool-call`: Single tool call execution
+
+- **Priority**: High
+- **Type**: Functional / Manual
+- **Covers**: `AC-sc-single-tool-call`, `FR-sc-launcher-script`
+- **Preconditions**: The `/shepherd` command is installed. A valid text file exists.
+- **Steps**:
+  1. Invoke `/shepherd <filepath>` in Claude Code.
+  2. Observe the agent's execution (tool calls made).
+- **Expected Result**: The agent makes exactly one Bash tool call to execute the launcher script. It does NOT make multiple sequential tool calls for file validation, server checking, and browser opening separately.
+
+---
+
+#### `TC-sc-launcher-script-validation`: Launcher script handles all validation
+
+- **Priority**: Medium
+- **Type**: Functional / Automated
+- **Covers**: `FR-sc-launcher-script`, `FR-sc-file-validation`
+- **Preconditions**: `scripts/shepherd-launch.sh` exists and is executable.
+- **Steps**:
+  1. Run `scripts/shepherd-launch.sh` with a non-existent file path.
+  2. Run `scripts/shepherd-launch.sh` with a directory path.
+  3. Run `scripts/shepherd-launch.sh` with a binary file (e.g., a PNG).
+  4. Run `scripts/shepherd-launch.sh` with no arguments.
+- **Expected Result**:
+  - Non-existent file: exits 1, stderr contains "File not found"
+  - Directory: exits 1, stderr contains error about directories
+  - Binary file: exits 1, stderr contains "Binary file not supported"
+  - No arguments: exits 1, stderr contains usage information
+
+---
+
+#### `TC-sc-launcher-server-start`: Launcher script starts server when needed
+
+- **Priority**: High
+- **Type**: Functional / Manual
+- **Covers**: `FR-sc-launcher-script`, `FR-sc-app-serve`, `AC-sc-cold-launch-8s`
+- **Preconditions**: Vite dev server is NOT running. A valid text file exists.
+- **Steps**:
+  1. Verify no process is listening on port 5173.
+  2. Run `scripts/shepherd-launch.sh <filepath>`.
+  3. Verify the Vite dev server is now running on port 5173.
+  4. Verify the browser opened with the correct URL.
+- **Expected Result**: The script starts the dev server, waits for it to be ready, and opens the browser. Exit code is 0. Output summary indicates server was started (not reused).
 
 ---
 
@@ -1181,6 +1268,9 @@ Run the following test cases as a minimum regression suite after any slash comma
 - `TC-sc-session-clear-on-new-file` (session clearing works)
 - `TC-sc-no-args-usage` (command argument handling works)
 - `TC-sc-output-errors-stderr` (error output works)
+- `TC-sc-launcher-warm-launch` (warm launch under 2s with launcher script)
+- `TC-sc-single-tool-call` (single tool call execution via launcher script)
+- `TC-sc-launcher-script-validation` (launcher script handles all validation)
 
 Also run the existing CRPG regression suite from `qa/code-review-prompt.md`:
 - `TC-crp-load-upload-happy`

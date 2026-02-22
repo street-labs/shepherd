@@ -339,11 +339,17 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
 - **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-output-success-format`, `TC-sc-output-reuse-note`, `TC-sc-output-errors-stderr`
 
+### `FR-sc-launcher-script`
+- **Defined in**: `product/slash-command.md`
+- **Design**: N/A (no visual changes)
+- **Engineering**: `engineering/slash-command.md` -> `scripts/shepherd-launch.sh`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`, `TC-sc-single-tool-call`, `TC-sc-launcher-script-validation`, `TC-sc-launcher-server-start`
+
 ### `NFR-sc-launch-speed`
 - **Defined in**: `product/slash-command.md`
 - **Design**: `design/slash-command.md`
 - **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launch-speed-cold`, `TC-sc-launch-speed-warm`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launch-speed-cold`, `TC-sc-launch-speed-warm`, `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`
 
 ### `NFR-sc-no-global-deps`
 - **Defined in**: `product/slash-command.md`
@@ -458,6 +464,25 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/slash-command.md`
 - **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
 - **QA**: `qa/slash-command.md` -> `TC-sc-app-window-chrome`, `TC-sc-app-window-chromium-fallback`, `TC-sc-app-window-browser-fallback`, `TC-sc-app-window-subsequent`
+
+### `AC-sc-warm-launch-2s`
+- **Defined in**: `product/slash-command.md`
+- **Design**: N/A (no visual changes)
+- **Engineering**: `engineering/slash-command.md` -> `scripts/shepherd-launch.sh`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launcher-warm-launch`
+
+### `AC-sc-cold-launch-8s`
+- **Defined in**: `product/slash-command.md`
+- **Design**: N/A (no visual changes)
+- **Engineering**: `engineering/slash-command.md` -> `scripts/shepherd-launch.sh`
+- **QA**: `qa/slash-command.md` -> `TC-sc-launcher-cold-launch`
+
+### `AC-sc-single-tool-call`
+- **Defined in**: `product/slash-command.md`
+- **Design**: N/A (no visual changes)
+- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/shepherd-launch.sh`
+- **QA**: `qa/slash-command.md` -> `TC-sc-single-tool-call`
+
 
 ### `FR-diff-mode-toggle`
 - **Defined in**: `product/diff-view.md`
