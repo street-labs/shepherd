@@ -111,7 +111,7 @@ Review the artifacts created or modified. If any new domain terms were introduce
 
 ## Step 6: Log Decisions
 
-If any significant decisions were made during this kickoff (technology choices, scope decisions, design patterns), append them to `decisions.md`.
+If any significant decisions were made during this kickoff (technology choices, scope decisions, design patterns), append them to `decisions-pending.md` (not `decisions.md` directly — the pre-commit hook merges pending entries at commit time).
 
 ## Step 7: Review
 

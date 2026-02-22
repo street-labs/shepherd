@@ -136,7 +136,7 @@ When the user asks for a change, the flow is:
 
 The following custom commands are available:
 
-- **`/kickoff [feature description]`** — Full feature kickoff. Automatically creates product spec → design spec → engineering spec → QA test plan → updates index, glossary, and decision log → runs review and consistency checks.
+- **`/kickoff [feature description]`** — Full feature kickoff. Automatically creates product spec → design spec → engineering spec → QA test plan → updates index, glossary, and pending decisions → runs review and consistency checks.
 - **`/impact [slug or feature]`** — Impact analysis. Reads `index.md` to report every artifact that would need to change if a requirement is modified.
 - **`/status`** — Project dashboard. Scans all folders and reports feature coverage, slug coverage, and traceability gaps.
 
@@ -170,9 +170,20 @@ Invoke the consistency checker periodically, or as part of `/kickoff`.
 |---|---|
 | `index.md` | Traceability index — maps every slug to all references |
 | `glossary.md` | Shared vocabulary — all agents must use consistent terminology |
-| `decisions.md` | Append-only decision log — records key decisions and rationale. Provides historical context for how the project evolved (specs show current state; this shows *why*) |
+| `decisions.md` | Append-only decision log — records key decisions and rationale. Provides historical context for how the project evolved (specs show current state; this shows *why*). **Do not edit directly during a session — write to `decisions-pending.md` instead (see below).** |
+| `decisions-pending.md` | Staging file for new decision entries. Merged into `decisions.md` by the pre-commit hook. Gitignored — never committed directly. |
 
-All agents should consult `glossary.md` before introducing new terms and log significant decisions to `decisions.md`.
+All agents should consult `glossary.md` before introducing new terms.
+
+### Decision Log Workflow
+
+**Never write directly to `decisions.md` during a session.** Instead:
+
+1. Write new decision entries to `decisions-pending.md` using the same format as `decisions.md`.
+2. Multiple decisions can be appended to the pending file during a session — that's fine.
+3. At commit time, the pre-commit hook (`scripts/merge-decisions.sh`) merges all pending entries into `decisions.md` in a single update, then deletes the pending file.
+
+This ensures `decisions.md` is only updated once per commit, keeping diffs clean and avoiding repeated churn on a shared file during multi-step sessions.
 
 ## Other Rules
 
