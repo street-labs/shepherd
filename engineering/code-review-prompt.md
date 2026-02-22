@@ -9,7 +9,7 @@ This is a client-side-only React + TypeScript single-page application (`NFR-crp-
 
 The application is built with **Vite** as the build tool and dev server, using the `react-ts` template. It uses **Shiki** for syntax highlighting, **TanStack Virtual** for virtualized scrolling of large files, **Zustand** for state management, and **Tailwind CSS v4** for styling.
 
-The core architectural idea is straightforward: the user loads a file, the file is parsed into an array of lines held in a Zustand store, the user attaches comments to line numbers, and a pure function assembles those inputs into a structured prompt string. Every piece of this runs in-browser with no side effects beyond the clipboard write.
+The core architectural idea is straightforward: the user loads a file, the file is parsed into an array of lines held in a Zustand store, the user attaches comments to line numbers, and a pure function assembles those inputs into a structured prompt string. The prompt is generated automatically and reactively — every comment or preamble mutation triggers `buildPrompt()` within the store, so the displayed prompt is always current with no manual "generate" step. Every piece of this runs in-browser with no side effects beyond the clipboard write.
 
 ### Key Technical Decisions
 
@@ -68,10 +68,8 @@ interface AppState {
   commentOrder: string[];
   /** The user's preamble text. */
   preamble: string;
-  /** The most recently generated prompt string, or null. */
+  /** The most recently generated prompt string, or null. Auto-computed after every comment or preamble change. */
   generatedPrompt: string | null;
-  /** Whether the generated prompt is stale (comments or preamble changed since generation). */
-  isPromptStale: boolean;
   /** The ID of the currently focused comment (via navigation), or null. */
   focusedCommentId: string | null;
   /** The currently selected line range for range-commenting, or null. */
@@ -130,9 +128,9 @@ App
 Root component. Renders the top-level layout: Toolbar at top, MainContent below. Provides no context providers -- Zustand store is accessed directly by each component that needs it.
 
 #### `Toolbar`
-Implements the persistent toolbar. Reads `commentCount`, `focusedCommentId`, `commentOrder`, `file`, `generatedPrompt` from the store to determine button states and label. The Generate button label reads "Generate" when `generatedPrompt` is null, and "Regenerate" when `generatedPrompt` is not null. Dispatches actions: `generatePrompt`, `copyPrompt`, `clearSession`, `navigateComment('next' | 'prev')`. Registers keyboard shortcuts (`Cmd+Shift+G`, `Cmd+Shift+C`, `[`, `]`) via a `useEffect` with `keydown` listener on `document`.
+Implements the persistent toolbar. Reads `commentCount`, `focusedCommentId`, `commentOrder`, `file` from the store to determine button states. Dispatches actions: `copyPrompt`, `clearSession`, `navigateComment('next' | 'prev')`. Registers keyboard shortcuts (`Cmd+Shift+C`, `[`, `]`) via a `useEffect` with `keydown` listener on `document`. Prompt generation is handled automatically by the store on comment/preamble mutation, so the Toolbar does not include a Generate button.
 
-Maps to: `FR-crp-comment-count`, `FR-crp-comment-navigation`, `FR-crp-prompt-generate`, `FR-crp-prompt-copy`, `FR-crp-clear-session`, `AC-crp-generate-prompt-no-comments`.
+Maps to: `FR-crp-comment-count`, `FR-crp-comment-navigation`, `FR-crp-prompt-copy`, `FR-crp-clear-session`.
 
 #### `FileDropZone`
 Handles all three file-loading methods: paste, upload, drag-and-drop (`FR-crp-file-load`). Manages its own local UI state (current variant: default, drag-hover, paste-mode, loading, error). On successful load, calls the store's `loadFile(content, fileName, language)` action.
@@ -168,12 +166,12 @@ The create/edit form rendered inline in the code viewer. Manages its own text st
 Maps to: `FR-crp-line-comment-create`, `FR-crp-line-comment-edit`, `AC-crp-add-comment-single-line`, `AC-crp-add-comment-line-range`, `AC-crp-edit-comment`.
 
 #### `PreambleInput`
-Controlled textarea bound to `store.preamble`. Supports expanded/collapsed variants as described in the design. Calls `store.setPreamble(text)` on change, which also sets `isPromptStale = true` if a prompt was previously generated.
+Controlled textarea bound to `store.preamble`. Supports expanded/collapsed variants as described in the design. Calls `store.setPreamble(text)` on change, which automatically triggers prompt regeneration via `buildPrompt()` if comments exist.
 
 Maps to: `FR-crp-prompt-preamble`.
 
 #### `PromptPreview`
-Read-only display of `store.generatedPrompt` rendered inside a `<pre>` element as a text node — no markdown processing is applied. The user sees the literal markdown syntax markers as plain text. Three variants: empty (null prompt), populated, stale (prompt exists but `isPromptStale` is true). The "Regenerate" link in the stale variant calls `store.generatePrompt()`. The inline "Copy" button calls `store.copyPrompt()`.
+Read-only display of `store.generatedPrompt` rendered inside a `<pre>` element as a text node — no markdown processing is applied. The user sees the literal markdown syntax markers as plain text. Two variants: empty (no comments exist, prompt is null) and populated (comments exist, prompt is automatically current). The prompt preview always shows the current, automatically generated prompt — there is no stale state. The inline "Copy" button calls `store.copyPrompt()`.
 
 Maps to: `FR-crp-prompt-preview`, `FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`, `AC-crp-preview-matches-copy`.
 
@@ -224,7 +222,6 @@ interface AppStore extends AppState {
   setPreamble: (text: string) => void;
 
   // Prompt
-  generatePrompt: () => void;
   copyPrompt: () => Promise<void>;
 
   // Session
@@ -235,13 +232,13 @@ interface AppStore extends AppState {
 #### Action Semantics
 
 - **`loadFile`**: Sets `file` with parsed lines (`content.split('\n')`). Resets all other state. Detects language from file extension if not already provided.
-- **`addComment`**: Creates a `Comment` with `crypto.randomUUID()`, inserts into `comments` map, recomputes `commentOrder`. Sets `isPromptStale = true` if a prompt exists.
-- **`updateComment`**: Updates the `text` field on an existing comment. Sets `isPromptStale = true`.
-- **`deleteComment`**: Removes from `comments` map and `commentOrder`. Sets `isPromptStale = true`. If the deleted comment was `focusedCommentId`, clears focus.
+- **`addComment`**: Creates a `Comment` with `crypto.randomUUID()`, inserts into `comments` map, recomputes `commentOrder`. Automatically regenerates the prompt via `buildPrompt()`.
+- **`updateComment`**: Updates the `text` field on an existing comment. Automatically regenerates the prompt via `buildPrompt()`.
+- **`deleteComment`**: Removes from `comments` map and `commentOrder`. If the deleted comment was `focusedCommentId`, clears focus. Automatically regenerates the prompt via `buildPrompt()` (sets `generatedPrompt` to `null` if no comments remain).
 - **`navigateComment`**: Advances or retreats `focusedCommentId` within `commentOrder`, wrapping at boundaries.
-- **`generatePrompt`**: Calls the pure `buildPrompt()` function (see below) and stores the result in `generatedPrompt`. Sets `isPromptStale = false`.
+- **`setPreamble`**: Updates the preamble text. Automatically regenerates the prompt via `buildPrompt()` if comments exist.
 - **`copyPrompt`**: Calls `navigator.clipboard.writeText(generatedPrompt)`. Returns a promise; the component handles success/failure UI.
-- **`clearSession`**: Resets the entire store to its initial state.
+- **`clearSession`**: Resets the entire store to its initial state, including clearing `generatedPrompt` to `null`.
 
 #### Selectors
 
@@ -366,7 +363,7 @@ Comment navigation (`FR-crp-comment-navigation`, `AC-crp-comment-navigation-next
 
 ### `buildPrompt()` Pure Function
 
-Prompt generation (`FR-crp-prompt-generate`, `FR-crp-prompt-format`) is implemented as a pure function with no side effects:
+Prompt generation (`FR-crp-prompt-generate`, `FR-crp-prompt-format`) is implemented as a pure function with no side effects. The store calls `buildPrompt()` automatically after every comment mutation (`addComment`, `updateComment`, `deleteComment`) and preamble change (`setPreamble`), so the prompt is always up to date without user-triggered generation:
 
 ```typescript
 function buildPrompt(file: FileInfo, comments: Comment[], preamble: string): string
@@ -587,7 +584,7 @@ engineering/
           e2e/
             load-file.spec.ts
             add-comment.spec.ts
-            generate-prompt.spec.ts
+            auto-prompt.spec.ts
             keyboard-navigation.spec.ts
 ```
 
@@ -606,7 +603,7 @@ Pure logic functions tested in isolation:
 | `promptBuilder.ts` | Correct format with preamble; without preamble; single-line comments; range comments; line number padding; ascending sort order; empty edge cases. Validates `FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`. |
 | `binaryDetect.ts` | Detects null bytes; passes clean UTF-8; handles empty input; handles exactly 8,192 bytes boundary. Validates `AC-crp-binary-file-rejected`. |
 | `languageDetect.ts` | Maps all 14+ extensions correctly; returns "plaintext" for unknown; case-insensitive extension matching. Validates `FR-crp-syntax-highlight`. |
-| `appStore.ts` | `loadFile` sets file and resets state; `addComment` increments count and marks prompt stale; `deleteComment` decrements count; `navigateComment` wraps correctly; `generatePrompt` produces expected string; `clearSession` resets everything. Validates store-level behavior for most FR and AC slugs. |
+| `appStore.ts` | `loadFile` sets file and resets state; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment removed); `navigateComment` wraps correctly; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including `generatedPrompt` to null. Validates store-level behavior for most FR and AC slugs. |
 
 ### Component Tests (React Testing Library)
 
@@ -616,8 +613,8 @@ Components tested with mocked store state:
 |---|---|
 | `FileDropZone` | Renders empty state instructions (`AC-crp-empty-state`); file upload triggers `loadFile` (`AC-crp-load-upload`); paste mode works (`AC-crp-load-paste`); binary file shows error (`AC-crp-binary-file-rejected`). |
 | `CodeViewer` | Renders line numbers; click on gutter opens editor (`AC-crp-add-comment-single-line`); Shift+click selects range (`AC-crp-add-comment-line-range`); keyboard navigation works (`AC-crp-keyboard-add-comment`). |
-| `Toolbar` | Generate button disabled with 0 comments (`AC-crp-generate-prompt-no-comments`); enabled with >= 1 comment; copy button disabled until prompt generated; comment count displays correctly. |
-| `PromptPreview` | Shows placeholder when no prompt; shows prompt text when generated; shows stale indicator when modified after generation. |
+| `Toolbar` | Copy button disabled until prompt exists (auto-generated when comments present); comment count displays correctly; no Generate button (prompt auto-generates). |
+| `PromptPreview` | Shows empty variant when no comments (prompt is null); shows populated variant with current prompt text when comments exist; prompt always reflects latest comments and preamble. |
 | `ConfirmationDialog` | Renders with correct text; confirm button triggers callback; cancel closes dialog; escape closes dialog (`AC-crp-clear-confirmation`). |
 
 ### End-to-End Tests (Playwright)
@@ -626,8 +623,8 @@ Full user flows tested in a real browser:
 
 | Flow | Coverage |
 |---|---|
-| Load file via upload, add comment, generate prompt, copy to clipboard | `AC-crp-load-upload`, `AC-crp-add-comment-single-line`, `AC-crp-generate-prompt-structure`, `AC-crp-copy-clipboard`, `AC-crp-preview-matches-copy` |
-| Load file via paste, add range comment, generate prompt | `AC-crp-load-paste`, `AC-crp-add-comment-line-range` |
+| Load file via upload, add comment, verify prompt auto-generates, copy to clipboard | `AC-crp-load-upload`, `AC-crp-add-comment-single-line`, `AC-crp-generate-prompt-structure`, `AC-crp-copy-clipboard`, `AC-crp-preview-matches-copy` |
+| Load file via paste, add range comment, verify prompt auto-generates | `AC-crp-load-paste`, `AC-crp-add-comment-line-range` |
 | Edit and delete comments | `AC-crp-edit-comment`, `AC-crp-delete-comment` |
 | Clear session with confirmation | `AC-crp-clear-confirmation`, `AC-crp-clear-no-confirm-empty` |
 | Keyboard-only comment flow | `AC-crp-keyboard-add-comment` |
@@ -672,9 +669,9 @@ The work is divided into four phases. Each phase produces a deployable increment
 4. Implement line range selection (mouse drag, Shift+click) in the CodeViewer.
 5. Build the `PreambleInput` component (expanded and collapsed variants).
 6. Implement the `promptBuilder.ts` module. Write comprehensive unit tests.
-7. Build the `PromptPreview` component (empty, populated, stale variants).
+7. Build the `PromptPreview` component (empty and populated variants).
 8. Implement `clipboard.ts` with fallback. Build the `ToastNotification` component.
-9. Wire up the Toolbar: Generate, Copy, comment count, comment navigation (next/prev).
+9. Wire up the Toolbar: Copy, comment count, comment navigation (next/prev). Wire auto-generation in the store so that `addComment`, `updateComment`, `deleteComment`, and `setPreamble` call `buildPrompt()` after mutation.
 10. Build the `ConfirmationDialog` component. Wire up the Clear button.
 
 **Delivers**: Complete core workflow: load file, add/edit/delete comments on single lines and ranges, write preamble, generate prompt, preview prompt, copy to clipboard, clear session.
@@ -702,7 +699,7 @@ The work is divided into four phases. Each phase produces a deployable increment
 **Goal**: Keyboard accessibility, responsive layout, ARIA attributes, cross-browser testing, and final polish.
 
 1. Implement keyboard navigation in `CodeViewer`: ArrowUp/Down line focus, Enter/`c` to open editor, Shift+ArrowDown for range selection.
-2. Add all keyboard shortcuts: `Cmd+Shift+G` (generate), `Cmd+Shift+C` (copy), `[`/`]` (comment nav), `Cmd+Enter`/`Ctrl+Enter` (submit), `Escape` (cancel/close).
+2. Add all keyboard shortcuts: `Cmd+Shift+C` (copy), `[`/`]` (comment nav), `Cmd+Enter`/`Ctrl+Enter` (submit), `Escape` (cancel/close).
 3. Add ARIA attributes to all components per the design spec's accessibility section.
 4. Implement focus management: focus trapping in modals, focus return after editor close, focus move on comment navigation.
 5. Implement responsive behavior: sidebar width adjustment at 1024-1279px, sub-1024px overlay message.
@@ -734,7 +731,7 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-comment-indicator` | `CodeViewer` gutter rendering (blue dot for commented lines) |
 | `FR-crp-comment-count` | `Toolbar` component (reads `commentCount` from store) |
 | `FR-crp-prompt-preamble` | `PreambleInput` component; store `preamble` state and `setPreamble` action |
-| `FR-crp-prompt-generate` | `promptBuilder.ts`; store `generatePrompt` action; `Toolbar` Generate button |
+| `FR-crp-prompt-generate` | `promptBuilder.ts`; Zustand store auto-generation on comment/preamble mutation |
 | `FR-crp-prompt-preview` | `PromptPreview` component (reads `generatedPrompt` from store) |
 | `FR-crp-prompt-copy` | `clipboard.ts`; store `copyPrompt` action; `Toolbar` Copy button; `ToastNotification` |
 | `FR-crp-prompt-format` | `promptBuilder.ts` (format assembly logic) |
@@ -769,7 +766,7 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-edit-comment` | `CommentBubble` edit button; `InlineCommentEditor` edit variant; store `updateComment` |
 | `AC-crp-delete-comment` | `CommentBubble` delete button; store `deleteComment` |
 | `AC-crp-generate-prompt-structure` | `promptBuilder.ts` format; unit tests validate structure |
-| `AC-crp-generate-prompt-no-comments` | `Toolbar` disables Generate button when `commentCount === 0` |
+| `AC-crp-generate-prompt-no-comments` | Store clears `generatedPrompt` when last comment is deleted; `PromptPreview` shows empty variant |
 | `AC-crp-copy-clipboard` | `clipboard.ts`; `ToastNotification`; `Toolbar` Copy button state |
 | `AC-crp-preview-matches-copy` | Single `generatedPrompt` string used for both preview display and clipboard write |
 | `AC-crp-clear-confirmation` | `ConfirmationDialog` shown when `commentCount > 0`; store `clearSession` |

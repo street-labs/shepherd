@@ -110,6 +110,14 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: Engineering must write test code alongside feature code. QA must execute tests and report results, not just write plans. The pre-commit hook now also runs Vitest when TypeScript files change. All four agents (product, design, engineering, QA) participate in the sign-off process.
 **Slug references**: All existing `TC-` slugs, `AC-crp-*`, `AC-diff-*`, `FR-crp-*`, `FR-diff-*`
 
+## 2026-02-21 -- Remove Generate button; auto-generate prompt on every comment/preamble change
+**Context**: The CRPG required users to click a "Generate" button to produce the prompt after adding comments. This introduced an unnecessary manual step — users would add comments, forget to click Generate, and try to copy a stale or missing prompt.
+**Decision**: Remove the Generate button entirely. The prompt is now automatically generated (and regenerated) whenever the user adds, edits, or deletes a comment, or modifies the preamble. The prompt preview is always current. The "stale prompt" concept and its yellow warning banner are eliminated.
+**Alternatives considered**: Keep the Generate button but add an "auto-regenerate" toggle (adds complexity for minimal benefit), debounce auto-generation with a visible delay (unnecessary given sub-5ms generation time).
+**Rationale**: Prompt generation completes in <5ms (`NFR-crp-prompt-gen-time` budget is 300ms), so there is zero performance reason for a manual trigger. Automatic generation simplifies the user's workflow from "annotate → generate → copy" to "annotate → copy" and eliminates the entire stale-prompt state machine. The `Cmd+Shift+G` keyboard shortcut is also removed, freeing that binding for future use.
+**Consequences**: The Toolbar loses one button (Generate/Regenerate). The Zustand store no longer has a `generatePrompt` action or `isPromptStale` flag — instead, `buildPrompt()` is called inside `addComment`, `updateComment`, `deleteComment`, and `setPreamble`. The PromptPreview component drops its `stale` variant. QA test cases referencing the Generate button are updated to test auto-generation behavior.
+**Slug references**: `FR-crp-prompt-generate`, `AC-crp-generate-prompt-no-comments`, `FR-crp-prompt-preview`
+
 <!--
 Entry template:
 

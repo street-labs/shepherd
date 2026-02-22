@@ -5,8 +5,6 @@ import { useAppStore } from '@/store/appStore';
 
 export function PromptPreview() {
   const generatedPrompt = useAppStore((s) => s.generatedPrompt);
-  const isPromptStale = useAppStore((s) => s.isPromptStale);
-  const generatePrompt = useAppStore((s) => s.generatePrompt);
   const copyPrompt = useAppStore((s) => s.copyPrompt);
 
   return (
@@ -25,21 +23,10 @@ export function PromptPreview() {
 
       {!generatedPrompt ? (
         <div className="flex-1 flex items-center justify-center text-sm text-text-tertiary">
-          Add comments and click Generate to preview the prompt.
+          Add comments to the code to generate your AI prompt.
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
-          {isPromptStale && (
-            <div className="flex items-center gap-2 mb-2 px-2 py-1 rounded bg-warning-bg text-warning-text text-xs">
-              <span>Prompt is outdated.</span>
-              <button
-                onClick={generatePrompt}
-                className="underline hover:no-underline"
-              >
-                Regenerate
-              </button>
-            </div>
-          )}
           <pre className="flex-1 overflow-auto p-3 rounded bg-gray-900 text-gray-100 text-xs leading-relaxed whitespace-pre-wrap break-words">
             {generatedPrompt}
           </pre>

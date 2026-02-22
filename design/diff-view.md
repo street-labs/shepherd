@@ -377,10 +377,10 @@ Comment navigation (`[` / `]` keys, or the previous/next buttons in the toolbar)
 ### Flow 9: Generate Prompt from Diff View (`FR-diff-prompt-format`, `AC-diff-prompt-includes-diff`)
 
 1. User is in diff view with one or more comments.
-2. User clicks "Generate" in the toolbar (or presses `Cmd+Shift+G` / `Ctrl+Shift+G`).
+2. The prompt is automatically generated and updated in the preview panel whenever comments are added, edited, or deleted.
 3. The application generates a diff-aware prompt (see Prompt Output Format — Diff Mode below).
 4. The sidebar prompt preview populates with the generated text. The preamble collapses to a summary line. The Copy button becomes enabled.
-5. All existing behaviors (stale prompt detection, regeneration, copy) work identically to file mode.
+5. All existing behaviors (automatic prompt generation, copy) work identically to file mode.
 
 ### Flow 10: Keyboard Navigation in Diff View (`NFR-diff-accessibility`)
 
@@ -632,7 +632,6 @@ All diff view interactions are achievable via keyboard:
 | **Add range comment** | Focus start line, `Shift+ArrowDown` to select range, `Enter` |
 | **Navigate comments** | `[` for previous, `]` for next (same as file mode) |
 | **Refresh diff** | `Tab` to refresh button, `Enter` |
-| **Generate prompt** | `Cmd+Shift+G` / `Ctrl+Shift+G` (same as file mode) |
 | **Copy prompt** | `Cmd+Shift+C` / `Ctrl+Shift+C` (same as file mode) |
 
 ### Focus Management

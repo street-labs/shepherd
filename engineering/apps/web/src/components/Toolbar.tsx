@@ -1,4 +1,4 @@
-// Implements: FR-crp-comment-count, FR-crp-comment-navigation, FR-crp-prompt-generate,
+// Implements: FR-crp-comment-count, FR-crp-comment-navigation,
 // FR-crp-prompt-copy, FR-crp-clear-session, AC-crp-generate-prompt-no-comments,
 // FR-diff-mode-toggle, FR-diff-refresh
 
@@ -37,8 +37,6 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
 
   const navigateComment = useAppStore((s) => s.navigateComment);
   const navigateDiffComment = useAppStore((s) => s.navigateDiffComment);
-  const generatePrompt = useAppStore((s) => s.generatePrompt);
-  const generateDiffPrompt = useAppStore((s) => s.generateDiffPrompt);
   const copyPrompt = useAppStore((s) => s.copyPrompt);
 
   const hasFile = file !== null;
@@ -58,25 +56,10 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
     }
   };
 
-  const handleGenerate = () => {
-    if (viewMode === 'diff') {
-      generateDiffPrompt();
-    } else {
-      generatePrompt();
-    }
-  };
-
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const metaOrCtrl = e.metaKey || e.ctrlKey;
-
-      // Cmd+Shift+G: generate prompt
-      if (metaOrCtrl && e.shiftKey && e.key === 'G') {
-        e.preventDefault();
-        if (hasComments) handleGenerate();
-        return;
-      }
 
       // Cmd+Shift+C: copy prompt
       if (metaOrCtrl && e.shiftKey && e.key === 'C') {
@@ -106,7 +89,7 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
 
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [hasComments, hasPrompt, handleGenerate, copyPrompt, handleNavigate]);
+  }, [hasComments, hasPrompt, copyPrompt, handleNavigate]);
 
   return (
     <header
@@ -176,15 +159,6 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
           <div className="w-px h-5 bg-border-default" role="separator" />
 
           {/* Actions */}
-          <button
-            onClick={handleGenerate}
-            disabled={!hasComments}
-            className="px-3 py-1 text-xs font-medium rounded bg-primary-500 text-text-on-primary hover:bg-primary-600 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Generate prompt (&#x2318;&#x21E7;G)"
-          >
-            {hasPrompt ? 'Regenerate' : 'Generate'}
-          </button>
-
           <button
             onClick={() => void copyPrompt()}
             disabled={!hasPrompt}

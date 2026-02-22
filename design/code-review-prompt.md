@@ -9,8 +9,8 @@ This is a single-page application with one primary view that transitions through
 | View State | Description |
 |---|---|
 | **Empty State** | No file loaded. Shows drop zone and file loading instructions. |
-| **File Loaded State** | File is displayed in the code viewer. User can add, edit, delete comments and generate prompts. |
-| **Prompt Preview State** | The generated prompt is displayed in a preview panel alongside the code viewer. |
+| **File Loaded State** | File is displayed in the code viewer. User can add, edit, delete comments. The prompt auto-generates when comments exist. |
+| **Prompt Preview State** | The auto-generated prompt is displayed in a preview panel alongside the code viewer. Active whenever >= 1 comment exists. |
 
 Within the File Loaded State, the application has several sub-states depending on user activity (editing a comment, selecting a line range, etc.). These are described in detail below.
 
@@ -62,7 +62,7 @@ When a file is loaded, the main content area splits into a two-column layout:
 ```
 
 - **Code Viewer Panel**: Takes remaining width after the sidebar. Contains the code viewer with line numbers, gutter, and inline comments. Scrolls vertically independently.
-- **Sidebar Panel**: Fixed width of 360px on the right side. Contains the preamble input and, when generated, the prompt preview. Scrolls vertically independently.
+- **Sidebar Panel**: Fixed width of 360px on the right side. Contains the preamble input and the prompt preview (auto-populated when comments exist). Scrolls vertically independently.
 
 ### Main Content Area — Prompt Preview Active
 
@@ -96,8 +96,7 @@ The entire main content area is a single centered drop zone.
 
 - **FileDropZone** (see Component Specs below): Dominates the content area. Provides three loading methods per `FR-crp-file-load`.
 - **Toolbar**: Visible but with most actions disabled.
-  - Generate button: disabled (grayed out, `aria-disabled="true"`). Tooltip: "Load a file to get started."
-  - Copy button: disabled. Tooltip: "Generate a prompt first."
+  - Copy button: disabled. Tooltip: "Load a file to get started."
   - Clear button: disabled. Tooltip: "No session to clear."
   - Comment navigation (previous/next): disabled.
   - Comment count: displays "0 comments".
@@ -116,7 +115,7 @@ The entire main content area is a single centered drop zone.
 
 ### File Loaded Screen
 
-- **Purpose**: Display the loaded file with line numbers, allow the user to add/edit/delete inline comments, write a preamble, and generate the prompt.
+- **Purpose**: Display the loaded file with line numbers, allow the user to add/edit/delete inline comments, write a preamble, and view the auto-generated prompt.
 - **Entry points**: Successfully loading a file from the Empty State.
 
 #### Layout
@@ -141,7 +140,7 @@ Contains the following from top to bottom:
 Contains the following from top to bottom:
 
 1. **PreambleInput**: A text area for the prompt preamble (`FR-crp-prompt-preamble`). See Component Specs.
-2. **PromptPreview**: Appears below the preamble input after the user generates a prompt (`FR-crp-prompt-preview`). See Component Specs. Before generation, this area shows a placeholder message: "Add comments to the code, then generate a prompt."
+2. **PromptPreview**: Appears below the preamble input once comments exist (`FR-crp-prompt-preview`). See Component Specs. Before any comments are added, this area shows a placeholder message: "Add comments to the code to generate your AI prompt."
 
 #### Toolbar (File Loaded state)
 
@@ -152,19 +151,17 @@ All toolbar items update to their active states:
 | **Comment count** | Active | Displays "N comments" (e.g., "3 comments"). Updates live as comments are added/deleted. `FR-crp-comment-count` |
 | **Previous comment** | Enabled when >= 1 comment exists | Navigates to the previous comment in line order. Wraps from first to last. `FR-crp-comment-navigation` |
 | **Next comment** | Enabled when >= 1 comment exists | Navigates to the next comment in line order. Wraps from last to first. `FR-crp-comment-navigation` |
-| **Generate** | Enabled when >= 1 comment exists; disabled otherwise (`AC-crp-generate-prompt-no-comments`) | Triggers prompt generation. `FR-crp-prompt-generate` |
-| **Copy** | Enabled only after a prompt has been generated | Copies prompt to clipboard. `FR-crp-prompt-copy` |
+| **Copy** | Enabled when >= 1 comment exists | Copies prompt to clipboard. `FR-crp-prompt-copy` |
 | **Clear** | Always enabled when a file is loaded | Clears the session. `FR-crp-clear-session` |
 
 #### States
 
 | State | Trigger | Appearance |
 |---|---|---|
-| **Populated, no comments** | File loaded, zero comments | Code viewer shows file. Sidebar shows empty preamble input and placeholder in preview area. Generate button disabled. |
-| **Populated, with comments** | One or more comments exist | Code viewer shows file with comment indicators in the gutter. Generate button enabled. Comment navigation enabled. |
+| **Populated, no comments** | File loaded, zero comments | Code viewer shows file. Sidebar shows empty preamble input and placeholder message in preview area. |
+| **Populated, with comments** | One or more comments exist | Code viewer shows file with comment indicators in the gutter. Prompt preview updates automatically. Comment navigation enabled. Copy button enabled. |
 | **Comment editing** | User opens the inline comment editor | InlineCommentEditor is inserted below the target line(s) in the code viewer. Rest of the code is pushed down. |
 | **Line range selection** | User is selecting a range of lines (`FR-crp-line-range-comment`) | Selected lines are highlighted with a blue background (`#DBEAFE`). Selection indicator shows "Lines N-M selected". |
-| **Prompt generated** | User clicks Generate | Sidebar shows the prompt preview below the preamble. Copy button becomes enabled. |
 | **Prompt copied** | User clicks Copy | A toast notification appears: "Copied to clipboard" for 3 seconds. The Copy button briefly changes label to "Copied!" with a checkmark icon, then reverts after 2 seconds. `AC-crp-copy-clipboard` |
 | **Large file warning** | File exceeds 10,000 lines (`NFR-crp-large-file-perf`) | A dismissible yellow banner appears at the top of the code viewer: "This file has N lines. Performance may be affected for very large files." Dismissing sets a session-only flag (`largeFileWarningDismissed`). If the user clears and loads another large file, the banner appears again. |
 
@@ -237,29 +234,30 @@ All toolbar items update to their active states:
 1. User hovers over a CommentBubble. A "Delete" button (trash icon) appears.
 2. User clicks "Delete".
 3. The CommentBubble is immediately removed (no confirmation dialog for individual comment deletion). The gutter indicator is removed if no other comments remain on that line. The toolbar comment count decrements by 1.
-4. If a prompt was previously generated, it is now stale. The prompt preview area shows a subtle "Prompt is outdated. Regenerate to include latest changes." message with a "Regenerate" link.
+4. The prompt preview automatically updates to reflect the removal. If no comments remain, the prompt preview reverts to the placeholder message and the Copy button becomes disabled.
 
 ### Flow 8: Write a Preamble (`FR-crp-prompt-preamble`)
 
 1. In the sidebar, the user sees the PreambleInput text area with placeholder text: "Add high-level instructions for the AI (optional). Example: Refactor this function to use async/await."
 2. User clicks the text area and types their preamble.
 3. The preamble is stored in application state. No explicit save action is needed.
-4. When the prompt is generated, the preamble appears at the top of the output.
+4. If comments exist, the prompt automatically regenerates to include the updated preamble. The preamble appears at the top of the output.
 
-### Flow 9: Generate Prompt (`FR-crp-prompt-generate`, `AC-crp-generate-prompt-structure`)
+### Flow 9: Automatic Prompt Generation (`FR-crp-prompt-generate`, `AC-crp-generate-prompt-structure`)
 
-1. User has loaded a file and added at least one comment.
-2. User clicks the "Generate" button in the toolbar.
-3. The application assembles the prompt per `FR-crp-prompt-format`:
+1. The prompt is automatically generated (and regenerated) whenever any of the following occur: a comment is added, a comment is edited, a comment is deleted, or the preamble text changes. There is no manual Generate button.
+2. As soon as the first comment is added, the application assembles the prompt per `FR-crp-prompt-format`:
    - Preamble (if provided)
    - File name and detected language
    - Full file content with line numbers
    - "Requested Changes" section with all comments in ascending line order
-4. The prompt preview panel in the sidebar populates with the generated prompt text. The preamble input collapses automatically to a single summary line (showing the first ~80 characters of the preamble with "..." if truncated, or "No preamble" in muted text if empty). The user can click the summary to expand and re-edit. The Generate button label changes to "Regenerate".
-5. The Copy button in the toolbar becomes enabled.
+3. The prompt preview panel in the sidebar populates with the generated prompt text. The prompt preview always reflects the current state of comments and preamble — there is no stale prompt concept.
+4. The preamble input collapses automatically to a single summary line when the first comment is added (showing the first ~80 characters of the preamble with "..." if truncated, or "No preamble" in muted text if empty). The user can click the summary to expand and re-edit.
+5. The Copy button in the toolbar becomes enabled as soon as any comment exists.
 
-   **Preamble collapse/expand behavior**: The preamble collapses automatically when the prompt is generated. After expanding to edit, the preamble remains in the user's chosen state (expanded or collapsed) until the user toggles it or regenerates the prompt. Editing the preamble at any time immediately sets `isPromptStale = true`.
-6. Prompt generation must complete within 300ms (`NFR-crp-prompt-gen-time`). No loading spinner is shown for this operation since it is expected to be near-instant.
+   **Preamble collapse/expand behavior**: The preamble collapses automatically when the first comment is added. After expanding to edit, the preamble remains in the user's chosen state (expanded or collapsed) until the user toggles it. Editing the preamble triggers an automatic prompt regeneration.
+6. If all comments are deleted, the prompt preview reverts to the placeholder message and the Copy button becomes disabled.
+7. Prompt generation must complete within 300ms (`NFR-crp-prompt-gen-time`). No loading spinner is shown for this operation since it is expected to be near-instant.
 
 ### Flow 10: Copy Prompt to Clipboard (`AC-crp-copy-clipboard`, `AC-crp-preview-matches-copy`)
 
@@ -382,8 +380,6 @@ The persistent toolbar at the top of the application. Always visible.
   - `commentCount: number` — Total number of comments.
   - `currentCommentIndex: number | null` — Index of the currently focused comment (for navigation display).
   - `hasFile: boolean` — Whether a file is loaded.
-  - `hasPrompt: boolean` — Whether a prompt has been generated.
-  - `onGenerate: () => void`
   - `onCopy: () => void`
   - `onClear: () => void`
   - `onPrevComment: () => void`
@@ -391,27 +387,23 @@ The persistent toolbar at the top of the application. Always visible.
 
 - **Visual Structure**:
   ```
-  +---[Logo/Title]---[Comment Nav]---[Comment Count]------[Generate][Copy][Clear]---+
+  +---[Logo/Title]---[Comment Nav]---[Comment Count]------[Copy][Clear]---+
   ```
   - Left section: Application title "Code Review Prompt Generator" (or abbreviated to "CRPG" on narrower viewports approaching 1024px).
   - Center section: Comment navigation group — `[< Prev]` `Comment 2 of 5` `[Next >]`. The label shows "No comments" when count is 0.
-  - Right section: Action buttons — "Generate" (primary style, blue), "Copy" (secondary style), "Clear" (ghost/text style, red on hover for destructive affordance).
+  - Right section: Action buttons — "Copy" (secondary style), "Clear" (ghost/text style, red on hover for destructive affordance).
 
 - **States**:
 
-  | Application State | Generate | Copy | Clear | Navigation |
-  |---|---|---|---|---|
-  | Empty (no file) | Disabled | Disabled | Disabled | Disabled |
-  | File loaded, 0 comments | Disabled | Disabled | Enabled | Disabled |
-  | File loaded, >= 1 comment, no prompt | Enabled | Disabled | Enabled | Enabled |
-  | File loaded, >= 1 comment, prompt generated | Enabled (label: "Regenerate") | Enabled | Enabled | Enabled |
-
-  **Generate/Regenerate label logic**: The button reads "Generate" when `generatedPrompt` is null. After the first prompt generation, the label changes to "Regenerate" (when `generatedPrompt` is not null). If the user clears the session and starts over, the label resets to "Generate".
+  | Application State | Copy | Clear | Navigation |
+  |---|---|---|---|
+  | Empty (no file) | Disabled | Disabled | Disabled |
+  | File loaded, 0 comments | Disabled | Enabled | Disabled |
+  | File loaded, >= 1 comment | Enabled | Enabled | Enabled |
 
   **Disabled button tooltips (all states)**:
-  - Generate disabled (empty state): "Load a file to get started"
-  - Generate disabled (file loaded, 0 comments): "Add at least one comment to generate a prompt"
-  - Copy disabled (no prompt generated): "Generate a prompt first"
+  - Copy disabled (empty state): "Load a file to get started"
+  - Copy disabled (file loaded, 0 comments): "Add at least one comment"
   - Clear disabled (empty state): "No session to clear"
   - Navigation disabled (0 comments): "No comments to navigate"
 
@@ -419,7 +411,6 @@ The persistent toolbar at the top of the application. Always visible.
   - All buttons are focusable with `Tab`.
   - `Enter` or `Space` activates the focused button.
   - Keyboard shortcuts (displayed in button tooltips):
-    - Generate: `Cmd+Shift+G` / `Ctrl+Shift+G`
     - Copy: `Cmd+Shift+C` / `Ctrl+Shift+C`
     - Previous comment: `[`
     - Next comment: `]`
@@ -577,8 +568,8 @@ The input form for creating or editing a comment. Appears inline within the code
 Text area for the optional prompt preamble. Implements `FR-crp-prompt-preamble`.
 
 - **Variants**:
-  - `expanded` — Full text area visible and editable (default when no prompt has been generated).
-  - `collapsed` — Shows a single-line summary of the preamble. Used after prompt generation to save space for the preview.
+  - `expanded` — Full text area visible and editable (default when no comments exist).
+  - `collapsed` — Shows a single-line summary of the preamble. Used after the first comment is added to save space for the prompt preview.
 
 - **Props/Inputs**:
   - `value: string`
@@ -614,14 +605,11 @@ Text area for the optional prompt preamble. Implements `FR-crp-prompt-preamble`.
 Read-only display of the generated prompt. Implements `FR-crp-prompt-preview`, `FR-crp-prompt-format`.
 
 - **Variants**:
-  - `empty` — No prompt generated yet. Shows placeholder message.
-  - `populated` — Displays the generated prompt.
-  - `stale` — A prompt was generated but comments have changed since. Shows a stale indicator.
+  - `empty` — No comments exist yet. Shows placeholder message.
+  - `populated` — Displays the auto-generated prompt. Appears automatically as soon as comments exist.
 
 - **Props/Inputs**:
-  - `promptText: string | null` — The generated prompt text. Null if not yet generated.
-  - `isStale: boolean` — True if comments or preamble have changed since last generation.
-  - `onRegenerate: () => void`
+  - `promptText: string | null` — The generated prompt text. Null when no comments exist.
   - `onCopy: () => void`
 
 - **Visual Structure (empty variant)**:
@@ -629,8 +617,8 @@ Read-only display of the generated prompt. Implements `FR-crp-prompt-preview`, `
   Prompt Preview
   +----------------------------------------------------------+
   |                                                            |
-  |  Add comments to the code, then click Generate             |
-  |  to create your AI prompt.                                 |
+  |  Add comments to the code to generate your AI prompt.      |
+  |                                                            |
   |                                                            |
   +----------------------------------------------------------+
   ```
@@ -660,13 +648,6 @@ Read-only display of the generated prompt. Implements `FR-crp-prompt-preview`, `
   - Header row: "Prompt Preview" label (13px semi-bold) with a "Copy" button (small, secondary style) right-aligned.
   - Content area: monospace font, 12px. Background: `#1E293B` (dark). Text: `#E2E8F0` (light). Padding: 16px. Scrollable vertically. This uses a "dark terminal" theme to visually distinguish the output from the editing areas.
   - The content is rendered inside a `<pre>` element as a text node — no markdown processing is applied. The user sees the literal markdown syntax markers (e.g., `## Instructions`, `**Line 3**`) as plain text. This is intentional: these markers are part of the prompt structure and will be interpreted by the AI agent, not by the application's preview.
-
-- **Visual Structure (stale variant)**:
-  - Same as populated, but with a yellow banner at the top of the preview:
-    ```
-    [!] Prompt is outdated. [Regenerate]
-    ```
-    Background: `#FEF3C7`. Text: `#92400E`. "Regenerate" is a text link.
 
 ---
 
@@ -808,7 +789,6 @@ All core workflows are achievable via keyboard:
 | **Edit a comment** | `Tab` to comment bubble, `Enter` to focus Edit button, `Enter` |
 | **Delete a comment** | `Tab` to comment bubble, `Tab` to Delete button, `Enter` |
 | **Navigate comments** | `[` for previous, `]` for next |
-| **Generate prompt** | `Cmd+Shift+G` / `Ctrl+Shift+G` |
 | **Copy prompt** | `Cmd+Shift+C` / `Ctrl+Shift+C` |
 | **Clear session** | `Tab` to Clear button, `Enter` |
 
@@ -857,8 +837,6 @@ All core workflows are achievable via keyboard:
 | Focused comment highlight | Pale yellow | `#FEF9C3` |
 | Destructive action | Red | `#DC2626` |
 | Destructive hover | Darker red | `#B91C1C` |
-| Stale warning background | Pale yellow | `#FEF3C7` |
-| Stale warning text | Dark amber | `#92400E` |
 | Error background | Pale red | `#FEF2F2` |
 | Error text | Dark red | `#991B1B` |
 | Toolbar background | White | `#FFFFFF` |
@@ -917,7 +895,7 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-comment-indicator` | CodeViewer gutter (blue dot indicator); CommentBubble |
 | `FR-crp-comment-count` | Toolbar component (comment count display) |
 | `FR-crp-prompt-preamble` | PreambleInput component; Flow 8 |
-| `FR-crp-prompt-generate` | Toolbar Generate button; Flow 9; Prompt Output Format section |
+| `FR-crp-prompt-generate` | Automatic prompt generation on comment/preamble change; Flow 9; Prompt Output Format section |
 | `FR-crp-prompt-preview` | PromptPreview component (populated variant) |
 | `FR-crp-prompt-copy` | Toolbar Copy button; PromptPreview Copy button; Flow 10; ToastNotification |
 | `FR-crp-prompt-format` | Prompt Output Format section; PromptPreview component |
@@ -952,7 +930,7 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-edit-comment` | Flow 6; InlineCommentEditor edit variant |
 | `AC-crp-delete-comment` | Flow 7; CommentBubble Delete action |
 | `AC-crp-generate-prompt-structure` | Flow 9; Prompt Output Format section |
-| `AC-crp-generate-prompt-no-comments` | Toolbar states table (Generate disabled when 0 comments) |
+| `AC-crp-generate-prompt-no-comments` | Toolbar states table (Copy disabled when 0 comments; prompt only auto-generates when comments exist) |
 | `AC-crp-copy-clipboard` | Flow 10; ToastNotification component |
 | `AC-crp-preview-matches-copy` | Flow 10 (byte-for-byte match note); PromptPreview renders exact text |
 | `AC-crp-clear-confirmation` | Flow 12; ConfirmationDialog component |

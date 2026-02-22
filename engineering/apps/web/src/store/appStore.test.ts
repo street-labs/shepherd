@@ -72,13 +72,23 @@ describe('appStore', () => {
       expect(useAppStore.getState().commentOrder.length).toBe(1);
     });
 
-    it('marks prompt as stale when prompt exists', () => {
+    it('automatically generates the prompt', () => {
       loadTestFile(useAppStore.getState());
-      useAppStore.getState().addComment(1, 1, 'a');
-      useAppStore.getState().generatePrompt();
-      expect(useAppStore.getState().isPromptStale).toBe(false);
-      useAppStore.getState().addComment(2, 2, 'b');
-      expect(useAppStore.getState().isPromptStale).toBe(true);
+      expect(useAppStore.getState().generatedPrompt).toBeNull();
+      useAppStore.getState().addComment(1, 1, 'review this');
+      expect(useAppStore.getState().generatedPrompt).not.toBeNull();
+      expect(useAppStore.getState().generatedPrompt).toContain('review this');
+    });
+
+    it('updates the prompt when a second comment is added', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'first comment');
+      const promptAfterFirst = useAppStore.getState().generatedPrompt;
+      useAppStore.getState().addComment(2, 2, 'second comment');
+      const promptAfterSecond = useAppStore.getState().generatedPrompt;
+      expect(promptAfterSecond).not.toBe(promptAfterFirst);
+      expect(promptAfterSecond).toContain('second comment');
+      expect(promptAfterSecond).toContain('first comment');
     });
 
     it('closes the editor after adding', () => {
@@ -100,13 +110,14 @@ describe('appStore', () => {
       expect(useAppStore.getState().comments[id]!.text).toBe('updated');
     });
 
-    it('marks prompt as stale', () => {
+    it('automatically regenerates the prompt with updated text', () => {
       loadTestFile(useAppStore.getState());
-      useAppStore.getState().addComment(1, 1, 'a');
-      useAppStore.getState().generatePrompt();
+      useAppStore.getState().addComment(1, 1, 'original text');
+      expect(useAppStore.getState().generatedPrompt).toContain('original text');
       const id = useAppStore.getState().commentOrder[0]!;
-      useAppStore.getState().updateComment(id, 'b');
-      expect(useAppStore.getState().isPromptStale).toBe(true);
+      useAppStore.getState().updateComment(id, 'updated text');
+      expect(useAppStore.getState().generatedPrompt).toContain('updated text');
+      expect(useAppStore.getState().generatedPrompt).not.toContain('original text');
     });
   });
 
@@ -130,6 +141,25 @@ describe('appStore', () => {
       expect(useAppStore.getState().focusedCommentId).toBe(id);
       useAppStore.getState().deleteComment(id);
       expect(useAppStore.getState().focusedCommentId).toBeNull();
+    });
+
+    it('clears the prompt when the last comment is deleted', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'only comment');
+      expect(useAppStore.getState().generatedPrompt).not.toBeNull();
+      const id = useAppStore.getState().commentOrder[0]!;
+      useAppStore.getState().deleteComment(id);
+      expect(useAppStore.getState().generatedPrompt).toBeNull();
+    });
+
+    it('updates the prompt when one of multiple comments is deleted', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'keep this');
+      useAppStore.getState().addComment(2, 2, 'delete this');
+      const deleteId = useAppStore.getState().commentOrder[1]!;
+      useAppStore.getState().deleteComment(deleteId);
+      expect(useAppStore.getState().generatedPrompt).toContain('keep this');
+      expect(useAppStore.getState().generatedPrompt).not.toContain('delete this');
     });
   });
 
@@ -170,22 +200,23 @@ describe('appStore', () => {
     });
   });
 
-  // ─── generatePrompt ───────────────────────────────────────
+  // ─── setPreamble ──────────────────────────────────────────
 
-  describe('generatePrompt', () => {
-    it('generates a prompt and sets isPromptStale to false', () => {
+  describe('setPreamble', () => {
+    it('regenerates the prompt when comments exist', () => {
       loadTestFile(useAppStore.getState());
-      useAppStore.getState().addComment(1, 1, 'review this');
-      useAppStore.getState().generatePrompt();
-      expect(useAppStore.getState().generatedPrompt).not.toBeNull();
-      expect(useAppStore.getState().isPromptStale).toBe(false);
+      useAppStore.getState().addComment(1, 1, 'a');
+      const promptBefore = useAppStore.getState().generatedPrompt;
+      useAppStore.getState().setPreamble('new preamble');
+      const promptAfter = useAppStore.getState().generatedPrompt;
+      expect(promptAfter).not.toBe(promptBefore);
+      expect(promptAfter).toContain('new preamble');
     });
 
-    it('includes comment text in generated prompt', () => {
+    it('does not generate a prompt when no comments exist', () => {
       loadTestFile(useAppStore.getState());
-      useAppStore.getState().addComment(1, 1, 'specific comment text');
-      useAppStore.getState().generatePrompt();
-      expect(useAppStore.getState().generatedPrompt).toContain('specific comment text');
+      useAppStore.getState().setPreamble('text');
+      expect(useAppStore.getState().generatedPrompt).toBeNull();
     });
   });
 
@@ -196,32 +227,12 @@ describe('appStore', () => {
       loadTestFile(useAppStore.getState());
       useAppStore.getState().addComment(1, 1, 'test');
       useAppStore.getState().setPreamble('preamble');
-      useAppStore.getState().generatePrompt();
       useAppStore.getState().clearSession();
       const state = useAppStore.getState();
       expect(state.file).toBeNull();
       expect(state.commentOrder.length).toBe(0);
       expect(state.preamble).toBe('');
       expect(state.generatedPrompt).toBeNull();
-    });
-  });
-
-  // ─── setPreamble ──────────────────────────────────────────
-
-  describe('setPreamble', () => {
-    it('marks stale when prompt exists', () => {
-      loadTestFile(useAppStore.getState());
-      useAppStore.getState().addComment(1, 1, 'a');
-      useAppStore.getState().generatePrompt();
-      expect(useAppStore.getState().isPromptStale).toBe(false);
-      useAppStore.getState().setPreamble('new preamble');
-      expect(useAppStore.getState().isPromptStale).toBe(true);
-    });
-
-    it('does not mark stale when no prompt exists', () => {
-      loadTestFile(useAppStore.getState());
-      useAppStore.getState().setPreamble('text');
-      expect(useAppStore.getState().isPromptStale).toBe(false);
     });
   });
 

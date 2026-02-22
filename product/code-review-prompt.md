@@ -4,7 +4,7 @@
 
 A web application that lets developers view a source file with line numbers, add inline comments on specific lines (similar to a GitHub pull request review), and then generate a single structured prompt that aggregates the file content and all comments. The generated prompt is designed to be copied and fed to an AI coding assistant, giving the AI full context about what changes are needed and where.
 
-The core workflow is: **load file --> annotate lines --> generate prompt --> copy to clipboard --> paste into AI agent**.
+The core workflow is: **load file --> annotate lines --> copy prompt --> paste into AI agent**. The prompt is automatically generated and kept current as comments are added, so there is no explicit "generate" step.
 
 This bridges the gap between a developer's code review observations and an actionable AI prompt, eliminating the need to manually describe file context, line numbers, and desired changes.
 
@@ -16,13 +16,13 @@ This bridges the gap between a developer's code review observations and an actio
 ### US-2: Add inline comments on specific lines
 **As a** developer, **I want to** click on a line number and add a comment attached to that line, **so that** I can annotate exactly which parts of the code need changes.
 
-### US-3: Generate an aggregated AI prompt
-**As a** developer, **I want to** generate a single structured prompt from all my inline comments, **so that** I can feed it to an AI coding assistant with full context and get accurate changes back.
+### US-3: Prompt is automatically assembled as I annotate
+**As a** developer, **I want** the structured prompt to be automatically assembled and updated as I add, edit, or delete comments, **so that** I can copy it at any time and feed it to an AI coding assistant with full context.
 
 ### US-4: Copy the prompt to clipboard
 **As a** developer, **I want to** copy the generated prompt to my clipboard with one click, **so that** I can quickly paste it into my AI agent without manual selection.
 
-### US-5: Edit and delete comments before generating
+### US-5: Edit and delete placed comments
 **As a** developer, **I want to** edit or remove comments I've already placed, **so that** I can refine my review before generating the final prompt.
 
 ### US-6: Customize the generated prompt
@@ -59,16 +59,16 @@ The application displays the current total number of comments somewhere persiste
 #### `FR-crp-prompt-preamble` -- Prompt preamble / high-level instructions
 Before generating the prompt, the user can write an optional preamble that provides high-level context or instructions (e.g., "Refactor this function to use async/await" or "Fix the security vulnerability in the authentication logic"). This preamble appears at the top of the generated prompt. A preamble consisting only of whitespace is treated as empty and will not appear in the generated prompt.
 
-#### `FR-crp-prompt-generate` -- Generate aggregated prompt
-The user can trigger prompt generation, which produces a single structured text prompt containing:
+#### `FR-crp-prompt-generate` -- Automatically generated aggregated prompt
+The prompt is automatically regenerated whenever the user adds, edits, or deletes a comment, or modifies the preamble. There is no manual "Generate" button. The prompt updates reactively and is always current as long as at least one comment exists. When all comments are removed, the prompt preview clears. The automatically generated prompt is a single structured text containing:
 1. The preamble (if provided)
 2. The file path and language
 3. Each comment paired with the actual code snippet it references, listed in source order
 
-The prompt is formatted so an AI agent can understand the file context and the specific changes requested. Comments are paired with code snippets rather than line numbers, because line numbers change as the file is edited and would be stale by the time the AI processes the prompt.
+The prompt is formatted so an AI agent can understand the file context and the specific changes requested. Comments are paired with code snippets rather than line numbers, because line numbers change as the file is edited and would be stale by the time the AI processes the prompt. Generation must complete within 300ms (`NFR-crp-prompt-gen-time`) so the UI feels instant.
 
-#### `FR-crp-prompt-preview` -- Preview generated prompt
-Before copying, the user can preview the full generated prompt in a read-only panel. The preview must display the exact text that will be copied, including all formatting.
+#### `FR-crp-prompt-preview` -- Live prompt preview
+The full automatically generated prompt is always visible in a read-only preview panel that updates in real-time as comments are added, edited, or deleted. The preview displays the exact text that will be copied, including all formatting. Because the prompt is automatically generated, the preview is always current and requires no user action to refresh.
 
 #### `FR-crp-prompt-copy` -- Copy prompt to clipboard
 The user can copy the generated prompt to the system clipboard with a single button click. The application displays a confirmation message (e.g., "Copied to clipboard") after a successful copy.
@@ -148,10 +148,10 @@ The application is not required to persist sessions across page reloads in this 
 **Given** a comment exists on line 7, **when** the user deletes it, **then** the comment is removed from the viewer, the gutter indicator for line 7 disappears (if no other comments remain on that line), and the comment count decreases by 1.
 
 #### `AC-crp-generate-prompt-structure` -- Generated prompt has correct structure
-**Given** a file named "utils.ts" is loaded with comments on lines 3, 10-12, and 25, and a preamble "Refactor for readability", **when** the user generates the prompt, **then** the generated prompt contains: (1) an "Instructions" section with the preamble text, (2) a "File" heading with the file name and language, (3) a "Requested Changes" section where each comment is preceded by a fenced code block containing the actual source code the comment references, and (4) all three comments listed in the order they appear in the source file.
+**Given** a file named "utils.ts" is loaded with comments on lines 3, 10-12, and 25, and a preamble "Refactor for readability", **when** the user has added comments, **then** the automatically generated prompt contains: (1) an "Instructions" section with the preamble text, (2) a "File" heading with the file name and language, (3) a "Requested Changes" section where each comment is preceded by a fenced code block containing the actual source code the comment references, and (4) all three comments listed in the order they appear in the source file.
 
-#### `AC-crp-generate-prompt-no-comments` -- Prompt generation blocked with no comments
-**Given** a file is loaded but no comments have been added, **when** the user attempts to generate a prompt, **then** the generate button is disabled or the application displays a message indicating that at least one comment is required.
+#### `AC-crp-generate-prompt-no-comments` -- No prompt when no comments exist
+**Given** a file is loaded but no comments have been added, **then** the prompt preview area shows a placeholder message indicating that comments are needed to produce a prompt, and the prompt value is empty. **When** the user adds a comment, **then** the prompt is automatically generated and appears in the preview. **When** the user deletes the last remaining comment, **then** the prompt clears and the placeholder message returns.
 
 #### `AC-crp-copy-clipboard` -- Prompt copied to clipboard
 **Given** a prompt has been generated and is displayed in the preview, **when** the user clicks the copy button, **then** the prompt text is placed on the system clipboard and a "Copied to clipboard" confirmation is displayed.
@@ -166,7 +166,7 @@ The application is not required to persist sessions across page reloads in this 
 **Given** a file is loaded but no comments exist, **when** the user clicks the clear/reset button, **then** the session clears immediately without a confirmation dialog.
 
 #### `AC-crp-empty-state` -- Empty state displays load instructions
-**Given** no file is loaded, **when** the user first opens the application, **then** the viewer area displays instructions for how to load a file (paste, upload, or drag-and-drop), and the generate/copy buttons are disabled.
+**Given** no file is loaded, **when** the user first opens the application, **then** the viewer area displays instructions for how to load a file (paste, upload, or drag-and-drop), and the copy button is disabled.
 
 #### `AC-crp-large-file-scroll` -- Large file scrolls without jank
 **Given** a file with 10,000 lines is loaded, **when** the user scrolls through the viewer, **then** scrolling is smooth with no visible stutter or frame drops exceeding 200ms.

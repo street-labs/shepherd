@@ -323,8 +323,8 @@
 - **Steps**:
   1. Edit the comment text from "Old text" to "New text".
   2. Save the edit.
-  3. Generate the prompt and inspect the output.
-- **Expected Result**: The generated prompt shows the comment on "Lines 10-12" with the new text. The line association is unchanged.
+  3. Observe the prompt preview (which auto-updates).
+- **Expected Result**: The prompt preview shows the comment on "Lines 10-12" with the new text. The line association is unchanged.
 - **Edge Cases**:
   - N/A (focused test).
 
@@ -344,7 +344,7 @@
   2. Click the "Delete" button (trash icon).
 - **Expected Result**: The CommentBubble is immediately removed from the viewer. No confirmation dialog appears for individual comment deletion (per design spec). Comment count shows "0 comments".
 - **Edge Cases**:
-  - Deleting the last comment and then trying to generate a prompt: the Generate button should become disabled.
+  - Deleting the last comment: the prompt preview clears and returns to the placeholder state, and the Copy button becomes disabled.
 
 ---
 
@@ -434,31 +434,32 @@
 
 ---
 
-#### `TC-crp-generate-prompt-no-comments-disabled`: Generate button is disabled with zero comments
+#### `TC-crp-generate-prompt-no-comments-disabled`: Prompt preview is empty when no comments exist
 
 - **Type**: Integration
 - **Covers**: `AC-crp-generate-prompt-no-comments`
 - **Preconditions**: A file is loaded. No comments have been added.
 - **Steps**:
-  1. Observe the Generate button in the toolbar.
-  2. Attempt to click the Generate button.
-- **Expected Result**: The Generate button is visually disabled (grayed out, `aria-disabled="true"`). Clicking it does nothing. No prompt is generated.
+  1. Load a file into the code viewer.
+  2. Observe the prompt preview area in the sidebar.
+- **Expected Result**: The prompt preview shows a placeholder message: "Add comments to the code to generate your AI prompt." The prompt value is empty/null. The Copy button is disabled.
 - **Edge Cases**:
-  - Keyboard shortcut (`Cmd+Shift+G`): should also be non-functional when no comments exist.
+  - Loading a file with a preamble but no comments: the placeholder should still be shown (comments are required for prompt generation).
 
 ---
 
-#### `TC-crp-generate-prompt-no-comments-after-delete-all`: Generate button disables after all comments are deleted
+#### `TC-crp-generate-prompt-no-comments-after-delete-all`: Prompt clears when all comments are deleted
 
 - **Type**: E2E
 - **Covers**: `AC-crp-generate-prompt-no-comments`, `AC-crp-delete-comment`
-- **Preconditions**: A file is loaded. One comment exists. Generate button is enabled.
+- **Preconditions**: A file is loaded. One comment exists (the prompt is automatically generated and displayed in the preview).
 - **Steps**:
-  1. Delete the only comment.
-  2. Observe the Generate button.
-- **Expected Result**: The Generate button becomes disabled after the last comment is deleted.
+  1. Observe the prompt preview -- a prompt is displayed because a comment exists.
+  2. Delete the only comment.
+  3. Observe the prompt preview.
+- **Expected Result**: After adding a comment, the prompt appears automatically in the preview. After deleting the last comment, the prompt clears and the placeholder message returns ("Add comments to the code to generate your AI prompt."). The Copy button becomes disabled.
 - **Edge Cases**:
-  - If a prompt was previously generated, the prompt preview should show the stale indicator, and then after the last comment is deleted, generate should be disabled.
+  - Deleting multiple comments one by one until none remain: the prompt should update after each deletion, and the placeholder should appear only after the very last comment is removed.
 
 ---
 
@@ -470,7 +471,7 @@
 
 - **Type**: E2E
 - **Covers**: `AC-crp-copy-clipboard`, `FR-crp-prompt-copy`
-- **Preconditions**: A prompt has been generated and is displayed in the preview panel.
+- **Preconditions**: A file is loaded with at least one comment (the prompt is automatically generated and displayed in the preview panel).
 - **Steps**:
   1. Click the "Copy" button in the toolbar (or the "Copy" button in the prompt preview panel).
   2. Observe the UI feedback.
@@ -486,7 +487,7 @@
 
 - **Type**: Integration
 - **Covers**: `AC-crp-copy-clipboard`
-- **Preconditions**: A prompt has been generated.
+- **Preconditions**: A file is loaded with at least one comment.
 - **Steps**:
   1. Click "Copy".
   2. Observe the toast notification.
@@ -501,7 +502,7 @@
 
 - **Type**: E2E
 - **Covers**: `AC-crp-preview-matches-copy`
-- **Preconditions**: A prompt has been generated with a preamble, file content, and multiple comments.
+- **Preconditions**: A file is loaded with a preamble and multiple comments (the prompt is automatically generated).
 - **Steps**:
   1. Capture the full text displayed in the prompt preview panel.
   2. Click "Copy".
@@ -599,10 +600,10 @@
 - **Covers**: `AC-crp-empty-state`
 - **Preconditions**: Application is in the empty state.
 - **Steps**:
-  1. Observe the toolbar buttons: Generate, Copy, Clear, Previous Comment, Next Comment.
-- **Expected Result**: All five buttons are disabled (`aria-disabled="true"`, visually grayed out). Comment count shows "0 comments". Tooltips provide appropriate messages (e.g., "Load a file to get started" on Generate).
+  1. Observe the toolbar buttons: Copy, Clear, Previous Comment, Next Comment.
+- **Expected Result**: All buttons are disabled (`aria-disabled="true"`, visually grayed out). Comment count shows "0 comments". Tooltips provide appropriate messages (e.g., "Load a file to get started").
 - **Edge Cases**:
-  - Keyboard shortcuts should not function in the empty state (e.g., `Cmd+Shift+G` does nothing).
+  - Keyboard shortcuts should not function in the empty state.
 
 ---
 
@@ -790,8 +791,8 @@ This section covers additional edge cases and error conditions not directly mapp
   1. Add a comment "First comment" on line 5.
   2. Add a second comment "Second comment" on line 5.
   3. Observe the code viewer.
-  4. Generate the prompt.
-- **Expected Result**: Both comments are displayed below line 5 as separate CommentBubbles. The gutter shows one indicator for line 5. Comment count shows "2 comments". In the generated prompt, both comments appear under line 5 in creation order.
+  4. Observe the prompt preview (which auto-updates).
+- **Expected Result**: Both comments are displayed below line 5 as separate CommentBubbles. The gutter shows one indicator for line 5. Comment count shows "2 comments". In the prompt preview, both comments appear under line 5 in creation order.
 - **Edge Cases**:
   - Deleting one of two comments on the same line: the remaining comment stays, the gutter indicator stays, the count decrements by 1.
 
@@ -805,8 +806,8 @@ This section covers additional edge cases and error conditions not directly mapp
 - **Steps**:
   1. Add a comment with 5,000 characters of text on line 1.
   2. Observe the CommentBubble.
-  3. Generate the prompt.
-- **Expected Result**: The CommentBubble displays the full text (scrollable within the bubble if needed, or wrapping). The InlineCommentEditor text area should have scrolled when the text exceeded 200px height (per design spec). The generated prompt includes the full comment text. No truncation occurs.
+  3. Observe the prompt preview.
+- **Expected Result**: The CommentBubble displays the full text (scrollable within the bubble if needed, or wrapping). The InlineCommentEditor text area should have scrolled when the text exceeded 200px height (per design spec). The prompt preview includes the full comment text. No truncation occurs.
 - **Edge Cases**:
   - Comment with multiple paragraphs (containing newlines): line breaks should be preserved in the bubble and in the generated prompt.
 
@@ -913,22 +914,25 @@ This section covers additional edge cases and error conditions not directly mapp
 
 ---
 
-### `TC-crp-edge-stale-prompt-indicator`: Prompt staleness after comment changes
+### `TC-crp-edge-stale-prompt-indicator`: Prompt auto-updates after comment and preamble changes
 
 - **Type**: Integration
 - **Covers**: `AC-crp-generate-prompt-structure`, `AC-crp-edit-comment`, `AC-crp-delete-comment`
-- **Preconditions**: A prompt has been generated. The prompt preview shows the generated content.
+- **Preconditions**: A file is loaded. No comments exist yet.
 - **Steps**:
-  1. Edit an existing comment (change its text).
+  1. Add a comment on line 5 with text "First comment".
   2. Observe the prompt preview panel.
-  3. Add a new comment.
+  3. Edit the comment text to "Updated comment".
   4. Observe the prompt preview panel.
-  5. Delete a comment.
+  5. Add another comment on line 10 with text "Second comment".
   6. Observe the prompt preview panel.
-- **Expected Result**: After each modification (steps 1, 3, 5), the prompt preview shows a yellow stale banner: "Prompt is outdated. Regenerate to include latest changes." with a "Regenerate" link. The previously generated prompt text is still visible but marked as stale.
+  7. Delete the comment on line 5.
+  8. Observe the prompt preview panel.
+  9. Change the preamble text to "Review for readability".
+  10. Observe the prompt preview panel.
+- **Expected Result**: After each modification (steps 2, 4, 6, 8, 10), the prompt preview immediately updates to reflect the current state. There is no stale indicator. The prompt is always current. Step 2: prompt appears with "First comment" on line 5. Step 4: prompt shows "Updated comment" instead. Step 6: prompt includes both comments. Step 8: prompt shows only the line 10 comment. Step 10: prompt includes the preamble in the Instructions section.
 - **Edge Cases**:
-  - Changing the preamble text: should also trigger the stale indicator.
-  - Clicking "Regenerate": the prompt is regenerated with the latest comments and preamble, and the stale indicator disappears.
+  - Rapidly editing a comment multiple times: the prompt preview should settle on the final state without visual glitches or race conditions.
 
 ---
 
@@ -983,7 +987,7 @@ This section covers additional edge cases and error conditions not directly mapp
 - **Covers**: `NFR-crp-browser-support`, `AC-crp-copy-clipboard`
 - **Preconditions**: The full application is running. Tests are executed against Chrome, Firefox, and WebKit (Safari proxy) via Playwright.
 - **Steps**:
-  1. Load a file, add a comment, generate a prompt, and copy to clipboard in each browser.
+  1. Load a file, add a comment (prompt auto-generates), and copy to clipboard in each browser.
 - **Expected Result**: The copy operation succeeds in all three browsers. The clipboard content matches the preview in all browsers.
 - **Edge Cases**:
   - Firefox may require different permission grants for clipboard access.
@@ -1043,7 +1047,7 @@ This section covers additional edge cases and error conditions not directly mapp
 - **Covers**: `NFR-crp-client-only`
 - **Preconditions**: The application is running with network monitoring enabled (e.g., Playwright's `page.route` to intercept all requests).
 - **Steps**:
-  1. Load a file, add comments, generate a prompt, copy to clipboard, clear the session.
+  1. Load a file, add comments, copy to clipboard, clear the session.
   2. Inspect all network requests made during the entire workflow.
 - **Expected Result**: No outbound network requests are made to external services. The only requests are for the application's own static assets (JS bundles, CSS, WASM grammars) served from the same origin.
 - **Edge Cases**:
@@ -1077,7 +1081,7 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-add-comment-single-line-happy` (comment creation works)
 - `TC-crp-edit-comment-happy` (comment editing works)
 - `TC-crp-delete-comment-happy` (comment deletion works)
-- `TC-crp-generate-prompt-structure-happy` (prompt generation works)
+- `TC-crp-generate-prompt-structure-happy` (prompt structure is correct)
 - `TC-crp-copy-clipboard-happy` (clipboard copy works)
 - `TC-crp-preview-matches-copy-exact` (preview matches clipboard)
 - `TC-crp-clear-confirmation-confirm-clears` (session clear works)

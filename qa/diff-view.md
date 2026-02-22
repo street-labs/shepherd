@@ -863,7 +863,7 @@
 - **Steps**:
   1. Switch to diff view.
   2. Wait for the baseline to load.
-- **Expected Result**: The code viewer panel shows an empty state with a document-equals icon, the title "No changes detected", the description "The working copy matches the git HEAD version. Switch to File view to see and comment on the full file.", and a "Switch to File view" button. The Generate button is disabled. The comment count is 0.
+- **Expected Result**: The code viewer panel shows an empty state with a document-equals icon, the title "No changes detected", the description "The working copy matches the git HEAD version. Switch to File view to see and comment on the full file.", and a "Switch to File view" button. The prompt preview shows a placeholder message (no prompt is generated because there are no comments). The comment count is 0.
 - **Edge Cases**:
   - File with only whitespace differences (e.g., trailing space added): depends on the diff algorithm -- jsdiff considers whitespace changes as changes, so this should NOT show the empty state.
 
@@ -1270,11 +1270,11 @@
 
 ---
 
-### Generate button disabled in diff view with no comments
+### No prompt when no comments exist in diff view
 
 - **Trigger**: Diff view is active but the user has not added any comments.
-- **Expected behavior**: The "Generate" button is disabled (same behavior as file mode with no comments).
-- **Test case**: `TC-diff-no-changes-empty-state` (mentions Generate button disabled)
+- **Expected behavior**: The prompt preview shows a placeholder state because no prompt is generated until comments exist (same behavior as file mode with no comments).
+- **Test case**: `TC-diff-no-changes-empty-state` (verifies prompt preview placeholder state)
 
 ---
 
@@ -1287,7 +1287,7 @@ The diff view feature modifies the `Toolbar`, `App`, and `CommentBubble` compone
 - **File view continues to work as before**: Loading files via paste/upload/drag-and-drop still works. Syntax highlighting, line numbers, comments, prompt generation, and all existing features are unaffected when "File" mode is active.
 - **Comment operations in file view**: Adding, editing, deleting comments in file mode should not be affected by the presence of diff-mode state in the store.
 - **Prompt generation in file view**: The existing `buildPrompt` function is unchanged. Generating prompts in file mode should produce identical output to before the diff feature was added.
-- **Toolbar button states**: The Generate, Copy, Clear, and Navigation buttons should continue to respect the correct comment set based on the active view mode.
+- **Toolbar button states**: The Copy, Clear, and Navigation buttons should continue to respect the correct comment set based on the active view mode.
 - **File loading resets diff state**: Loading a new file (via any method) resets the view mode to "File" and clears all diff state. Verify that stale diff data from a previously loaded file does not appear.
 - **Clear session resets diff state**: Clicking "Clear" and confirming should reset everything, including diff state.
 

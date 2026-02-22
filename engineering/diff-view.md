@@ -422,7 +422,7 @@ The existing `Toolbar` component is extended to render the `ViewModeToggle` and 
 - After the toggle, render `RefreshButton` when `viewMode === 'diff'`.
 - Comment count reads from `viewMode === 'diff' ? diffCommentCount : fileCommentCount`.
 - Comment navigation dispatches `navigateComment` or `navigateDiffComment` based on `viewMode`.
-- Generate button calls `generatePrompt` or `generateDiffPrompt` based on `viewMode`.
+- Prompt auto-generates via `buildPrompt()` or `buildDiffPrompt()` based on `viewMode` whenever comments or preamble change.
 
 #### `App` (modified)
 
@@ -531,13 +531,13 @@ interface DiffActions {
 
 - **`expandSection(sectionIndex)`**: Adds `sectionIndex` to `expandedSections`. This triggers a recomputation of the display items array (collapsed sections that are in `expandedSections` are replaced with their constituent lines). Per `FR-diff-expand`, there is no mechanism to re-collapse.
 
-- **`addDiffComment(startIndex, endIndex, text)`**: Creates a `DiffComment` with a UUID, computes the `DiffLineId` for start and end from `diffLines[startIndex]` and `diffLines[endIndex]`, inserts into `diffComments`, recomputes `diffCommentOrder`. Sets `isPromptStale: true` if a prompt exists. Closes the diff editor and clears the diff selection.
+- **`addDiffComment(startIndex, endIndex, text)`**: Creates a `DiffComment` with a UUID, computes the `DiffLineId` for start and end from `diffLines[startIndex]` and `diffLines[endIndex]`, inserts into `diffComments`, recomputes `diffCommentOrder`. Automatically regenerates the prompt via `buildDiffPrompt()`. Closes the diff editor and clears the diff selection.
 
 - **`clearDiffComments()`**: Resets `diffComments` to `{}`, `diffCommentOrder` to `[]`, `focusedDiffCommentId` to `null`.
 
 - **`navigateDiffComment(direction)`**: Same wrapping logic as `navigateComment` but operates on `diffCommentOrder` and `focusedDiffCommentId`.
 
-- **`generateDiffPrompt()`**: Calls the pure `buildDiffPrompt()` function (see Prompt Builder section) and stores the result in `generatedPrompt`. Sets `isPromptStale: false`.
+- **`generateDiffPrompt()`**: Called automatically by comment and preamble mutation actions. Calls the pure `buildDiffPrompt()` function (see Prompt Builder section) and stores the result in `generatedPrompt`. Not user-triggered; invoked internally by `addDiffComment`, `updateDiffComment`, `deleteDiffComment`, and preamble changes.
 
 - **`refreshDiff()`**: Re-fetches the working copy via `GET /api/file?path=<path>`, updates `file.content` and `file.lines`, re-fetches the baseline via `fetchBaseline()`, and recomputes the diff. Clears all diff comments (caller handles confirmation).
 
@@ -1222,7 +1222,7 @@ The work is divided into four phases. Each phase produces a testable increment. 
 
 5. **Implement `buildDiffPrompt`**: Add the function to `promptBuilder.ts`. Write unit tests covering: single comment on added line, comment on removed line, comment on context line, range comment, multiple comments, prompt with/without preamble, collapsed sections in diff block.
 
-6. **Wire Generate button**: In diff mode, the Generate button calls `generateDiffPrompt` instead of `generatePrompt`. The `PromptPreview` and Copy button work unchanged (they read `generatedPrompt` from the store).
+6. **Wire auto-generation**: In diff mode, comment mutations call `buildDiffPrompt()` instead of `buildPrompt()`. The `PromptPreview` and Copy button work unchanged (they read `generatedPrompt` from the store).
 
 **Delivers**: Complete diff-mode workflow: toggle to diff, view changes, add comments, generate prompt, copy prompt.
 

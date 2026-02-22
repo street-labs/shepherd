@@ -43,10 +43,8 @@ export interface AppState {
   commentOrder: string[];
   /** The user's preamble text. */
   preamble: string;
-  /** The most recently generated prompt string, or null. */
+  /** The automatically generated prompt string, or null when no comments exist. Auto-computed after every comment or preamble change. */
   generatedPrompt: string | null;
-  /** Whether the generated prompt is stale (comments or preamble changed since generation). */
-  isPromptStale: boolean;
   /** The ID of the currently focused comment (via navigation), or null. */
   focusedCommentId: string | null;
   /** The currently selected line range for range-commenting, or null. */
