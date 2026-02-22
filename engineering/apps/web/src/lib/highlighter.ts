@@ -1,14 +1,15 @@
-// Implements: FR-crp-syntax-highlight, AC-crp-syntax-highlight-detected
+// Implements: FR-crp-syntax-highlight, AC-crp-syntax-highlight-detected,
+// NFR-dm-syntax-highlight-both-themes
 
 import type { HighlightToken } from '@/types';
 
-let highlighterPromise: Promise<import('shiki').Highlighter> | null = null;
+let highlighterPromise: Promise<import('shiki').HighlighterGeneric<any, any>> | null = null;
 
 async function getHighlighter() {
   if (!highlighterPromise) {
     const { createHighlighter } = await import('shiki');
     highlighterPromise = createHighlighter({
-      themes: ['github-light'],
+      themes: ['github-light', 'github-dark'],
       langs: ['plaintext'],
     });
   }
@@ -18,6 +19,7 @@ async function getHighlighter() {
 /**
  * Highlights code content and returns an array of token arrays (one per line).
  * Loads the language grammar lazily if not already loaded.
+ * Returns tokens with both light and dark colors for dual-theme support.
  */
 export async function highlightCode(
   content: string,
@@ -34,15 +36,21 @@ export async function highlightCode(
       }
     }
 
-    const result = highlighter.codeToTokens(content, {
+    // Use codeToTokensWithThemes for dual-theme token output
+    const result = highlighter.codeToTokensWithThemes(content, {
       lang: language as import('shiki').BundledLanguage,
-      theme: 'github-light',
+      themes: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
     });
 
-    return result.tokens.map((line) =>
+    return result.map((line) =>
       line.map((token) => ({
         content: token.content,
-        color: token.color,
+        color: token.variants['light']?.color,
+        lightColor: token.variants['light']?.color,
+        darkColor: token.variants['dark']?.color,
       })),
     );
   } catch {

@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Code Review Prompt Generator</title>
+    <script>
+      // FOUC prevention: resolve theme before first paint
+      // Implements: NFR-dm-no-fouc, AC-dm-no-fouc
+      (function() {
+        var K = 'shepherd-theme', p = 'system';
+        try { p = localStorage.getItem(K) || 'system'; } catch(e) {}
+        if (p !== 'light' && p !== 'dark' && p !== 'system') p = 'system';
+        var r = p;
+        if (p === 'system') {
+          r = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', r);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

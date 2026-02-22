@@ -375,7 +375,7 @@ export function DiffViewer() {
               key={`line-${line.index}`}
               ref={virtualizer.measureElement}
               data-index={virtualItem.index}
-              className={`flex ${bgColor} ${isInRange ? 'ring-1 ring-inset ring-primary-500/30 bg-blue-50/60' : ''} ${isFocusedLine ? 'ring-1 ring-inset ring-primary-500/40' : ''}`}
+              className={`flex ${bgColor} ${isInRange ? 'ring-1 ring-inset ring-primary-500/30 bg-selection-bg/60' : ''} ${isFocusedLine ? 'ring-1 ring-inset ring-primary-500/40' : ''}`}
               role="row"
               aria-rowindex={line.index + 1}
               style={{
@@ -389,7 +389,7 @@ export function DiffViewer() {
             >
               {/* Comment gutter (28px) */}
               <div
-                className={`w-7 flex-shrink-0 flex items-center justify-center cursor-pointer select-none hover:bg-blue-100/50 ${gutterBg}`}
+                className={`w-7 flex-shrink-0 flex items-center justify-center cursor-pointer select-none hover:bg-selection-bg/50 ${gutterBg}`}
                 onClick={(e) => handleGutterClick(line.index, e)}
                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(line.index); }}
                 onMouseEnter={() => handleMouseEnter(line.index)}
@@ -403,7 +403,7 @@ export function DiffViewer() {
 
               {/* Old line number (44px) */}
               <div
-                className={`w-11 flex-shrink-0 text-right pr-1 text-text-tertiary select-none text-[11px] cursor-pointer hover:bg-blue-100/50 ${gutterBg}`}
+                className={`w-11 flex-shrink-0 text-right pr-1 text-text-tertiary select-none text-[11px] cursor-pointer hover:bg-selection-bg/50 ${gutterBg}`}
                 onClick={(e) => handleGutterClick(line.index, e)}
                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(line.index); }}
                 onMouseEnter={() => handleMouseEnter(line.index)}
@@ -413,7 +413,7 @@ export function DiffViewer() {
 
               {/* New line number (44px) */}
               <div
-                className={`w-11 flex-shrink-0 text-right pr-1 text-text-tertiary select-none text-[11px] cursor-pointer hover:bg-blue-100/50 ${gutterBg}`}
+                className={`w-11 flex-shrink-0 text-right pr-1 text-text-tertiary select-none text-[11px] cursor-pointer hover:bg-selection-bg/50 ${gutterBg}`}
                 onClick={(e) => handleGutterClick(line.index, e)}
                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(line.index); }}
                 onMouseEnter={() => handleMouseEnter(line.index)}
@@ -423,7 +423,7 @@ export function DiffViewer() {
 
               {/* Type indicator (20px) */}
               <div
-                className={`w-5 flex-shrink-0 text-center select-none font-bold text-[11px] cursor-pointer hover:bg-blue-100/50 ${
+                className={`w-5 flex-shrink-0 text-center select-none font-bold text-[11px] cursor-pointer hover:bg-selection-bg/50 ${
                   line.type === 'added'
                     ? 'text-diff-added-indicator'
                     : line.type === 'removed'
@@ -444,7 +444,14 @@ export function DiffViewer() {
               <div className="flex-1 px-2 whitespace-pre overflow-x-auto" role="gridcell">
                 {tokens ? (
                   tokens.map((token, j) => (
-                    <span key={j} style={token.color ? { color: token.color } : undefined}>
+                    <span
+                      key={j}
+                      className="shiki-token"
+                      style={{
+                        '--sl': token.lightColor ?? token.color,
+                        '--sd': token.darkColor ?? token.color,
+                      } as React.CSSProperties}
+                    >
                       {token.content}
                     </span>
                   ))

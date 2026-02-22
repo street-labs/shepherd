@@ -5,6 +5,7 @@
 import { useAppStore } from '@/store/appStore';
 import { ViewModeToggle } from './ViewModeToggle';
 import { RenderToggle } from './RenderToggle';
+import { ThemeToggle } from './ThemeToggle';
 import { useEffect } from 'react';
 import type { RenderMode } from '@/types';
 
@@ -133,7 +134,7 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
     >
       <h1 className="text-sm font-semibold">Code Review Prompt</h1>
 
-      {hasFile && (
+      {hasFile ? (
         <>
           <ViewModeToggle
             activeMode={viewMode}
@@ -200,6 +201,8 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
 
           <div className="w-px h-5 bg-border-default" role="separator" />
 
+          <ThemeToggle />
+
           {/* Actions */}
           {isSlashCommandMode && (
             <button
@@ -207,8 +210,8 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
               disabled={doneState === 'sending' || doneState === 'sent'}
               className={`px-3 py-1 text-xs font-medium rounded ${
                 doneState === 'sent'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed'
+                  ? 'bg-success-600 text-white'
+                  : 'bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
               title="Send prompt to agent (&#x2318;&#x21E7;D)"
             >
@@ -227,11 +230,15 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
 
           <button
             onClick={onClearRequest}
-            className="px-3 py-1 text-xs font-medium rounded border border-border-default text-destructive-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1 text-xs font-medium rounded border border-border-default text-destructive-600 hover:bg-destructive-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Clear
           </button>
         </>
+      ) : (
+        <div className="ml-auto">
+          <ThemeToggle />
+        </div>
       )}
     </header>
   );

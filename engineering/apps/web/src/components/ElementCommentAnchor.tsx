@@ -26,7 +26,7 @@ export function ElementCommentAnchor({
       {hasComments && (
         <div
           className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
-          style={{ backgroundColor: '#3B82F6' }}
+          style={{ backgroundColor: 'var(--color-gutter-indicator)' }}
         />
       )}
       {showIcon && (

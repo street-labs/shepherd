@@ -27,7 +27,7 @@ export function PromptPreview() {
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
-          <pre className="flex-1 overflow-auto p-3 rounded bg-gray-900 text-gray-100 text-xs leading-relaxed whitespace-pre-wrap break-words">
+          <pre className="flex-1 overflow-auto p-3 rounded bg-code-block-bg text-code-block-text text-xs leading-relaxed whitespace-pre-wrap break-words">
             {generatedPrompt}
           </pre>
         </div>

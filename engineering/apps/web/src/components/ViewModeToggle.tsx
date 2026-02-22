@@ -29,7 +29,7 @@ export function ViewModeToggle({ activeMode, isDiffEnabled, onModeChange }: View
         className={`px-3 py-1 text-xs font-medium transition-colors ${
           activeMode === 'file'
             ? 'bg-primary-500 text-text-on-primary'
-            : 'bg-white text-text-primary hover:bg-surface-secondary'
+            : 'bg-surface-primary text-text-primary hover:bg-surface-secondary'
         }`}
         onClick={() => onModeChange('file')}
         onKeyDown={(e) => handleKeyDown(e, 'file')}
@@ -44,8 +44,8 @@ export function ViewModeToggle({ activeMode, isDiffEnabled, onModeChange }: View
           activeMode === 'diff'
             ? 'bg-primary-500 text-text-on-primary'
             : isDiffEnabled
-              ? 'bg-white text-text-primary hover:bg-surface-secondary'
-              : 'bg-white text-text-tertiary opacity-40 cursor-not-allowed'
+              ? 'bg-surface-primary text-text-primary hover:bg-surface-secondary'
+              : 'bg-surface-primary text-text-tertiary opacity-40 cursor-not-allowed'
         }`}
         onClick={() => isDiffEnabled && onModeChange('diff')}
         onKeyDown={(e) => handleKeyDown(e, 'diff')}

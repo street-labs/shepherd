@@ -371,7 +371,7 @@ export function CodeViewer() {
               key={virtualItem.key}
               ref={virtualizer.measureElement}
               data-index={virtualItem.index}
-              className={`flex ${isInRange ? 'bg-blue-50' : ''} ${isFocusedLine ? 'ring-1 ring-inset ring-primary-500/40 bg-blue-50/50' : ''}`}
+              className={`flex ${isInRange ? 'bg-selection-bg' : ''} ${isFocusedLine ? 'ring-1 ring-inset ring-primary-500/40 bg-selection-bg/50' : ''}`}
               role="row"
               aria-rowindex={lineNumber}
               style={{
@@ -385,7 +385,7 @@ export function CodeViewer() {
             >
               {/* Gutter */}
               <div
-                className="w-8 flex-shrink-0 flex items-center justify-center cursor-pointer select-none hover:bg-blue-50"
+                className="w-8 flex-shrink-0 flex items-center justify-center cursor-pointer select-none hover:bg-surface-secondary"
                 onClick={(e) => handleGutterClick(lineNumber, e)}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -402,7 +402,7 @@ export function CodeViewer() {
 
               {/* Line number */}
               <div
-                className="flex-shrink-0 text-right pr-3 text-text-tertiary select-none cursor-pointer hover:bg-blue-50"
+                className="flex-shrink-0 text-right pr-3 text-text-tertiary select-none cursor-pointer hover:bg-surface-secondary"
                 style={{ width: `${(padWidth + 1) * 0.6 + 1}rem` }}
                 onClick={(e) => handleGutterClick(lineNumber, e)}
                 onMouseDown={(e) => {
@@ -418,7 +418,14 @@ export function CodeViewer() {
               <div className="flex-1 px-2 whitespace-pre overflow-x-auto" role="gridcell">
                 {tokens ? (
                   tokens.map((token, j) => (
-                    <span key={j} style={token.color ? { color: token.color } : undefined}>
+                    <span
+                      key={j}
+                      className="shiki-token"
+                      style={{
+                        '--sl': token.lightColor ?? token.color,
+                        '--sd': token.darkColor ?? token.color,
+                      } as React.CSSProperties}
+                    >
                       {token.content}
                     </span>
                   ))

@@ -22,7 +22,7 @@ export function ToastNotification() {
     <div
       className={`fixed bottom-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-slide-up ${
         toast.type === 'success'
-          ? 'bg-green-600 text-white'
+          ? 'bg-success-600 text-white'
           : 'bg-destructive-500 text-white'
       }`}
       role="status"

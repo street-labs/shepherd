@@ -1192,6 +1192,180 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/markdown-render.md`
 - **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-timeout-fallback`
 
+### `FR-dm-system-preference`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-system-dark-default`, `TC-dm-system-light-default`, `TC-dm-system-no-preference`
+
+### `FR-dm-manual-toggle`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-to-dark`, `TC-dm-toggle-to-light`, `TC-dm-toggle-to-system`, `TC-dm-toggle-keyboard`
+
+### `FR-dm-persistence`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-persist-dark-reload`, `TC-dm-persist-system-reload`, `TC-dm-persist-no-localstorage`, `TC-dm-persist-corrupt-value`
+
+### `FR-dm-realtime-tracking`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-realtime-os-dark-to-light`, `TC-dm-realtime-manual-ignores-os`
+
+### `FR-dm-full-surface-coverage`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`, `TC-dm-surface-drop-zone`, `TC-dm-surface-diff-view`, `TC-dm-surface-dialogs`, `TC-dm-surface-toasts`
+
+### `FR-dm-css-custom-properties`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`
+
+### `NFR-dm-no-fouc`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-no-fouc-dark`, `TC-dm-no-fouc-system`
+
+### `NFR-dm-smooth-transition`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-transition-smooth`, `TC-dm-transition-no-initial`
+
+### `NFR-dm-syntax-highlight-both-themes`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-syntax-dark-readable`, `TC-dm-syntax-light-readable`, `TC-dm-syntax-no-reparse`
+
+### `NFR-dm-contrast-ratios`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-a11y-contrast-light`, `TC-dm-a11y-contrast-dark`
+
+### `NFR-dm-no-performance-impact`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-perf-no-regression`
+
+### `AC-dm-default-respects-system`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-system-dark-default`, `TC-dm-no-fouc-dark`
+
+### `AC-dm-default-light-system`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-system-light-default`, `TC-dm-system-no-preference`
+
+### `AC-dm-toggle-to-dark`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-to-dark`, `TC-dm-transition-smooth`
+
+### `AC-dm-toggle-to-light`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-to-light`, `TC-dm-transition-smooth`
+
+### `AC-dm-toggle-to-system`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-to-system`
+
+### `AC-dm-persistence-survives-reload`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-persist-dark-reload`
+
+### `AC-dm-persistence-system-survives-reload`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-persist-system-reload`
+
+### `AC-dm-realtime-os-change`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-realtime-os-dark-to-light`
+
+### `AC-dm-manual-ignores-os`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-realtime-manual-ignores-os`
+
+### `AC-dm-syntax-highlight-dark`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-syntax-dark-readable`
+
+### `AC-dm-syntax-highlight-light`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-syntax-light-readable`
+
+### `AC-dm-all-surfaces-themed`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`, `TC-dm-surface-drop-zone`, `TC-dm-surface-diff-view`, `TC-dm-surface-dialogs`, `TC-dm-surface-toasts`
+
+### `AC-dm-diff-view-themed`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-diff-view`
+
+### `AC-dm-drop-zone-themed`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-drop-zone`
+
+### `AC-dm-dialog-themed`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-dialogs`
+
+### `AC-dm-no-fouc`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-no-fouc-dark`, `TC-dm-no-fouc-system`
+
+### `AC-dm-localstorage-unavailable`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-persist-no-localstorage`
+
+### `AC-dm-keyboard-toggle`
+- **Defined in**: `product/dark-mode.md`
+- **Design**: `design/dark-mode.md`
+- **Engineering**: `engineering/dark-mode.md`
+- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-keyboard`, `TC-dm-a11y-toggle-aria`
+
 <!--
 Entry template -- copy this when adding a new slug:
 

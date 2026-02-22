@@ -43,10 +43,10 @@ export function ConfirmationDialog({
       aria-label={title}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/30" onClick={onCancel} />
+      <div className="absolute inset-0" style={{ backgroundColor: 'var(--color-dialog-backdrop)' }} onClick={onCancel} />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4">
+      <div className="relative bg-surface-primary rounded-lg shadow-lg p-6 max-w-sm w-full mx-4">
         <h2 className="text-base font-semibold text-text-primary">{title}</h2>
         <p className="text-sm text-text-secondary mt-2">{message}</p>
         <div className="flex gap-2 justify-end mt-4">

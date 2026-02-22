@@ -166,7 +166,7 @@ export function InlineCommentEditor({ isDiffMode, isRenderedMode, isRenderedDiff
   };
 
   return (
-    <div className="ml-8 mr-4 my-1 p-2 rounded border border-primary-500 bg-white shadow-sm">
+    <div className="ml-8 mr-4 my-1 p-2 rounded border border-primary-500 bg-surface-primary shadow-sm">
       <div className="text-xs text-text-secondary font-medium mb-1">{lineLabel}</div>
       <textarea
         ref={textareaRef}

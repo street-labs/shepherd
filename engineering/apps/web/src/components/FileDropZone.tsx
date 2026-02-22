@@ -133,7 +133,7 @@ export function FileDropZone() {
     <div
       className={`flex flex-col items-center justify-center h-full p-8 transition-colors ${
         variant === 'drag-hover'
-          ? 'bg-blue-50'
+          ? 'bg-selection-bg'
           : ''
       }`}
       onDragEnter={handleDragEnter}
@@ -144,9 +144,9 @@ export function FileDropZone() {
       <div
         className={`flex flex-col items-center gap-4 p-12 border-2 border-dashed rounded-xl max-w-lg w-full transition-colors ${
           variant === 'drag-hover'
-            ? 'border-primary-500 bg-blue-50/50'
+            ? 'border-primary-500 bg-selection-bg/50'
             : variant === 'error'
-              ? 'border-destructive-500 bg-red-50/50'
+              ? 'border-destructive-500 bg-destructive-500/10'
               : 'border-border-strong'
         }`}
       >

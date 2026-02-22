@@ -63,10 +63,16 @@ export type DisplayItem =
   | { type: 'comment-bubble'; comment: Comment }
   | { type: 'editor'; anchorLine: number; endLine: number; mode: 'create' | 'edit'; commentId?: string };
 
+// Implements: FR-dm-css-custom-properties
+export type ThemePreference = 'light' | 'dark' | 'system';
+export type ResolvedTheme = 'light' | 'dark';
+
 /** Shiki token for syntax highlighting. */
 export interface HighlightToken {
   content: string;
   color?: string;
+  lightColor?: string;
+  darkColor?: string;
 }
 
 // Implements: FR-diff-display, FR-diff-comment-create

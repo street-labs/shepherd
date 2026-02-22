@@ -31,7 +31,7 @@ export function RenderToggle({ activeMode, isVisible, onModeChange }: RenderTogg
         className={`px-3 py-1 text-xs font-medium transition-colors ${
           activeMode === 'raw'
             ? 'bg-primary-500 text-text-on-primary'
-            : 'bg-white text-text-primary hover:bg-surface-secondary'
+            : 'bg-surface-primary text-text-primary hover:bg-surface-secondary'
         }`}
         onClick={() => onModeChange('raw')}
         onKeyDown={(e) => handleKeyDown(e, 'raw')}
@@ -44,7 +44,7 @@ export function RenderToggle({ activeMode, isVisible, onModeChange }: RenderTogg
         className={`px-3 py-1 text-xs font-medium transition-colors ${
           activeMode === 'rendered'
             ? 'bg-primary-500 text-text-on-primary'
-            : 'bg-white text-text-primary hover:bg-surface-secondary'
+            : 'bg-surface-primary text-text-primary hover:bg-surface-secondary'
         }`}
         onClick={() => onModeChange('rendered')}
         onKeyDown={(e) => handleKeyDown(e, 'rendered')}

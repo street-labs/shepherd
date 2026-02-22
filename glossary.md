@@ -80,7 +80,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: The comment bubble (which is the read-only display of a submitted comment)
 
 ## Toolbar
-**Definition**: The persistent horizontal bar fixed at the top of the application viewport (56px height). Contains the application title, comment navigation controls, comment count, and action buttons (Copy, Clear).
+**Definition**: The persistent horizontal bar fixed at the top of the application viewport (56px height). Contains the application title, comment navigation controls, comment count, theme toggle, and action buttons (Copy, Clear).
 **Also known as**: Action bar, top bar
 **Not to be confused with**: The sidebar panel (which is the right-side panel containing the preamble and prompt preview)
 
@@ -233,6 +233,31 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Definition**: A 32px-wide column on the left side of the rendered markdown view that shows comment interaction indicators. Displays a faint speech bubble icon on hover for commentable elements, and a filled blue dot for elements with existing comments. Functionally analogous to the Comment Gutter in the raw view, but adapted for element-level (rather than line-level) comment anchoring.
 **Also known as**: C column (shorthand used in layout diagrams)
 **Not to be confused with**: Comment Gutter (the equivalent column in the raw code viewer, which uses line-based indicators)
+
+## Theme Preference
+**Definition**: The user's chosen theme setting, stored as one of three values: `light`, `dark`, or `system`. When set to `system`, the app follows the OS color scheme. Stored in `localStorage` under the key `shepherd-theme`.
+**Also known as**: Theme selection, theme mode
+**Not to be confused with**: Resolved theme (the actual light/dark value applied after resolving `system` against the OS preference)
+
+## Resolved Theme
+**Definition**: The actual theme applied to the UI after resolving the user's theme preference. Always either `light` or `dark` — never `system`. If the preference is `system`, the resolved theme is determined by the OS `prefers-color-scheme` media query.
+**Also known as**: Applied theme, effective theme
+**Not to be confused with**: Theme preference (which can be `system`)
+
+## Theme Toggle
+**Definition**: A segmented control in the toolbar with three icon-only segments (sun for Light, moon for Dark, monitor for System) that lets users switch between theme preferences. Uses WAI-ARIA radio group pattern for keyboard accessibility.
+**Also known as**: ThemeToggle (component name), theme switcher
+**Not to be confused with**: View Mode Toggle (the File/Diff mode switcher, which is a separate toolbar control)
+
+## FOUC
+**Definition**: Flash of Unstyled Content (or in this context, Flash of Wrong Theme). The brief visual flicker that occurs when the page initially renders with one theme and then switches to another. Prevented in this app by a blocking `<script>` in `<head>` that sets the `data-theme` attribute on `<html>` before any CSS or React renders.
+**Also known as**: Flash of unstyled content, theme flash
+**Not to be confused with**: Smooth theme transitions (which are intentional animated changes during runtime theme switches)
+
+## CSS Custom Properties
+**Definition**: CSS variables (e.g., `var(--color-bg)`) used as the foundation of the theming system. All color values in the app reference these variables rather than hardcoded hex values. Two sets of values are defined — one for `[data-theme="light"]` and one for `[data-theme="dark"]` — allowing the entire UI to switch themes by changing a single attribute on the root element.
+**Also known as**: CSS variables, theme tokens
+**Not to be confused with**: Tailwind CSS utility classes (which are used for layout and spacing, not theming colors)
 
 <!--
 Entry template:

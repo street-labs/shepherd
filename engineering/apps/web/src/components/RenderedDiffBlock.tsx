@@ -26,9 +26,9 @@ function renderWordDiff(segments: WordDiffSegment[]): React.ReactNode {
 
 function statusBadge(status: AstDiffEntry['status']): React.ReactNode {
   const colors: Record<string, string> = {
-    added: 'bg-green-100 text-green-700',
-    removed: 'bg-red-100 text-red-700',
-    modified: 'bg-amber-100 text-amber-700',
+    added: 'bg-badge-added-bg text-badge-added-text',
+    removed: 'bg-badge-removed-bg text-badge-removed-text',
+    modified: 'bg-badge-modified-bg text-badge-modified-text',
     unchanged: '',
   };
 

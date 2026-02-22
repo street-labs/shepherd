@@ -25,12 +25,12 @@
   border-left: 3px solid;
 }
 
-.rendered-content h1 { font-size: 1.75rem; border-color: #1d4ed8; }
-.rendered-content h2 { font-size: 1.4rem; border-color: #2563eb; }
-.rendered-content h3 { font-size: 1.15rem; border-color: #3b82f6; }
-.rendered-content h4 { font-size: 1rem; border-color: #60a5fa; }
-.rendered-content h5 { font-size: 0.9rem; border-color: #93c5fd; }
-.rendered-content h6 { font-size: 0.85rem; border-color: #bfdbfe; color: var(--color-text-secondary); }
+.rendered-content h1 { font-size: 1.75rem; border-color: var(--color-heading-border-1); }
+.rendered-content h2 { font-size: 1.4rem; border-color: var(--color-heading-border-2); }
+.rendered-content h3 { font-size: 1.15rem; border-color: var(--color-heading-border-3); }
+.rendered-content h4 { font-size: 1rem; border-color: var(--color-heading-border-4); }
+.rendered-content h5 { font-size: 0.9rem; border-color: var(--color-heading-border-5); }
+.rendered-content h6 { font-size: 0.85rem; border-color: var(--color-heading-border-6); color: var(--color-text-secondary); }
 
 /* Paragraphs */
 .rendered-content p {
@@ -39,8 +39,8 @@
 
 /* Code blocks */
 .rendered-content pre {
-  background: #1E293B;
-  color: #e2e8f0;
+  background: var(--color-code-block-bg);
+  color: var(--color-code-block-text);
   padding: 1rem;
   border-radius: 6px;
   overflow-x: auto;
@@ -60,7 +60,7 @@
 
 /* Inline code */
 .rendered-content code {
-  background: #f1f5f9;
+  background: var(--color-code-inline-bg);
   padding: 0.15em 0.35em;
   border-radius: 3px;
   font-family: var(--font-mono);
@@ -88,7 +88,7 @@
 }
 
 .rendered-content tr:nth-child(even) td {
-  background: #fafafa;
+  background: var(--color-table-stripe);
 }
 
 /* Blockquotes */
@@ -173,9 +173,9 @@
 }
 
 .rendered-block:hover {
-  background-color: #F8FAFC;
+  background-color: var(--color-block-hover);
 }
 
 .rendered-block:focus-within {
-  background-color: #F8FAFC;
+  background-color: var(--color-block-hover);
 }

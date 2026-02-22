@@ -1,0 +1,364 @@
+/* ============================================================
+   Theme Token Definitions
+   Implements: FR-dm-css-custom-properties, FR-dm-full-surface-coverage
+   ============================================================ */
+
+/* --- Light theme (default) --- */
+[data-theme="light"] {
+  /* Base */
+  --color-bg: #FFFFFF;
+  --color-bg-secondary: #F8FAFC;
+  --color-bg-tertiary: #F1F5F9;
+  --color-text: #1E293B;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-border: #E2E8F0;
+  --color-border-muted: #CBD5E1;
+
+  /* Interactive */
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-primary-text: #FFFFFF;
+  --color-hover-bg: #F8FAFC;
+  --color-focus-ring: #2563EB;
+  --color-destructive: #DC2626;
+  --color-destructive-hover: #B91C1C;
+
+  /* Selection/Focus */
+  --color-selection: #DBEAFE;
+  --color-focus-line: #FEF9C3;
+
+  /* Error */
+  --color-error-bg: #FEF2F2;
+  --color-error-text: #991B1B;
+  --color-error-border: #FECACA;
+
+  /* Warning */
+  --color-warning-bg: #FEF3C7;
+  --color-warning-border: #F59E0B;
+  --color-warning-text: #92400E;
+
+  /* Success */
+  --color-success-500: #22C55E;
+  --color-success-600: #16A34A;
+
+  /* Toolbar */
+  --color-toolbar-bg: #FFFFFF;
+  --color-toolbar-border: #E2E8F0;
+  --color-toolbar-text: #1E293B;
+
+  /* Code viewer */
+  --color-code-bg: #FFFFFF;
+  --color-line-number: #94A3B8;
+  --color-gutter-indicator: #3B82F6;
+  --color-gutter-add-icon: #94A3B8;
+  --color-file-header-bg: #F8FAFC;
+  --color-file-header-border: #E2E8F0;
+  --color-line-hover-bg: #F8FAFC;
+
+  /* Comment bubbles */
+  --color-comment-bg: #F0F9FF;
+  --color-comment-border: #3B82F6;
+  --color-comment-text: #1E293B;
+  --color-comment-label: #64748B;
+  --color-comment-focused-bg: #DBEAFE;
+  --color-editor-bg: #FFFFFF;
+  --color-editor-textarea-bg: #FFFFFF;
+  --color-editor-border: #3B82F6;
+  --color-editor-shadow: rgba(0,0,0,0.1);
+
+  /* Sidebar */
+  --color-sidebar-bg: #FFFFFF;
+  --color-preamble-bg: #FFFFFF;
+  --color-preamble-collapsed-bg: #F8FAFC;
+  --color-preview-bg: #1E293B;
+  --color-preview-text: #E2E8F0;
+  --color-preview-border: #1E293B;
+  --color-preview-empty-border: #CBD5E1;
+
+  /* Diff */
+  --color-diff-added-bg: #F0FDF4;
+  --color-diff-removed-bg: #FEF2F2;
+  --color-diff-added-indicator: #15803D;
+  --color-diff-removed-indicator: #B91C1C;
+  --color-diff-added-gutter: #DCFCE7;
+  --color-diff-removed-gutter: #FEE2E2;
+  --color-diff-context-bg: #FFFFFF;
+  --color-diff-collapsed-bg: #F8FAFC;
+  --color-diff-collapsed-border: #CBD5E1;
+  --color-diff-collapsed-text: #64748B;
+  --color-diff-collapsed-hover-bg: #EFF6FF;
+  --color-diff-collapsed-hover-border: #93C5FD;
+
+  /* Drop zone */
+  --color-dropzone-bg: #FFFFFF;
+  --color-dropzone-border: #CBD5E1;
+  --color-dropzone-icon: #94A3B8;
+  --color-dropzone-text: #475569;
+  --color-dropzone-hover-bg: #EFF6FF;
+  --color-dropzone-hover-border: #2563EB;
+
+  /* Dialog */
+  --color-dialog-bg: #FFFFFF;
+  --color-dialog-backdrop: rgba(0,0,0,0.5);
+  --color-dialog-shadow: rgba(0,0,0,0.2);
+  --color-dialog-title: #1E293B;
+  --color-dialog-body: #475569;
+
+  /* Toast */
+  --color-toast-bg: #1E293B;
+  --color-toast-text: #FFFFFF;
+  --color-toast-error-bg: #991B1B;
+  --color-toast-error-text: #FFFFFF;
+
+  /* Scrollbar */
+  --color-scrollbar-thumb: #CBD5E1;
+  --color-scrollbar-thumb-hover: #94A3B8;
+  --color-scrollbar-track: transparent;
+
+  /* Rendered view */
+  --color-heading-border-1: #1D4ED8;
+  --color-heading-border-2: #2563EB;
+  --color-heading-border-3: #3B82F6;
+  --color-heading-border-4: #60A5FA;
+  --color-heading-border-5: #93C5FD;
+  --color-heading-border-6: #BFDBFE;
+  --color-code-block-bg: #1E293B;
+  --color-code-block-text: #E2E8F0;
+  --color-code-inline-bg: #F1F5F9;
+  --color-table-stripe: #FAFAFA;
+  --color-block-hover: #F8FAFC;
+
+  /* Rendered diff */
+  --color-rdiff-added-bg: #F0FDF4;
+  --color-rdiff-added-border: #22C55E;
+  --color-rdiff-removed-bg: #FEF2F2;
+  --color-rdiff-removed-border: #EF4444;
+  --color-rdiff-modified-bg: #FFFBEB;
+  --color-rdiff-modified-border: #F59E0B;
+  --color-rdiff-word-added-bg: #BBF7D0;
+  --color-rdiff-word-removed-bg: #FECACA;
+
+  /* Badges */
+  --color-badge-added-bg: #DCFCE7;
+  --color-badge-added-text: #15803D;
+  --color-badge-removed-bg: #FEE2E2;
+  --color-badge-removed-text: #B91C1C;
+  --color-badge-modified-bg: #FEF3C7;
+  --color-badge-modified-text: #92400E;
+
+  /* Overlay/shadow */
+  --color-overlay: rgba(0,0,0,0.3);
+  --color-shadow: rgba(0,0,0,0.1);
+}
+
+/* --- Dark theme --- */
+[data-theme="dark"] {
+  /* Base */
+  --color-bg: #0F172A;
+  --color-bg-secondary: #1E293B;
+  --color-bg-tertiary: #0F172A;
+  --color-text: #E2E8F0;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-border: #334155;
+  --color-border-muted: #1E293B;
+
+  /* Interactive */
+  --color-primary: #3B82F6;
+  --color-primary-hover: #2563EB;
+  --color-primary-text: #FFFFFF;
+  --color-hover-bg: #1E293B;
+  --color-focus-ring: #3B82F6;
+  --color-destructive: #EF4444;
+  --color-destructive-hover: #DC2626;
+
+  /* Selection/Focus */
+  --color-selection: #1E3A5F;
+  --color-focus-line: #422006;
+
+  /* Error */
+  --color-error-bg: #451A1A;
+  --color-error-text: #FCA5A5;
+  --color-error-border: #7F1D1D;
+
+  /* Warning */
+  --color-warning-bg: #451A00;
+  --color-warning-border: #92400E;
+  --color-warning-text: #FDE68A;
+
+  /* Success */
+  --color-success-500: #22C55E;
+  --color-success-600: #16A34A;
+
+  /* Toolbar */
+  --color-toolbar-bg: #0F172A;
+  --color-toolbar-border: #334155;
+  --color-toolbar-text: #E2E8F0;
+
+  /* Code viewer */
+  --color-code-bg: #0F172A;
+  --color-line-number: #475569;
+  --color-gutter-indicator: #60A5FA;
+  --color-gutter-add-icon: #475569;
+  --color-file-header-bg: #1E293B;
+  --color-file-header-border: #334155;
+  --color-line-hover-bg: #1E293B;
+
+  /* Comment bubbles */
+  --color-comment-bg: #0C2D48;
+  --color-comment-border: #2563EB;
+  --color-comment-text: #E2E8F0;
+  --color-comment-label: #94A3B8;
+  --color-comment-focused-bg: #1E3A5F;
+  --color-editor-bg: #1E293B;
+  --color-editor-textarea-bg: #0F172A;
+  --color-editor-border: #2563EB;
+  --color-editor-shadow: rgba(0,0,0,0.4);
+
+  /* Sidebar */
+  --color-sidebar-bg: #0F172A;
+  --color-preamble-bg: #1E293B;
+  --color-preamble-collapsed-bg: #1E293B;
+  --color-preview-bg: #020617;
+  --color-preview-text: #CBD5E1;
+  --color-preview-border: #334155;
+  --color-preview-empty-border: #334155;
+
+  /* Diff */
+  --color-diff-added-bg: #052E16;
+  --color-diff-removed-bg: #450A0A;
+  --color-diff-added-indicator: #4ADE80;
+  --color-diff-removed-indicator: #FCA5A5;
+  --color-diff-added-gutter: #052E16;
+  --color-diff-removed-gutter: #450A0A;
+  --color-diff-context-bg: #0F172A;
+  --color-diff-collapsed-bg: #1E293B;
+  --color-diff-collapsed-border: #334155;
+  --color-diff-collapsed-text: #94A3B8;
+  --color-diff-collapsed-hover-bg: #172554;
+  --color-diff-collapsed-hover-border: #1D4ED8;
+
+  /* Drop zone */
+  --color-dropzone-bg: #0F172A;
+  --color-dropzone-border: #334155;
+  --color-dropzone-icon: #475569;
+  --color-dropzone-text: #94A3B8;
+  --color-dropzone-hover-bg: #172554;
+  --color-dropzone-hover-border: #3B82F6;
+
+  /* Dialog */
+  --color-dialog-bg: #1E293B;
+  --color-dialog-backdrop: rgba(0,0,0,0.7);
+  --color-dialog-shadow: rgba(0,0,0,0.5);
+  --color-dialog-title: #F1F5F9;
+  --color-dialog-body: #94A3B8;
+
+  /* Toast */
+  --color-toast-bg: #F1F5F9;
+  --color-toast-text: #0F172A;
+  --color-toast-error-bg: #7F1D1D;
+  --color-toast-error-text: #FECACA;
+
+  /* Scrollbar */
+  --color-scrollbar-thumb: #475569;
+  --color-scrollbar-thumb-hover: #64748B;
+  --color-scrollbar-track: transparent;
+
+  /* Rendered view */
+  --color-heading-border-1: #3B82F6;
+  --color-heading-border-2: #2563EB;
+  --color-heading-border-3: #1D4ED8;
+  --color-heading-border-4: #1E40AF;
+  --color-heading-border-5: #1E3A5F;
+  --color-heading-border-6: #172554;
+  --color-code-block-bg: #020617;
+  --color-code-block-text: #CBD5E1;
+  --color-code-inline-bg: #1E293B;
+  --color-table-stripe: #1E293B;
+  --color-block-hover: #1E293B;
+
+  /* Rendered diff */
+  --color-rdiff-added-bg: #052E16;
+  --color-rdiff-added-border: #16A34A;
+  --color-rdiff-removed-bg: #450A0A;
+  --color-rdiff-removed-border: #DC2626;
+  --color-rdiff-modified-bg: #451A00;
+  --color-rdiff-modified-border: #D97706;
+  --color-rdiff-word-added-bg: #166534;
+  --color-rdiff-word-removed-bg: #7F1D1D;
+
+  /* Badges */
+  --color-badge-added-bg: #052E16;
+  --color-badge-added-text: #4ADE80;
+  --color-badge-removed-bg: #450A0A;
+  --color-badge-removed-text: #FCA5A5;
+  --color-badge-modified-bg: #451A00;
+  --color-badge-modified-text: #FDE68A;
+
+  /* Overlay/shadow */
+  --color-overlay: rgba(0,0,0,0.5);
+  --color-shadow: rgba(0,0,0,0.4);
+}
+
+/* --- Transitions (runtime only) --- */
+/* Implements: NFR-dm-smooth-transition */
+html[data-theme-transition] * {
+  transition: background-color 150ms ease,
+              color 150ms ease,
+              border-color 150ms ease,
+              box-shadow 150ms ease !important;
+}
+
+/* --- Shiki dual-theme support via CSS variables --- */
+/* Implements: NFR-dm-syntax-highlight-both-themes */
+[data-theme="light"] .shiki,
+[data-theme="light"] .shiki span {
+  color: var(--shiki-light) !important;
+  background-color: transparent !important;
+  font-style: var(--shiki-light-font-style) !important;
+  font-weight: var(--shiki-light-font-weight) !important;
+  text-decoration: var(--shiki-light-text-decoration) !important;
+}
+
+[data-theme="dark"] .shiki,
+[data-theme="dark"] .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: transparent !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+.shiki {
+  background-color: var(--color-code-bg) !important;
+}
+
+/* Token-level dual-theme via CSS custom properties (for virtualized viewers) */
+[data-theme="light"] .shiki-token { color: var(--sl); }
+[data-theme="dark"] .shiki-token { color: var(--sd); }
+
+/* --- Scrollbar theming --- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scrollbar-thumb-hover);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
+}
