@@ -20,8 +20,9 @@ for arg in "$@"; do
     --help)
       echo "Usage: ./scripts/install-command.sh [--force]"
       echo ""
-      echo "Installs the /shepherd and /shepherd-review slash commands globally for Claude Code."
-      echo "Creates symlinks at ~/.claude/commands/ pointing to this repo's command files."
+      echo "Installs Shepherd tools globally:"
+      echo "  - /shepherd and /shepherd-review slash commands for Claude Code"
+      echo "  - git land and git sync subcommands for worktree workflow"
       echo ""
       echo "Options:"
       echo "  --force    Overwrite existing files or symlinks"
@@ -82,10 +83,58 @@ for CMD in "${COMMANDS[@]}"; do
   INSTALLED=$((INSTALLED + 1))
 done
 
+# --- Git subcommands (git land, git sync) ---
+
+GIT_SCRIPTS=("git-land" "git-sync")
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
+
+for SCRIPT in "${GIT_SCRIPTS[@]}"; do
+  SOURCE="$REPO_ROOT/scripts/$SCRIPT"
+  TARGET="$BIN_DIR/$SCRIPT"
+
+  if [ ! -f "$SOURCE" ]; then
+    echo "Warning: Script not found at $SOURCE (skipping)"
+    ERRORS=$((ERRORS + 1))
+    continue
+  fi
+
+  if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
+    if [ -L "$TARGET" ]; then
+      CURRENT="$(readlink "$TARGET")"
+      if [ "$CURRENT" = "$SOURCE" ]; then
+        echo "Already installed: $TARGET -> $SOURCE"
+        ALREADY=$((ALREADY + 1))
+        continue
+      fi
+    fi
+
+    if [ "$FORCE" = true ]; then
+      rm -f "$TARGET"
+    else
+      echo "Error: $TARGET already exists. Run with --force to overwrite."
+      ERRORS=$((ERRORS + 1))
+      continue
+    fi
+  fi
+
+  ln -s "$SOURCE" "$TARGET"
+  echo "Installed: $TARGET -> $SOURCE"
+  INSTALLED=$((INSTALLED + 1))
+done
+
 echo ""
 if [ $INSTALLED -gt 0 ] || [ $ALREADY -gt 0 ]; then
-  echo "The /shepherd and /shepherd-review commands are now available globally in Claude Code."
-  echo "Updates will propagate automatically when you git pull this repo."
+  echo "Installed:"
+  echo "  Claude Code:  /shepherd, /shepherd-review"
+  echo "  Git commands: git land, git sync"
+  echo ""
+  echo "Updates propagate automatically when you git pull this repo."
+  if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+    echo ""
+    echo "Note: $BIN_DIR is not on your PATH."
+    echo "Add it with: export PATH=\"\$HOME/.local/bin:\$PATH\""
+  fi
 fi
 
 if [ $ERRORS -gt 0 ]; then
