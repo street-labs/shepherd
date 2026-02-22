@@ -457,4 +457,126 @@ describe('appStore', () => {
       vi.restoreAllMocks();
     });
   });
+
+  // ─── Rendered mode ─────────────────────────────────────────
+
+  describe('rendered mode', () => {
+    it('detects markdown files on loadFile', () => {
+      useAppStore.getState().loadFile('# Hello', 'README.md', 'markdown');
+      expect(useAppStore.getState().isMarkdownFile).toBe(true);
+    });
+
+    it('does not flag non-markdown files', () => {
+      loadTestFile(useAppStore.getState());
+      expect(useAppStore.getState().isMarkdownFile).toBe(false);
+    });
+
+    it('sets renderMode and parses AST on setRenderMode("rendered")', () => {
+      useAppStore.getState().loadFile('# Title\n\nParagraph text.', 'doc.md', 'markdown');
+      useAppStore.getState().setRenderMode('rendered');
+      expect(useAppStore.getState().renderMode).toBe('rendered');
+      expect(useAppStore.getState().astElements.length).toBeGreaterThan(0);
+      expect(useAppStore.getState().renderedHtml).toContain('<h1');
+    });
+
+    it('adds rendered comments and auto-generates prompt', () => {
+      useAppStore.getState().loadFile('# Title\n\nText.', 'doc.md', 'markdown');
+      useAppStore.getState().setRenderMode('rendered');
+      const elements = useAppStore.getState().astElements;
+      const heading = elements.find((e) => e.type === 'heading');
+      expect(heading).toBeDefined();
+
+      useAppStore.getState().addRenderedComment(
+        heading!.elementId,
+        'heading',
+        'Title',
+        'Fix this heading',
+      );
+
+      expect(useAppStore.getState().renderedCommentOrder.length).toBe(1);
+      expect(useAppStore.getState().generatedPrompt).not.toBeNull();
+      expect(useAppStore.getState().generatedPrompt).toContain('Fix this heading');
+      expect(useAppStore.getState().generatedPrompt).toContain('Rendered View');
+    });
+
+    it('deletes rendered comments and clears prompt when last deleted', () => {
+      useAppStore.getState().loadFile('# Title', 'doc.md', 'markdown');
+      useAppStore.getState().setRenderMode('rendered');
+      const elements = useAppStore.getState().astElements;
+      useAppStore.getState().addRenderedComment(
+        elements[0]!.elementId,
+        'heading',
+        'Title',
+        'Remove this',
+      );
+
+      const id = useAppStore.getState().renderedCommentOrder[0]!;
+      useAppStore.getState().deleteRenderedComment(id);
+      expect(useAppStore.getState().renderedCommentOrder.length).toBe(0);
+      expect(useAppStore.getState().generatedPrompt).toBeNull();
+    });
+
+    it('navigates rendered comments', () => {
+      useAppStore.getState().loadFile('# A\n\n# B', 'doc.md', 'markdown');
+      useAppStore.getState().setRenderMode('rendered');
+      const elements = useAppStore.getState().astElements;
+
+      useAppStore.getState().addRenderedComment(elements[0]!.elementId, 'heading', 'A', 'First');
+      useAppStore.getState().addRenderedComment(elements[1]!.elementId, 'heading', 'B', 'Second');
+
+      useAppStore.getState().navigateRenderedComment('next');
+      expect(useAppStore.getState().focusedRenderedCommentId).not.toBeNull();
+
+      useAppStore.getState().navigateRenderedComment('next');
+      const focused = useAppStore.getState().focusedRenderedCommentId;
+      expect(focused).toBe(useAppStore.getState().renderedCommentOrder[1]);
+    });
+
+    it('resets rendered state on loadFile', () => {
+      useAppStore.getState().loadFile('# A', 'doc.md', 'markdown');
+      useAppStore.getState().setRenderMode('rendered');
+      useAppStore.getState().addRenderedComment('heading-0' as any, 'heading', 'A', 'Test');
+
+      useAppStore.getState().loadFile('new content', 'app.ts', 'typescript');
+      expect(useAppStore.getState().isMarkdownFile).toBe(false);
+      expect(useAppStore.getState().renderMode).toBe('raw');
+      expect(useAppStore.getState().renderedCommentOrder.length).toBe(0);
+      expect(useAppStore.getState().astElements.length).toBe(0);
+    });
+  });
+
+  // ─── Rendered diff mode ─────────────────────────────────────
+
+  describe('rendered diff mode', () => {
+    it('computes AST diff', () => {
+      useAppStore.getState().loadFile('# New Title\n\nNew text.', 'doc.md', 'markdown');
+      useAppStore.setState({ baselineContent: '# Old Title\n\nOld text.' });
+      useAppStore.getState().computeRenderedDiff();
+
+      const result = useAppStore.getState().astDiffResult;
+      expect(result).not.toBeNull();
+      expect(result!.entries.length).toBeGreaterThan(0);
+    });
+
+    it('adds rendered diff comments', () => {
+      useAppStore.getState().loadFile('# Title', 'doc.md', 'markdown');
+      useAppStore.setState({ baselineContent: '# Old' });
+      useAppStore.getState().computeRenderedDiff();
+      useAppStore.getState().setRenderMode('rendered');
+
+      const result = useAppStore.getState().astDiffResult;
+      const entry = result!.entries[0]!;
+
+      useAppStore.getState().addRenderedDiffComment(
+        entry.elementId,
+        entry.type,
+        entry.status,
+        'Title',
+        'Check this diff',
+      );
+
+      expect(useAppStore.getState().renderedDiffCommentOrder.length).toBe(1);
+      expect(useAppStore.getState().generatedPrompt).toContain('Check this diff');
+    });
+  });
 });

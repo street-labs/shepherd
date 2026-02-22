@@ -1,22 +1,31 @@
-// Implements: FR-crp-line-comment-edit, FR-crp-line-comment-delete, FR-crp-comment-indicator
+// Implements: FR-crp-line-comment-edit, FR-crp-line-comment-delete, FR-crp-comment-indicator,
+// FR-mr-rendered-comment
 
 import { useAppStore } from '@/store/appStore';
-import type { Comment, DiffComment } from '@/types';
+import type { Comment, DiffComment, RenderedComment, RenderedDiffComment } from '@/types';
 
 interface CommentBubbleProps {
-  comment: Comment | DiffComment;
+  comment: Comment | DiffComment | RenderedComment | RenderedDiffComment;
   isFocused: boolean;
   /** Optional label override. If provided, used instead of computing from line numbers. */
   label?: string;
   /** Whether this bubble is rendered in diff mode. Affects which store actions are called. */
   isDiffMode?: boolean;
+  /** Whether this bubble is in rendered mode. */
+  isRenderedMode?: boolean;
+  /** Whether this bubble is in rendered diff mode. */
+  isRenderedDiffMode?: boolean;
 }
 
-export function CommentBubble({ comment, isFocused, label, isDiffMode }: CommentBubbleProps) {
+export function CommentBubble({ comment, isFocused, label, isDiffMode, isRenderedMode, isRenderedDiffMode }: CommentBubbleProps) {
   const openEditor = useAppStore((s) => s.openEditor);
   const deleteComment = useAppStore((s) => s.deleteComment);
   const openDiffEditor = useAppStore((s) => s.openDiffEditor);
   const deleteDiffComment = useAppStore((s) => s.deleteDiffComment);
+  const openRenderedEditor = useAppStore((s) => s.openRenderedEditor);
+  const deleteRenderedComment = useAppStore((s) => s.deleteRenderedComment);
+  const openRenderedDiffEditor = useAppStore((s) => s.openRenderedDiffEditor);
+  const deleteRenderedDiffComment = useAppStore((s) => s.deleteRenderedDiffComment);
 
   const lineLabel = label ?? (
     'startLine' in comment
@@ -27,7 +36,11 @@ export function CommentBubble({ comment, isFocused, label, isDiffMode }: Comment
   );
 
   const handleEdit = () => {
-    if (isDiffMode) {
+    if (isRenderedDiffMode) {
+      openRenderedDiffEditor({ mode: 'edit', commentId: comment.id });
+    } else if (isRenderedMode) {
+      openRenderedEditor({ mode: 'edit', commentId: comment.id });
+    } else if (isDiffMode) {
       openDiffEditor({ mode: 'edit', commentId: comment.id });
     } else {
       openEditor({ mode: 'edit', commentId: comment.id });
@@ -35,7 +48,11 @@ export function CommentBubble({ comment, isFocused, label, isDiffMode }: Comment
   };
 
   const handleDelete = () => {
-    if (isDiffMode) {
+    if (isRenderedDiffMode) {
+      deleteRenderedDiffComment(comment.id);
+    } else if (isRenderedMode) {
+      deleteRenderedComment(comment.id);
+    } else if (isDiffMode) {
       deleteDiffComment(comment.id);
     } else {
       deleteComment(comment.id);

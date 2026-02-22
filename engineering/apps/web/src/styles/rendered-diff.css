@@ -1,0 +1,49 @@
+/* Implements: FR-mr-rendered-diff */
+
+/* Added block */
+.rendered-diff-block-added {
+  background-color: #F0FDF4;
+  border-left: 3px solid #22C55E;
+  padding-left: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+/* Removed block */
+.rendered-diff-block-removed {
+  background-color: #FEF2F2;
+  border-left: 3px solid #EF4444;
+  padding-left: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.rendered-diff-removed-text {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+/* Modified block */
+.rendered-diff-block-modified {
+  background-color: #FFFBEB;
+  border-left: 3px solid #F59E0B;
+  padding-left: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+/* Word-level diff highlights */
+.rendered-diff-word-added {
+  background-color: #BBF7D0;
+  text-decoration: none;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.rendered-diff-word-removed {
+  background-color: #FECACA;
+  text-decoration: line-through;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.rendered-diff-modified-content {
+  line-height: 1.6;
+}

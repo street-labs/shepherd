@@ -141,8 +141,8 @@ Shared vocabulary for this project. All agents should use these terms consistent
 
 ## View Mode Toggle
 **Definition**: A segmented control in the toolbar that switches between "File" (full-file view) and "Diff" (unified diff view) modes. Disabled when the file was not loaded via the server (paste/upload files have no baseline to diff against). Switching modes clears comments with a confirmation dialog.
-**Also known as**: Mode toggle, File/Diff toggle
-**Not to be confused with**: The toolbar action buttons (Copy, Clear)
+**Also known as**: Mode toggle, File/Diff toggle, ViewModeToggle (component name)
+**Not to be confused with**: Rendered/Raw Toggle (which controls how content is displayed, not what content is shown), the toolbar action buttons (Copy, Clear)
 
 ## Diff Line Identifier
 **Definition**: A unique identifier for a line in the diff view, encoding the line type (added, removed, or context) and the corresponding old and/or new line numbers. Used to anchor comments in diff mode, replacing the simple line number used in file mode.
@@ -193,6 +193,47 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Definition**: A temporary file at `~/.shepherd/prompt-output.md` used as the handoff mechanism between the CRPG and the AI agent. Written by the server when the user clicks Done, read by the agent's file watcher, and deleted immediately after reading. Stale files from previous sessions are cleaned up on each new slash command invocation.
 **Also known as**: Output file, handoff file
 **Not to be confused with**: The generated prompt (which is the content written to the file, not the file itself)
+
+## Rendered View
+**Definition**: An alternative display mode for markdown files in the CRPG that converts raw markdown source into formatted HTML output (headings, bold, lists, tables, code blocks, etc.). Available only for markdown files. The user can toggle between rendered view and raw view.
+**Also known as**: Rendered mode, markdown preview, formatted view
+**Not to be confused with**: Raw view (which shows syntax-highlighted markdown source with line numbers)
+
+## Raw View
+**Definition**: The default display mode for all files in the CRPG, showing syntax-highlighted source code with line numbers. For markdown files, this shows the markdown markup itself rather than its rendered output. For non-markdown files, this is the only available view.
+**Also known as**: Source view, code view
+**Not to be confused with**: Rendered view (which shows markdown formatted as HTML)
+
+## Rendered/Raw Toggle
+**Definition**: A toolbar control that switches between rendered view (formatted HTML) and raw view (syntax-highlighted source) for markdown files. Independent of the File/Diff toggle. Only visible when a markdown file is loaded; hidden for non-markdown files.
+**Also known as**: Render toggle, markdown view toggle
+**Not to be confused with**: View Mode Toggle (the File/Diff toggle), which controls what content is shown, not how it is rendered
+
+## Element Identifier
+**Definition**: A stable, deterministic identifier assigned to each block-level element in rendered markdown (e.g., `heading-0`, `paragraph-3`, `list-1-item-2`). Based on the element's position in the markdown abstract syntax tree (AST). Used to anchor comments in rendered view, analogous to how line numbers anchor comments in raw view and diff line identifiers anchor comments in diff view.
+**Also known as**: Element ID, AST node ID, rendered anchor
+**Not to be confused with**: Diff Line Identifier (used in diff view), line number (used in raw/file view)
+
+## Rendered Diff
+**Definition**: A viewing mode for markdown files that shows changes between HEAD and working copy as formatted HTML with visual annotations — green highlights for additions, strikethrough with red background for removals, and inline word-level change markers for modifications. Combines the rendered view with the diff view. Only available for markdown files loaded via the server.
+**Also known as**: Rendered diff view, visual diff, formatted diff
+**Not to be confused with**: Raw diff (which shows unified diff of markdown source with +/- line prefixes)
+
+## AST Diff
+**Definition**: A diff algorithm that operates on the abstract syntax tree (AST) representation of two markdown documents rather than on raw text lines. Identifies added, removed, modified, and unchanged blocks at the structural level (headings, paragraphs, list items, etc.). Used to produce the rendered diff view.
+**Also known as**: Tree diff, structural diff
+**Not to be confused with**: Line-level diff (used in raw diff view, computed by jsdiff)
+
+## Horizontal Rule
+**Definition**: A block-level markdown element that produces a horizontal dividing line (`---`, `***`, or `___` in markdown source). In the AST, this is represented as a `thematicBreak` node (the mdast/CommonMark name). The element identifier format is `thematic-break-{index}`.
+**Also known as**: Thematic break (mdast/CommonMark term), `<hr>` (HTML element)
+**Not to be confused with**: Block quote border (which is a left border on quoted content, not a horizontal line)
+
+## Comment Affordance Column
+**Definition**: A 32px-wide column on the left side of the rendered markdown view that shows comment interaction indicators. Displays a faint speech bubble icon on hover for commentable elements, and a filled blue dot for elements with existing comments. Functionally analogous to the Comment Gutter in the raw view, but adapted for element-level (rather than line-level) comment anchoring.
+**Also known as**: C column (shorthand used in layout diagrams)
+**Not to be confused with**: Comment Gutter (the equivalent column in the raw code viewer, which uses line-based indicators)
+
 <!--
 Entry template:
 

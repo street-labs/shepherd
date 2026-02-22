@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildPrompt, buildDiffPrompt, formatDiffCommentLabel } from './promptBuilder';
-import type { Comment, FileInfo, DiffLine, DiffComment, DiffLineId, CollapsedSection } from '@/types';
+import { buildPrompt, buildDiffPrompt, formatDiffCommentLabel, buildRenderedPrompt, buildRenderedDiffPrompt } from './promptBuilder';
+import type { Comment, FileInfo, DiffLine, DiffComment, DiffLineId, CollapsedSection, RenderedComment, RenderedDiffComment, ElementSourceMapping, AstDiffResult, ElementId } from '@/types';
 
 function makeFile(overrides: Partial<FileInfo> = {}): FileInfo {
   return {
@@ -229,5 +229,114 @@ describe('formatDiffCommentLabel', () => {
       endIndex: 4,
     });
     expect(formatDiffCommentLabel(comment)).toBe('Lines 1 to +4');
+  });
+});
+
+// ─── buildRenderedPrompt ─────────────────────────────────────────
+
+describe('buildRenderedPrompt', () => {
+  function makeRenderedComment(overrides: Partial<RenderedComment> = {}): RenderedComment {
+    return {
+      id: 'rc1',
+      elementId: 'heading-0' as ElementId,
+      elementType: 'heading',
+      contentPreview: 'API Reference',
+      text: 'Update this heading',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      ...overrides,
+    };
+  }
+
+  const sourceMap: ElementSourceMapping[] = [
+    { elementId: 'heading-0' as ElementId, startLine: 1, endLine: 1, rawSource: '## API Reference' },
+    { elementId: 'paragraph-0' as ElementId, startLine: 3, endLine: 3, rawSource: 'Some text.' },
+  ];
+
+  it('includes "-- Rendered View" in heading', () => {
+    const result = buildRenderedPrompt(makeFile(), [makeRenderedComment()], '', sourceMap);
+    expect(result).toContain('-- Rendered View');
+  });
+
+  it('includes element type and line range', () => {
+    const result = buildRenderedPrompt(makeFile(), [makeRenderedComment()], '', sourceMap);
+    expect(result).toContain('Heading (lines 1-1)');
+  });
+
+  it('includes raw markdown source', () => {
+    const result = buildRenderedPrompt(makeFile(), [makeRenderedComment()], '', sourceMap);
+    expect(result).toContain('## API Reference');
+  });
+
+  it('includes comment text', () => {
+    const result = buildRenderedPrompt(makeFile(), [makeRenderedComment()], '', sourceMap);
+    expect(result).toContain('Update this heading');
+  });
+
+  it('includes instructions when preamble is non-empty', () => {
+    const result = buildRenderedPrompt(makeFile(), [makeRenderedComment()], 'Be thorough', sourceMap);
+    expect(result).toContain('## Instructions');
+    expect(result).toContain('Be thorough');
+  });
+
+  it('omits instructions when preamble is empty', () => {
+    const result = buildRenderedPrompt(makeFile(), [makeRenderedComment()], '', sourceMap);
+    expect(result).not.toContain('## Instructions');
+  });
+});
+
+// ─── buildRenderedDiffPrompt ─────────────────────────────────────
+
+describe('buildRenderedDiffPrompt', () => {
+  function makeRenderedDiffComment(overrides: Partial<RenderedDiffComment> = {}): RenderedDiffComment {
+    return {
+      id: 'rdc1',
+      elementId: 'heading-0' as ElementId,
+      elementType: 'heading',
+      diffStatus: 'modified',
+      contentPreview: 'API Reference',
+      text: 'Check this change',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      ...overrides,
+    };
+  }
+
+  const sourceMap: ElementSourceMapping[] = [
+    { elementId: 'heading-0' as ElementId, startLine: 1, endLine: 1, rawSource: '## API Reference' },
+  ];
+
+  const diffResult: AstDiffResult = {
+    entries: [
+      {
+        elementId: 'heading-0' as ElementId,
+        status: 'modified',
+        type: 'heading',
+        oldElement: { elementId: 'heading-0' as ElementId, type: 'heading', textContent: 'Old Title', startLine: 1, endLine: 1 },
+        newElement: { elementId: 'heading-0' as ElementId, type: 'heading', textContent: 'New Title', startLine: 1, endLine: 1 },
+      },
+    ],
+    exceedsFallbackThreshold: false,
+  };
+
+  it('includes "-- Rendered Diff View" in heading', () => {
+    const result = buildRenderedDiffPrompt(makeFile(), [makeRenderedDiffComment()], '', diffResult, sourceMap);
+    expect(result).toContain('-- Rendered Diff View');
+  });
+
+  it('includes "Annotated Elements" section', () => {
+    const result = buildRenderedDiffPrompt(makeFile(), [makeRenderedDiffComment()], '', diffResult, sourceMap);
+    expect(result).toContain('Annotated Elements');
+  });
+
+  it('shows old and new for modified elements', () => {
+    const result = buildRenderedDiffPrompt(makeFile(), [makeRenderedDiffComment()], '', diffResult, sourceMap);
+    expect(result).toContain('Old:');
+    expect(result).toContain('New:');
+    expect(result).toContain('Old Title');
+    expect(result).toContain('New Title');
+  });
+
+  it('includes MODIFIED status label', () => {
+    const result = buildRenderedDiffPrompt(makeFile(), [makeRenderedDiffComment()], '', diffResult, sourceMap);
+    expect(result).toContain('[MODIFIED]');
   });
 });

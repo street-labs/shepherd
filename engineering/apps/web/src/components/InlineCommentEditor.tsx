@@ -1,29 +1,51 @@
 // Implements: FR-crp-line-comment-create, FR-crp-line-comment-edit,
 // AC-crp-add-comment-single-line, AC-crp-add-comment-line-range, AC-crp-edit-comment,
-// FR-diff-comment-create
+// FR-diff-comment-create, FR-mr-rendered-comment
 
 import { useAppStore } from '@/store/appStore';
 import { useState, useEffect, useRef } from 'react';
+import type { ElementId } from '@/types';
 
 interface InlineCommentEditorProps {
   isDiffMode?: boolean;
+  isRenderedMode?: boolean;
+  isRenderedDiffMode?: boolean;
 }
 
-export function InlineCommentEditor({ isDiffMode }: InlineCommentEditorProps) {
+export function InlineCommentEditor({ isDiffMode, isRenderedMode, isRenderedDiffMode }: InlineCommentEditorProps) {
   const editorState = useAppStore((s) => s.editorState);
   const diffEditorState = useAppStore((s) => s.diffEditorState);
+  const renderedEditorState = useAppStore((s) => s.renderedEditorState);
+  const renderedDiffEditorState = useAppStore((s) => s.renderedDiffEditorState);
   const comments = useAppStore((s) => s.comments);
   const diffComments = useAppStore((s) => s.diffComments);
+  const renderedComments = useAppStore((s) => s.renderedComments);
+  const renderedDiffComments = useAppStore((s) => s.renderedDiffComments);
+  const astElements = useAppStore((s) => s.astElements);
   const addComment = useAppStore((s) => s.addComment);
   const updateComment = useAppStore((s) => s.updateComment);
   const closeEditor = useAppStore((s) => s.closeEditor);
   const addDiffComment = useAppStore((s) => s.addDiffComment);
   const updateDiffComment = useAppStore((s) => s.updateDiffComment);
   const closeDiffEditor = useAppStore((s) => s.closeDiffEditor);
+  const addRenderedComment = useAppStore((s) => s.addRenderedComment);
+  const updateRenderedComment = useAppStore((s) => s.updateRenderedComment);
+  const closeRenderedEditor = useAppStore((s) => s.closeRenderedEditor);
+  const addRenderedDiffComment = useAppStore((s) => s.addRenderedDiffComment);
+  const updateRenderedDiffComment = useAppStore((s) => s.updateRenderedDiffComment);
+  const closeRenderedDiffEditor = useAppStore((s) => s.closeRenderedDiffEditor);
+  const astDiffResult = useAppStore((s) => s.astDiffResult);
 
-  const activeState = isDiffMode ? diffEditorState : editorState;
+  const activeState = isRenderedDiffMode ? renderedDiffEditorState
+    : isRenderedMode ? renderedEditorState
+    : isDiffMode ? diffEditorState
+    : editorState;
 
-  const existingComment = isDiffMode
+  const existingComment = isRenderedDiffMode
+    ? (activeState?.mode === 'edit' ? renderedDiffComments[activeState.commentId] : null)
+    : isRenderedMode
+    ? (activeState?.mode === 'edit' ? renderedComments[activeState.commentId] : null)
+    : isDiffMode
     ? (activeState?.mode === 'edit' ? diffComments[activeState.commentId] : null)
     : (activeState?.mode === 'edit' ? comments[activeState.commentId] : null);
 
@@ -41,7 +63,15 @@ export function InlineCommentEditor({ isDiffMode }: InlineCommentEditorProps) {
   if (!activeState) return null;
 
   let lineLabel = '';
-  if (!isDiffMode && activeState) {
+  if (isRenderedMode || isRenderedDiffMode) {
+    if (activeState.mode === 'create') {
+      const s = activeState as { elementId: ElementId };
+      const element = astElements.find((e) => e.elementId === s.elementId);
+      lineLabel = element ? `${capitalize(element.type)}: ${element.textContent.slice(0, 40)}` : 'Element';
+    } else if (existingComment && 'elementType' in existingComment) {
+      lineLabel = `${capitalize(existingComment.elementType)}: ${existingComment.contentPreview.slice(0, 40)}`;
+    }
+  } else if (!isDiffMode && activeState) {
     if (activeState.mode === 'create') {
       const s = activeState as { anchorLine: number; endLine: number };
       lineLabel = s.anchorLine === s.endLine
@@ -67,7 +97,35 @@ export function InlineCommentEditor({ isDiffMode }: InlineCommentEditorProps) {
 
   const handleSubmit = () => {
     if (!text.trim()) return;
-    if (isDiffMode) {
+    if (isRenderedDiffMode) {
+      if (activeState.mode === 'create') {
+        const s = activeState as { elementId: ElementId };
+        const element = astElements.find((e) => e.elementId === s.elementId);
+        const diffEntry = astDiffResult?.entries.find((e) => e.elementId === s.elementId);
+        addRenderedDiffComment(
+          s.elementId,
+          element?.type ?? 'unknown',
+          diffEntry?.status ?? 'unchanged',
+          element?.textContent.slice(0, 80) ?? '',
+          text.trim(),
+        );
+      } else {
+        updateRenderedDiffComment(activeState.commentId, text.trim());
+      }
+    } else if (isRenderedMode) {
+      if (activeState.mode === 'create') {
+        const s = activeState as { elementId: ElementId };
+        const element = astElements.find((e) => e.elementId === s.elementId);
+        addRenderedComment(
+          s.elementId,
+          element?.type ?? 'unknown',
+          element?.textContent.slice(0, 80) ?? '',
+          text.trim(),
+        );
+      } else {
+        updateRenderedComment(activeState.commentId, text.trim());
+      }
+    } else if (isDiffMode) {
       if (activeState.mode === 'create') {
         const s = activeState as { startIndex: number; endIndex: number };
         addDiffComment(s.startIndex, s.endIndex, text.trim());
@@ -85,7 +143,11 @@ export function InlineCommentEditor({ isDiffMode }: InlineCommentEditorProps) {
   };
 
   const handleClose = () => {
-    if (isDiffMode) {
+    if (isRenderedDiffMode) {
+      closeRenderedDiffEditor();
+    } else if (isRenderedMode) {
+      closeRenderedEditor();
+    } else if (isDiffMode) {
       closeDiffEditor();
     } else {
       closeEditor();
@@ -135,4 +197,8 @@ export function InlineCommentEditor({ isDiffMode }: InlineCommentEditorProps) {
       </div>
     </div>
   );
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }

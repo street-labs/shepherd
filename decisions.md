@@ -211,6 +211,38 @@ This log provides **historical context for how the project evolved** — why cho
 **Rationale**: A shell script eliminates the per-step AI inference overhead entirely. The script uses only standard POSIX tools (curl, head, tr, wc, realpath) and runs in ~265ms for a warm launch. Combined with a single agent tool call (~500-1500ms), this achieves the updated NFR target of <2 seconds for warm launches.
 **Consequences**: The slash command file becomes a thin wrapper that invokes the script. Validation logic moves from agent-mediated shell commands to deterministic script logic, making error messages and exit codes consistent. The script must be kept in sync with any changes to the validation rules or server management approach.
 **Slug references**: `FR-sc-launcher-script`, `NFR-sc-launch-speed`, `AC-sc-warm-launch-2s`, `AC-sc-cold-launch-8s`, `AC-sc-single-tool-call`
+## 2026-02-21 -- Use unified/remark ecosystem for markdown rendering
+**Context**: The markdown rendered view feature needs a client-side markdown parser that supports CommonMark + GFM, produces an AST for element identification and comment anchoring, and integrates with an HTML sanitization pipeline.
+**Decision**: Use the unified/remark ecosystem (`remark-parse` + `remark-gfm` + `remark-rehype` + `rehype-sanitize` + `rehype-stringify`).
+**Alternatives considered**: markdown-it (produces HTML strings, not ASTs — cannot assign stable element identifiers or compute AST-level diffs without re-parsing), marked (similar limitations), MDsveX (Svelte-specific).
+**Rationale**: The unified ecosystem operates on ASTs at every stage of the pipeline. This gives us: (1) source position data on every node for AST-to-line mapping, (2) stable node indices for element identifiers, (3) a natural integration point for rehype-sanitize (AST-level sanitization before DOM insertion), and (4) the ability to diff two ASTs for the rendered diff view. The ~31 KB gzipped bundle size is acceptable.
+**Consequences**: The rendering pipeline is: markdown source → remark-parse → MDAST → remark-gfm → remark-rehype → HAST → rehype-sanitize → rehype-stringify → HTML string. Element identifiers and source-line mappings are extracted from the MDAST before conversion.
+**Slug references**: `FR-mdr-render-commonmark`, `FR-mdr-element-id`, `FR-mdr-rendered-diff-display`, `NFR-mdr-xss-safety`
+
+## 2026-02-21 -- Separate comment store for rendered mode (three stores total)
+**Context**: Rendered view comments anchor to AST element identifiers (e.g., `heading-0`, `paragraph-3`), which are fundamentally different from file-mode line numbers and diff-mode diff line identifiers. Need to decide how to store rendered-mode comments.
+**Decision**: Add a third comment store (`renderedComments`) alongside the existing `comments` (file mode) and `diffComments` (diff mode). Switching between rendered and raw views clears comments with confirmation, consistent with the existing mode-switch behavior.
+**Alternatives considered**: Map comments between rendered and raw views via AST-to-line mapping (technically possible but introduces edge cases — e.g., a paragraph spanning 5 raw lines, which line gets the comment?), unified polymorphic store (too complex, different anchor types).
+**Rationale**: Consistent with the existing design decision to keep file-mode and diff-mode comment stores separate. Each view mode has a fundamentally different addressing model. Clean separation avoids lossy conversions. Comment mapping between views is deferred to v2 (Open Question #1 in the product spec).
+**Consequences**: Three separate comment stores in Zustand. Three prompt builders (`buildPrompt`, `buildDiffPrompt`, `buildRenderedPrompt`). Mode switches always clear comments. Users are warned via confirmation dialog.
+**Slug references**: `FR-mdr-rendered-comment-create`, `FR-mdr-switch-comments`, `AC-mdr-switch-clears-comments`
+
+## 2026-02-21 -- Custom LCS-based block diff for rendered markdown diff (no tree edit distance)
+**Context**: The rendered diff view needs to compare two markdown documents at the AST level to identify added, removed, modified, and unchanged blocks. Need a diffing algorithm.
+**Decision**: Use a custom LCS (Longest Common Subsequence) based approach that flattens both ASTs to sequences of block-level elements, diffs the sequences, and applies word-level diffing (via jsdiff's `diffWords`) to modified blocks.
+**Alternatives considered**: Full tree edit distance (e.g., Zhang-Shasha algorithm — overkill for shallow markdown documents), line-level diff of rendered HTML (would diff presentation not structure), existing AST diff libraries (none handle the markdown-specific requirements well).
+**Rationale**: Markdown documents are shallow trees (depth rarely exceeds 3-4 levels). A flat block-level LCS is sufficient and much simpler than tree edit distance. Modified blocks (same position, different content) get word-level highlighting via the existing jsdiff dependency. The 80% changed-blocks threshold triggers a fallback to raw diff view.
+**Consequences**: The diff algorithm has O(n*m) complexity where n and m are block counts. For practical markdown files (<500 blocks) this is fast. An 80% fallback threshold prevents unusable rendered diffs. Performance budget: 1s for <5K lines, 3s for 5-10K lines, 5s timeout with fallback.
+**Slug references**: `FR-mdr-rendered-diff-display`, `NFR-mdr-rendered-diff-perf`, `AC-mdr-diff-fallback`
+
+## 2026-02-21 -- Native scroll + content-visibility for rendered view (no virtualization)
+**Context**: The rendered markdown view produces heterogeneous HTML elements (headings, paragraphs, tables, code blocks) of varying heights. The raw code viewer uses TanStack Virtual for virtualized scrolling, but this requires uniform or measurable row heights.
+**Decision**: The rendered view uses native scrolling with CSS `content-visibility: auto` for large files, rather than virtualized rendering.
+**Alternatives considered**: TanStack Virtual (would require treating each rendered block as a measured item — complex and fragile with heterogeneous content), intersection observer-based lazy rendering (more custom code for marginal benefit), pagination (poor UX for document reading).
+**Rationale**: Heterogeneous rendered content makes virtualization impractical without significant complexity. `content-visibility: auto` provides a simpler optimization that lets the browser skip layout/paint for offscreen content. For files up to 10K lines, this is sufficient. The rendered view is expected to be used primarily for markdown files (typically <2K lines), where the performance budget is met easily.
+**Consequences**: Very large markdown files (>10K lines) may have slower initial render than the raw view. The 500ms budget for 5-10K lines should still be met with `content-visibility`. If it isn't, a Web Worker can offload parsing.
+**Slug references**: `NFR-mdr-render-scroll-perf`, `NFR-mdr-render-perf`, `AC-mdr-large-file-renders`
+
 <!--
 Entry template:
 

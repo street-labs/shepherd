@@ -138,6 +138,88 @@ export type DiffEditorState =
   | { mode: 'create'; startIndex: number; endIndex: number }
   | { mode: 'edit'; commentId: string };
 
+// Implements: FR-mr-element-id, FR-mr-render-toggle, FR-mr-rendered-comment
+
+/** Opaque element ID string (e.g., "heading-0", "paragraph-1", "list-2-item-0"). */
+export type ElementId = string & { readonly __brand: unique symbol };
+
+/** Maps an AST block element to its source line range. */
+export interface ElementSourceMapping {
+  elementId: ElementId;
+  startLine: number;
+  endLine: number;
+  rawSource: string;
+}
+
+/** A block-level AST element with metadata for rendering and commenting. */
+export interface AstBlockElement {
+  elementId: ElementId;
+  type: string;
+  textContent: string;
+  startLine: number;
+  endLine: number;
+  depth?: number; // heading depth (1-6)
+}
+
+/** A comment anchored to a rendered markdown element. */
+export interface RenderedComment {
+  id: string;
+  elementId: ElementId;
+  elementType: string;
+  contentPreview: string;
+  text: string;
+  createdAt: string;
+}
+
+/** A comment anchored to a rendered diff element. */
+export interface RenderedDiffComment {
+  id: string;
+  elementId: ElementId;
+  elementType: string;
+  diffStatus: 'added' | 'removed' | 'modified' | 'unchanged';
+  contentPreview: string;
+  text: string;
+  createdAt: string;
+}
+
+/** A single entry in the AST diff result. */
+export interface AstDiffEntry {
+  elementId: ElementId;
+  status: 'added' | 'removed' | 'modified' | 'unchanged';
+  type: string;
+  oldElement?: AstBlockElement;
+  newElement?: AstBlockElement;
+  oldHtml?: string;
+  newHtml?: string;
+  wordDiff?: WordDiffSegment[];
+}
+
+/** Word-level diff segment for modified blocks. */
+export interface WordDiffSegment {
+  value: string;
+  added?: boolean;
+  removed?: boolean;
+}
+
+/** The result of computing an AST-level diff between two markdown sources. */
+export interface AstDiffResult {
+  entries: AstDiffEntry[];
+  exceedsFallbackThreshold: boolean;
+}
+
+/** Whether the code panel shows raw source or rendered markdown. */
+export type RenderMode = 'raw' | 'rendered';
+
+/** Editor state for rendered-mode comments. */
+export type RenderedEditorState =
+  | { mode: 'create'; elementId: ElementId }
+  | { mode: 'edit'; commentId: string };
+
+/** Editor state for rendered-diff-mode comments. */
+export type RenderedDiffEditorState =
+  | { mode: 'create'; elementId: ElementId }
+  | { mode: 'edit'; commentId: string };
+
 /** Diff-specific state fields added to AppState. */
 export interface DiffState {
   /** Current view mode: 'file' for full-file view, 'diff' for unified diff view. */
@@ -174,4 +256,38 @@ export interface DiffState {
   isSlashCommandMode: boolean;
   /** State of the Done button: idle, sending, or sent. */
   doneState: 'idle' | 'sending' | 'sent';
+}
+
+/** Rendered-view state fields added to AppState. */
+export interface RenderedState {
+  /** Current render mode: 'raw' shows source, 'rendered' shows formatted HTML. */
+  renderMode: RenderMode;
+  /** Whether the current file is a markdown file. */
+  isMarkdownFile: boolean;
+  /** Parsed AST block elements for the current file. */
+  astElements: AstBlockElement[];
+  /** Source mapping for AST elements. */
+  elementSourceMap: ElementSourceMapping[];
+  /** Rendered HTML for the current file. */
+  renderedHtml: string;
+  /** Rendered-mode comments, keyed by comment ID. */
+  renderedComments: Record<string, RenderedComment>;
+  /** Ordered array of rendered comment IDs. */
+  renderedCommentOrder: string[];
+  /** ID of the focused rendered comment. */
+  focusedRenderedCommentId: string | null;
+  /** Editor state for rendered-mode comments. */
+  renderedEditorState: RenderedEditorState | null;
+  /** Rendered-diff-mode comments, keyed by comment ID. */
+  renderedDiffComments: Record<string, RenderedDiffComment>;
+  /** Ordered array of rendered diff comment IDs. */
+  renderedDiffCommentOrder: string[];
+  /** ID of the focused rendered diff comment. */
+  focusedRenderedDiffCommentId: string | null;
+  /** Editor state for rendered-diff-mode comments. */
+  renderedDiffEditorState: RenderedDiffEditorState | null;
+  /** The computed AST diff result, or null. */
+  astDiffResult: AstDiffResult | null;
+  /** Whether the AST diff is currently being computed. */
+  isAstDiffComputing: boolean;
 }

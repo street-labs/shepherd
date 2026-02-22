@@ -11,12 +11,15 @@ import { DiffViewer } from '@/components/DiffViewer';
 import { DiffLoadingState } from '@/components/DiffLoadingState';
 import { DiffErrorState } from '@/components/DiffErrorState';
 import { DiffEmptyState } from '@/components/DiffEmptyState';
+import { RenderedViewer } from '@/components/RenderedViewer';
+import { RenderedDiffViewer } from '@/components/RenderedDiffViewer';
 import { PreambleInput } from '@/components/PreambleInput';
 import { PromptPreview } from '@/components/PromptPreview';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { ToastNotification } from '@/components/ToastNotification';
 import { useFileFromUrl } from '@/hooks/useFileFromUrl';
 import { useState, useEffect, useCallback } from 'react';
+import type { RenderMode } from '@/types';
 
 function useWindowWidth() {
   const [width, setWidth] = useState(window.innerWidth);
@@ -28,7 +31,7 @@ function useWindowWidth() {
   return width;
 }
 
-type DialogType = 'clear' | 'mode-switch' | 'refresh' | null;
+type DialogType = 'clear' | 'mode-switch' | 'refresh' | 'render-mode-switch' | null;
 
 export function App() {
   const file = useAppStore((s) => s.file);
@@ -39,14 +42,32 @@ export function App() {
   const baselineError = useAppStore((s) => s.baselineError);
   const isDiffEmpty = useAppStore((s) => s.isDiffEmpty);
   const diffLines = useAppStore((s) => s.diffLines);
+  const renderMode = useAppStore((s) => s.renderMode);
+  const isMarkdown = useAppStore((s) => s.isMarkdownFile);
+  const renderedCommentCount = useAppStore((s) => Object.keys(s.renderedComments).length);
+  const renderedDiffCommentCount = useAppStore((s) => Object.keys(s.renderedDiffComments).length);
   const clearSession = useAppStore((s) => s.clearSession);
   const setViewMode = useAppStore((s) => s.setViewMode);
+  const setRenderMode = useAppStore((s) => s.setRenderMode);
   const clearDiffComments = useAppStore((s) => s.clearDiffComments);
+  const clearRenderedComments = useAppStore((s) => s.clearRenderedComments);
+  const clearRenderedDiffComments = useAppStore((s) => s.clearRenderedDiffComments);
   const fetchBaseline = useAppStore((s) => s.fetchBaseline);
   const refreshDiff = useAppStore((s) => s.refreshDiff);
+  const computeRenderedDiff = useAppStore((s) => s.computeRenderedDiff);
+  const isAstDiffComputing = useAppStore((s) => s.isAstDiffComputing);
+  const astDiffResult = useAppStore((s) => s.astDiffResult);
 
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
   const [pendingMode, setPendingMode] = useState<'file' | 'diff' | null>(null);
+  const [pendingRenderMode, setPendingRenderMode] = useState<RenderMode | null>(null);
+
+  // Compute AST diff when entering rendered+diff mode
+  useEffect(() => {
+    if (renderMode === 'rendered' && viewMode === 'diff' && diffLines && !astDiffResult && !isAstDiffComputing) {
+      computeRenderedDiff();
+    }
+  }, [renderMode, viewMode, diffLines, astDiffResult, isAstDiffComputing, computeRenderedDiff]);
 
   const windowWidth = useWindowWidth();
   const isTooNarrow = windowWidth < 1024;
@@ -120,6 +141,55 @@ export function App() {
     void refreshDiff();
   };
 
+  const handleRenderModeChange = useCallback((mode: RenderMode) => {
+    if (mode === renderMode) return;
+
+    // Check if current render mode has comments
+    const currentRenderedCommentCount = renderMode === 'rendered'
+      ? (viewMode === 'diff' ? renderedDiffCommentCount : renderedCommentCount)
+      : 0; // Raw mode comments are separate, don't need clearing when switching render mode
+    const currentRawCommentCount = renderMode === 'raw'
+      ? (viewMode === 'diff' ? diffCommentCount : fileCommentCount)
+      : 0;
+
+    const currentCommentCount = currentRenderedCommentCount + currentRawCommentCount;
+    if (currentCommentCount > 0) {
+      setPendingRenderMode(mode);
+      setActiveDialog('render-mode-switch');
+    } else {
+      setRenderMode(mode);
+    }
+  }, [renderMode, viewMode, renderedCommentCount, renderedDiffCommentCount, diffCommentCount, fileCommentCount, setRenderMode]);
+
+  const handleRenderModeSwitchConfirm = () => {
+    if (!pendingRenderMode) return;
+
+    // Clear comments for the render mode we're leaving
+    if (renderMode === 'rendered') {
+      if (viewMode === 'diff') {
+        clearRenderedDiffComments();
+      } else {
+        clearRenderedComments();
+      }
+    } else {
+      // Leaving raw mode
+      if (viewMode === 'diff') {
+        clearDiffComments();
+      } else {
+        useAppStore.setState({
+          comments: {},
+          commentOrder: [],
+          focusedCommentId: null,
+          generatedPrompt: null,
+        });
+      }
+    }
+
+    setRenderMode(pendingRenderMode);
+    setActiveDialog(null);
+    setPendingRenderMode(null);
+  };
+
   const handleSwitchToFile = () => {
     setViewMode('file');
   };
@@ -131,6 +201,7 @@ export function App() {
           onClearRequest={handleClearRequest}
           onModeChange={handleModeChange}
           onRefreshRequest={handleRefreshRequest}
+          onRenderModeChange={isMarkdown ? handleRenderModeChange : undefined}
         />
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-sm">
@@ -147,11 +218,17 @@ export function App() {
 
   // Determine what to render in the code viewer panel
   const renderCodePanel = () => {
+    // Rendered file mode
+    if (renderMode === 'rendered' && viewMode === 'file') {
+      return <RenderedViewer />;
+    }
+
+    // Raw file mode
     if (viewMode === 'file') {
       return <CodeViewer />;
     }
 
-    // Diff mode
+    // Diff mode (rendered or raw)
     if (isBaselineLoading) {
       return <DiffLoadingState />;
     }
@@ -162,6 +239,9 @@ export function App() {
       return <DiffEmptyState onSwitchToFile={handleSwitchToFile} />;
     }
     if (diffLines) {
+      if (renderMode === 'rendered') {
+        return <RenderedDiffViewer />;
+      }
       return <DiffViewer />;
     }
 
@@ -242,6 +322,17 @@ export function App() {
           confirmLabel="Refresh"
           onConfirm={handleRefreshConfirm}
           onCancel={() => setActiveDialog(null)}
+        />
+      )}
+
+      {/* Render mode switch dialog */}
+      {activeDialog === 'render-mode-switch' && (
+        <ConfirmationDialog
+          title="Switch render mode?"
+          message={`Switching to ${pendingRenderMode === 'rendered' ? 'Rendered' : 'Raw'} view will clear your current comments. This action cannot be undone.`}
+          confirmLabel="Switch"
+          onConfirm={handleRenderModeSwitchConfirm}
+          onCancel={() => { setActiveDialog(null); setPendingRenderMode(null); }}
         />
       )}
 

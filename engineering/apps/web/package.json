@@ -16,7 +16,13 @@
     "diff": "^8.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
     "shiki": "^3.0.0",
+    "unified": "^11.0.5",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
@@ -25,6 +31,8 @@
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
     "@types/diff": "^8.0.0",
+    "@types/hast": "^3.0.4",
+    "@types/mdast": "^4.0.4",
     "@types/node": "^25.3.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

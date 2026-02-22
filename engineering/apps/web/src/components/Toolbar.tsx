@@ -4,39 +4,58 @@
 
 import { useAppStore } from '@/store/appStore';
 import { ViewModeToggle } from './ViewModeToggle';
+import { RenderToggle } from './RenderToggle';
 import { useEffect } from 'react';
+import type { RenderMode } from '@/types';
 
 interface ToolbarProps {
   onClearRequest: () => void;
   onModeChange: (mode: 'file' | 'diff') => void;
   onRefreshRequest: () => void;
+  onRenderModeChange?: (mode: RenderMode) => void;
 }
 
-export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: ToolbarProps) {
+export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRenderModeChange }: ToolbarProps) {
   const file = useAppStore((s) => s.file);
   const viewMode = useAppStore((s) => s.viewMode);
   const fileSource = useAppStore((s) => s.fileSource);
   const isBaselineLoading = useAppStore((s) => s.isBaselineLoading);
+  const renderMode = useAppStore((s) => s.renderMode);
+  const isMarkdown = useAppStore((s) => s.isMarkdownFile);
 
   // Mode-aware comment count
   const fileCommentCount = useAppStore((s) => Object.keys(s.comments).length);
   const diffCommentCount = useAppStore((s) => Object.keys(s.diffComments).length);
-  const commentCount = viewMode === 'diff' ? diffCommentCount : fileCommentCount;
+  const renderedCommentCount = useAppStore((s) => Object.keys(s.renderedComments).length);
+  const renderedDiffCommentCount = useAppStore((s) => Object.keys(s.renderedDiffComments).length);
+  const commentCount = renderMode === 'rendered'
+    ? (viewMode === 'diff' ? renderedDiffCommentCount : renderedCommentCount)
+    : (viewMode === 'diff' ? diffCommentCount : fileCommentCount);
 
   const generatedPrompt = useAppStore((s) => s.generatedPrompt);
 
   // Mode-aware focused comment
   const focusedCommentId = useAppStore((s) => s.focusedCommentId);
   const focusedDiffCommentId = useAppStore((s) => s.focusedDiffCommentId);
-  const activeFocused = viewMode === 'diff' ? focusedDiffCommentId : focusedCommentId;
+  const focusedRenderedCommentId = useAppStore((s) => s.focusedRenderedCommentId);
+  const focusedRenderedDiffCommentId = useAppStore((s) => s.focusedRenderedDiffCommentId);
+  const activeFocused = renderMode === 'rendered'
+    ? (viewMode === 'diff' ? focusedRenderedDiffCommentId : focusedRenderedCommentId)
+    : (viewMode === 'diff' ? focusedDiffCommentId : focusedCommentId);
 
   // Mode-aware comment order
   const commentOrder = useAppStore((s) => s.commentOrder);
   const diffCommentOrder = useAppStore((s) => s.diffCommentOrder);
-  const activeOrder = viewMode === 'diff' ? diffCommentOrder : commentOrder;
+  const renderedCommentOrder = useAppStore((s) => s.renderedCommentOrder);
+  const renderedDiffCommentOrder = useAppStore((s) => s.renderedDiffCommentOrder);
+  const activeOrder = renderMode === 'rendered'
+    ? (viewMode === 'diff' ? renderedDiffCommentOrder : renderedCommentOrder)
+    : (viewMode === 'diff' ? diffCommentOrder : commentOrder);
 
   const navigateComment = useAppStore((s) => s.navigateComment);
   const navigateDiffComment = useAppStore((s) => s.navigateDiffComment);
+  const navigateRenderedComment = useAppStore((s) => s.navigateRenderedComment);
+  const navigateRenderedDiffComment = useAppStore((s) => s.navigateRenderedDiffComment);
   const copyPrompt = useAppStore((s) => s.copyPrompt);
 
   const isSlashCommandMode = useAppStore((s) => s.isSlashCommandMode);
@@ -53,7 +72,11 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
     : 0;
 
   const handleNavigate = (direction: 'next' | 'prev') => {
-    if (viewMode === 'diff') {
+    if (renderMode === 'rendered' && viewMode === 'diff') {
+      navigateRenderedDiffComment(direction);
+    } else if (renderMode === 'rendered') {
+      navigateRenderedComment(direction);
+    } else if (viewMode === 'diff') {
       navigateDiffComment(direction);
     } else {
       navigateComment(direction);
@@ -117,6 +140,14 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: Tool
             isDiffEnabled={isDiffEnabled}
             onModeChange={onModeChange}
           />
+
+          {isMarkdown && onRenderModeChange && (
+            <RenderToggle
+              activeMode={renderMode}
+              isVisible={isMarkdown}
+              onModeChange={onRenderModeChange}
+            />
+          )}
 
           {/* Refresh button (diff mode only) */}
           {viewMode === 'diff' && (

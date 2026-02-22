@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "./rendered-view.css";
+@import "./rendered-diff.css";
 
 @theme {
   /* Primary colors */

@@ -963,6 +963,235 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/slash-command.md`
 - **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
 - **QA**: `qa/slash-command.md` -> `TC-sc-prompt-api-localhost-only`
+
+### `FR-mdr-detect-markdown`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-detect-md-ext`, `TC-mdr-detect-mdx-ext`, `TC-mdr-detect-markdown-ext`, `TC-mdr-detect-mdown-ext`, `TC-mdr-detect-mkdn-ext`, `TC-mdr-detect-mkd-ext`, `TC-mdr-detect-uppercase-ext`, `TC-mdr-detect-non-md-hidden`, `TC-mdr-detect-no-extension`, `TC-mdr-detect-md-in-directory`
+
+### `FR-mdr-render-toggle`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-toggle-click-rendered`, `TC-mdr-toggle-click-raw`, `TC-mdr-toggle-keyboard`, `TC-mdr-toggle-default-raw`, `TC-mdr-toggle-persists-session`, `TC-mdr-toggle-resets-new-file`, `TC-mdr-toggle-independent-file-diff`
+
+### `FR-mdr-render-commonmark`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-render-headings`, `TC-mdr-render-paragraphs-bold-italic`, `TC-mdr-render-links`, `TC-mdr-render-unordered-lists`, `TC-mdr-render-ordered-lists`, `TC-mdr-render-nested-lists`, `TC-mdr-render-blockquotes`, `TC-mdr-render-horizontal-rules`, `TC-mdr-render-images`, `TC-mdr-render-images-broken`, `TC-mdr-render-inline-code`, `TC-mdr-render-html-blocks-safe`, `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`, `TC-mdr-render-gfm-autolinks`, `TC-mdr-render-code-blocks-highlighted`, `TC-mdr-render-code-blocks-no-lang`
+
+### `FR-mdr-render-styling`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-style-body-typography`, `TC-mdr-style-heading-hierarchy`, `TC-mdr-style-code-block-theme`, `TC-mdr-style-table-styling`, `TC-mdr-style-max-width`, `TC-mdr-style-blockquote`, `TC-mdr-style-links`
+
+### `FR-mdr-element-id`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-element-id-deterministic`, `TC-mdr-element-id-positional`, `TC-mdr-element-id-all-block-types`
+
+### `FR-mdr-rendered-comment-create`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-comment-paragraph`, `TC-mdr-comment-heading`, `TC-mdr-comment-list-item`, `TC-mdr-comment-code-block`, `TC-mdr-comment-table`, `TC-mdr-comment-blockquote`, `TC-mdr-comment-multiple-same-element`, `TC-mdr-comment-hover-affordance`, `TC-mdr-comment-cmd-click`, `TC-mdr-comment-bubble-label`, `TC-mdr-comment-count-increments`
+
+### `FR-mdr-rendered-comment-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-prompt-raw-source-lines`, `TC-mdr-prompt-element-type`, `TC-mdr-prompt-format-structure`, `TC-mdr-prompt-multiple-comments-order`, `TC-mdr-prompt-no-preamble`, `TC-mdr-prompt-with-preamble`
+
+### `FR-mdr-switch-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-switch-with-comments-confirm`, `TC-mdr-switch-with-comments-cancel`, `TC-mdr-switch-no-comments-immediate`, `TC-mdr-switch-preamble-preserved`, `TC-mdr-switch-raw-to-rendered`, `TC-mdr-switch-rendered-to-raw`, `TC-mdr-switch-rendered-file-to-rendered-diff`, `TC-mdr-switch-rendered-diff-to-rendered-file`
+
+### `FR-mdr-raw-diff-unchanged`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-raw-file-identical`, `TC-mdr-raw-diff-identical`
+
+### `FR-mdr-rendered-diff-display`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-added-block`, `TC-mdr-rdiff-removed-block`, `TC-mdr-rdiff-modified-block-word-diff`, `TC-mdr-rdiff-unchanged-block`, `TC-mdr-rdiff-no-changes`, `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-fallback-dismiss`, `TC-mdr-rdiff-loading-spinner`, `TC-mdr-rdiff-timeout-fallback`
+
+### `FR-mdr-rendered-diff-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-comment-added`, `TC-mdr-rdiff-comment-removed`, `TC-mdr-rdiff-comment-modified`, `TC-mdr-rdiff-comment-unchanged`, `TC-mdr-rdiff-comment-anchor-qualifier`
+
+### `FR-mdr-rendered-diff-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-prompt-modified-old-new`, `TC-mdr-rdiff-prompt-added-new-only`, `TC-mdr-rdiff-prompt-removed-old-only`, `TC-mdr-rdiff-prompt-heading-format`, `TC-mdr-rdiff-prompt-document-order`
+
+### `NFR-mdr-render-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-perf-render-5k`, `TC-mdr-perf-render-10k`, `TC-mdr-perf-render-ui-block`
+
+### `NFR-mdr-render-scroll-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-perf-scroll-smooth`, `TC-mdr-perf-scroll-content-visibility`
+
+### `NFR-mdr-rendered-diff-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-perf-rdiff-5k`, `TC-mdr-perf-rdiff-10k`, `TC-mdr-perf-rdiff-timeout`
+
+### `NFR-mdr-xss-safety`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-xss-script-tag`, `TC-mdr-xss-event-handler`, `TC-mdr-xss-javascript-url`, `TC-mdr-xss-iframe`, `TC-mdr-xss-svg-script`, `TC-mdr-xss-data-url`, `TC-mdr-xss-safe-html-preserved`
+
+### `NFR-mdr-client-only`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-client-only-no-requests`
+
+### `NFR-mdr-accessibility`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-a11y-keyboard-nav`, `TC-mdr-a11y-keyboard-comment`, `TC-mdr-a11y-screen-reader-elements`, `TC-mdr-a11y-screen-reader-diff`, `TC-mdr-a11y-focus-on-mode-switch`, `TC-mdr-a11y-aria-toggle`, `TC-mdr-a11y-aria-rendered-content`, `TC-mdr-a11y-aria-diff-annotations`
+
+### `AC-mdr-toggle-appears`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-toggle-click-rendered`, `TC-mdr-toggle-default-raw`, `TC-mdr-detect-md-ext`
+
+### `AC-mdr-toggle-hidden-non-md`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-detect-non-md-hidden`
+
+### `AC-mdr-render-basic`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-render-headings`, `TC-mdr-render-paragraphs-bold-italic`, `TC-mdr-render-links`, `TC-mdr-render-unordered-lists`
+
+### `AC-mdr-render-gfm`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`
+
+### `AC-mdr-render-code-blocks`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-render-code-blocks-highlighted`
+
+### `AC-mdr-raw-unchanged`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-raw-file-identical`, `TC-mdr-raw-diff-identical`
+
+### `AC-mdr-comment-rendered-element`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-comment-paragraph`, `TC-mdr-comment-hover-affordance`, `TC-mdr-comment-bubble-label`
+
+### `AC-mdr-comment-heading`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-comment-heading`, `TC-mdr-prompt-raw-source-lines`
+
+### `AC-mdr-comment-prompt-format`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-prompt-raw-source-lines`, `TC-mdr-prompt-format-structure`
+
+### `AC-mdr-switch-clears-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-switch-with-comments-confirm`, `TC-mdr-switch-with-comments-cancel`
+
+### `AC-mdr-switch-no-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-switch-no-comments-immediate`
+
+### `AC-mdr-rendered-diff-additions`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-added-block`
+
+### `AC-mdr-rendered-diff-removals`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-removed-block`
+
+### `AC-mdr-rendered-diff-modifications`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-modified-block-word-diff`
+
+### `AC-mdr-rendered-diff-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-comment-added`, `TC-mdr-rdiff-comment-modified`
+
+### `AC-mdr-rendered-diff-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-prompt-modified-old-new`, `TC-mdr-rdiff-prompt-added-new-only`, `TC-mdr-rdiff-prompt-removed-old-only`
+
+### `AC-mdr-html-sanitized`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-xss-script-tag`, `TC-mdr-xss-event-handler`, `TC-mdr-xss-javascript-url`, `TC-mdr-xss-iframe`, `TC-mdr-xss-svg-script`
+
+### `AC-mdr-large-file-renders`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-perf-render-5k`, `TC-mdr-perf-scroll-smooth`
+
+### `AC-mdr-keyboard-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-a11y-keyboard-comment`
+
+### `AC-mdr-diff-fallback`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/markdown-render.md`
+- **Engineering**: `engineering/markdown-render.md`
+- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-timeout-fallback`
+
 <!--
 Entry template -- copy this when adding a new slug:
 
