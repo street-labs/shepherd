@@ -1,30 +1,70 @@
 // Implements: FR-crp-comment-count, FR-crp-comment-navigation, FR-crp-prompt-generate,
-// FR-crp-prompt-copy, FR-crp-clear-session, AC-crp-generate-prompt-no-comments
+// FR-crp-prompt-copy, FR-crp-clear-session, AC-crp-generate-prompt-no-comments,
+// FR-diff-mode-toggle, FR-diff-refresh
 
 import { useAppStore } from '@/store/appStore';
+import { ViewModeToggle } from './ViewModeToggle';
 import { useEffect } from 'react';
 
 interface ToolbarProps {
   onClearRequest: () => void;
+  onModeChange: (mode: 'file' | 'diff') => void;
+  onRefreshRequest: () => void;
 }
 
-export function Toolbar({ onClearRequest }: ToolbarProps) {
+export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest }: ToolbarProps) {
   const file = useAppStore((s) => s.file);
-  const commentCount = useAppStore((s) => Object.keys(s.comments).length);
+  const viewMode = useAppStore((s) => s.viewMode);
+  const fileSource = useAppStore((s) => s.fileSource);
+  const isBaselineLoading = useAppStore((s) => s.isBaselineLoading);
+
+  // Mode-aware comment count
+  const fileCommentCount = useAppStore((s) => Object.keys(s.comments).length);
+  const diffCommentCount = useAppStore((s) => Object.keys(s.diffComments).length);
+  const commentCount = viewMode === 'diff' ? diffCommentCount : fileCommentCount;
+
   const generatedPrompt = useAppStore((s) => s.generatedPrompt);
+
+  // Mode-aware focused comment
   const focusedCommentId = useAppStore((s) => s.focusedCommentId);
+  const focusedDiffCommentId = useAppStore((s) => s.focusedDiffCommentId);
+  const activeFocused = viewMode === 'diff' ? focusedDiffCommentId : focusedCommentId;
+
+  // Mode-aware comment order
   const commentOrder = useAppStore((s) => s.commentOrder);
+  const diffCommentOrder = useAppStore((s) => s.diffCommentOrder);
+  const activeOrder = viewMode === 'diff' ? diffCommentOrder : commentOrder;
+
   const navigateComment = useAppStore((s) => s.navigateComment);
+  const navigateDiffComment = useAppStore((s) => s.navigateDiffComment);
   const generatePrompt = useAppStore((s) => s.generatePrompt);
+  const generateDiffPrompt = useAppStore((s) => s.generateDiffPrompt);
   const copyPrompt = useAppStore((s) => s.copyPrompt);
 
   const hasFile = file !== null;
   const hasComments = commentCount > 0;
   const hasPrompt = generatedPrompt !== null;
+  const isDiffEnabled = fileSource === 'server';
 
-  const currentIndex = focusedCommentId
-    ? commentOrder.indexOf(focusedCommentId) + 1
+  const currentIndex = activeFocused
+    ? activeOrder.indexOf(activeFocused) + 1
     : 0;
+
+  const handleNavigate = (direction: 'next' | 'prev') => {
+    if (viewMode === 'diff') {
+      navigateDiffComment(direction);
+    } else {
+      navigateComment(direction);
+    }
+  };
+
+  const handleGenerate = () => {
+    if (viewMode === 'diff') {
+      generateDiffPrompt();
+    } else {
+      generatePrompt();
+    }
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -34,7 +74,7 @@ export function Toolbar({ onClearRequest }: ToolbarProps) {
       // Cmd+Shift+G: generate prompt
       if (metaOrCtrl && e.shiftKey && e.key === 'G') {
         e.preventDefault();
-        if (hasComments) generatePrompt();
+        if (hasComments) handleGenerate();
         return;
       }
 
@@ -52,21 +92,21 @@ export function Toolbar({ onClearRequest }: ToolbarProps) {
       // ] : next comment
       if (e.key === ']' && !metaOrCtrl && !e.shiftKey) {
         e.preventDefault();
-        navigateComment('next');
+        handleNavigate('next');
         return;
       }
 
       // [ : prev comment
       if (e.key === '[' && !metaOrCtrl && !e.shiftKey) {
         e.preventDefault();
-        navigateComment('prev');
+        handleNavigate('prev');
         return;
       }
     };
 
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [hasComments, hasPrompt, generatePrompt, copyPrompt, navigateComment]);
+  }, [hasComments, hasPrompt, handleGenerate, copyPrompt, handleNavigate]);
 
   return (
     <header
@@ -74,32 +114,62 @@ export function Toolbar({ onClearRequest }: ToolbarProps) {
       role="toolbar"
       aria-label="Main toolbar"
     >
-      <h1 className="text-sm font-semibold mr-auto">Code Review Prompt</h1>
+      <h1 className="text-sm font-semibold">Code Review Prompt</h1>
 
       {hasFile && (
         <>
+          <ViewModeToggle
+            activeMode={viewMode}
+            isDiffEnabled={isDiffEnabled}
+            onModeChange={onModeChange}
+          />
+
+          {/* Refresh button (diff mode only) */}
+          {viewMode === 'diff' && (
+            <button
+              onClick={onRefreshRequest}
+              disabled={isBaselineLoading}
+              className="p-1.5 rounded border border-border-default hover:bg-surface-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Refresh diff"
+              title="Refresh diff"
+            >
+              <svg
+                className={`w-3.5 h-3.5 ${isBaselineLoading ? 'animate-spin' : ''}`}
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M14 8A6 6 0 1 1 8 2" strokeLinecap="round" />
+                <path d="M8 0l3 2-3 2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
+
+          <div className="mr-auto" />
+
           {/* Comment navigation */}
           <div className="flex items-center gap-1">
             <button
-              onClick={() => navigateComment('prev')}
+              onClick={() => handleNavigate('prev')}
               disabled={!hasComments}
               className="px-2 py-1 text-xs rounded border border-border-default hover:bg-surface-secondary disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Previous comment"
               title="Previous comment ([)"
             >
-              ‹
+              &#x2039;
             </button>
             <span className="text-xs text-text-secondary min-w-[3ch] text-center tabular-nums">
               {hasComments ? `${currentIndex}/${commentCount}` : '0'}
             </span>
             <button
-              onClick={() => navigateComment('next')}
+              onClick={() => handleNavigate('next')}
               disabled={!hasComments}
               className="px-2 py-1 text-xs rounded border border-border-default hover:bg-surface-secondary disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Next comment"
               title="Next comment (])"
             >
-              ›
+              &#x203a;
             </button>
           </div>
 
@@ -107,10 +177,10 @@ export function Toolbar({ onClearRequest }: ToolbarProps) {
 
           {/* Actions */}
           <button
-            onClick={generatePrompt}
+            onClick={handleGenerate}
             disabled={!hasComments}
             className="px-3 py-1 text-xs font-medium rounded bg-primary-500 text-text-on-primary hover:bg-primary-600 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Generate prompt (⌘⇧G)"
+            title="Generate prompt (&#x2318;&#x21E7;G)"
           >
             {hasPrompt ? 'Regenerate' : 'Generate'}
           </button>
@@ -119,7 +189,7 @@ export function Toolbar({ onClearRequest }: ToolbarProps) {
             onClick={() => void copyPrompt()}
             disabled={!hasPrompt}
             className="px-3 py-1 text-xs font-medium rounded border border-border-default hover:bg-surface-secondary disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Copy prompt (⌘⇧C)"
+            title="Copy prompt (&#x2318;&#x21E7;C)"
           >
             Copy
           </button>

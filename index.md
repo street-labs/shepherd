@@ -453,6 +453,210 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
 - **QA**: `qa/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`
 
+### `FR-diff-mode-toggle`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-keyboard-toggle-modes`
+
+### `FR-diff-mode-availability`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-paste-disabled`, `TC-diff-upload-disabled`, `TC-diff-drag-drop-disabled`, `TC-diff-disabled-tooltip`
+
+### `FR-diff-baseline-fetch`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-loading-state`, `TC-diff-api-head-happy`, `TC-diff-api-head-untracked-404`, `TC-diff-api-head-not-git-repo`, `TC-diff-api-head-binary-415`, `TC-diff-api-head-missing-path`, `TC-diff-api-head-git-unavailable`, `TC-diff-api-routing-no-collision`, `TC-diff-error-network-failure`, `TC-diff-error-git-unavailable`, `TC-diff-error-file-outside-git`, `TC-diff-no-git-history-all-added`
+
+### `FR-diff-compute`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`, `TC-diff-compute-all-removed`, `TC-diff-compute-every-line-changed`, `TC-diff-compute-no-newline-at-end`, `TC-diff-compute-performance-10k`
+
+### `FR-diff-display`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-line-numbers-added`, `TC-diff-line-numbers-removed`, `TC-diff-line-numbers-context`, `TC-diff-syntax-highlight-happy`, `TC-diff-syntax-highlight-removed-lines`
+
+### `FR-diff-collapse`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`, `TC-diff-no-git-history-no-collapse`
+
+### `FR-diff-expand`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-expand-then-comment-happy`, `TC-diff-keyboard-expand-section`
+
+### `FR-diff-comment-create`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`, `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`, `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`, `TC-diff-keyboard-add-comment`
+
+### `FR-diff-comment-on-range`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-comment-range-same-type`, `TC-diff-comment-range-mixed-types`, `TC-diff-comment-range-blocked-by-collapsed`, `TC-diff-keyboard-range-select`
+
+### `FR-diff-prompt-format`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
+
+### `FR-diff-empty-state`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-no-changes-empty-state`, `TC-diff-no-changes-switch-to-file`
+
+### `FR-diff-refresh`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-refresh-happy`, `TC-diff-refresh-with-comments-confirm`, `TC-diff-refresh-with-comments-cancel`, `TC-diff-refresh-no-comments`, `TC-diff-error-file-deleted-refresh`
+
+### `NFR-diff-compute-perf`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-compute-performance-10k`, `TC-diff-compute-perf-large-file`, `TC-diff-compute-every-line-changed`
+
+### `NFR-diff-render-perf`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-render-perf-scroll`
+
+### `NFR-diff-client-compute`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`
+
+### `NFR-diff-baseline-fetch-speed`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-api-head-happy`
+
+### `NFR-diff-accessibility`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-keyboard`, `TC-diff-expand-section-keyboard`, `TC-diff-keyboard-toggle-modes`, `TC-diff-keyboard-navigate-lines`, `TC-diff-keyboard-add-comment`, `TC-diff-keyboard-range-select`, `TC-diff-keyboard-comment-navigation`, `TC-diff-keyboard-expand-section`
+
+### `AC-diff-toggle-to-diff`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-diff-loading-state`, `TC-diff-keyboard-toggle-modes`
+
+### `AC-diff-toggle-to-file`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-keyboard-toggle-modes`
+
+### `AC-diff-collapse-default`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`
+
+### `AC-diff-expand-section`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-keyboard-expand-section`
+
+### `AC-diff-comment-added-line`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`
+
+### `AC-diff-comment-removed-line`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`
+
+### `AC-diff-comment-context-line`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`
+
+### `AC-diff-prompt-includes-diff`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
+
+### `AC-diff-no-git-history`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-no-git-history-all-added`, `TC-diff-no-git-history-no-collapse`
+
+### `AC-diff-no-changes`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-no-changes-empty-state`, `TC-diff-no-changes-switch-to-file`
+
+### `AC-diff-paste-upload-disabled`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-paste-disabled`, `TC-diff-upload-disabled`, `TC-diff-drag-drop-disabled`, `TC-diff-disabled-tooltip`
+
+### `AC-diff-line-numbers`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-line-numbers-added`, `TC-diff-line-numbers-removed`, `TC-diff-line-numbers-context`, `TC-diff-compute-correct-hunks`
+
+### `AC-diff-syntax-highlight`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-syntax-highlight-happy`, `TC-diff-syntax-highlight-removed-lines`
+
+### `AC-diff-refresh-updates`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-refresh-happy`, `TC-diff-refresh-with-comments-confirm`, `TC-diff-refresh-with-comments-cancel`, `TC-diff-refresh-no-comments`
+
+### `AC-diff-switch-clears-comments`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-toggle-to-file-no-comments`
+
+### `AC-diff-comment-range`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-comment-range-same-type`, `TC-diff-comment-range-mixed-types`, `TC-diff-comment-range-blocked-by-collapsed`
+
+### `AC-diff-expand-then-comment`
+- **Defined in**: `product/diff-view.md`
+- **Design**: `design/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`
+- **QA**: `qa/diff-view.md` -> `TC-diff-expand-then-comment-happy`, `TC-diff-expand-then-comment-gutter-hover`
+
 <!--
 Entry template -- copy this when adding a new slug:
 

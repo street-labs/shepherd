@@ -70,3 +70,106 @@ export interface HighlightToken {
   content: string;
   color?: string;
 }
+
+// Implements: FR-diff-display, FR-diff-comment-create
+
+/** Identifies a line's position and type within a diff. */
+export interface DiffLineId {
+  /** The type of change this line represents. */
+  lineType: 'added' | 'removed' | 'context';
+  /** Line number in the old (HEAD) version. Null for added lines. */
+  oldLine: number | null;
+  /** Line number in the new (working copy) version. Null for removed lines. */
+  newLine: number | null;
+}
+
+/** A single line in the computed diff. */
+export interface DiffLine {
+  /** Unique index within the diffLines array (0-based). Used as the virtualizer key. */
+  index: number;
+  /** The line type: added, removed, or context (unchanged). */
+  type: 'added' | 'removed' | 'context';
+  /** Line number in the old (HEAD) version. Null for added lines. */
+  oldLineNumber: number | null;
+  /** Line number in the new (working copy) version. Null for removed lines. */
+  newLineNumber: number | null;
+  /** The text content of the line (without +/- prefix). */
+  content: string;
+}
+
+/** A contiguous range of context lines that should be collapsed. */
+export interface CollapsedSection {
+  /** Index into the diffLines array where the collapsed range starts (inclusive). */
+  startIndex: number;
+  /** Index into the diffLines array where the collapsed range ends (inclusive). */
+  endIndex: number;
+  /** Number of lines hidden in this section. */
+  lineCount: number;
+}
+
+/** A comment anchored to a diff line or range of diff lines. */
+export interface DiffComment {
+  /** Unique identifier. Generated via crypto.randomUUID(). */
+  id: string;
+  /** The diff line identifier for the start of the commented range. */
+  startLineId: DiffLineId;
+  /** The diff line identifier for the end of the commented range. Same as startLineId for single-line comments. */
+  endLineId: DiffLineId;
+  /** Index of the start line in the diffLines array. Used for ordering and rendering. */
+  startIndex: number;
+  /** Index of the end line in the diffLines array. */
+  endIndex: number;
+  /** The user's comment text. */
+  text: string;
+  /** ISO-8601 timestamp of creation. Used for stable ordering when positions are equal. */
+  createdAt: string;
+}
+
+/** Display items for the virtualized diff viewer. */
+export type DiffDisplayItem =
+  | { type: 'diff-line'; line: DiffLine }
+  | { type: 'collapsed-section'; section: CollapsedSection; sectionIndex: number }
+  | { type: 'diff-comment-bubble'; comment: DiffComment }
+  | { type: 'diff-editor'; startIndex: number; endIndex: number; mode: 'create' | 'edit'; commentId?: string };
+
+/** How the file was loaded -- determines whether diff view is available. */
+export type FileSource = 'server' | 'local';
+
+/** State of the inline comment editor in diff mode. */
+export type DiffEditorState =
+  | { mode: 'create'; startIndex: number; endIndex: number }
+  | { mode: 'edit'; commentId: string };
+
+/** Diff-specific state fields added to AppState. */
+export interface DiffState {
+  /** Current view mode: 'file' for full-file view, 'diff' for unified diff view. */
+  viewMode: 'file' | 'diff';
+  /** How the file was loaded. 'server' = via /api/file (slash command). 'local' = paste/upload/drag-and-drop. */
+  fileSource: FileSource | null;
+  /** The server file path for re-fetching. */
+  filePath: string | null;
+  /** The git HEAD version of the file content, or null if not fetched. */
+  baselineContent: string | null;
+  /** The computed diff lines, or null if not computed. */
+  diffLines: DiffLine[] | null;
+  /** Collapsed sections derived from diffLines. */
+  collapsedSections: CollapsedSection[] | null;
+  /** Set of collapsed section indices that have been expanded by the user. */
+  expandedSections: Set<number>;
+  /** Whether the baseline is currently being fetched. */
+  isBaselineLoading: boolean;
+  /** Error message from baseline fetch, or null. */
+  baselineError: string | null;
+  /** Whether the diff is empty (working copy matches HEAD). */
+  isDiffEmpty: boolean;
+  /** All diff-mode comments, keyed by comment ID. Separate from file-mode comments. */
+  diffComments: Record<string, DiffComment>;
+  /** Ordered array of diff comment IDs sorted by startIndex then createdAt. */
+  diffCommentOrder: string[];
+  /** The ID of the currently focused diff comment (via navigation), or null. */
+  focusedDiffCommentId: string | null;
+  /** The currently selected range in diff view (indices into diffLines), or null. */
+  diffSelectedRange: { startIndex: number; endIndex: number } | null;
+  /** Editor state for diff-mode comment editing. */
+  diffEditorState: DiffEditorState | null;
+}

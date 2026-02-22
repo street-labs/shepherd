@@ -1,18 +1,31 @@
 // Implements: FR-crp-line-comment-create, FR-crp-line-comment-edit,
-// AC-crp-add-comment-single-line, AC-crp-add-comment-line-range, AC-crp-edit-comment
+// AC-crp-add-comment-single-line, AC-crp-add-comment-line-range, AC-crp-edit-comment,
+// FR-diff-comment-create
 
 import { useAppStore } from '@/store/appStore';
 import { useState, useEffect, useRef } from 'react';
 
-export function InlineCommentEditor() {
+interface InlineCommentEditorProps {
+  isDiffMode?: boolean;
+}
+
+export function InlineCommentEditor({ isDiffMode }: InlineCommentEditorProps) {
   const editorState = useAppStore((s) => s.editorState);
+  const diffEditorState = useAppStore((s) => s.diffEditorState);
   const comments = useAppStore((s) => s.comments);
+  const diffComments = useAppStore((s) => s.diffComments);
   const addComment = useAppStore((s) => s.addComment);
   const updateComment = useAppStore((s) => s.updateComment);
   const closeEditor = useAppStore((s) => s.closeEditor);
+  const addDiffComment = useAppStore((s) => s.addDiffComment);
+  const updateDiffComment = useAppStore((s) => s.updateDiffComment);
+  const closeDiffEditor = useAppStore((s) => s.closeDiffEditor);
 
-  const existingComment =
-    editorState?.mode === 'edit' ? comments[editorState.commentId] : null;
+  const activeState = isDiffMode ? diffEditorState : editorState;
+
+  const existingComment = isDiffMode
+    ? (activeState?.mode === 'edit' ? diffComments[activeState.commentId] : null)
+    : (activeState?.mode === 'edit' ? comments[activeState.commentId] : null);
 
   const [text, setText] = useState(existingComment?.text ?? '');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -22,29 +35,60 @@ export function InlineCommentEditor() {
   }, [existingComment]);
 
   useEffect(() => {
-    // Auto-focus on mount
     textareaRef.current?.focus();
   }, []);
 
-  if (!editorState) return null;
+  if (!activeState) return null;
 
-  const lineLabel =
-    editorState.mode === 'create'
-      ? editorState.anchorLine === editorState.endLine
-        ? `Line ${editorState.anchorLine}`
-        : `Lines ${editorState.anchorLine}-${editorState.endLine}`
-      : existingComment
-        ? existingComment.startLine === existingComment.endLine
-          ? `Line ${existingComment.startLine}`
-          : `Lines ${existingComment.startLine}-${existingComment.endLine}`
-        : '';
+  let lineLabel = '';
+  if (!isDiffMode && activeState) {
+    if (activeState.mode === 'create') {
+      const s = activeState as { anchorLine: number; endLine: number };
+      lineLabel = s.anchorLine === s.endLine
+        ? `Line ${s.anchorLine}`
+        : `Lines ${s.anchorLine}-${s.endLine}`;
+    } else if (existingComment && 'startLine' in existingComment) {
+      lineLabel = existingComment.startLine === existingComment.endLine
+        ? `Line ${existingComment.startLine}`
+        : `Lines ${existingComment.startLine}-${existingComment.endLine}`;
+    }
+  } else if (isDiffMode && activeState) {
+    if (activeState.mode === 'create') {
+      const s = activeState as { startIndex: number; endIndex: number };
+      lineLabel = s.startIndex === s.endIndex
+        ? `Diff line ${s.startIndex + 1}`
+        : `Diff lines ${s.startIndex + 1}-${s.endIndex + 1}`;
+    } else if (existingComment && 'startIndex' in existingComment) {
+      lineLabel = existingComment.startIndex === existingComment.endIndex
+        ? `Diff line ${existingComment.startIndex + 1}`
+        : `Diff lines ${existingComment.startIndex + 1}-${existingComment.endIndex + 1}`;
+    }
+  }
 
   const handleSubmit = () => {
     if (!text.trim()) return;
-    if (editorState.mode === 'create') {
-      addComment(editorState.anchorLine, editorState.endLine, text.trim());
+    if (isDiffMode) {
+      if (activeState.mode === 'create') {
+        const s = activeState as { startIndex: number; endIndex: number };
+        addDiffComment(s.startIndex, s.endIndex, text.trim());
+      } else {
+        updateDiffComment(activeState.commentId, text.trim());
+      }
     } else {
-      updateComment(editorState.commentId, text.trim());
+      if (activeState.mode === 'create') {
+        const s = activeState as { anchorLine: number; endLine: number };
+        addComment(s.anchorLine, s.endLine, text.trim());
+      } else {
+        updateComment(activeState.commentId, text.trim());
+      }
+    }
+  };
+
+  const handleClose = () => {
+    if (isDiffMode) {
+      closeDiffEditor();
+    } else {
+      closeEditor();
     }
   };
 
@@ -55,7 +99,7 @@ export function InlineCommentEditor() {
     }
     if (e.key === 'Escape') {
       e.preventDefault();
-      closeEditor();
+      handleClose();
     }
   };
 
@@ -72,10 +116,10 @@ export function InlineCommentEditor() {
         aria-label={`Comment for ${lineLabel}`}
       />
       <div className="flex items-center justify-between mt-1">
-        <span className="text-xs text-text-tertiary">⌘+Enter to submit, Escape to cancel</span>
+        <span className="text-xs text-text-tertiary">&#x2318;+Enter to submit, Escape to cancel</span>
         <div className="flex gap-1">
           <button
-            onClick={closeEditor}
+            onClick={handleClose}
             className="px-2 py-1 text-xs rounded border border-border-default hover:bg-surface-secondary"
           >
             Cancel
@@ -85,7 +129,7 @@ export function InlineCommentEditor() {
             disabled={!text.trim()}
             className="px-2 py-1 text-xs font-medium rounded bg-primary-500 text-text-on-primary hover:bg-primary-600 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {editorState.mode === 'create' ? 'Add' : 'Save'}
+            {activeState.mode === 'create' ? 'Add' : 'Save'}
           </button>
         </div>
       </div>

@@ -1,12 +1,10 @@
-// Implements: FR-crp-prompt-generate, FR-crp-prompt-format, AC-crp-generate-prompt-structure
+// Implements: FR-crp-prompt-generate, FR-crp-prompt-format, AC-crp-generate-prompt-structure,
+// FR-diff-prompt-format, AC-diff-prompt-includes-diff
 
-import type { Comment, FileInfo } from '@/types';
+import type { Comment, FileInfo, DiffLine, DiffComment, DiffLineId, CollapsedSection } from '@/types';
 
 /**
  * Builds a structured prompt string from the loaded file, comments, and optional preamble.
- *
- * The prompt includes the file path and each comment with the actual code it references
- * (not line numbers, since those change as the file is edited).
  */
 export function buildPrompt(
   file: FileInfo,
@@ -42,3 +40,75 @@ export function buildPrompt(
 
   return sections.join('\n\n');
 }
+
+/**
+ * Builds a structured prompt for diff-mode reviews.
+ * Only includes the diff lines relevant to each comment (with a few lines of context),
+ * not the entire diff.
+ */
+export function buildDiffPrompt(
+  file: FileInfo,
+  diffLines: DiffLine[],
+  comments: DiffComment[],
+  preamble: string,
+  _collapsedSections: CollapsedSection[],
+  _expandedSections: Set<number>,
+): string {
+  const sections: string[] = [];
+
+  // Instructions section (only if preamble is non-empty)
+  const trimmedPreamble = preamble.trim();
+  if (trimmedPreamble) {
+    sections.push(`## Instructions\n\n${trimmedPreamble}`);
+  }
+
+  // File reference
+  sections.push(`## File: ${file.name} (${file.language}) -- Diff View`);
+
+  // Feedback section
+  sections.push(`## Review Feedback\n\nThe following are comments on changes between the git HEAD version and the current working copy. Each item shows the relevant diff context (lines prefixed with \`+\` are additions, \`-\` are removals, unmarked lines are unchanged) along with the reviewer's comment.`);
+
+  const sorted = [...comments].sort((a, b) => {
+    if (a.startIndex !== b.startIndex) return a.startIndex - b.startIndex;
+    return a.createdAt.localeCompare(b.createdAt);
+  });
+
+  const CONTEXT_LINES = 2;
+
+  const changeEntries = sorted.map((c) => {
+    // Extract the commented lines plus a few lines of surrounding context
+    const snippetStart = Math.max(0, c.startIndex - CONTEXT_LINES);
+    const snippetEnd = Math.min(diffLines.length - 1, c.endIndex + CONTEXT_LINES);
+
+    const snippetLines: string[] = [];
+    for (let i = snippetStart; i <= snippetEnd; i++) {
+      const line = diffLines[i]!;
+      const prefix = line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ';
+      snippetLines.push(`  ${prefix} ${line.content}`);
+    }
+    const snippet = snippetLines.join('\n');
+
+    const label = formatDiffCommentLabel(c);
+    return `- **${label}:**\n  \`\`\`diff\n${snippet}\n  \`\`\`\n  **Comment:** ${c.text}`;
+  });
+
+  sections.push(changeEntries.join('\n\n'));
+
+  return sections.join('\n\n');
+}
+
+export function formatDiffCommentLabel(comment: DiffComment): string {
+  const startLabel = formatLineRef(comment.startLineId);
+  if (comment.startIndex === comment.endIndex) {
+    return `Line ${startLabel}`;
+  }
+  const endLabel = formatLineRef(comment.endLineId);
+  return `Lines ${startLabel} to ${endLabel}`;
+}
+
+function formatLineRef(lineId: DiffLineId): string {
+  if (lineId.lineType === 'added') return `+${lineId.newLine}`;
+  if (lineId.lineType === 'removed') return `-${lineId.oldLine}`;
+  return String(lineId.newLine); // Context lines use new line number
+}
+

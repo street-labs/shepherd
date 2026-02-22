@@ -40,6 +40,16 @@
   /* Code line height */
   --spacing-line-height: 20px;
 
+  /* Diff colors */
+  --color-diff-added-bg: #f0fdf4;
+  --color-diff-removed-bg: #fef2f2;
+  --color-diff-added-gutter: #dcfce7;
+  --color-diff-removed-gutter: #fee2e2;
+  --color-diff-added-indicator: #15803d;
+  --color-diff-removed-indicator: #b91c1c;
+  --color-diff-separator-bg: #f8fafc;
+  --color-diff-separator-border: #e2e8f0;
+
   /* Font families */
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

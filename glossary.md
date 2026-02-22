@@ -109,6 +109,46 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: URL-based file loading, query parameter loading
 **Not to be confused with**: Manual file loading (drag-drop, upload, paste via the drop zone)
 
+## Working Copy
+**Definition**: The current on-disk version of a file, including any uncommitted modifications. In the context of the diff view, the working copy is compared against the baseline (git HEAD) to produce the diff.
+**Also known as**: Modified version, current version
+**Not to be confused with**: Baseline (the git HEAD version), staged changes (git index — not used in v1)
+
+## Diff View
+**Definition**: An alternative viewing mode in the CRPG that displays a unified diff between a file's git HEAD version (baseline) and its current working copy on disk. Shows added lines (green), removed lines (red), and context lines, with collapsible unchanged sections. Only available for files loaded via the slash command (server-loaded files).
+**Also known as**: Diff mode, working copy diff
+**Not to be confused with**: File view (the default full-file viewing mode), side-by-side diff (not supported in v1)
+
+## Baseline
+**Definition**: The reference version of a file used for diff computation. In v1, this is always the git HEAD version of the file, fetched via the `/api/file/head` endpoint.
+**Also known as**: HEAD version, original version
+**Not to be confused with**: Working copy (the current on-disk version of the file)
+
+## Hunk
+**Definition**: A contiguous block of changes in a diff, consisting of added, removed, and surrounding context lines. Multiple hunks may exist in a single file diff, separated by unchanged regions.
+**Also known as**: Diff hunk, change block
+**Not to be confused with**: Collapsed section (which is a block of unchanged lines between hunks)
+
+## Collapsed Section
+**Definition**: A block of unchanged lines in the diff view that is hidden by default, replaced by a clickable separator showing the count of hidden lines (e.g., "... 47 unchanged lines ..."). Users can expand collapsed sections to reveal the hidden lines. Only the configured number of context lines (default: 3) are shown around each hunk.
+**Also known as**: Collapsed region, hidden lines
+**Not to be confused with**: Hunk (which contains actual changes)
+
+## Context Lines
+**Definition**: Unchanged lines shown in the diff view surrounding each hunk to provide context. The default context size is 3 lines above and below each change, matching GitHub's convention. Context lines display both old and new line numbers.
+**Also known as**: Surrounding context, unchanged context
+**Not to be confused with**: Changed lines (added or removed lines within a hunk)
+
+## View Mode Toggle
+**Definition**: A segmented control in the toolbar that switches between "File" (full-file view) and "Diff" (unified diff view) modes. Disabled when the file was not loaded via the server (paste/upload files have no baseline to diff against). Switching modes clears comments with a confirmation dialog.
+**Also known as**: Mode toggle, File/Diff toggle
+**Not to be confused with**: The toolbar action buttons (Generate, Copy, Clear)
+
+## Diff Line Identifier
+**Definition**: A unique identifier for a line in the diff view, encoding the line type (added, removed, or context) and the corresponding old and/or new line numbers. Used to anchor comments in diff mode, replacing the simple line number used in file mode.
+**Also known as**: DiffLineId
+**Not to be confused with**: Line number (used in file view for comment anchoring)
+
 <!--
 Entry template:
 

@@ -16,6 +16,9 @@ interface FileFromUrlState {
 export function useFileFromUrl(): FileFromUrlState {
   const [state, setState] = useState<FileFromUrlState>({ loading: false, error: null });
   const loadFile = useAppStore((s) => s.loadFile);
+  const setFileSource = useAppStore((s) => s.setFileSource);
+  const setFilePath = useAppStore((s) => s.setFilePath);
+  const setViewMode = useAppStore((s) => s.setViewMode);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -36,6 +39,10 @@ export function useFileFromUrl(): FileFromUrlState {
         const language = res.headers.get('X-File-Language') || 'plaintext';
 
         loadFile(content, fileName, language);
+        setFileSource('server');
+        setFilePath(filePath);
+        // Default to diff view for server-loaded files
+        setViewMode('diff');
         setState({ loading: false, error: null });
 
         // Clean the URL without reloading

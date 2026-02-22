@@ -68,6 +68,38 @@ Append-only record of key decisions made during this project. Newest entries at 
 **Consequences**: The `buildPrompt()` function extracts code slices per comment instead of formatting the entire file. Prompt output size scales with comment count, not file length.
 **Slug references**: `FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`
 
+## 2026-02-21 -- Use jsdiff for client-side diff computation
+**Context**: The diff view feature needs to compute unified diffs between two file versions entirely in the browser (`NFR-diff-client-compute`). Need a diff library that produces structured hunks suitable for rendering.
+**Decision**: Use the `diff` npm package (jsdiff) with its `structuredPatch` function.
+**Alternatives considered**: Custom Myers diff implementation (unnecessary build-vs-buy risk), `diff-match-patch` by Google (character-level, not line-level — wrong granularity), running `git diff` on the server (violates `NFR-crp-client-only` principle of keeping computation client-side).
+**Rationale**: jsdiff is the standard JavaScript diff library (10M+ weekly npm downloads), battle-tested, zero dependencies, works in the browser, and `structuredPatch` directly produces the hunk data structure we need for rendering. Performance is well within `NFR-diff-compute-perf` targets for files up to 10K lines.
+**Consequences**: The server serves two plain text file versions; the browser computes the diff. If profiling shows blocking on very large files, the pure function can be trivially moved to a Web Worker.
+**Slug references**: `FR-diff-compute`, `NFR-diff-compute-perf`, `NFR-diff-client-compute`
+
+## 2026-02-21 -- Separate comment stores for file mode and diff mode
+**Context**: Diff view comments anchor to `DiffLineId` (line type + old/new line numbers), while file view comments anchor to simple line numbers. Need to decide whether to unify or separate the comment models.
+**Decision**: Maintain separate comment stores — `comments` for file mode and `diffComments` for diff mode. Switching modes clears the active mode's comments with user confirmation.
+**Alternatives considered**: Unified comment store with polymorphic anchoring (complex, error-prone mapping between modes), attempt to map comments between modes (fundamentally different line models make this unreliable and confusing).
+**Rationale**: File view and diff view have fundamentally different line addressing models. A comment on "line 42" in file view has no reliable mapping to a diff line, and vice versa. Separate stores keep the data model clean and avoid lossy conversions. The confirmation dialog on mode switch makes the behavior explicit.
+**Consequences**: Users lose comments when switching modes. This is clearly communicated via the confirmation dialog. The prompt builder has two code paths: `buildPrompt` for file mode and `buildDiffPrompt` for diff mode.
+**Slug references**: `FR-diff-mode-toggle`, `FR-diff-comment-create`, `AC-diff-switch-clears-comments`
+
+## 2026-02-21 -- Unified diff only (no side-by-side view) for v1
+**Context**: Diff views commonly offer both unified and side-by-side display modes. Need to decide scope for the initial implementation.
+**Decision**: Support unified diff view only in v1. Side-by-side is deferred.
+**Alternatives considered**: Side-by-side view (more space-efficient for reviewing changes but doubles the component complexity), both views with a toggle (too much scope for v1).
+**Rationale**: Unified diff is simpler to implement, works better with the existing single-column code viewer layout, and is the standard format developers use in CLI tools. Side-by-side can be added as a follow-up if users request it.
+**Consequences**: The DiffViewer component renders a single column with line type indicators, dual line numbers, and colored backgrounds. The existing layout (code viewer + sidebar) works without modification.
+**Slug references**: `FR-diff-display`, `FR-diff-collapse`
+
+## 2026-02-21 -- HEAD-only baseline (no arbitrary commit/branch baselines) for v1
+**Context**: The diff view needs a baseline version to diff against. Need to decide what baselines to support.
+**Decision**: The baseline is always `git HEAD` for v1. No support for diffing against specific commits, branches, or the staged version.
+**Alternatives considered**: Arbitrary commit selection (adds UI complexity for commit picker), staged vs unstaged diff (useful but secondary use case), branch comparison (more of a merge/PR review workflow).
+**Rationale**: The primary use case is "an AI agent just modified my file, what changed?" — this is always the working copy vs the last committed version. HEAD is the right baseline for this workflow. More baselines can be added later without changing the architecture.
+**Consequences**: The `/api/file/head` endpoint runs `git show HEAD:<path>`. If the file is untracked (no HEAD version), all lines show as additions. More baseline options can be added by extending the API endpoint.
+**Slug references**: `FR-diff-baseline-fetch`, `AC-diff-no-git-history`
+
 <!--
 Entry template:
 

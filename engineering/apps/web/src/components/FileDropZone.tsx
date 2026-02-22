@@ -10,6 +10,7 @@ type DropZoneVariant = 'default' | 'drag-hover' | 'paste-mode' | 'loading' | 'er
 
 export function FileDropZone() {
   const loadFile = useAppStore((s) => s.loadFile);
+  const setFileSource = useAppStore((s) => s.setFileSource);
   const [variant, setVariant] = useState<DropZoneVariant>('default');
   const [errorMessage, setErrorMessage] = useState('');
   const [pasteText, setPasteText] = useState('');
@@ -29,6 +30,7 @@ export function FileDropZone() {
         const content = new TextDecoder('utf-8').decode(buffer);
         const language = detectLanguage(file.name);
         loadFile(content, file.name, language);
+        setFileSource('local');
       } catch {
         setErrorMessage('Failed to read file. Please try again.');
         setVariant('error');
@@ -82,6 +84,7 @@ export function FileDropZone() {
   const handlePasteSubmit = () => {
     if (!pasteText.trim()) return;
     loadFile(pasteText, 'Untitled', 'plaintext');
+    setFileSource('local');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
