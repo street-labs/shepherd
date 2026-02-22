@@ -5,7 +5,7 @@
 # Validates the file, ensures the Vite dev server is running, and opens
 # the browser with the file path as a query parameter.
 #
-# Usage: shepherd-launch.sh <filepath>
+# Usage: shepherd-launch.sh [--fresh] <filepath>
 # Exit codes: 0 success, 1 validation error, 2 server startup failure
 
 set -euo pipefail
@@ -15,10 +15,22 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 WEB_DIR="$REPO_ROOT/engineering/apps/web"
 SERVER_URL="http://localhost:5173"
 
-# --- Argument check ---
+# --- Parse flags ---
+
+FRESH=false
+POSITIONAL=()
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --fresh) FRESH=true; shift ;;
+    *) POSITIONAL+=("$1"); shift ;;
+  esac
+done
+
+set -- "${POSITIONAL[@]+"${POSITIONAL[@]}"}"
 
 if [ $# -eq 0 ] || [ -z "${1:-}" ]; then
-  echo "Usage: shepherd-launch.sh <filepath>" >&2
+  echo "Usage: shepherd-launch.sh [--fresh] <filepath>" >&2
   exit 1
 fi
 
@@ -75,17 +87,37 @@ fi
 
 # --- Check / start dev server ---
 
-SERVER_REUSED=true
-
 check_server() {
   local code
   code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 1 "$SERVER_URL" 2>/dev/null) || true
   [ "$code" = "200" ]
 }
 
-if ! check_server; then
-  SERVER_REUSED=false
+kill_server() {
+  # Kill any process listening on port 5173
+  local pid
+  pid=$(lsof -ti tcp:5173 2>/dev/null) || true
+  if [ -n "$pid" ]; then
+    kill $pid 2>/dev/null || true
+    # Wait briefly for port to free up
+    local i=0
+    while [ $i -lt 10 ] && lsof -ti tcp:5173 &>/dev/null; do
+      sleep 0.2
+      i=$((i+1))
+    done
+  fi
+}
 
+SERVER_REUSED=false
+
+# --fresh: kill existing server so a new one starts with latest code
+if [ "$FRESH" = true ] && check_server; then
+  kill_server
+fi
+
+if check_server; then
+  SERVER_REUSED=true
+else
   if [ ! -d "$WEB_DIR" ]; then
     echo "Error: web app directory not found: $WEB_DIR" >&2
     exit 2
