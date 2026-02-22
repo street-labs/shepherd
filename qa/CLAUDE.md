@@ -85,6 +85,40 @@ For failures, add a **Test Execution Results** subsection under the relevant tes
 
 After reporting failures, hand off to engineering with the list of failing `TC-` slugs and observed vs expected behavior. After engineering fixes the issues, re-verify by running the tests again. Loop until all tests pass. See the root `CLAUDE.md` "Engineering-QA Iteration Loop" section for the full process.
 
+## Multi-Platform Test Plans
+
+This project supports multiple platforms (see root `CLAUDE.md` for the platform list). QA test plans use a suffix convention:
+
+- **`<feature>.md`** — Base test plan for the web platform. All existing unsuffixed files are web test plans.
+- **`<feature>.<platform>.md`** — Platform-specific test plan covering tests that diverge from the base plan.
+
+### Test infrastructure by platform
+
+| Platform | Unit Tests | Integration Tests | E2E Tests | Manual Tests |
+|---|---|---|---|---|
+| Web | Vitest | Vitest + RTL | Playwright | Browser-based |
+| macOS | XCTest | XCTest | XCUITest | Native app |
+
+### When to create a platform-specific test plan
+
+Create a `<feature>.<platform>.md` when:
+- The platform uses **different test tooling** (always true for different tech stacks)
+- The platform has **unique test scenarios** (e.g., macOS menu bar integration, Finder drag-drop)
+- The platform needs **different test setup** (e.g., launching a native app vs opening a browser)
+
+### Platform variant structure
+
+A platform-specific test plan variant should:
+1. Reference the base plan: `> Based on [feature].md — this covers [platform]-specific test cases only.`
+2. Map base-plan test cases to platform equivalents where the same behavior is tested differently.
+3. Add platform-specific test cases for unique behaviors.
+4. Use the same `TC-` slug format — test case slugs are not platform-prefixed (use descriptive slugs that make the platform context clear, e.g., `TC-crp-macos-menu-open-file`).
+5. Maintain a separate coverage matrix for the platform variant.
+
+### Cross-platform test cases
+
+Some test cases verify behavior that must be identical across platforms (e.g., prompt output parity). These should be called out explicitly and tested on every platform as part of regression.
+
 ## Guidelines
 
 - Every acceptance criterion in the product spec must have at least one test case.

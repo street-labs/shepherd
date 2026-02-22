@@ -10,7 +10,17 @@ Follow this sequence exactly. Steps are sequential unless noted otherwise.
 
 Before doing anything, analyze the request and decide:
 
-### A) Which existing spec does this belong to?
+### A) Which platform(s) are in scope?
+
+Determine the target platform(s) for this request:
+- **Single-platform (web)** — Affects only the web app. Use base spec files (no suffix).
+- **Single-platform (other)** — Affects only a non-web platform. Use platform-suffixed spec files (e.g., `feature.macos.md`).
+- **Cross-platform** — Affects multiple platforms. Create/update the base spec (shared behavior), then create/update platform-specific variants where behavior diverges.
+- **Porting** — An existing feature being brought to a new platform. Base specs exist; create only platform-specific variants.
+
+If the request doesn't specify a platform, ask the user. For the current project, the active platforms are listed in the "Multi-Platform Support" section of CLAUDE.md.
+
+### B) Which existing spec does this belong to?
 
 Read the files in `product/` (excluding CLAUDE.md) to see what specs already exist. Determine whether this request:
 - **Modifies an existing feature** → Update the existing spec file(s). Do NOT create a new file.
@@ -18,7 +28,9 @@ Read the files in `product/` (excluding CLAUDE.md) to see what specs already exi
 
 Specs are **living documents** that represent the product as it is (or will be). Think of each spec as the single source of truth for that feature area. Modifications, enhancements, and refinements go into the existing spec — they do not spawn new files.
 
-### B) Which functional areas are actually needed?
+When porting to a new platform, the base spec already exists — check if a platform-specific variant already exists too.
+
+### C) Which functional areas are actually needed?
 
 Not every request requires all four areas. Decide which are relevant:
 
@@ -29,11 +41,13 @@ Not every request requires all four areas. Decide which are relevant:
 | Technical/performance improvement | Maybe (add NFR if needed) | No (unless UX is affected) | Yes | Yes (performance tests) |
 | Bug fix | No (unless requirements were wrong) | No (unless design was wrong) | Yes | Yes |
 | Refactoring / tech debt | No | No | Yes | Maybe |
+| Porting existing feature to new platform | Maybe (if platform-specific reqs) | Yes (if UI differs) | Yes | Yes |
 
 **Be honest about what's needed.** A request like "make it launch faster" is primarily an engineering concern. Product might add a brief NFR ("app should launch within Xms"), but it doesn't need a design spec. Don't create artifacts just to check boxes.
 
 Announce your triage decision to the user before proceeding:
-- Which spec file(s) will be created or updated
+- Which platform(s) are targeted
+- Which spec file(s) will be created or updated (including platform-specific variants)
 - Which functional areas will be involved and why
 - Which functional areas are being skipped and why
 
@@ -43,10 +57,13 @@ Announce your triage decision to the user before proceeding:
 
 **Only if triage determined product work is needed.**
 
-Delegate to the product agent (operating in `product/`). Be explicit about whether this is a **new spec** or an **update to an existing spec**:
+Delegate to the product agent (operating in `product/`). Be explicit about whether this is a **new spec**, an **update to an existing spec**, or a **platform-specific variant**:
 
 - **Updating an existing spec**: Tell the agent which file to update, what sections need changes, and what to add/modify. The agent should read the existing file first and make targeted edits — not rewrite the whole file.
 - **New spec**: Have it create a new PRD markdown file following the template in `product/CLAUDE.md`.
+- **Platform-specific variant**: Tell the agent which base spec to reference (e.g., `product/code-review-prompt.md`) and have it create a `<feature>.<platform>.md` file that covers only platform-specific requirements and divergences. The variant must reference the base spec and not duplicate shared requirements.
+
+For cross-platform work, always do the base spec first, then platform variants.
 
 Ensure all requirement slugs follow the format: `FR-<feature>-<slug>`, `NFR-<feature>-<slug>`, `AC-<feature>-<slug>`
 
@@ -64,6 +81,9 @@ Read the product spec from Step 1 (or the existing product spec if Step 1 was sk
 
 - **Updating an existing spec**: Tell the agent which file to update and what changed in the product spec. The agent should make targeted updates — not rewrite.
 - **New spec**: Have it create a design spec following `design/CLAUDE.md`.
+- **Platform-specific variant**: Tell the agent which base design spec to reference and have it create a `<feature>.<platform>.md` file. The variant covers platform-specific UI/UX (e.g., native controls, platform conventions) and references the base spec for shared behavior.
+
+For cross-platform work, do the base design spec first, then platform variants.
 
 The design spec must address every requirement and user story. Reference specific requirement slugs.
 
@@ -83,6 +103,7 @@ Read the product spec and design spec (whichever exist). Delegate to the enginee
 
 - **Updating an existing spec**: Tell the agent which file to update, what changed upstream, and what technical approach needs revisiting.
 - **New spec**: Have it create a technical spec following `engineering/CLAUDE.md`.
+- **Platform-specific variant**: Tell the agent which base engineering spec to reference and have it create a `<feature>.<platform>.md` file. The variant covers platform-specific architecture (e.g., SwiftUI vs React, native APIs vs web APIs) and references the base spec for shared patterns.
 
 Do NOT write code at this stage — only the technical spec.
 
@@ -94,10 +115,11 @@ Read the product spec and design spec. Delegate to the QA agent (operating in `q
 
 - **Updating an existing test plan**: Tell the agent which file to update, what changed, and which test cases need adding/modifying.
 - **New test plan**: Have it create a test plan following `qa/CLAUDE.md`.
+- **Platform-specific variant**: Tell the agent which base test plan to reference and have it create a `<feature>.<platform>.md` file. The variant covers platform-specific test cases (e.g., XCTest instead of Playwright, native UI testing) and references the base plan for shared test logic.
 
 Test cases must cover every acceptance criterion. Reference specific slugs.
 
-**Note:** When it later comes time to *implement* (write actual code and tests), that must be sequential — engineering implements first, then QA writes/runs tests against the implementation. But at the spec-writing stage, they can work simultaneously.
+**Note:** When it later comes time to *implement* (write actual code and tests), that must be sequential — engineering implements first, then QA writes/runs tests against the implementation. But at the spec-writing stage, they can work simultaneously. For cross-platform work, platform-specific engineering and QA variants can also be written in parallel.
 
 ---
 

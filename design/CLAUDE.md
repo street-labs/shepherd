@@ -63,6 +63,37 @@ How the design adapts across breakpoints.
 - Color contrast and visual accessibility notes
 ```
 
+## Multi-Platform Design Specs
+
+This project supports multiple platforms (see root `CLAUDE.md` for the platform list). Design specs use a suffix convention:
+
+- **`<feature>.md`** — Base design spec for the web platform. All existing unsuffixed files are web designs.
+- **`<feature>.<platform>.md`** — Platform-specific design variant covering UI/UX that diverges from the base spec.
+
+### When to create a platform-specific design variant
+
+Most platform ports need a design variant because UI fundamentally differs across platforms. Create a `<feature>.<platform>.md` when:
+- The platform uses **different controls** (e.g., NSToolbar vs HTML toolbar, native menus vs web menus)
+- The platform has **different layout conventions** (e.g., macOS window chrome, sidebar patterns)
+- The platform offers **unique interaction patterns** (e.g., Services menu, drag-drop from Finder, multiple windows)
+
+### Platform variant structure
+
+A platform-specific design variant should:
+1. Reference the base design spec: `> Based on [feature].md — this covers [platform]-specific UI/UX only.`
+2. Focus on **divergences** — don't redescribe shared interaction flows that work the same way.
+3. Use platform-native terminology (e.g., "NSWindow" not "window div", "menu bar item" not "toolbar button").
+4. Call out platform-specific accessibility considerations (e.g., VoiceOver on macOS, native keyboard shortcuts).
+5. Reference the same requirement slugs as the base spec — the slugs are shared, the UI realization differs.
+
+### Platform design principles
+
+When designing for a non-web platform:
+- **Respect platform conventions.** A macOS app should look and feel like a macOS app, not a web app in a native wrapper.
+- **Use native controls.** Prefer system-provided UI elements over custom implementations.
+- **Leverage platform strengths.** macOS has window management, Services, Spotlight, menu bar — use them.
+- **Don't force parity.** If a web interaction pattern doesn't make sense natively (or vice versa), design the right thing for each platform.
+
 ## Guidelines
 
 - Be specific. "A form" is not a design spec. Describe every field, label, placeholder, validation message, and button.

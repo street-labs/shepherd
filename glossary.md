@@ -259,6 +259,20 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: CSS variables, theme tokens
 **Not to be confused with**: Tailwind CSS utility classes (which are used for layout and spacing, not theming colors)
 
+## Platform
+**Definition**: A target runtime environment for the CRPG application. Each platform has its own tech stack, build system, and may have platform-specific UI/UX. The current platforms are: web (React/Vite in the browser) and macOS (native SwiftUI app, planned).
+**Also known as**: Target platform
+**Not to be confused with**: Operating system (a platform is more specific — "web" runs on multiple OSes, "macOS" is one OS with a native app)
+
+## Base Spec
+**Definition**: A spec file without a platform suffix (e.g., `code-review-prompt.md`). Represents either shared behavior across platforms or the web platform's spec (since web was the first platform). All existing unsuffixed spec files are base specs.
+**Also known as**: Unsuffixed spec, web spec
+**Not to be confused with**: Platform-specific variant (which has a `.<platform>.md` suffix)
+
+## Platform-Specific Variant
+**Definition**: A spec file with a platform suffix (e.g., `code-review-prompt.macos.md`) that documents how a feature diverges from its base spec on a particular platform. Only covers differences — shared behavior stays in the base spec.
+**Also known as**: Platform variant, suffixed spec
+**Not to be confused with**: Base spec (which covers shared or web-specific behavior)
 <!--
 Entry template:
 

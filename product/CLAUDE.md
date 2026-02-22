@@ -68,6 +68,25 @@ Rules:
 - Slugs must be unique across the entire project, not just within a file. The feature prefix helps ensure this.
 - When you create or modify requirements, you must also update the traceability index at `../index.md`.
 
+## Multi-Platform Specs
+
+This project supports multiple platforms (see root `CLAUDE.md` for the platform list). Product specs use a suffix convention:
+
+- **`<feature>.md`** — Base spec covering shared requirements or the web platform. All existing unsuffixed files are web specs.
+- **`<feature>.<platform>.md`** — Platform-specific variant covering requirements that diverge from the base spec.
+
+### When to create a platform-specific product variant
+
+Create a `<feature>.<platform>.md` only when the platform introduces **new requirements** not covered by the base spec (e.g., macOS-specific file access, native menu integration). If all requirements in the base spec apply unchanged to the new platform, no variant is needed at the product level.
+
+### Platform variant structure
+
+A platform-specific product variant should:
+1. Reference the base spec: `> Based on [feature].md — this covers [platform]-specific requirements only.`
+2. List which base-spec requirements apply as-is, which are modified, and which don't apply.
+3. Add any new platform-specific requirements (using the same `FR-`/`NFR-`/`AC-` slug format).
+4. Keep the same feature slug prefix (e.g., `FR-crp-*`) — don't create a separate prefix per platform.
+
 ## Guidelines
 
 - Write requirements that are **testable** — QA should be able to read an acceptance criterion and write a test for it.

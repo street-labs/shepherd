@@ -11,6 +11,65 @@ You are the coordinator agent for this project. Your job is to orchestrate work 
 | `engineering/` | Engineering | Architecture docs, tech decisions, implementation plans, source code |
 | `qa/` | Quality Assurance | Test plans, test cases, coverage matrices, bug reports |
 
+## Multi-Platform Support
+
+This project supports multiple target platforms. Each platform may have its own variant of specs across all functional areas.
+
+### Platforms
+
+| Platform ID | Description | Status |
+|---|---|---|
+| `web` | Browser-based SPA (React/Vite) | Active — all features |
+| `macos` | Native macOS app (SwiftUI) | Planned |
+
+New platforms are added by updating this table and following the conventions below.
+
+### File Naming Convention
+
+Specs use a **suffix convention** to indicate platform:
+
+| File | Meaning |
+|---|---|
+| `<feature>.md` | The **base spec** — covers shared behavior or the web platform (which was first). All existing unsuffixed files are web specs. |
+| `<feature>.<platform>.md` | A **platform-specific variant** that documents how this feature diverges from the base spec on a given platform. |
+
+Examples:
+- `design/code-review-prompt.md` — web design spec (the original, no suffix needed)
+- `design/code-review-prompt.macos.md` — macOS-specific design divergences
+- `engineering/code-review-prompt.macos.md` — macOS-specific engineering architecture
+
+### When to Create Platform-Specific Specs
+
+Not every feature needs a platform-specific variant. Create one only when:
+
+- The feature has **meaningfully different UI** on the target platform (e.g., native macOS controls vs web components)
+- The feature has a **different technical architecture** on the target platform (e.g., SwiftUI vs React)
+- The feature has **platform-specific behavior** that doesn't exist on other platforms (e.g., macOS Services menu integration)
+
+If a feature works identically across platforms (same behavior, just different rendering), a single base spec may suffice with a note about platform applicability.
+
+### Platform-Specific Spec Structure
+
+A platform-specific spec (e.g., `code-review-prompt.macos.md`) should:
+
+1. **Reference the base spec**: Start with `> Based on [feature].md — this document covers [platform]-specific divergences only.`
+2. **Only document differences** from the base spec — don't duplicate shared behavior.
+3. **Use the same slugs** — A requirement like `FR-crp-file-load` applies everywhere. The platform spec describes *how* it's met on that platform.
+4. **Call out inapplicable requirements** — If a base-spec requirement doesn't apply on this platform, list it explicitly and explain why.
+
+### Source Code Organization
+
+Source code is organized by platform under `engineering/apps/`:
+
+| Path | Platform |
+|---|---|
+| `engineering/apps/web/` | Web (React/Vite/TypeScript) |
+| `engineering/apps/macos/` | macOS (SwiftUI/Swift) |
+
+Each platform has its own build system, dependencies, and test infrastructure.
+
+---
+
 ## Specs Are Living Documents
 
 **Each spec file represents the current (or planned) state of a feature.** Specs are not append-only logs — they are living documents that evolve as the product evolves.
@@ -28,14 +87,22 @@ Before starting work on any request, always scan existing specs in `product/` to
 
 When the user describes what they want to build, you break it down and delegate to the appropriate functions.
 
+### Platform Scoping
+
+Before delegating, determine which platform(s) the request targets:
+
+- **Single-platform feature** — Affects only one platform. Create or update the base spec (for web) or a platform-specific variant (for others). Follow the normal sequential flow.
+- **Cross-platform feature** — Affects multiple platforms. Create the base spec first (shared behavior), then create platform-specific variants for each platform that diverges. This happens *within* each step — e.g., product base spec → product platform variants → design base spec → design platform variants.
+- **Porting an existing feature** — The base spec already exists. Create only the platform-specific variants needed (design, engineering, QA). The product spec may not need a variant if the requirements are identical.
+
 ### Ordering: Sequential Specs, Then Parallel Where Possible
 
 The delegation order matters because each step depends on upstream outputs:
 
-1. **Product first** — Translate user intent into structured requirements in `product/`. Everything downstream depends on this.
-2. **Design second** — Once product requirements are **complete and verified**, create design specs in `design/`. Engineering needs the finalized design to make technical decisions.
-3. **Engineering spec + QA test plan in parallel** — Once the design spec is **complete**, these two can run at the same time. The engineering agent creates the technical architecture, while the QA agent writes test plans based on the product requirements and design spec. Both read from product + design; neither depends on the other at the *spec* level.
-4. **Implementation is sequential** — When it's time to write actual code, engineering implements first, then QA writes and runs tests against the implementation. You can't test code that doesn't exist yet.
+1. **Product first** — Translate user intent into structured requirements in `product/`. Everything downstream depends on this. For cross-platform work, write the base spec first, then any platform-specific product variants.
+2. **Design second** — Once product requirements are **complete and verified**, create design specs in `design/`. For cross-platform work, write the base design spec, then platform-specific design variants. Engineering needs the finalized design to make technical decisions.
+3. **Engineering spec + QA test plan in parallel** — Once the design spec is **complete**, these two can run at the same time. For cross-platform work, platform-specific engineering and QA specs can also be written in parallel (e.g., `engineering/feature.macos.md` and `qa/feature.macos.md` at the same time).
+4. **Implementation is sequential** — When it's time to write actual code, engineering implements first, then QA writes and runs tests against the implementation. For cross-platform work, each platform's implementation can proceed independently (web and macOS engineering can work in parallel since they're separate codebases), but within each platform, engineering still precedes QA.
 
 **Never run product and design in parallel. Never run design and engineering in parallel. But engineering specs and QA test plans CAN be written in parallel since both depend on the same upstream inputs (product + design).**
 
@@ -67,11 +134,20 @@ This loop runs after every feature implementation and after any significant bug 
 
 When delegating to a functional area, use the Task tool to spawn a subagent that operates within that subfolder. The subagent will pick up its own CLAUDE.md and produce artifacts there.
 
-Example delegation pattern:
-- "Create a PRD for [feature]" → delegate to `product/`
-- "Design the screens for [feature]" → delegate to `design/`
-- "Define the technical approach for [feature]" → delegate to `engineering/`
-- "Write test plans for [feature]" → delegate to `qa/`
+Example delegation patterns:
+
+**Single-platform (base/web):**
+- "Create a PRD for [feature]" → delegate to `product/`, produces `[feature].md`
+- "Design the screens for [feature]" → delegate to `design/`, produces `[feature].md`
+- "Define the technical approach for [feature]" → delegate to `engineering/`, produces `[feature].md`
+- "Write test plans for [feature]" → delegate to `qa/`, produces `[feature].md`
+
+**Platform-specific variant:**
+- "Create the macOS design spec for [feature]" → delegate to `design/`, produces `[feature].macos.md`
+- "Define the macOS architecture for [feature]" → delegate to `engineering/`, produces `[feature].macos.md`
+- "Write macOS test plans for [feature]" → delegate to `qa/`, produces `[feature].macos.md`
+
+When delegating platform-specific work, tell the subagent which base spec to reference and what platform conventions to follow.
 
 ## Slug-Based IDs (Not Numbers)
 
@@ -112,6 +188,10 @@ Artifacts should reference each other using relative paths and requirement slugs
 - Code should include comments like `// Implements: FR-auth-email-login`
 - A test plan should reference: `See acceptance criteria in ../product/[feature].md` and cite specific `AC-` slugs
 
+**Platform-specific specs** should also reference their base spec:
+- A macOS design spec should reference: `See base design in ../design/[feature].md — this covers macOS divergences only`
+- A macOS engineering spec should reference both: `See base architecture in ../engineering/[feature].md` and `See macOS design in ../design/[feature].macos.md`
+
 This keeps everything traceable.
 
 ## The Cardinal Rule: Markdown First, Code Second
@@ -136,7 +216,7 @@ When the user asks for a change, the flow is:
 
 The following custom commands are available:
 
-- **`/kickoff [feature description]`** — Full feature kickoff. Automatically creates product spec → design spec → engineering spec → QA test plan → updates index, glossary, and pending decisions → runs review and consistency checks.
+- **`/kickoff [feature description]`** — Full feature kickoff. Determines target platform(s), then creates product spec → design spec → engineering spec → QA test plan (plus platform-specific variants as needed) → updates index, glossary, and pending decisions → runs review and consistency checks.
 - **`/impact [slug or feature]`** — Impact analysis. Reads `index.md` to report every artifact that would need to change if a requirement is modified.
 - **`/status`** — Project dashboard. Scans all folders and reports feature coverage, slug coverage, and traceability gaps.
 
@@ -191,3 +271,5 @@ This ensures `decisions.md` is only updated once per commit, keeping diffs clean
 - Always start with product requirements before moving to other functions, unless the user explicitly asks otherwise.
 - When updating one area, consider whether dependent areas need updates too. Flag this to the user.
 - Keep a consistent naming convention across folders for the same feature (e.g., `auth.md` in product, design, engineering, and qa all relate to the same feature).
+- For platform-specific variants, use the same base name with a platform suffix (e.g., `auth.macos.md` in product, design, engineering, and qa all relate to the macOS variant of the auth feature).
+- When a feature is being ported to a new platform, check `index.md` to find all existing specs and determine which need platform-specific variants.
