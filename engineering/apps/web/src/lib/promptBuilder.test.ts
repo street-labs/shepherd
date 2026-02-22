@@ -1,0 +1,233 @@
+import { describe, it, expect } from 'vitest';
+import { buildPrompt, buildDiffPrompt, formatDiffCommentLabel } from './promptBuilder';
+import type { Comment, FileInfo, DiffLine, DiffComment, DiffLineId, CollapsedSection } from '@/types';
+
+function makeFile(overrides: Partial<FileInfo> = {}): FileInfo {
+  return {
+    name: 'app.ts',
+    language: 'typescript',
+    content: 'line1\nline2\nline3\nline4\nline5',
+    lines: ['line1', 'line2', 'line3', 'line4', 'line5'],
+    ...overrides,
+  };
+}
+
+function makeComment(overrides: Partial<Comment> = {}): Comment {
+  return {
+    id: 'c1',
+    startLine: 1,
+    endLine: 1,
+    text: 'Fix this',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function makeDiffLineId(type: 'added' | 'removed' | 'context', oldLine: number | null, newLine: number | null): DiffLineId {
+  return { lineType: type, oldLine, newLine };
+}
+
+function makeDiffComment(overrides: Partial<DiffComment> = {}): DiffComment {
+  return {
+    id: 'dc1',
+    startLineId: makeDiffLineId('added', null, 5),
+    endLineId: makeDiffLineId('added', null, 5),
+    startIndex: 4,
+    endIndex: 4,
+    text: 'Diff comment',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function makeDiffLines(): DiffLine[] {
+  return [
+    { index: 0, type: 'context', oldLineNumber: 1, newLineNumber: 1, content: 'unchanged' },
+    { index: 1, type: 'context', oldLineNumber: 2, newLineNumber: 2, content: 'also unchanged' },
+    { index: 2, type: 'removed', oldLineNumber: 3, newLineNumber: null, content: 'old line' },
+    { index: 3, type: 'added', oldLineNumber: null, newLineNumber: 3, content: 'new line' },
+    { index: 4, type: 'added', oldLineNumber: null, newLineNumber: 4, content: 'another new' },
+    { index: 5, type: 'context', oldLineNumber: 4, newLineNumber: 5, content: 'trailing' },
+    { index: 6, type: 'context', oldLineNumber: 5, newLineNumber: 6, content: 'end' },
+  ];
+}
+
+// ─── buildPrompt ──────────────────────────────────────────────────
+
+describe('buildPrompt', () => {
+  it('includes Instructions section when preamble is non-empty', () => {
+    const result = buildPrompt(makeFile(), [makeComment()], 'Be concise');
+    expect(result).toContain('## Instructions');
+    expect(result).toContain('Be concise');
+  });
+
+  it('omits Instructions section when preamble is empty', () => {
+    const result = buildPrompt(makeFile(), [makeComment()], '');
+    expect(result).not.toContain('## Instructions');
+  });
+
+  it('omits Instructions section when preamble is whitespace', () => {
+    const result = buildPrompt(makeFile(), [makeComment()], '   \n  ');
+    expect(result).not.toContain('## Instructions');
+  });
+
+  it('includes File section with name and language', () => {
+    const result = buildPrompt(makeFile({ name: 'main.py', language: 'python' }), [makeComment()], '');
+    expect(result).toContain('## File: main.py (python)');
+  });
+
+  it('includes Review Feedback section', () => {
+    const result = buildPrompt(makeFile(), [makeComment()], '');
+    expect(result).toContain('## Review Feedback');
+  });
+
+  it('includes code snippet for each comment', () => {
+    const result = buildPrompt(makeFile(), [makeComment({ startLine: 2, endLine: 2, text: 'Check this' })], '');
+    expect(result).toContain('line2');
+    expect(result).toContain('Check this');
+  });
+
+  it('sorts comments by startLine then createdAt', () => {
+    const comments = [
+      makeComment({ id: 'c1', startLine: 3, text: 'Third', createdAt: '2026-01-01T00:00:00Z' }),
+      makeComment({ id: 'c2', startLine: 1, text: 'First', createdAt: '2026-01-01T00:00:00Z' }),
+      makeComment({ id: 'c3', startLine: 1, text: 'Second', createdAt: '2026-01-02T00:00:00Z' }),
+    ];
+    const result = buildPrompt(makeFile(), comments, '');
+    const firstIdx = result.indexOf('First');
+    const secondIdx = result.indexOf('Second');
+    const thirdIdx = result.indexOf('Third');
+    expect(firstIdx).toBeLessThan(secondIdx);
+    expect(secondIdx).toBeLessThan(thirdIdx);
+  });
+
+  it('handles single-line comments (startLine === endLine)', () => {
+    const result = buildPrompt(makeFile(), [makeComment({ startLine: 2, endLine: 2 })], '');
+    expect(result).toContain('line2');
+    expect(result).not.toContain('line3');
+  });
+
+  it('handles multi-line range comments', () => {
+    const result = buildPrompt(makeFile(), [makeComment({ startLine: 2, endLine: 4 })], '');
+    expect(result).toContain('line2');
+    expect(result).toContain('line3');
+    expect(result).toContain('line4');
+  });
+
+  it('preserves special characters in comment text', () => {
+    const result = buildPrompt(makeFile(), [makeComment({ text: 'Use `const` & <T> type' })], '');
+    expect(result).toContain('Use `const` & <T> type');
+  });
+
+  it('handles "Untitled" file name', () => {
+    const result = buildPrompt(makeFile({ name: 'Untitled' }), [makeComment()], '');
+    expect(result).toContain('## File: Untitled');
+  });
+});
+
+// ─── buildDiffPrompt ──────────────────────────────────────────────
+
+describe('buildDiffPrompt', () => {
+  const emptyCollapsed: CollapsedSection[] = [];
+  const emptyExpanded = new Set<number>();
+
+  it('includes "-- Diff View" in file heading', () => {
+    const result = buildDiffPrompt(makeFile(), makeDiffLines(), [makeDiffComment()], '', emptyCollapsed, emptyExpanded);
+    expect(result).toContain('-- Diff View');
+  });
+
+  it('prefixes added lines with +', () => {
+    const comment = makeDiffComment({ startIndex: 3, endIndex: 3 });
+    const result = buildDiffPrompt(makeFile(), makeDiffLines(), [comment], '', emptyCollapsed, emptyExpanded);
+    expect(result).toContain('+ new line');
+  });
+
+  it('prefixes removed lines with -', () => {
+    const comment = makeDiffComment({ startIndex: 2, endIndex: 2 });
+    const result = buildDiffPrompt(makeFile(), makeDiffLines(), [comment], '', emptyCollapsed, emptyExpanded);
+    expect(result).toContain('- old line');
+  });
+
+  it('prefixes context lines with space', () => {
+    const comment = makeDiffComment({ startIndex: 0, endIndex: 0 });
+    const result = buildDiffPrompt(makeFile(), makeDiffLines(), [comment], '', emptyCollapsed, emptyExpanded);
+    expect(result).toMatch(/ {2} unchanged/);
+  });
+
+  it('includes surrounding context lines around each comment', () => {
+    const comment = makeDiffComment({ startIndex: 3, endIndex: 3 });
+    const result = buildDiffPrompt(makeFile(), makeDiffLines(), [comment], '', emptyCollapsed, emptyExpanded);
+    // Context lines 2 before: index 1 and 2
+    expect(result).toContain('also unchanged');
+    expect(result).toContain('old line');
+    // Context lines 2 after: index 4 and 5
+    expect(result).toContain('another new');
+    expect(result).toContain('trailing');
+  });
+
+  it('sorts comments by startIndex', () => {
+    const comments = [
+      makeDiffComment({ id: 'dc2', startIndex: 4, endIndex: 4, text: 'Later' }),
+      makeDiffComment({ id: 'dc1', startIndex: 1, endIndex: 1, text: 'Earlier' }),
+    ];
+    const result = buildDiffPrompt(makeFile(), makeDiffLines(), comments, '', emptyCollapsed, emptyExpanded);
+    const earlierIdx = result.indexOf('Earlier');
+    const laterIdx = result.indexOf('Later');
+    expect(earlierIdx).toBeLessThan(laterIdx);
+  });
+
+  it('includes Instructions when preamble is non-empty', () => {
+    const result = buildDiffPrompt(makeFile(), makeDiffLines(), [makeDiffComment()], 'Review carefully', emptyCollapsed, emptyExpanded);
+    expect(result).toContain('## Instructions');
+    expect(result).toContain('Review carefully');
+  });
+
+  it('omits Instructions when preamble is empty', () => {
+    const result = buildDiffPrompt(makeFile(), makeDiffLines(), [makeDiffComment()], '', emptyCollapsed, emptyExpanded);
+    expect(result).not.toContain('## Instructions');
+  });
+});
+
+// ─── formatDiffCommentLabel ───────────────────────────────────────
+
+describe('formatDiffCommentLabel', () => {
+  it('labels a single added line as "Line +N"', () => {
+    const comment = makeDiffComment({
+      startLineId: makeDiffLineId('added', null, 5),
+      endLineId: makeDiffLineId('added', null, 5),
+      startIndex: 4,
+      endIndex: 4,
+    });
+    expect(formatDiffCommentLabel(comment)).toBe('Line +5');
+  });
+
+  it('labels a single removed line as "Line -N"', () => {
+    const comment = makeDiffComment({
+      startLineId: makeDiffLineId('removed', 3, null),
+      endLineId: makeDiffLineId('removed', 3, null),
+      startIndex: 2,
+      endIndex: 2,
+    });
+    expect(formatDiffCommentLabel(comment)).toBe('Line -3');
+  });
+
+  it('labels a single context line as "Line N"', () => {
+    const comment = makeDiffComment({
+      startLineId: makeDiffLineId('context', 1, 1),
+      endLineId: makeDiffLineId('context', 1, 1),
+      startIndex: 0,
+      endIndex: 0,
+    });
+    expect(formatDiffCommentLabel(comment)).toBe('Line 1');
+  });
+
+  it('labels a range of lines as "Lines X to Y"', () => {
+    const comment = makeDiffComment({
+      startLineId: makeDiffLineId('context', 1, 1),
+      endLineId: makeDiffLineId('added', null, 4),
+      startIndex: 0,
+      endIndex: 4,
+    });
+    expect(formatDiffCommentLabel(comment)).toBe('Lines 1 to +4');
+  });
+});

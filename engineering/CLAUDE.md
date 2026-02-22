@@ -72,6 +72,24 @@ Ordered steps to build this feature.
 - The specs in this folder are the source of truth for *how* the app is built. The code is the realization of those specs.
 - Code is maintained and checked in — it's not disposable. But it must always trace back to a spec.
 
+## Test Code
+
+Engineering writes automated tests based on QA test plans. Test files are co-located with source code. The pre-commit hook runs tests automatically when source files are staged.
+
+## QA Handoff
+
+After implementing a feature, signal readiness for QA execution. QA will run both automated and manual test plans and report any failures.
+
+## Responding to QA Failures
+
+When QA reports failures (referencing `TC-` slugs with observed vs expected behavior):
+1. Investigate the root cause
+2. If the fix changes architecture or behavior, update the relevant engineering spec first (cardinal rule: markdown -> code)
+3. Implement the fix
+4. Signal readiness for QA re-verification
+
+See the root `CLAUDE.md` "Engineering-QA Iteration Loop" section for the full process.
+
 ## Guidelines
 
 - Make decisions explicit. If you choose a library or pattern, document why.

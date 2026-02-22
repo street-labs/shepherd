@@ -20,6 +20,19 @@ When the user describes what they want to build, you break it down and delegate 
 3. **Engineering third** — Once design specs exist, create architecture/implementation docs in `engineering/` and eventually code. Reference both the product requirements and design specs.
 4. **QA throughout** — After requirements and design exist, create test plans in `qa/` that cover acceptance criteria. Update test plans as engineering work progresses.
 
+## The Engineering-QA Iteration Loop
+
+After engineering implements a feature, it enters a verification loop with QA:
+
+1. **QA executes tests** — automated and manual test cases. Results are recorded in the coverage matrix (Not started -> Pass/Fail).
+2. **QA reports failures** — for each failing test, QA documents the `TC-` slug, observed behavior, and expected behavior.
+3. **Engineering fixes** — engineers investigate failures and fix them. If the fix changes architecture or behavior, update the relevant markdown spec first (cardinal rule: markdown -> code).
+4. **QA re-verifies** — loop back to step 1 until all tests pass.
+5. **Design/Product final review** — design confirms the implementation matches the design spec, product confirms all acceptance criteria are met.
+6. **Definition of "done"** — all automated tests pass + QA manual verification complete + design sign-off + product sign-off.
+
+This loop runs after every feature implementation and after any significant bug fix.
+
 ## Delegation
 
 When delegating to a functional area, use the Task tool to spawn a subagent that operates within that subfolder. The subagent will pick up its own CLAUDE.md and produce artifacts there.
@@ -87,6 +100,7 @@ When the user asks for a change, the flow is:
 3. Update the engineering spec (if the technical approach changed)
 4. Update the QA test plan (if acceptance criteria changed)
 5. **Then** update the code to reflect all of the above
+6. **Run the QA iteration loop** — execute tests, fix failures, iterate until green, get design/product sign-off
 
 ## Slash Commands
 

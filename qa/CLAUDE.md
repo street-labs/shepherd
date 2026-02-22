@@ -61,6 +61,30 @@ Dedicated exploration of things that could go wrong.
 What existing functionality could this feature break?
 ```
 
+## Test Execution
+
+QA does not just write test plans — QA also executes them. Automated test code is written by engineering based on QA test plans, co-located with source code. QA runs the automated tests and executes manual test cases, then reports results.
+
+## Reporting Results
+
+After executing tests, update the coverage matrix status for each test case:
+- `Not started` -> `Pass` or `Fail`
+
+For failures, add a **Test Execution Results** subsection under the relevant test case:
+
+```markdown
+#### Test Execution Results
+- **Status**: Fail
+- **TC slug**: `TC-feature-slug`
+- **Observed**: [What actually happened]
+- **Expected**: [What should have happened]
+- **Notes**: [Any additional context]
+```
+
+## The Eng-QA Loop
+
+After reporting failures, hand off to engineering with the list of failing `TC-` slugs and observed vs expected behavior. After engineering fixes the issues, re-verify by running the tests again. Loop until all tests pass. See the root `CLAUDE.md` "Engineering-QA Iteration Loop" section for the full process.
+
 ## Guidelines
 
 - Every acceptance criterion in the product spec must have at least one test case.

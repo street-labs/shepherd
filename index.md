@@ -18,7 +18,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-crp-file-load`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-load-paste-happy`, `TC-crp-load-upload-happy`, `TC-crp-load-drag-drop-happy`
 
 ### `FR-crp-file-display`
@@ -30,25 +30,25 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-crp-syntax-highlight`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/languageDetect.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-syntax-highlight-typescript`, `TC-crp-syntax-highlight-unknown-fallback`
 
 ### `FR-crp-line-comment-create`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-add-comment-single-line-happy`, `TC-crp-add-comment-line-range-happy`, `TC-crp-edge-multiple-comments-same-line`, `TC-crp-edge-very-long-comment-text`, `TC-crp-edge-rapid-successive-comments`
 
 ### `FR-crp-line-comment-edit`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-edit-comment-happy`, `TC-crp-edit-comment-stays-on-line`
 
 ### `FR-crp-line-comment-delete`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-delete-comment-happy`, `TC-crp-delete-comment-gutter-clears`, `TC-crp-delete-comment-count-decrements`
 
 ### `FR-crp-comment-indicator`
@@ -66,13 +66,13 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-crp-prompt-preamble`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`
 
 ### `FR-crp-prompt-generate`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-no-comments-disabled`, `TC-crp-edge-prompt-gen-performance`
 
 ### `FR-crp-prompt-preview`
@@ -84,19 +84,19 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-crp-prompt-copy`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/clipboard.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-copy-clipboard-happy`, `TC-crp-copy-clipboard-toast`, `TC-crp-edge-clipboard-permission-denied`
 
 ### `FR-crp-prompt-format`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`, `TC-crp-generate-prompt-structure-line-order`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-edge-special-characters-in-comments`, `TC-crp-edge-untitled-file-prompt`
 
 ### `FR-crp-clear-session`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-clear-confirmation-shows-dialog`, `TC-crp-clear-confirmation-cancel-preserves`, `TC-crp-clear-confirmation-confirm-clears`, `TC-crp-clear-no-confirm-empty-happy`
 
 ### `FR-crp-filename-display`
@@ -114,7 +114,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-crp-comment-navigation`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-navigation-next-happy`, `TC-crp-comment-navigation-prev-happy`, `TC-crp-comment-navigation-wrap-around`
 
 ### `NFR-crp-large-file-perf`
@@ -216,7 +216,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `AC-crp-generate-prompt-structure`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`, `TC-crp-generate-prompt-structure-line-order`
 
 ### `AC-crp-generate-prompt-no-comments`
@@ -228,7 +228,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `AC-crp-copy-clipboard`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/clipboard.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-copy-clipboard-happy`, `TC-crp-copy-clipboard-toast`, `TC-crp-edge-clipboard-permission-denied`
 
 ### `AC-crp-preview-matches-copy`
@@ -276,7 +276,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `AC-crp-binary-file-rejected`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/binaryDetect.test.ts`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-binary-file-rejected-upload`, `TC-crp-binary-file-rejected-drag-drop`, `TC-crp-binary-file-rejected-no-crash`
 
 ### `FR-sc-invoke-command`
@@ -456,7 +456,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-diff-mode-toggle`
 - **Defined in**: `product/diff-view.md`
 - **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-keyboard-toggle-modes`
 
 ### `FR-diff-mode-availability`
@@ -474,7 +474,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-diff-compute`
 - **Defined in**: `product/diff-view.md`
 - **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
 - **QA**: `qa/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`, `TC-diff-compute-all-removed`, `TC-diff-compute-every-line-changed`, `TC-diff-compute-no-newline-at-end`, `TC-diff-compute-performance-10k`
 
 ### `FR-diff-display`
@@ -486,19 +486,19 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-diff-collapse`
 - **Defined in**: `product/diff-view.md`
 - **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
 - **QA**: `qa/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`, `TC-diff-no-git-history-no-collapse`
 
 ### `FR-diff-expand`
 - **Defined in**: `product/diff-view.md`
 - **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-expand-then-comment-happy`, `TC-diff-keyboard-expand-section`
 
 ### `FR-diff-comment-create`
 - **Defined in**: `product/diff-view.md`
 - **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/store/appStore.test.ts`
 - **QA**: `qa/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`, `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`, `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`, `TC-diff-keyboard-add-comment`
 
 ### `FR-diff-comment-on-range`
@@ -510,7 +510,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-diff-prompt-format`
 - **Defined in**: `product/diff-view.md`
 - **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
 - **QA**: `qa/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
 
 ### `FR-diff-empty-state`
@@ -528,7 +528,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `NFR-diff-compute-perf`
 - **Defined in**: `product/diff-view.md`
 - **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
 - **QA**: `qa/diff-view.md` -> `TC-diff-compute-performance-10k`, `TC-diff-compute-perf-large-file`, `TC-diff-compute-every-line-changed`
 
 ### `NFR-diff-render-perf`
@@ -600,7 +600,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `AC-diff-prompt-includes-diff`
 - **Defined in**: `product/diff-view.md`
 - **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
+- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
 - **QA**: `qa/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
 
 ### `AC-diff-no-git-history`

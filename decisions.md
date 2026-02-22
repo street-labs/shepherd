@@ -100,6 +100,14 @@ Append-only record of key decisions made during this project. Newest entries at 
 **Consequences**: The `/api/file/head` endpoint runs `git show HEAD:<path>`. If the file is untracked (no HEAD version), all lines show as additions. More baseline options can be added by extending the API endpoint.
 **Slug references**: `FR-diff-baseline-fetch`, `AC-diff-no-git-history`
 
+## 2026-02-21 -- Formalize the engineering-QA iteration loop
+**Context**: Bugs have been found manually through iteration rather than caught systematically. The project has 130+ test cases defined in QA test plans and the test toolchain is installed (Vitest, RTL, Playwright), but zero test code exists. The process is linear with no documented feedback loop between engineering and QA, and no design/product sign-off step.
+**Decision**: Formalize a structured iteration loop: QA executes tests and reports failures with TC- slugs and observed vs expected behavior, engineering fixes (updating specs first if the fix changes architecture), QA re-verifies, and the loop continues until all tests pass. Add a design/product final review gate before a feature is considered "done". Extend the pre-commit hook to run unit tests when .ts/.tsx files are staged. Write automated unit, integration, and E2E tests based on existing QA test plans.
+**Alternatives considered**: Continue with ad-hoc manual testing (does not scale), add a CI pipeline (premature — no tests exist yet to run), hire a QA person (this is a process problem, not a people problem).
+**Rationale**: Test plans without test code provide no automated safety net. A documented iteration loop ensures bugs are caught systematically, fixes are verified, and features meet their acceptance criteria before sign-off. Co-locating tests with source and running them on pre-commit creates a fast feedback loop.
+**Consequences**: Engineering must write test code alongside feature code. QA must execute tests and report results, not just write plans. The pre-commit hook now also runs Vitest when TypeScript files change. All four agents (product, design, engineering, QA) participate in the sign-off process.
+**Slug references**: All existing `TC-` slugs, `AC-crp-*`, `AC-diff-*`, `FR-crp-*`, `FR-diff-*`
+
 <!--
 Entry template:
 
