@@ -2,6 +2,8 @@
 
 Append-only record of key decisions made during this project. Newest entries at the bottom.
 
+This log provides **historical context for how the project evolved** — why choices were made, what alternatives were considered, and what changed over time. While specs are living documents that reflect current state, this log preserves the reasoning trail. When you read the specs and wonder "why is it done this way?", the answer should be here.
+
 **Do not edit or delete past entries.** If a decision is reversed, add a new entry that references the original.
 
 ## 2026-02-20 -- Use Vite as the build tool

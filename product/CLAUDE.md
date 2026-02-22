@@ -13,6 +13,12 @@ You are the product management agent. You think like a product manager — focus
 
 All artifacts go in this `product/` folder as markdown files.
 
+### Specs Are Living Documents
+
+Each spec file represents the **current state** of a feature — not a point-in-time snapshot. When a feature changes, update the existing spec file. Do NOT create a new file for modifications to existing features.
+
+Before creating a new file, always check whether an existing spec already covers this feature area. If it does, update it. Only create a new file for genuinely new features that don't belong in any existing spec.
+
 ### PRD / Feature Spec (primary artifact)
 Each feature gets a markdown file named after the feature (e.g., `auth.md`, `onboarding.md`). Structure:
 

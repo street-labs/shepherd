@@ -11,14 +11,44 @@ You are the coordinator agent for this project. Your job is to orchestrate work 
 | `engineering/` | Engineering | Architecture docs, tech decisions, implementation plans, source code |
 | `qa/` | Quality Assurance | Test plans, test cases, coverage matrices, bug reports |
 
+## Specs Are Living Documents
+
+**Each spec file represents the current (or planned) state of a feature.** Specs are not append-only logs — they are living documents that evolve as the product evolves.
+
+When a user requests a change to an existing feature:
+- **Update the existing spec file.** Do not create a new file.
+- Think of it like editing a wiki page, not writing a new blog post.
+- The goal is that at any point, reading a spec tells you what the feature *is*, not the history of how it got there.
+
+Only create a new spec file when the request describes a **genuinely new feature** that doesn't belong in any existing spec.
+
+Before starting work on any request, always scan existing specs in `product/` to see if there's already a file that covers this area.
+
 ## How Coordination Works
 
-When the user describes what they want to build, you break it down and delegate to the appropriate functions. The general flow is:
+When the user describes what they want to build, you break it down and delegate to the appropriate functions.
 
-1. **Product first** — Translate user intent into structured requirements in `product/`. Every feature starts here.
-2. **Design second** — Once requirements exist, create design specs in `design/` that satisfy them. Reference the specific product docs being designed for.
-3. **Engineering third** — Once design specs exist, create architecture/implementation docs in `engineering/` and eventually code. Reference both the product requirements and design specs.
-4. **QA throughout** — After requirements and design exist, create test plans in `qa/` that cover acceptance criteria. Update test plans as engineering work progresses.
+### Ordering: Sequential Specs, Then Parallel Where Possible
+
+The delegation order matters because each step depends on upstream outputs:
+
+1. **Product first** — Translate user intent into structured requirements in `product/`. Everything downstream depends on this.
+2. **Design second** — Once product requirements are **complete and verified**, create design specs in `design/`. Engineering needs the finalized design to make technical decisions.
+3. **Engineering spec + QA test plan in parallel** — Once the design spec is **complete**, these two can run at the same time. The engineering agent creates the technical architecture, while the QA agent writes test plans based on the product requirements and design spec. Both read from product + design; neither depends on the other at the *spec* level.
+4. **Implementation is sequential** — When it's time to write actual code, engineering implements first, then QA writes and runs tests against the implementation. You can't test code that doesn't exist yet.
+
+**Never run product and design in parallel. Never run design and engineering in parallel. But engineering specs and QA test plans CAN be written in parallel since both depend on the same upstream inputs (product + design).**
+
+### Not Everything Needs All Four Areas
+
+Before delegating, assess which functional areas are actually relevant:
+
+- A **new user-facing feature** needs all four: product → design → engineering → QA.
+- A **UX change** probably needs design → engineering → QA, and maybe a product update if requirements changed.
+- A **technical improvement** (performance, refactoring, tech debt) primarily needs engineering, possibly a product NFR, and QA for verification. It probably does NOT need a design spec.
+- A **bug fix** needs engineering and QA. Only touch product or design if the spec was actually wrong.
+
+Don't create artifacts just to check boxes. If a design spec for "make the app launch faster" would just say "N/A — no visual changes," skip it and explain why.
 
 ## The Engineering-QA Iteration Loop
 
@@ -140,7 +170,7 @@ Invoke the consistency checker periodically, or as part of `/kickoff`.
 |---|---|
 | `index.md` | Traceability index — maps every slug to all references |
 | `glossary.md` | Shared vocabulary — all agents must use consistent terminology |
-| `decisions.md` | Append-only decision log — records key decisions and rationale |
+| `decisions.md` | Append-only decision log — records key decisions and rationale. Provides historical context for how the project evolved (specs show current state; this shows *why*) |
 
 All agents should consult `glossary.md` before introducing new terms and log significant decisions to `decisions.md`.
 

@@ -1,49 +1,128 @@
 # Kickoff: $ARGUMENTS
 
-You are kicking off a new feature. The user has described what they want as: **$ARGUMENTS**
+The user has described what they want: **$ARGUMENTS**
 
-Follow this sequence exactly. Each step depends on the previous one.
+Follow this sequence exactly. Steps are sequential unless noted otherwise.
+
+---
+
+## Step 0: Triage — Decide What's Needed
+
+Before doing anything, analyze the request and decide:
+
+### A) Which existing spec does this belong to?
+
+Read the files in `product/` (excluding CLAUDE.md) to see what specs already exist. Determine whether this request:
+- **Modifies an existing feature** → Update the existing spec file(s). Do NOT create a new file.
+- **Adds a genuinely new feature** → Create a new spec file only if this is truly a distinct feature that doesn't belong in any existing spec.
+
+Specs are **living documents** that represent the product as it is (or will be). Think of each spec as the single source of truth for that feature area. Modifications, enhancements, and refinements go into the existing spec — they do not spawn new files.
+
+### B) Which functional areas are actually needed?
+
+Not every request requires all four areas. Decide which are relevant:
+
+| Request type | Product | Design | Engineering | QA |
+|---|---|---|---|---|
+| New user-facing feature | Yes | Yes | Yes | Yes |
+| UX/UI change to existing feature | Maybe (if requirements change) | Yes | Yes | Yes |
+| Technical/performance improvement | Maybe (add NFR if needed) | No (unless UX is affected) | Yes | Yes (performance tests) |
+| Bug fix | No (unless requirements were wrong) | No (unless design was wrong) | Yes | Yes |
+| Refactoring / tech debt | No | No | Yes | Maybe |
+
+**Be honest about what's needed.** A request like "make it launch faster" is primarily an engineering concern. Product might add a brief NFR ("app should launch within Xms"), but it doesn't need a design spec. Don't create artifacts just to check boxes.
+
+Announce your triage decision to the user before proceeding:
+- Which spec file(s) will be created or updated
+- Which functional areas will be involved and why
+- Which functional areas are being skipped and why
+
+---
 
 ## Step 1: Product Requirements
 
-Delegate to the product agent (operating in `product/`). Have it create a PRD markdown file for this feature based on the user's description. The file should follow the template in `product/CLAUDE.md`.
+**Only if triage determined product work is needed.**
+
+Delegate to the product agent (operating in `product/`). Be explicit about whether this is a **new spec** or an **update to an existing spec**:
+
+- **Updating an existing spec**: Tell the agent which file to update, what sections need changes, and what to add/modify. The agent should read the existing file first and make targeted edits — not rewrite the whole file.
+- **New spec**: Have it create a new PRD markdown file following the template in `product/CLAUDE.md`.
 
 Ensure all requirement slugs follow the format: `FR-<feature>-<slug>`, `NFR-<feature>-<slug>`, `AC-<feature>-<slug>`
 
 Before moving on, read back the product spec and verify it's complete. If the user's description was vague, the product agent should list open questions — present those to the user and resolve them before continuing.
 
+**Do not proceed to Step 2 until this step is fully complete and verified.**
+
+---
+
 ## Step 2: Design Spec
 
-Read the product spec created in Step 1. Delegate to the design agent (operating in `design/`) to create a design spec that addresses every requirement and user story. The file should follow the template in `design/CLAUDE.md` and reference specific requirement slugs.
+**Only if triage determined design work is needed. Wait for Step 1 to complete first.**
 
-## Step 3: Engineering Spec
+Read the product spec from Step 1 (or the existing product spec if Step 1 was skipped). Delegate to the design agent (operating in `design/`):
 
-Read both the product spec and design spec. Delegate to the engineering agent (operating in `engineering/`) to create a technical spec. The file should follow the template in `engineering/CLAUDE.md` and reference specific requirement slugs and design components.
+- **Updating an existing spec**: Tell the agent which file to update and what changed in the product spec. The agent should make targeted updates — not rewrite.
+- **New spec**: Have it create a design spec following `design/CLAUDE.md`.
+
+The design spec must address every requirement and user story. Reference specific requirement slugs.
+
+**Do not proceed to Step 3 until this step is fully complete.**
+
+---
+
+## Step 3: Engineering Spec + QA Test Plan (parallel)
+
+**Wait for Step 2 to complete first (or Step 1 if design was skipped).**
+
+These two can run **in parallel** because both depend on the same upstream inputs (product spec + design spec) and neither depends on the other at the spec level.
+
+### Engineering Spec
+
+Read the product spec and design spec (whichever exist). Delegate to the engineering agent (operating in `engineering/`):
+
+- **Updating an existing spec**: Tell the agent which file to update, what changed upstream, and what technical approach needs revisiting.
+- **New spec**: Have it create a technical spec following `engineering/CLAUDE.md`.
 
 Do NOT write code at this stage — only the technical spec.
 
-## Step 4: QA Test Plan
+### QA Test Plan
 
-Read the product spec, design spec, and engineering spec. Delegate to the QA agent (operating in `qa/`) to create a test plan with test cases covering every acceptance criterion. The file should follow the template in `qa/CLAUDE.md` and reference specific slugs.
+**Only if triage determined QA work is needed.**
 
-## Step 5: Update Traceability Index
+Read the product spec and design spec. Delegate to the QA agent (operating in `qa/`):
 
-Update `index.md` at the project root. Add an entry for every slug defined in the product spec, linking to where it's referenced in design, engineering, and QA specs.
+- **Updating an existing test plan**: Tell the agent which file to update, what changed, and which test cases need adding/modifying.
+- **New test plan**: Have it create a test plan following `qa/CLAUDE.md`.
 
-## Step 6: Update Glossary
+Test cases must cover every acceptance criterion. Reference specific slugs.
 
-Review the artifacts created. If any new domain terms were introduced, add them to `glossary.md`.
+**Note:** When it later comes time to *implement* (write actual code and tests), that must be sequential — engineering implements first, then QA writes/runs tests against the implementation. But at the spec-writing stage, they can work simultaneously.
 
-## Step 7: Log Decisions
+---
+
+## Step 4: Update Traceability Index
+
+Update `index.md` at the project root. For any new slugs, add entries linking to all referencing files. For modified slugs, update the references.
+
+## Step 5: Update Glossary
+
+Review the artifacts created or modified. If any new domain terms were introduced, add them to `glossary.md`.
+
+## Step 6: Log Decisions
 
 If any significant decisions were made during this kickoff (technology choices, scope decisions, design patterns), append them to `decisions.md`.
 
-## Step 8: Review
+## Step 7: Review
 
-Run the reviewer pass: read all four artifacts together and check for gaps, inconsistencies, or mismatches between them. Report any issues found.
+Run the reviewer pass: read all artifacts that were created or modified and check for gaps, inconsistencies, or mismatches between them. Report any issues found.
 
-Run the consistency pass: check that terminology is consistent across all four artifacts and matches `glossary.md`.
+Run the consistency pass: check that terminology is consistent across all artifacts and matches `glossary.md`.
 
 Run `./scripts/audit-traceability.sh` to verify the index is correct.
 
-Present a summary to the user of what was created.
+Present a summary to the user:
+- What was **created** (new files)
+- What was **updated** (existing files, with a summary of changes)
+- What was **skipped** and why
+- Any issues found during review
