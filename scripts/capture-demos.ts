@@ -85,13 +85,14 @@ export function Greeting({ name, count = 0 }: Props) {
     await page.getByRole('rowheader', { name: 'Line 3 gutter' }).click();
     await page.getByPlaceholder('Add your comment...').fill('Consider making this a generic type parameter instead of a concrete interface');
     await page.getByRole('button', { name: 'Add' }).click();
-    await expect(page.getByText('Consider making this')).toBeVisible();
+    // Wait for the comment to appear in the code viewer (not the prompt preview)
+    await expect(page.getByRole('grid').getByText('Consider making this')).toBeVisible();
 
     // Add a comment on line 10
     await page.getByRole('rowheader', { name: 'Line 10 gutter' }).click();
     await page.getByPlaceholder('Add your comment...').fill('The initial state should come from props, not be hardcoded');
     await page.getByRole('button', { name: 'Add' }).click();
-    await expect(page.getByText('The initial state')).toBeVisible();
+    await expect(page.getByRole('grid').getByText('The initial state')).toBeVisible();
 
     await page.screenshot({ path: path.join(DEMOS_DIR, '03-with-comments.png'), fullPage: false });
   });
@@ -112,13 +113,12 @@ export function multiply(a: number, b: number) {
     await expect(page.getByRole('grid', { name: 'Code viewer' })).toBeVisible();
     await page.waitForTimeout(500);
 
-    // Add a comment
+    // Add a comment — prompt auto-generates on change
     await page.getByRole('rowheader', { name: 'Line 1 gutter' }).click();
     await page.getByPlaceholder('Add your comment...').fill('Add input validation for NaN and Infinity');
     await page.getByRole('button', { name: 'Add' }).click();
 
-    // Generate prompt
-    await page.getByRole('button', { name: 'Generate' }).click();
+    // Wait for auto-generated prompt to appear in preview
     await expect(page.locator('pre')).toBeVisible();
 
     await page.screenshot({ path: path.join(DEMOS_DIR, '04-prompt-generated.png'), fullPage: false });
