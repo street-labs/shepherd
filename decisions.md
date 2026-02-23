@@ -277,6 +277,35 @@ This log provides **historical context for how the project evolved** — why cho
 - **Alternatives considered**: (1) Keep sequential iteration but add a "batch mode" flag. Rejected: two modes adds complexity and the sequential mode has no clear advantage. (2) Open files via a file list API endpoint. Rejected: URL parameters are simpler and don't require new server infrastructure.
 - **Affects**: `product/shepherd-review.md`, `design/shepherd-review.md`, `engineering/shepherd-review.md`, `qa/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `scripts/shepherd-launch.sh`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
 
+## 2026-02-23 -- Context display location: collapsible panel above code viewer
+**Context**: The review context (neutral + review feedback) needs a place in the CRPG layout.
+**Decision**: Use a collapsible panel between the file tab bar and the code viewer, rather than a sidebar panel or overlay.
+**Alternatives considered**: Sidebar panel (would compete with the existing preamble/prompt preview), overlay/modal (would obscure the code the user is reviewing), inline annotations per-line (too granular for changeset-level and file-level context).
+**Rationale**: A horizontal panel above the code viewer is naturally glanceable without leaving the code. Collapsible so it doesn't permanently consume vertical space. Sidebar would compete with the existing preamble/prompt preview. Overlay would obscure code.
+**Consequences**: The layout gains a new vertical region between the tab bar and code viewer. The panel must handle two levels of content: overall changeset context (always visible) and per-file context (switches with tabs). Collapse state should be preserved per session.
+**Slug references**: `FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`
+## 2026-02-23 -- Context data transport: JSON file at ~/.shepherd/review-context.json
+**Context**: The agent needs to pass structured context data to the CRPG.
+**Decision**: Write a JSON file to `~/.shepherd/review-context.json`, read by the CRPG via `GET /api/review-context`.
+**Alternatives considered**: URL query parameters (length limits for structured data), WebSocket/SSE (adds real-time infrastructure for a one-shot data transfer), embedding context in the launch script arguments (too large for command-line arguments).
+**Rationale**: Consistent with the existing `prompt-output.md` file-based handoff pattern. Avoids URL length limits. The JSON structure preserves the neutral/review distinction and per-file keying.
+**Consequences**: The agent writes the JSON file before invoking the launcher script. The CRPG reads it on startup via the file-serving API. The file is cleaned up after reading. The JSON schema must be documented in the engineering spec.
+**Slug references**: `FR-sr-context-handoff`, `FR-crp-review-context-receive`
+## 2026-02-23 -- Remove confirmation prompt before CRPG launch
+**Context**: The current flow asks "Ready to start? Say 'go' to begin" before opening the CRPG.
+**Decision**: Remove the confirmation prompt entirely. Auto-open the CRPG immediately after changeset analysis.
+**Alternatives considered**: Keep the confirmation (provides a pause point), replace with a countdown timer (still adds delay).
+**Rationale**: The user invoked `/shepherd-review`, so intent to review is established. The confirmation step adds a round-trip interaction with no value. Getting the user into the CRPG faster is strictly better.
+**Consequences**: The command flow goes directly from changeset overview to CRPG launch. One fewer user interaction step. The agent no longer needs to parse user confirmation input.
+**Slug references**: `AC-sr-auto-open`, `FR-sr-iteration-loop`
+## 2026-02-23 -- Visual distinction: blue for neutral context, violet for review feedback
+**Context**: The two types of context content need to be visually distinguishable.
+**Decision**: Use blue tones (left border, icon) for neutral context ("What Changed") and violet tones (left border, background tint, icon) for review feedback ("Agent Review").
+**Alternatives considered**: Single color with different icons only (weaker distinction), cards with different backgrounds only (insufficient for colorblind users), collapsible sections without color (relies entirely on labels).
+**Rationale**: Color differentiation plus label differentiation plus icon differentiation provides a 4-layer visual distinction that works for colorblind users (via label and icon) and sighted users (via color). Blue and violet are thematically appropriate — blue for informational/factual, violet for AI-generated/subjective.
+**Consequences**: The design system gains two new color token sets (neutral-context and review-feedback). Both light and dark mode need appropriate tones. The distinction must be documented in the glossary.
+**Slug references**: `AC-crp-context-neutral-vs-review`, `FR-crp-review-context-display`
+
 <!--
 Entry template:
 

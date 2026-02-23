@@ -4,9 +4,9 @@
 
 ## Overview
 
-This spec defines the conversational user experience for the `/shepherd-review` slash command. Unlike other design specs in this project that describe web UI screens and components, this spec describes a text-based interaction that takes place entirely within an AI coding agent conversation (Claude Code). The agent outputs formatted plain text, prompts the user for input at defined points, and invokes `shepherd-launch.sh` with all reviewable file paths to open a single CRPG browser session with every file loaded as a tab.
+This spec defines the conversational user experience for the `/shepherd-review` slash command. Unlike other design specs in this project that describe web UI screens and components, this spec describes a text-based interaction that takes place within an AI coding agent conversation (Claude Code) plus a data handoff to the CRPG browser experience. The agent discovers the changeset, generates structured review context (neutral + review feedback, at both overall and per-file levels), displays a brief summary in the conversation, and immediately auto-opens `shepherd-launch.sh` with all reviewable file paths and the structured context data to open a single CRPG browser session with every file loaded as a tab.
 
-There is no new web UI. The "interface" is the sequence of text messages exchanged between the agent and the user in the agent conversation, plus the existing CRPG browser experience (now batch-opened with all reviewable files as tabs). The user controls the review entirely within the CRPG -- navigating tabs freely, adding comments on whichever files they choose, and clicking "Done" once to produce a unified multi-file prompt.
+The agent conversation is minimal -- it shows a brief summary (scope, file count, exclusion count) and handles the post-review feedback handoff. The detailed context and review feedback are displayed in the CRPG alongside the diffs, not in the conversation. The user controls the review entirely within the CRPG -- navigating tabs freely, reading context and feedback alongside each diff, adding comments on whichever files they choose, and clicking "Done" once to produce a unified multi-file prompt.
 
 ---
 
@@ -14,10 +14,10 @@ There is no new web UI. The "interface" is the sequence of text messages exchang
 
 | Surface | Role |
 |---|---|
-| **Agent conversation (Claude Code)** | Primary surface. All file discovery, filtering, changeset overview, list display, launch confirmation, and summary messages appear here as plain text. |
-| **CRPG web app (browser)** | Secondary surface. Invoked once for all reviewable files -- each file appears as a tab. The user navigates tabs freely, adds comments, and clicks "Done" to generate a unified multi-file prompt. The CRPG's existing multi-file support is unchanged; this spec does not modify it. |
+| **Agent conversation (Claude Code)** | Orchestration surface. Displays a brief summary (scope, file count, exclusion count) and auto-opens the CRPG. Also handles the post-review feedback handoff (completion summary and action menu). The detailed changeset overview, per-file context, and review feedback are NOT displayed here. |
+| **CRPG web app (browser)** | Primary review surface. Invoked once for all reviewable files -- each file appears as a tab. Displays structured context data: overall neutral context and review feedback at the session level, plus per-file neutral context and review feedback alongside each diff. The user navigates tabs freely, adds comments, and clicks "Done" to generate a unified multi-file prompt. |
 
-The agent conversation is the orchestration layer. The CRPG is the review tool for all files in a single session. This spec covers only the orchestration layer.
+The agent conversation is the orchestration layer -- it discovers the changeset, generates context, and handles feedback. The CRPG is the review tool where context, code, and feedback converge. This spec covers the orchestration layer and the data handoff to the CRPG (`FR-sr-context-handoff`).
 
 ---
 
@@ -51,43 +51,36 @@ The command is implemented as a Claude Code custom command file at `.claude/comm
 
 All output is plain text rendered in the agent conversation. No emoji, no ANSI escape codes, no color codes, no rich formatting beyond what the agent conversation natively supports (plain text, code blocks). Every message the agent produces is specified below with exact wording.
 
-### File List Display (`FR-sr-file-list-display`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`, `FR-sr-priority-ordering`, `AC-sr-sorted-file-list`)
+### Conversation Summary Display (`FR-sr-file-list-display`, `AC-sr-auto-open`)
 
-After changeset detection, filtering, and priority sorting, the agent displays the file list in this exact format:
+After changeset detection, filtering, priority sorting, and context generation, the agent displays a brief summary in the conversation and immediately auto-opens the CRPG. The conversation summary uses this exact format:
 
 ```
 Reviewing: <scope-label>
 
-<changeset-overview-paragraph>
-
-Found <N> files to review.
-
-  1. <relative-path>  [<change-type>]
-     <per-file-context-summary>
-  2. <relative-path>  [<change-type>]
-     <per-file-context-summary>
-  3. <relative-path>  [<change-type>]
-     <per-file-context-summary>
-  ...
-
+Opening <N> files for review.
 <M> files excluded (lockfiles, generated, binary).
-
-Ready to start? Say "go" to begin, or "quit" to cancel.
 ```
 
 Field definitions:
 
 - `<scope-label>` -- one of: `all changes vs main` (default, no argument), `staged changes only` (`--staged`), or `unstaged changes only` (`--unstaged`).
-- `<changeset-overview-paragraph>` -- a brief (2-4 sentence) summary of the overall changeset derived from reading the diffs (`FR-sr-changeset-overview`). Describes the theme or purpose of the changes to orient the reviewer before they dive in.
 - `<N>` -- the count of files that passed filtering. Always a positive integer in this format (the zero case is handled separately).
-- `<relative-path>` -- the file path relative to the repository root. Uses forward slashes on all platforms. Sorted by review priority (`FR-sr-priority-ordering`, `AC-sr-sorted-file-list`).
-- `<per-file-context-summary>` -- a brief (1-2 sentence) summary for each file describing what changed (`FR-sr-per-file-context`). Indented under the file path. Mentions specific function names, sections, or structural changes derived from the diff. This context is presented upfront because all files open simultaneously -- there is no per-file announcement moment.
-- `<change-type>` -- one of `modified`, `added`, or `renamed`. Displayed in square brackets after two spaces. For renamed files, the format is `renamed from <old-path>` (addressing Open Question 7 from the product spec).
-- Position numbers are right-aligned to the width of the largest number. For 1-9 files, no padding is needed. For 10-99 files, single-digit numbers are padded with a leading space. For example, with 12 files: ` 1.` through `12.`.
 - The exclusion line appears only if `<M>` is greater than zero. If no files were excluded, this line is omitted.
-- A blank line separates each major section: scope label, overview paragraph, count line, numbered list, exclusion line, and prompt.
+- A blank line separates the scope label from the file count line.
 
-**Sorting rules -- Priority Ordering** (`FR-sr-priority-ordering`):
+The detailed changeset overview, numbered file list, per-file context summaries, and review feedback are NOT displayed in the conversation. That information is passed as structured data to the CRPG (`FR-sr-context-handoff`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`) where it appears alongside the diffs in the tool UI (see "Context Handoff to CRPG" section below). There is no "Ready to start?" prompt -- the CRPG opens automatically after this summary (`AC-sr-auto-open`).
+
+Example: given `src/utils.ts` (modified), `src/app.tsx` (modified), `vitest.config.ts` (modified), `README.md` (modified), `tests/utils.test.ts` (added), with 2 binary files filtered out:
+
+```
+Reviewing: all changes vs main
+
+Opening 5 files for review.
+2 files excluded (lockfiles, generated, binary).
+```
+
+**Sorting rules -- Priority Ordering** (`FR-sr-priority-ordering`, `AC-sr-sorted-file-list`):
 
 Files are sorted by review importance, not alphabetically. The ordering uses a tier-based heuristic:
 
@@ -97,31 +90,7 @@ Files are sorted by review importance, not alphabetically. The ordering uses a t
 4. **Tier 4 -- Supporting files**: Indexes, glossaries, changelogs.
 5. **Tier 5 -- Test files**: Test files are least urgent for manual review since they can be verified by running them.
 
-Within each tier, files with larger or more significant changes rank higher. The goal is that the reviewer sees the most impactful files first and can focus attention where it matters most. The CRPG tab order matches this priority order.
-
-Example: given `src/utils.ts` (modified, 45 lines changed), `src/app.tsx` (modified, 120 lines changed), `vitest.config.ts` (modified, 5 lines changed), `README.md` (modified, 10 lines changed), `tests/utils.test.ts` (added, 80 lines changed), the sorted order is:
-
-```
-Reviewing: all changes vs main
-
-This changeset adds utility functions and updates the main app component
-to use them. Configuration and documentation are updated to match.
-
-Found 5 files to review.
-
-  1. src/app.tsx                        [modified]
-     Refactored the main component to use the new utility helpers.
-  2. src/utils.ts                       [modified]
-     Added formatDate and parseQuery helper functions.
-  3. vitest.config.ts                   [modified]
-     Added path alias for the new utils module.
-  4. README.md                          [modified]
-     Updated usage section to document the new utility functions.
-  5. tests/utils.test.ts                [added]
-     New test suite covering formatDate and parseQuery.
-
-Ready to start? Say "go" to begin, or "quit" to cancel.
-```
+Within each tier, files with larger or more significant changes rank higher. The goal is that the reviewer sees the most impactful files first and can focus attention where it matters most. The CRPG tab order matches this priority order. Although the priority ordering is not visible in the brief conversation summary, it determines the tab order in the CRPG.
 
 ### Completion Summary Format (`FR-sr-completion-summary`, `FR-sr-feedback-collection`, `AC-sr-completion-summary`)
 
@@ -215,7 +184,7 @@ No reviewable files found. All <N> changed files were filtered out (lockfiles, g
 
 ## Interaction Flows
 
-### Flow 1: Happy Path -- Batch Open Review (`AC-sr-happy-path`, `AC-sr-batch-open`)
+### Flow 1: Happy Path -- Batch Open Review (`AC-sr-happy-path`, `AC-sr-batch-open`, `AC-sr-auto-open`)
 
 This flow covers a complete review session from command invocation through feedback handoff.
 
@@ -227,18 +196,16 @@ This flow covers a complete review session from command invocation through feedb
 6. Agent removes deleted files from the list (`AC-sr-excludes-deleted`).
 7. Agent applies the filtering rules from `FR-sr-file-filtering` to exclude lockfiles, generated files, binary files, IDE files, and snapshot files (`AC-sr-filters-lockfiles`, `AC-sr-filters-generated`, `AC-sr-filters-binary`). Config files listed in the inclusion rules are kept (`AC-sr-includes-config`).
 8. Agent sorts the remaining files by review priority (`FR-sr-priority-ordering`, `AC-sr-sorted-file-list`).
-9. Agent reads diffs for all reviewable files and generates the changeset overview with per-file context summaries (`FR-sr-changeset-overview`, `FR-sr-per-file-context`).
-10. Agent displays the scope label, changeset overview, file list with per-file summaries, exclusion count, and the "Ready to start?" prompt (see "File List Display" format above).
-11. Agent waits for the user to respond.
-12. User says "go" (or equivalent affirmative: "yes", "start", "y", "ok", "begin").
-13. Agent invokes `shepherd-launch.sh` with all reviewable file paths as arguments (`FR-sr-multi-file-launch`, `AC-sr-invokes-shepherd`). All files open in a single CRPG session as tabs in priority order (`AC-sr-batch-open`).
-14. Agent cleans up any stale `~/.shepherd/prompt-output.md` from a previous session, then waits for the user to complete their review in the CRPG.
-15. User reviews files freely in the CRPG -- navigating tabs in any order, adding comments on whichever files they choose.
-16. User clicks "Done" in the CRPG. The CRPG writes a unified multi-file prompt to `~/.shepherd/prompt-output.md` (`AC-sr-unified-prompt`).
-17. Agent reads the prompt from `~/.shepherd/prompt-output.md` (`FR-sr-feedback-collection`).
-18. Agent displays the completion summary (see "Completion Summary Format").
-19. If the prompt contains feedback: agent displays the full prompt content and the feedback action menu (apply, discuss, save, nothing). User selects an action and the agent proceeds accordingly.
-20. If the prompt contains no feedback: agent displays "No feedback was collected. Session complete." and the session ends.
+9. Agent reads diffs for all reviewable files and generates structured context: overall neutral context and review feedback, plus per-file neutral context and review feedback (`FR-sr-changeset-overview`, `FR-sr-per-file-context`).
+10. Agent displays the brief conversation summary -- scope label, file count, and exclusion count (see "Conversation Summary Display" format above).
+11. Agent immediately invokes `shepherd-launch.sh` with all reviewable file paths and the structured context data (`FR-sr-multi-file-launch`, `FR-sr-context-handoff`, `AC-sr-invokes-shepherd`, `AC-sr-auto-open`). All files open in a single CRPG session as tabs in priority order (`AC-sr-batch-open`). The CRPG displays the overall and per-file context with neutral/review separation (`AC-sr-context-in-crpg`).
+12. Agent cleans up any stale `~/.shepherd/prompt-output.md` from a previous session, then waits for the user to complete their review in the CRPG.
+13. User reviews files freely in the CRPG -- navigating tabs in any order, reading context and review feedback alongside diffs, and adding comments on whichever files they choose.
+14. User clicks "Done" in the CRPG. The CRPG writes a unified multi-file prompt to `~/.shepherd/prompt-output.md` (`AC-sr-unified-prompt`).
+15. Agent reads the prompt from `~/.shepherd/prompt-output.md` (`FR-sr-feedback-collection`).
+16. Agent displays the completion summary (see "Completion Summary Format").
+17. If the prompt contains feedback: agent displays the full prompt content and the feedback action menu (apply, discuss, save, nothing). User selects an action and the agent proceeds accordingly.
+18. If the prompt contains no feedback: agent displays "No feedback was collected. Session complete." and the session ends.
 
 ### Flow 2: No Changes Found (`AC-sr-no-changes`)
 
@@ -292,16 +259,6 @@ Design note: In the batch-open model, skipping is implicit. The user simply does
 
 There is no concept of "remaining" files or "quit early" in the batch-open model. The user simply finishes whenever they are ready by clicking "Done."
 
-### Flow 7: User Cancels Before Starting
-
-1. Agent displays the file list and the "Ready to start?" prompt.
-2. User says "quit" (or "no", "cancel", "stop", "exit", "q").
-3. Agent outputs:
-   ```
-   Review cancelled.
-   ```
-4. Command ends. No CRPG session is opened and no summary is displayed.
-
 ---
 
 ## User Input Recognition
@@ -310,27 +267,16 @@ The agent must recognize variations of user commands. The following table define
 
 | Canonical | Synonyms | Context |
 |---|---|---|
-| `go` | "yes", "start", "y", "ok", "begin", "ready" | Pre-launch prompt only |
-| `quit` | "stop", "exit", "q", "quit review", "cancel", "no" | Pre-launch prompt only |
 | `apply` | "implement", "do it" | Post-prompt feedback menu only |
 | `discuss` | "talk", "let's discuss" | Post-prompt feedback menu only |
 | `save` | "write", "save to file" | Post-prompt feedback menu only |
 | `nothing` | "done", "end", "no thanks", "skip" | Post-prompt feedback menu only |
 
-There are only two interaction contexts where the agent waits for user input:
+There is only one interaction context where the agent waits for user input:
 
-1. **Pre-launch prompt**: After displaying the file list and "Ready to start?" The user says `go` to proceed or `quit` to cancel.
-2. **Post-prompt feedback menu**: After the CRPG prompt is returned and the summary is displayed. The user says `apply`, `discuss`, `save`, or `nothing`.
+1. **Post-prompt feedback menu**: After the CRPG prompt is returned and the summary is displayed. The user says `apply`, `discuss`, `save`, or `nothing`.
 
-The `next`, `skip`, and `list` commands from the old sequential model are removed. The user controls all file navigation within the CRPG UI.
-
-If the user's input does not match any recognized command at the pre-launch prompt, the agent responds:
-
-```
-I did not understand that. Say "go" to begin the review, or "quit" to cancel.
-
->
-```
+There is no pre-launch prompt. The CRPG opens automatically after changeset detection and context generation (`AC-sr-auto-open`). The `go`, `quit`, `next`, `skip`, and `list` commands from earlier designs are all removed. The user controls all file navigation within the CRPG UI.
 
 If the user's input does not match any recognized command at the post-prompt feedback menu, the agent responds:
 
@@ -361,11 +307,7 @@ The `git diff --name-status` output provides change type codes. These are mapped
 
 Deleted files (`D`) are excluded from the list entirely (`AC-sr-excludes-deleted`).
 
-For renamed files, the list display shows the new path as the file path and `renamed from <old-path>` as the change type:
-
-```
-  3. src/utils/helpers.ts               [renamed from src/helpers.ts]
-```
+For renamed files, the per-file context data passed to the CRPG includes the change type `renamed from <old-path>`, which the CRPG displays alongside the file's diff tab. For example, a file renamed from `src/helpers.ts` to `src/utils/helpers.ts` would have the change type `renamed from src/helpers.ts`.
 
 The launch script is invoked with the new path (which exists on disk).
 
@@ -387,9 +329,9 @@ Design decision: Deleted files are counted in `<T>` (total files in changeset) a
 
 The interaction is designed to avoid overwhelming the user and to keep them oriented at all times:
 
-1. **Before launch**: The changeset overview orients the user on the purpose and scope of the changes. The per-file context summaries give a preview of what each file contains. The explicit "go" confirmation prevents the CRPG from opening unexpectedly.
+1. **Before launch**: The agent displays a brief summary (scope, file count, exclusion count) so the user knows what is about to happen. There is no confirmation prompt -- the user invoked `/shepherd-review`, so the intent to review is already established. The CRPG opens immediately. The changeset overview, per-file context, and review feedback are generated during this phase but are NOT displayed in the conversation; they are passed to the CRPG where they will be co-located with the code being reviewed (`FR-sr-context-handoff`).
 
-2. **During review**: The user controls pacing entirely within the CRPG. They navigate tabs freely, review files in any order, and spend as much or as little time as they want on each file. The agent conversation is idle during this phase -- the CRPG is the active surface. The changeset overview and per-file summaries remain visible in the conversation history above for reference.
+2. **During review**: The user controls pacing entirely within the CRPG. They navigate tabs freely, review files in any order, and spend as much or as little time as they want on each file. The agent conversation is idle during this phase -- the CRPG is the active surface. Context and review feedback are visible directly in the CRPG alongside the diffs, so the user does not need to scroll back through the agent conversation to find orientation information.
 
 3. **After review**: The completion summary provides closure -- the user knows how many files were opened and how many received comments. The feedback action menu gives them clear next steps.
 
@@ -397,9 +339,9 @@ The interaction is designed to avoid overwhelming the user and to keep them orie
 
 ---
 
-## Multi-File Launch (`FR-sr-multi-file-launch`, `AC-sr-invokes-shepherd`, `AC-sr-batch-open`)
+## Multi-File Launch (`FR-sr-multi-file-launch`, `AC-sr-invokes-shepherd`, `AC-sr-batch-open`, `AC-sr-auto-open`)
 
-When the user confirms they want to proceed, the agent opens all reviewable files in a single CRPG session by calling `shepherd-launch.sh` with all absolute file paths as arguments:
+Immediately after displaying the brief conversation summary, the agent opens all reviewable files in a single CRPG session by calling `shepherd-launch.sh` with all absolute file paths as arguments:
 
 ```
 shepherd-launch.sh <abs-path-1> <abs-path-2> <abs-path-3> ...
@@ -412,6 +354,26 @@ The launch script constructs a URL that tells the CRPG web app to load all speci
 After launching, the agent cleans up any stale `~/.shepherd/prompt-output.md` from a previous session, then waits for the new file to appear. When the user clicks "Done" in the CRPG, the CRPG writes the unified multi-file prompt to `~/.shepherd/prompt-output.md`. The agent reads this file to obtain the feedback.
 
 If the launch script reports an error (e.g., the script is not found or the browser fails to open), the agent displays the error as-is and the session ends. The user can resolve the issue and re-run `/shepherd-review`.
+
+---
+
+## Context Handoff to CRPG (`FR-sr-context-handoff`, `AC-sr-context-in-crpg`)
+
+The command generates structured context data and passes it to the CRPG alongside the file paths. This context is what the CRPG displays in its UI -- it is NOT shown in the agent conversation. The data has a two-level structure, each level split into neutral and review parts:
+
+**Overall context** (applies to the entire changeset):
+- **Neutral context**: A factual summary of the changeset -- what features or areas are touched, what files changed, the structural nature of the changes (new feature, refactor, bug fix, etc.). Objective description only.
+- **Review feedback**: The agent's assessment of the changes -- quality observations, potential concerns, patterns worth noting, suggestions for improvement.
+
+**Per-file context** (one entry per reviewable file, in priority order):
+- **File path**: Relative to the repository root.
+- **Change type**: `modified`, `added`, or `renamed from <old-path>`.
+- **Neutral context**: A factual description of what changed in this file -- functions added or modified, lines changed, structural changes. Derived from the diff. No opinions.
+- **Review feedback**: The agent's observations about this file -- code quality notes, potential issues, suggestions. Explicitly the agent's opinion.
+
+The CRPG must present neutral context and review feedback as visually distinct sections so the reviewer can tell at a glance which text is factual description and which is the agent's opinion (`AC-sr-context-in-crpg`). The overall context appears at the session level (e.g., a summary panel or header). Each file's context appears alongside its diff in the corresponding tab.
+
+The specific mechanism for passing this data (file on disk, URL parameters, or other approach) is an engineering decision. The design requirement is that the data arrives at the CRPG intact, with the neutral/review distinction preserved, and is displayed alongside the code being reviewed.
 
 ---
 
@@ -435,14 +397,15 @@ This follows the same pattern as the existing `/shepherd` symlink. Both symlinks
 |---|---|
 | `FR-sr-changeset-detection` | Flow 1 steps 4-5; Change Type Detection table; Flow 2 (no changes case) |
 | `FR-sr-file-filtering` | Flow 1 step 7; Filtering Implementation Notes section; Flow 3 (all filtered case) |
-| `FR-sr-file-list-display` | Output Format -- File List Display; scope label, changeset overview, per-file summaries, and example |
-| `FR-sr-priority-ordering` | Output Format -- File List Display sorting rules (tier-based priority ordering); Flow 1 step 8 |
-| `FR-sr-changeset-overview` | Output Format -- File List Display (changeset overview paragraph); Flow 1 step 9 |
-| `FR-sr-per-file-context` | Output Format -- File List Display (per-file context summaries under each file); Flow 1 step 9 |
-| `FR-sr-iteration-loop` | Flow 1 step 13 (batch-open via shepherd-launch.sh); Multi-File Launch section |
-| `FR-sr-multi-file-launch` | Multi-File Launch section; Flow 1 step 13 |
-| `FR-sr-feedback-collection` | Completion Summary Format (feedback handoff); Flow 1 steps 17-20 |
-| `FR-sr-completion-summary` | Output Format -- Completion Summary Format; Flow 1 step 18 |
+| `FR-sr-file-list-display` | Output Format -- Conversation Summary Display (brief summary with scope, file count, exclusion count) |
+| `FR-sr-priority-ordering` | Conversation Summary Display sorting rules (tier-based priority ordering); Flow 1 step 8; CRPG tab order |
+| `FR-sr-changeset-overview` | Context Handoff to CRPG section (overall neutral context); Flow 1 step 9 |
+| `FR-sr-per-file-context` | Context Handoff to CRPG section (per-file neutral context and review feedback); Flow 1 step 9 |
+| `FR-sr-context-handoff` | Context Handoff to CRPG section; Flow 1 step 11 (structured context data passed to CRPG alongside file paths) |
+| `FR-sr-iteration-loop` | Flow 1 step 11 (auto-open via shepherd-launch.sh); Multi-File Launch section |
+| `FR-sr-multi-file-launch` | Multi-File Launch section; Flow 1 step 11 |
+| `FR-sr-feedback-collection` | Completion Summary Format (feedback handoff); Flow 1 steps 15-18 |
+| `FR-sr-completion-summary` | Output Format -- Completion Summary Format; Flow 1 step 16 |
 | `FR-sr-command-file` | Command Syntax section |
 | `FR-sr-install` | Installation section |
 | `FR-sr-scope-argument` | Command Syntax section (--staged/--unstaged arguments); Flow 1 step 5 |
@@ -452,7 +415,7 @@ This follows the same pattern as the existing `/shepherd` symlink. Both symlinks
 
 | Slug | Design Coverage |
 |---|---|
-| `NFR-sr-startup-speed` | Implicit -- the command uses only fast git operations (Flow 1 steps 3-5); no file content reading during filtering (Filtering Implementation Notes). Changeset overview generation (step 9) reads diffs but does not block on external tools. |
+| `NFR-sr-startup-speed` | Implicit -- the command uses only fast git operations (Flow 1 steps 3-5); no file content reading during filtering (Filtering Implementation Notes). Context generation (step 9) reads diffs but does not block on external tools. The CRPG auto-opens immediately after context generation. |
 | `NFR-sr-no-dependencies` | Implicit -- the command file uses only git and the existing `shepherd-launch.sh` script; no new tools introduced |
 | `NFR-sr-agent-native` | Entire spec -- all orchestration happens in the agent conversation; Output Format section specifies plain text only; CRPG handles in-browser review |
 | `NFR-sr-cross-platform` | Implicit -- git commands used (diff, merge-base, rev-parse) are cross-platform; forward-slash paths in display |
@@ -461,9 +424,11 @@ This follows the same pattern as the existing `/shepherd` symlink. Both symlinks
 
 | Slug | Design Coverage |
 |---|---|
-| `AC-sr-happy-path` | Flow 1 (complete happy path walkthrough including batch-open and feedback handoff) |
-| `AC-sr-batch-open` | Flow 1 step 13 (all files open as tabs in a single CRPG session); Multi-File Launch section |
-| `AC-sr-unified-prompt` | Flow 1 step 16 (CRPG writes unified multi-file prompt); Completion Summary Format (feedback handoff) |
+| `AC-sr-happy-path` | Flow 1 (complete happy path walkthrough including auto-open, context handoff, batch-open, and feedback handoff) |
+| `AC-sr-batch-open` | Flow 1 step 11 (all files auto-open as tabs in a single CRPG session); Multi-File Launch section |
+| `AC-sr-auto-open` | Flow 1 steps 10-11 (CRPG opens automatically after brief summary, no confirmation prompt); Conversation Summary Display; Multi-File Launch section |
+| `AC-sr-unified-prompt` | Flow 1 step 14 (CRPG writes unified multi-file prompt); Completion Summary Format (feedback handoff) |
+| `AC-sr-context-in-crpg` | Context Handoff to CRPG section (overall and per-file context displayed in CRPG with neutral/review separation); Flow 1 step 11 |
 | `AC-sr-filters-lockfiles` | Flow 1 step 7; Filtering Implementation Notes |
 | `AC-sr-filters-generated` | Flow 1 step 7; Filtering Implementation Notes |
 | `AC-sr-filters-binary` | Flow 1 step 7; Filtering Implementation Notes |
@@ -474,8 +439,8 @@ This follows the same pattern as the existing `/shepherd` symlink. Both symlinks
 | `AC-sr-no-changes` | Flow 2; Error Message Formats |
 | `AC-sr-all-filtered` | Flow 3; Error Message Formats |
 | `AC-sr-not-git-repo` | Flow 4; Error Message Formats |
-| `AC-sr-invokes-shepherd` | Flow 1 step 13; Multi-File Launch section (single launch script invocation with all paths) |
-| `AC-sr-list-command` | File List Display (changeset overview with per-file summaries visible in conversation history); CRPG tab bar shows all file names |
-| `AC-sr-completion-summary` | Output Format -- Completion Summary Format; Flow 1 step 18 |
-| `AC-sr-sorted-file-list` | Output Format -- File List Display priority ordering rules and example; CRPG tab order matches |
+| `AC-sr-invokes-shepherd` | Flow 1 step 11; Multi-File Launch section (single launch script invocation with all paths and context data) |
+| `AC-sr-list-command` | Context Handoff to CRPG section (overall and per-file context visible in CRPG UI); CRPG tab bar shows all file names |
+| `AC-sr-completion-summary` | Output Format -- Completion Summary Format; Flow 1 step 16 |
+| `AC-sr-sorted-file-list` | Conversation Summary Display priority ordering rules; CRPG tab order matches |
 | `AC-sr-install-global` | Installation section |

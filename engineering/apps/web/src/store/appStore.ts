@@ -20,6 +20,7 @@ import type {
   RenderedDiffEditorState,
   RenderMode,
   ElementId,
+  ReviewContext,
 } from '@/types';
 import { buildMultiFilePrompt, buildDiffPrompt, buildRenderedPrompt, buildRenderedDiffPrompt } from '@/lib/promptBuilder';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -76,6 +77,8 @@ const initialState: AppState & DiffState & RenderedState = {
   scrollPositions: {},
   isAddFileModalOpen: false,
   serverFilePaths: {},
+  reviewContext: null,
+  isReviewContextCollapsed: false,
   comments: {},
   commentOrder: [],
   preamble: '',
@@ -261,6 +264,10 @@ interface AppActions {
   setFocusedRenderedComment: (commentId: string | null) => void;
   openRenderedEditor: (state: RenderedEditorState) => void;
   closeRenderedEditor: () => void;
+
+  // Review context
+  setReviewContext: (data: ReviewContext | null) => void;
+  toggleReviewContextCollapsed: () => void;
 
   // Rendered diff comments
   addRenderedDiffComment: (elementId: ElementId, elementType: string, diffStatus: 'added' | 'removed' | 'modified' | 'unchanged', contentPreview: string, text: string) => void;
@@ -975,6 +982,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   closeRenderedEditor: () => {
     set({ renderedEditorState: null });
+  },
+
+  // --- Review context ---
+
+  setReviewContext: (data) => {
+    set({ reviewContext: data });
+  },
+
+  toggleReviewContextCollapsed: () => {
+    set({ isReviewContextCollapsed: !get().isReviewContextCollapsed });
   },
 
   // --- Rendered diff comments ---

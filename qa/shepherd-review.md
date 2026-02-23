@@ -30,16 +30,19 @@
 | `FR-sr-file-filtering` | `TC-sr-filters-lockfiles`, `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`, `TC-sr-filters-binary`, `TC-sr-filters-ide-files`, `TC-sr-filters-snapshot-files`, `TC-sr-includes-config-files`, `TC-sr-unknown-file-included` | Not started |
 | `FR-sr-file-list-display` | `TC-sr-file-list-format`, `TC-sr-sorted-file-list`, `TC-sr-file-list-exclusion-count` | Not started |
 | `FR-sr-multi-file-launch` | `TC-sr-batch-launch-all-files`, `TC-sr-multi-file-url-params` | Not started |
-| `FR-sr-per-file-context` | `TC-sr-changeset-overview-with-context`, `TC-sr-file-list-format` | Not started |
-| `FR-sr-changeset-overview` | `TC-sr-changeset-overview-with-context` | Not started |
+| `FR-sr-per-file-context` | `TC-sr-changeset-overview-with-context`, `TC-sr-context-handoff` | Not started |
+| `FR-sr-changeset-overview` | `TC-sr-changeset-overview-with-context`, `TC-sr-context-handoff` | Not started |
 | `FR-sr-priority-ordering` | `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority` | Not started |
-| `FR-sr-iteration-loop` | `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-done-at-any-point`, `TC-sr-implicit-skip` | Not started |
+| `FR-sr-iteration-loop` | `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-done-at-any-point`, `TC-sr-implicit-skip`, `TC-sr-auto-open`, `TC-sr-no-pre-launch-prompt` | Not started |
 | `FR-sr-feedback-collection` | `TC-sr-unified-prompt-return`, `TC-sr-implicit-skip`, `TC-sr-no-comments-done` | Not started |
 | `FR-sr-completion-summary` | `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save` | Not started |
 | `FR-sr-command-file` | `TC-sr-command-file-exists` | Not started |
 | `FR-sr-install` | `TC-sr-install-global-symlink` | Not started |
 | `FR-sr-scope-argument` | `TC-sr-scope-staged`, `TC-sr-scope-unstaged`, `TC-sr-scope-invalid` | Not started |
 | `FR-sr-git-required` | `TC-sr-not-git-repo` | Not started |
+| `FR-sr-context-handoff` | `TC-sr-context-handoff` | Not started |
+| `AC-sr-context-in-crpg` | `TC-sr-context-in-crpg` | Not started |
+| `AC-sr-auto-open` | `TC-sr-auto-open`, `TC-sr-happy-path-batch-open` | Not started |
 | `NFR-sr-startup-speed` | `TC-sr-startup-speed` | Not started |
 | `NFR-sr-no-dependencies` | `TC-sr-no-external-dependencies` | Not started |
 | `NFR-sr-agent-native` | `TC-sr-happy-path-batch-open` | Not started |
@@ -58,20 +61,21 @@
 #### `TC-sr-happy-path-batch-open`: Full review session from start to finish
 
 - **Type**: Manual
-- **Covers**: `AC-sr-happy-path`, `AC-sr-batch-open`, `FR-sr-changeset-detection`, `FR-sr-iteration-loop`, `NFR-sr-agent-native`
+- **Covers**: `AC-sr-happy-path`, `AC-sr-batch-open`, `AC-sr-auto-open`, `FR-sr-changeset-detection`, `FR-sr-iteration-loop`, `NFR-sr-agent-native`
 - **Preconditions**: The user is on a feature branch that has 5 modified source files (e.g., `.ts`, `.tsx`, `.py`) and 3 excluded files (e.g., `package-lock.json`, `dist/bundle.js`, `logo.png`) relative to `main`. The `shepherd-launch.sh` script is functional. The CRPG dev server is running or will be started by the launch script.
 - **Steps**:
   1. Open a Claude Code session inside the repository.
   2. Type `/shepherd-review`.
-  3. Observe the agent output. Verify the changeset overview paragraph is displayed (2-4 sentence summary of changes), followed by "Found 5 files to review" with a numbered list of the 5 source files in priority order, a note about excluded files, and the prompt asking if the user wants to proceed.
-  4. Confirm to proceed.
-  5. Observe that the agent invokes `shepherd-launch.sh` once with all 5 file paths.
+  3. Observe the agent output. Verify a brief summary is displayed: the scope label (e.g., "all changes vs main"), the file count ("Opening 5 files for review"), and a note about excluded files (e.g., "3 excluded"). There is no detailed file list, no per-file context, and no confirmation prompt.
+  4. Verify the CRPG auto-opens immediately after the brief summary -- no "Ready to start?" or "go" prompt appears.
+  5. Observe that the agent invokes `shepherd-launch.sh` once with all 5 file paths and structured context data.
   6. Verify the browser opens a single CRPG session with 5 tabs (one per file) in priority order.
-  7. Review files freely in the CRPG: navigate between tabs, add comments on 3 of the 5 files.
-  8. Click "Done" in the CRPG.
-  9. The unified multi-file prompt is returned (via `~/.shepherd/prompt-output.md`).
-  10. Observe the completion summary and action options.
-- **Expected Result**: All 5 files appear as tabs in a single CRPG session in priority order. The user reviews files in any order they choose. Clicking "Done" generates a single multi-file prompt containing comments from the 3 files that received feedback. The completion summary shows:
+  7. Verify the CRPG displays overall neutral context and review feedback, and each file tab shows per-file neutral context and review feedback alongside the diff.
+  8. Review files freely in the CRPG: navigate between tabs, add comments on 3 of the 5 files.
+  9. Click "Done" in the CRPG.
+  10. The unified multi-file prompt is returned (via `~/.shepherd/prompt-output.md`).
+  11. Observe the completion summary and action options.
+- **Expected Result**: The brief summary appears in the conversation (scope, file count, exclusion count only -- no detailed file list or per-file summaries). The CRPG auto-opens without any confirmation prompt. All 5 files appear as tabs in a single CRPG session in priority order. The CRPG UI shows overall and per-file context (both neutral and review) with clear visual distinction. The user reviews files in any order they choose. Clicking "Done" generates a single multi-file prompt containing comments from the 3 files that received feedback. The completion summary shows:
   ```
   Review complete.
     8 files in changeset
@@ -92,10 +96,10 @@
 - **Covers**: `AC-sr-invokes-shepherd`, `FR-sr-multi-file-launch`, `FR-sr-iteration-loop`
 - **Preconditions**: A feature branch with 3 reviewable files: `src/utils.ts`, `src/app.tsx`, and `lib/helpers.ts`. The `shepherd-launch.sh` script is functional.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
-  2. Observe the agent output for the launch invocation.
+  1. Run `/shepherd-review`.
+  2. Observe the brief summary in the conversation and the auto-launch invocation.
   3. Verify the browser opens a single CRPG session.
-- **Expected Result**: The agent invokes `shepherd-launch.sh` once with all 3 file paths as arguments. The absolute paths are constructed by combining the repo root (from `git rev-parse --show-toplevel`) with each relative path. The CRPG opens in the browser with 3 tabs in priority order (core source files first). All tabs are available immediately without sequential prompts.
+- **Expected Result**: The agent invokes `shepherd-launch.sh` once with all 3 file paths and structured context data as arguments. The absolute paths are constructed by combining the repo root (from `git rev-parse --show-toplevel`) with each relative path. The CRPG opens in the browser with 3 tabs in priority order (core source files first). All tabs are available immediately without sequential prompts. No confirmation prompt is shown before the launch.
 - **Edge Cases**:
   - The file paths use forward slashes on all platforms in the display, but the absolute paths passed to the launch script use the OS-native separator.
   - If the launch script fails (e.g., CRPG server not running), the error is displayed and the command stops with a clear message.
@@ -106,15 +110,15 @@
 
 ---
 
-#### `TC-sr-filters-lockfiles`: Lockfiles are excluded from the review list
+#### `TC-sr-filters-lockfiles`: Lockfiles are excluded from the review
 
 - **Type**: Manual
 - **Covers**: `AC-sr-filters-lockfiles`, `FR-sr-file-filtering`
 - **Preconditions**: The changeset includes `package-lock.json`, `pnpm-lock.yaml`, and at least one reviewable source file (e.g., `src/index.ts`).
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
-- **Expected Result**: Neither `package-lock.json` nor `pnpm-lock.yaml` appears in the numbered file list. The exclusion count includes them (e.g., "2 files excluded (lockfiles, generated, binary)"). Only `src/index.ts` (and any other non-excluded files) appears in the review list.
+  2. Wait for the CRPG to auto-open. Examine the brief summary in the conversation and the CRPG tabs.
+- **Expected Result**: Neither `package-lock.json` nor `pnpm-lock.yaml` appears as a tab in the CRPG. The brief summary's exclusion count includes them (e.g., "2 files excluded (lockfiles, generated, binary)"). Only `src/index.ts` (and any other non-excluded files) appears as a CRPG tab.
 - **Edge Cases**:
   - `yarn.lock`, `Gemfile.lock`, `Cargo.lock`, `poetry.lock`, `composer.lock`, `go.sum`, `flake.lock`, `Pipfile.lock`: all should be excluded.
   - A file named `my-lock.json` (contains "lock" but is not a recognized lockfile): should NOT be excluded.
@@ -129,8 +133,8 @@
 - **Preconditions**: The changeset includes files at `dist/bundle.js`, `build/output.css`, `.next/static/chunk.js`, `coverage/lcov.info`, `__generated__/types.ts`, and `node_modules/lodash/index.js`, plus at least one reviewable file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
-- **Expected Result**: None of the files in `dist/`, `build/`, `.next/`, `coverage/`, `__generated__/`, or `node_modules/` appear in the review list. All are counted in the exclusion total.
+  2. Wait for the CRPG to auto-open. Examine the brief summary and CRPG tabs.
+- **Expected Result**: None of the files in `dist/`, `build/`, `.next/`, `coverage/`, `__generated__/`, or `node_modules/` appear as CRPG tabs. All are counted in the exclusion total.
 - **Edge Cases**:
   - A file in `out/` directory (e.g., `out/index.html`): should be excluded.
   - A file in a directory named `distribution/` (not `dist/`): should NOT be excluded.
@@ -145,8 +149,8 @@
 - **Preconditions**: The changeset includes `app.min.js`, `styles.min.css`, `source.map`, `types.d.ts`, `schema.generated.ts`, `api.auto.ts`, plus at least one reviewable file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
-- **Expected Result**: All of `app.min.js`, `styles.min.css`, `source.map`, `types.d.ts`, `schema.generated.ts`, and `api.auto.ts` are excluded from the review list.
+  2. Wait for the CRPG to auto-open. Examine the brief summary and CRPG tabs.
+- **Expected Result**: All of `app.min.js`, `styles.min.css`, `source.map`, `types.d.ts`, `schema.generated.ts`, and `api.auto.ts` are excluded — none appear as CRPG tabs.
 - **Edge Cases**:
   - A file named `my-generator.ts` (contains "generated" as a substring but does not match the `*.generated.*` pattern): should NOT be excluded.
   - A file named `auto-format.ts` (contains "auto" but does not match `*.auto.*`): should NOT be excluded.
@@ -154,15 +158,15 @@
 
 ---
 
-#### `TC-sr-filters-binary`: Binary files are excluded from the review list
+#### `TC-sr-filters-binary`: Binary files are excluded — none appear as CRPG tabs
 
 - **Type**: Manual
 - **Covers**: `AC-sr-filters-binary`, `FR-sr-file-filtering`
 - **Preconditions**: The changeset includes `logo.png`, `font.woff2`, `archive.zip`, and `app.pdf`, plus at least one reviewable file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
-- **Expected Result**: None of the binary files appear in the review list. All are counted in the exclusion total.
+  2. Wait for the CRPG to auto-open. Examine the brief summary and CRPG tabs.
+- **Expected Result**: None of the binary files appear as CRPG tabs. All are counted in the exclusion total.
 - **Edge Cases**:
   - `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.woff`, `.ttf`, `.eot`, `.mp3`, `.mp4`, `.tar`, `.gz`, `.exe`, `.dll`, `.so`, `.dylib`: all should be excluded.
   - A file with extension `.bin`: should NOT be excluded (not in the explicit list) unless it matches another rule.
@@ -177,8 +181,8 @@
 - **Preconditions**: The changeset includes `.idea/workspace.xml`, `.vscode/settings.json`, `.vscode/launch.json`, and `.DS_Store`, plus at least one reviewable file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
-- **Expected Result**: All IDE/editor files are excluded from the review list.
+  2. Wait for the CRPG to auto-open. Examine the brief summary and CRPG tabs.
+- **Expected Result**: All IDE/editor files are excluded — none appear as CRPG tabs.
 - **Edge Cases**:
   - `.vscode/extensions.json`: the product spec only lists `settings.json` and `launch.json` under `.vscode/`; other `.vscode/` files may or may not be excluded depending on how broadly the rule is interpreted. Flag if behavior is ambiguous.
   - A file named `.DS_Store` in a subdirectory (e.g., `src/.DS_Store`): should still be excluded.
@@ -192,22 +196,22 @@
 - **Preconditions**: The changeset includes `__tests__/Button.test.tsx.snap` and `login.snapshot`, plus at least one reviewable file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
+  2. Wait for the CRPG to auto-open. Examine the brief summary and CRPG tabs.
 - **Expected Result**: Both `.snap` and `.snapshot` files are excluded.
 - **Edge Cases**:
   - A file named `snapshot-utils.ts` (the word "snapshot" is in the filename, but the extension is `.ts`): should NOT be excluded.
 
 ---
 
-#### `TC-sr-includes-config-files`: Meaningful config files are included in the review list
+#### `TC-sr-includes-config-files`: Meaningful config files are included in the review
 
 - **Type**: Manual
 - **Covers**: `AC-sr-includes-config`, `FR-sr-file-filtering`
 - **Preconditions**: The changeset includes `vite.config.ts`, `tsconfig.json`, `package.json`, `jest.config.js`, `eslint.config.mjs`, `Dockerfile`, `docker-compose.yml`, `.env.example`, `.github/workflows/ci.yml`, `.claude/commands/shepherd.md`, and `Makefile`.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
-- **Expected Result**: All of the above config files appear in the numbered review list. None are excluded by filtering.
+  2. Wait for the CRPG to auto-open. Examine the brief summary and CRPG tabs.
+- **Expected Result**: All of the above config files appear as CRPG tabs. None are excluded by filtering.
 - **Edge Cases**:
   - `tsconfig.build.json` (matches `tsconfig.*.json`): should be included.
   - `vitest.config.ts` (matches `vitest.config.*`): should be included.
@@ -225,25 +229,25 @@
 - **Preconditions**: The changeset includes a file with an uncommon extension (e.g., `data.csv`, `notes.txt`, `config.toml`).
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
-- **Expected Result**: Files that do not match any exclusion pattern are included in the review list. The filtering is allowlist-on-top-of-denylist: if a file is not explicitly excluded, it is included.
+  2. Wait for the CRPG to auto-open. Examine the brief summary and CRPG tabs.
+- **Expected Result**: Files that do not match any exclusion pattern appear as CRPG tabs. The filtering is allowlist-on-top-of-denylist: if a file is not explicitly excluded, it is included.
 - **Edge Cases**:
   - A file with no extension (e.g., `Procfile`, `LICENSE`): should be included.
   - A dotfile that is not an IDE config (e.g., `.gitignore`, `.npmrc`): should be included.
 
 ---
 
-#### `TC-sr-excludes-deleted-files`: Deleted files do not appear in the review list
+#### `TC-sr-excludes-deleted-files`: Deleted files do not appear as CRPG tabs
 
 - **Type**: Manual
 - **Covers**: `AC-sr-excludes-deleted`, `FR-sr-changeset-detection`
 - **Preconditions**: The changeset includes a file that exists on `main` but has been deleted on the current branch, plus at least one modified file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the file list output.
-- **Expected Result**: The deleted file does not appear in the numbered review list. It is counted in the total changeset count and in the exclusion count (per design spec, deleted files are included in `<T>` and `<E>`).
+  2. Wait for the CRPG to auto-open. Examine the brief summary and CRPG tabs.
+- **Expected Result**: The deleted file does not appear as CRPG tabs. It is counted in the total changeset count and in the exclusion count (per design spec, deleted files are included in `<T>` and `<E>`).
 - **Edge Cases**:
-  - Multiple deleted files: none should appear in the review list.
+  - Multiple deleted files: none should appear as CRPG tabs.
   - A file that was deleted and then re-added with different content (git shows as D+A or as M): should appear as modified or added, not deleted.
 
 ---
@@ -252,29 +256,24 @@
 
 ---
 
-#### `TC-sr-file-list-format`: File list with changeset overview matches the specified format
+#### `TC-sr-file-list-format`: Conversation summary matches the brief summary format
 
 - **Type**: Manual
-- **Covers**: `FR-sr-file-list-display`, `FR-sr-per-file-context`
+- **Covers**: `FR-sr-file-list-display`
 - **Preconditions**: A branch with at least 3 reviewable files and at least 1 excluded file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Inspect the output format.
-- **Expected Result**: The output includes:
+  2. Inspect the conversation output before the CRPG auto-opens.
+- **Expected Result**: The conversation output includes only a brief summary:
   1. A scope label indicating what changes are being reviewed (e.g., "all changes vs main", "staged only", "unstaged only").
-  2. A changeset overview paragraph (2-4 sentences summarizing the overall theme of the changes).
-  3. The file count: "Found <N> files to review."
-  4. A numbered list of files in priority order, each showing the relative path and change type.
-  5. Per-file context summaries (1-2 sentences per file describing what changed) integrated into the overview.
-  6. If any files were excluded, a note indicating how many.
-  7. A prompt asking the user if they want to proceed.
+  2. The file count (e.g., "Opening 7 files for review").
+  3. If any files were excluded, a note indicating how many were excluded.
 
-  Change types are one of `modified`, `added`, or `renamed from <old-path>`. Position numbers are right-aligned when there are 10 or more files.
+  The conversation does NOT include: a detailed numbered file list, per-file context summaries, a changeset overview paragraph, or a confirmation prompt. The detailed context (overall and per-file, neutral and review) is passed to the CRPG and displayed in the tool UI. The CRPG auto-opens immediately after the brief summary.
 - **Edge Cases**:
-  - Zero excluded files: the exclusion line is omitted entirely.
-  - Exactly 1 excluded file: verify wording matches the design spec.
-  - 10+ files: position numbers are padded (e.g., ` 1.` through `12.`).
-  - Per-file context summaries mention specific function names or structural changes derived from the diff.
+  - Zero excluded files: the exclusion note is omitted entirely.
+  - Exactly 1 excluded file: verify wording is appropriate (e.g., "1 excluded").
+  - Large changeset (20+ files): the summary remains brief (scope, count, exclusions only).
 
 ---
 
@@ -316,8 +315,8 @@
 - **Preconditions**: The changeset has 10 total files: 4 source files, 2 lockfiles, 1 binary, 1 generated, 1 deleted, 1 snapshot.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the exclusion count and the file list count.
-- **Expected Result**: The file list shows "Found 4 files to review." The exclusion count shows "6 files excluded (lockfiles, generated, binary)." The total (4 + 6 = 10) matches the total changeset count. Deleted files are included in the exclusion count, not shown separately.
+  2. Examine the brief summary in the conversation.
+- **Expected Result**: The brief summary shows "Opening 4 files for review" and indicates "6 excluded." The total (4 + 6 = 10) matches the total changeset count. Deleted files are included in the exclusion count, not shown separately.
 - **Edge Cases**:
   - All files are excluded: handled by `TC-sr-all-filtered`.
   - No files are excluded: the exclusion line is omitted.
@@ -330,14 +329,9 @@
 - **Covers**: `FR-sr-changeset-detection`, `FR-sr-file-list-display`
 - **Preconditions**: The changeset includes a file renamed from `src/helpers.ts` to `src/utils/helpers.ts`.
 - **Steps**:
-  1. Run `/shepherd-review`.
-  2. Examine the file list entry for the renamed file.
-  3. Start the review and advance to the renamed file.
-- **Expected Result**: The file list shows:
-  ```
-    3. src/utils/helpers.ts               [renamed from src/helpers.ts]
-  ```
-  When files are opened in the CRPG, the renamed file's tab shows the new path `src/utils/helpers.ts`. The launch script receives the new path (which exists on disk).
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
+  2. Examine the CRPG tabs for the renamed file.
+- **Expected Result**: The renamed file appears as a tab in the CRPG with the new path `src/utils/helpers.ts`. The launch script receives the new path (which exists on disk). The per-file context in the CRPG notes that the file was renamed.
 - **Edge Cases**:
   - A file renamed with content changes (git reports as rename with a similarity index): should still show as renamed.
   - A file renamed to a different directory: the new path is used for display and for the launch script invocation.
@@ -354,26 +348,26 @@
 - **Covers**: `AC-sr-batch-open`, `FR-sr-iteration-loop`
 - **Preconditions**: A branch with 5 reviewable files. The `shepherd-launch.sh` script is functional and the CRPG supports multi-file URL loading.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
-  2. Wait for the browser to open.
+  1. Run `/shepherd-review`.
+  2. Observe the brief summary in the conversation and wait for the browser to auto-open.
   3. Inspect the CRPG session in the browser.
-- **Expected Result**: A single browser tab opens with the CRPG. Within the CRPG, 5 file tabs are visible (one per reviewable file). All 5 tabs are immediately accessible. The user can click any tab to view that file's diff. No sequential prompts or per-file invocations occur in the agent conversation.
+- **Expected Result**: A single browser tab opens with the CRPG automatically (no confirmation prompt). Within the CRPG, 5 file tabs are visible (one per reviewable file). All 5 tabs are immediately accessible. The user can click any tab to view that file's diff. No sequential prompts or per-file invocations occur in the agent conversation.
 - **Edge Cases**:
   - If the browser was already open with a previous CRPG session, the new session should replace or open in a new tab (depending on the launch script behavior).
   - If the CRPG takes time to load all files, a loading state should be visible in the UI.
 
 ---
 
-#### `TC-sr-tab-order-matches-priority`: CRPG tab order matches priority ordering from file list
+#### `TC-sr-tab-order-matches-priority`: CRPG tab order matches priority ordering
 
 - **Type**: Manual
 - **Covers**: `AC-sr-sorted-file-list`, `FR-sr-priority-ordering`
 - **Preconditions**: A branch with files spanning multiple priority tiers: `src/app.tsx` (core source), `vite.config.ts` (config), `README.md` (docs), `tests/app.test.tsx` (test).
 - **Steps**:
-  1. Run `/shepherd-review` and note the priority order displayed in the file list.
-  2. Confirm to proceed and observe the CRPG tabs.
-  3. Compare the tab order in the CRPG to the numbered file list order.
-- **Expected Result**: The CRPG tab order exactly matches the priority ordering from the displayed file list. Core source files appear as the leftmost tabs, followed by config, docs, and tests as the rightmost tabs:
+  1. Run `/shepherd-review` and observe the brief summary in the conversation.
+  2. Wait for the CRPG to auto-open and observe the tabs.
+  3. Compare the tab order in the CRPG to the expected priority ordering (core source first, config second, docs third, tests last).
+- **Expected Result**: The CRPG tab order exactly matches the priority ordering. Core source files appear as the leftmost tabs, followed by config, docs, and tests as the rightmost tabs:
   ```
   Tab order: src/app.tsx | vite.config.ts | README.md | tests/app.test.tsx
   ```
@@ -389,7 +383,7 @@
 - **Covers**: `AC-sr-skip-file`, `AC-sr-unified-prompt`, `FR-sr-iteration-loop`, `FR-sr-feedback-collection`
 - **Preconditions**: A branch with 5 reviewable files.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, add comments on files 1, 3, and 5 only. Leave files 2 and 4 without comments.
   3. Click "Done" in the CRPG.
   4. Observe the returned prompt and the completion summary.
@@ -413,7 +407,7 @@
 - **Covers**: `AC-sr-quit-early`, `FR-sr-iteration-loop`
 - **Preconditions**: A branch with 5 reviewable files.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, view only the first tab and add a comment on it.
   3. Click "Done" without visiting the other 4 tabs.
   4. Observe the returned prompt and the completion summary.
@@ -437,7 +431,7 @@
 - **Covers**: `AC-sr-unified-prompt`, `FR-sr-feedback-collection`
 - **Preconditions**: A branch with 3 reviewable files. The `~/.shepherd/prompt-output.md` file-watcher mechanism is functional.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, add comments on 2 of the 3 files.
   3. Click "Done" in the CRPG.
   4. Verify the prompt is returned to the agent conversation.
@@ -454,7 +448,7 @@
 - **Covers**: `FR-sr-feedback-collection`, `FR-sr-completion-summary`
 - **Preconditions**: A branch with at least 2 reviewable files.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, view the files but do not add any comments.
   3. Click "Done" in the CRPG.
   4. Observe the agent output.
@@ -471,22 +465,17 @@
 
 ---
 
-#### `TC-sr-cancel-before-start`: User cancels at the pre-launch prompt
+#### `TC-sr-no-pre-launch-prompt`: No confirmation prompt is shown before auto-open
 
 - **Type**: Manual
-- **Covers**: `FR-sr-iteration-loop`
+- **Covers**: `AC-sr-auto-open`, `FR-sr-iteration-loop`
 - **Preconditions**: A branch with at least 1 reviewable file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. The changeset overview and file list are displayed with the confirmation prompt.
-  3. Decline to proceed (e.g., type "quit", "no", "cancel").
-- **Expected Result**: The agent outputs:
-  ```
-  Review cancelled.
-  ```
-  No summary is displayed. No files are opened in the CRPG. The launch script is not invoked. The command ends.
+  2. Observe the agent output carefully between the brief summary and the CRPG opening.
+- **Expected Result**: The agent does NOT display any confirmation prompt such as "Ready to start?", "Say 'go' to begin", or any variation asking the user whether to proceed. After the brief summary (scope, file count, exclusion count), the CRPG auto-opens immediately. There is no intermediate step where the user must type "go", "yes", or any other confirmation. The user's intent to review was established by invoking `/shepherd-review`.
 - **Edge Cases**:
-  - Various cancel synonyms at the pre-launch prompt should all be recognized.
+  - The user cannot cancel the review before the CRPG opens. To "cancel," the user simply clicks "Done" in the CRPG without adding comments, which produces a zero-comment completion summary.
 
 ---
 
@@ -527,7 +516,7 @@
   ```
   No file list is displayed. No iteration occurs.
 - **Edge Cases**:
-  - Branch named `main` with uncommitted changes (not yet committed): per the product spec, the changeset detection compares the working tree to the merge base, so uncommitted changes ARE included. If there are uncommitted changes on `main`, those files should appear in the review list.
+  - Branch named `main` with uncommitted changes (not yet committed): per the product spec, the changeset detection compares the working tree to the merge base, so uncommitted changes ARE included. If there are uncommitted changes on `main`, those files should appear as CRPG tabs.
   - Freshly created branch off main with zero commits and no working tree changes: should report no changes.
 
 ---
@@ -592,7 +581,7 @@
 - **Covers**: `AC-sr-completion-summary`, `FR-sr-completion-summary`
 - **Preconditions**: A branch with 10 total files, 3 excluded, 7 reviewable. User opens all 7 in the CRPG and adds comments on 5 of them.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, add comments on 5 of the 7 files.
   3. Click "Done" in the CRPG.
   4. Observe the completion summary.
@@ -618,7 +607,7 @@
 - **Covers**: `FR-sr-completion-summary`, `FR-sr-feedback-collection`
 - **Preconditions**: A branch with 3 reviewable files.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, view files but do not add any comments.
   3. Click "Done" in the CRPG.
   4. Observe the completion summary.
@@ -676,23 +665,28 @@
 
 ---
 
-#### `TC-sr-changeset-overview-with-context`: Changeset overview includes per-file summaries
+#### `TC-sr-changeset-overview-with-context`: Changeset context is passed to and displayed in the CRPG
 
 - **Type**: Manual
-- **Covers**: `AC-sr-list-command`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`
+- **Covers**: `AC-sr-list-command`, `AC-sr-context-in-crpg`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`, `FR-sr-context-handoff`
 - **Preconditions**: A branch with 4 reviewable files that have meaningful diffs: `src/app.tsx` (added a new route), `src/utils.ts` (refactored a helper function), `vite.config.ts` (added a new alias), `tests/app.test.tsx` (added tests for the new route).
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. Examine the changeset overview paragraph and per-file context summaries.
-- **Expected Result**: Before the numbered file list, the agent displays:
-  1. A brief (2-4 sentence) changeset overview summarizing the overall theme of the changes (e.g., "This changeset adds a new route to the application with supporting utility refactoring and test coverage.").
-  2. Per-file context summaries (1-2 sentences each) describing what changed in each file, mentioning specific function names, sections, or structural changes derived from the diff.
+  2. Observe that the agent conversation shows only a brief summary (scope, file count, exclusions) -- NOT a changeset overview paragraph or per-file summaries.
+  3. After the CRPG auto-opens, inspect the CRPG UI.
+  4. Check for overall changeset context (neutral + review) in the CRPG.
+  5. Switch between file tabs and check for per-file context (neutral + review) in the CRPG.
+- **Expected Result**: The agent conversation contains only the brief summary. The CRPG UI displays:
+  1. **Overall neutral context**: A factual summary of the changeset (what features/areas are touched, structural nature of changes). No opinions.
+  2. **Overall review feedback**: The agent's assessment (quality observations, concerns, suggestions). Clearly the agent's take.
+  3. **Per-file neutral context** (for each file tab): Factual description of what changed in this file -- functions added/modified/removed, structural changes. Mentions specific names.
+  4. **Per-file review feedback** (for each file tab): Agent's observations about this specific file -- code quality, potential issues, suggestions.
 
-  The per-file summaries provide enough context that the reviewer understands what to look for in each file before opening the CRPG. The summaries are visible in the conversation history for reference while reviewing in the CRPG.
+  The neutral and review sections are visually distinct (different colors, borders, or styling). Per-file context updates when switching tabs.
 - **Edge Cases**:
-  - A file with a very large diff (hundreds of lines): the summary should still be concise (1-2 sentences), not enumerate every change.
-  - A file with only whitespace or formatting changes: the summary should note this so the reviewer can deprioritize it.
-  - A new file (added): the summary should describe what the file does, not just say "new file."
+  - A file with a very large diff (hundreds of lines): the per-file context should still be concise, not enumerate every change.
+  - A file with only whitespace or formatting changes: the per-file context should note this.
+  - A new file (added): the context should describe what the file does.
 
 ---
 
@@ -709,7 +703,7 @@
   1. Stage 3 files with `git add`.
   2. Run `/shepherd-review --staged`.
   3. Examine the file list.
-- **Expected Result**: Only the 3 staged files appear in the review list. The 2 unstaged files are not shown. The scope label indicates "staged only" or equivalent. The changeset overview and per-file context summaries reflect only the staged changes.
+- **Expected Result**: Only the 3 staged files appear in the CRPG as tabs. The 2 unstaged files are not shown. The brief conversation summary indicates "staged only" or equivalent. The context data passed to the CRPG (overall and per-file) reflects only the staged changes.
 - **Edge Cases**:
   - No staged files: the command reports "No changes found" and stops.
   - A file that is both staged and has unstaged modifications: only the staged version of the changes is included.
@@ -727,7 +721,7 @@
   3. Create a new file without staging it.
   4. Run `/shepherd-review --unstaged`.
   5. Examine the file list.
-- **Expected Result**: Only the 3 unstaged/untracked files appear in the review list. The 2 staged files are not shown. The untracked new file appears with change type `added`. The scope label indicates "unstaged only" or equivalent.
+- **Expected Result**: Only the 3 unstaged/untracked files appear as CRPG tabs. The 2 staged files are not shown. The untracked new file appears with change type `added`. The scope label indicates "unstaged only" or equivalent.
 - **Edge Cases**:
   - No unstaged changes and no untracked files: the command reports "No changes found" and stops.
   - A file that is staged but also has additional unstaged modifications: only the unstaged modifications appear.
@@ -749,6 +743,71 @@
 
 ---
 
+### Auto-Open and Context Handoff
+
+---
+
+#### `TC-sr-auto-open`: CRPG opens automatically without confirmation prompt
+
+- **Type**: Manual
+- **Covers**: `AC-sr-auto-open`, `FR-sr-iteration-loop`
+- **Preconditions**: A branch with at least 3 reviewable files. The `shepherd-launch.sh` script is functional and the CRPG dev server is running.
+- **Steps**:
+  1. Run `/shepherd-review`.
+  2. Observe the agent conversation output carefully.
+  3. Time the interval between the brief summary appearing and the CRPG opening.
+- **Expected Result**: After changeset detection and context generation, the agent displays a brief summary in the conversation (scope, file count, exclusion count) and then immediately auto-opens the CRPG. No confirmation prompt appears -- no "Ready to start?", no "Say 'go'", no "Proceed? (yes/no)", no similar question. The CRPG opens without any user interaction after the `/shepherd-review` invocation. The transition from brief summary to CRPG launch is seamless.
+- **Edge Cases**:
+  - Single file in the changeset: the CRPG still auto-opens without a prompt.
+  - Large changeset (20+ files): the CRPG still auto-opens without a prompt (context generation may take a few seconds, but no confirmation is requested).
+
+---
+
+#### `TC-sr-context-handoff`: Structured context data is passed to the CRPG
+
+- **Type**: Manual
+- **Covers**: `FR-sr-context-handoff`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`
+- **Preconditions**: A branch with at least 3 reviewable files with meaningful diffs.
+- **Steps**:
+  1. Run `/shepherd-review`.
+  2. After the CRPG auto-opens, inspect the context data received by the CRPG (e.g., via browser DevTools network tab, URL parameters, or by checking the context file used for handoff).
+- **Expected Result**: The CRPG receives structured context data containing all four components:
+  1. **Overall neutral context**: A factual changeset summary. Contains no opinions or quality judgments.
+  2. **Overall review feedback**: The agent's assessment of the changeset. Contains opinions, suggestions, concerns.
+  3. **Per-file neutral context** (keyed by file path): For each reviewable file, a factual description of what changed. Mentions specific function names, structural changes.
+  4. **Per-file review feedback** (keyed by file path): For each reviewable file, the agent's observations and suggestions.
+
+  The neutral/review distinction is preserved in the data structure (not mixed together). The per-file data is keyed by file path matching the files opened as tabs.
+- **Edge Cases**:
+  - A file with minimal changes (1-2 lines): context should still be present, even if brief.
+  - A file with only additions (new file): neutral context should describe what the file does; review feedback may note patterns or suggestions.
+  - The conversation does NOT contain the detailed context -- only the brief summary appears there.
+
+---
+
+#### `TC-sr-context-in-crpg`: Context appears in the CRPG with neutral/review visual distinction
+
+- **Type**: Manual
+- **Covers**: `AC-sr-context-in-crpg`, `FR-sr-context-handoff`
+- **Preconditions**: A branch with at least 2 reviewable files. The CRPG has been opened via `/shepherd-review` with context data.
+- **Steps**:
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
+  2. In the CRPG, look for the overall context section.
+  3. Verify the overall neutral context and overall review feedback are displayed with visually distinct styling.
+  4. Switch to a file tab and look for per-file context.
+  5. Verify the per-file neutral context and per-file review feedback are displayed with visually distinct styling.
+  6. Switch to another file tab and verify per-file context updates.
+- **Expected Result**: The CRPG displays:
+  - **Overall context**: Both neutral (factual) and review (opinion) sections are visible. They have different visual styling (e.g., different background colors, different border colors, different section headers/labels, different icons). A user can tell at a glance which is which.
+  - **Per-file context**: Each file tab shows its own neutral and review context alongside the diff. The styling matches the overall context distinction. When switching tabs, the per-file context updates to the new file's data.
+
+  The neutral context uses informational styling (e.g., blue tones). The review feedback uses a distinct styling (e.g., violet/purple tones) that conveys it is the agent's subjective assessment.
+- **Edge Cases**:
+  - A file with no review feedback (only neutral context): the review feedback section is either absent or shows no content. The neutral context is still displayed.
+  - Switching rapidly between tabs: per-file context updates correctly without flicker or stale data.
+
+---
+
 ### Multi-File URL and Launch
 
 ---
@@ -759,7 +818,7 @@
 - **Covers**: `FR-sr-multi-file-launch`
 - **Preconditions**: A branch with 3 reviewable files. The `shepherd-launch.sh` script is functional.
 - **Steps**:
-  1. Run `/shepherd-review` and confirm to proceed.
+  1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. Observe or inspect the URL opened by `shepherd-launch.sh` (e.g., via browser address bar or by adding debug output to the script).
 - **Expected Result**: The launch script constructs a URL that includes all 3 file paths as parameters. The CRPG web app receives these parameters and loads each file as a separate tab. The exact URL format is determined by the engineering spec (e.g., repeated `file` query parameters, comma-separated paths, or another mechanism). All 3 files load successfully as tabs.
 - **Edge Cases**:
@@ -779,7 +838,7 @@
 - **Covers**: `FR-sr-completion-summary`
 - **Preconditions**: A completed review session with at least 1 file that received comments. The unified prompt has been returned.
 - **Steps**:
-  1. Complete a review session (run `/shepherd-review`, add comments, click Done).
+  1. Complete a review session (run `/shepherd-review`, wait for CRPG to auto-open, add comments, click Done).
   2. After the summary and prompt are displayed, select "apply".
   3. Observe the agent behavior.
 - **Expected Result**: The agent begins implementing the changes described in the feedback prompt. It reads the prompt content (which contains per-file review comments) and starts making code changes based on the feedback. This is equivalent to the user having pasted the prompt manually.
@@ -795,7 +854,7 @@
 - **Covers**: `FR-sr-completion-summary`
 - **Preconditions**: A completed review session with at least 1 file that received comments. The unified prompt has been returned.
 - **Steps**:
-  1. Complete a review session (run `/shepherd-review`, add comments, click Done).
+  1. Complete a review session (run `/shepherd-review`, wait for CRPG to auto-open, add comments, click Done).
   2. After the summary and prompt are displayed, select "save".
   3. Observe the agent behavior.
 - **Expected Result**: The agent writes the feedback prompt content to a file for later use. The file location should be communicated to the user (e.g., "Saved review feedback to `<path>`"). The session ends after saving.
@@ -817,8 +876,8 @@
 - **Steps**:
   1. Create or use a branch with a large changeset (several hundred files).
   2. Run `/shepherd-review`.
-  3. Measure the time from invocation to the file list being displayed.
-- **Expected Result**: The file list is displayed within 3 seconds. The bottleneck is the `git diff` and `git merge-base` commands, which are fast even for large repositories.
+  3. Measure the time from invocation to the CRPG auto-opening.
+- **Expected Result**: The CRPG auto-opens within 5 seconds (per `NFR-sr-startup-speed`). The bottleneck is the `git diff` and `git merge-base` commands plus context generation, which should be fast even for large repositories.
 - **Edge Cases**:
   - Very large repository (monorepo with 100,000+ files but only 50 changed): should still be fast because `git diff` only reports changed files.
   - Repository with extensive rename detection (many files moved): rename detection can be slow; verify the command does not time out.
@@ -888,7 +947,7 @@
 
 #### File at the boundary of exclusion rules
 - **Trigger**: A file named `package.json` (included by the config inclusion rule) vs. `package-lock.json` (excluded by the lockfile rule). Both are in the changeset.
-- **Expected behavior**: `package.json` appears in the review list. `package-lock.json` does not. The inclusion rules for config files take priority for `package.json`, and the exclusion rules catch `package-lock.json`.
+- **Expected behavior**: `package.json` appears as a CRPG tab. `package-lock.json` does not. The inclusion rules for config files take priority for `package.json`, and the exclusion rules catch `package-lock.json`.
 - **Test case**: `TC-sr-includes-config-files`
 
 #### File matching both inclusion and exclusion patterns
@@ -940,4 +999,9 @@
 - The changeset detection uses `git diff --name-status` and `git merge-base`. If the repository's git configuration changes (e.g., different rename detection settings, different merge strategies), the changeset output could change. Verify that the command produces consistent results across standard git configurations.
 
 ### Agent conversation context
-- The `/shepherd-review` command runs as a multi-turn interaction within the agent conversation. With the batch-open model, the agent's context requirements are simpler (no per-file iteration state), but the changeset overview and per-file context summaries add content to the conversation. Verify that the command remains coherent for large changesets (20+ files) where the overview and summaries are substantial.
+- The `/shepherd-review` command runs as a multi-turn interaction within the agent conversation. With the auto-open model, the agent's context requirements are simpler (no confirmation prompt, no per-file iteration state). The conversation now contains only a brief summary (scope, file count, exclusion count) instead of a detailed file list with per-file summaries. The detailed context (overall and per-file, neutral and review) is passed to the CRPG. Verify that the brief summary is concise and the context data reaches the CRPG correctly.
+
+### Context handoff to CRPG
+- The structured context data (overall neutral, overall review, per-file neutral, per-file review) must reach the CRPG via the launch mechanism. Changes to the launch script, the CRPG's context receiving mechanism, or the data format could break context display. Verify that context data round-trips correctly from the agent through the launch script to the CRPG.
+- The neutral/review distinction must be preserved in the data structure. If the handoff mechanism flattens or merges the two types, the CRPG cannot display them with distinct styling.
+- Per-file context is keyed by file path. If file paths in the context data don't match the file paths used for tab creation, the CRPG won't be able to associate context with the correct tab.

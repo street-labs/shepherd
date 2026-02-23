@@ -37,6 +37,13 @@ export type EditorState =
   | { mode: 'create'; anchorLine: number; endLine: number }
   | { mode: 'edit'; commentId: string };
 
+// Implements: FR-rc-context-structure
+/** Structured review context written by the shepherd-review agent. */
+export interface ReviewContext {
+  overall: { neutral: string; review: string };
+  files: Record<string, { neutral: string; review: string }>;
+}
+
 /** The full application state. */
 export interface AppState {
   /** The currently active file, or null if no file is loaded. Alias for files[activeFileId]. */
@@ -71,6 +78,10 @@ export interface AppState {
   showLargeFileWarning: boolean;
   /** Maps fileId → absolute file path for server-loaded files. Used to restore filePath on tab switch. */
   serverFilePaths: Record<string, string>;
+  /** Review context data loaded from the agent, or null if unavailable. */
+  reviewContext: ReviewContext | null;
+  /** Whether the review context panel is collapsed. */
+  isReviewContextCollapsed: boolean;
 }
 
 /** Display items for the virtualized code viewer. */

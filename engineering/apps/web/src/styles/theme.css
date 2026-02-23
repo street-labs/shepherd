@@ -147,6 +147,16 @@
   --color-badge-modified-bg: #FEF3C7;
   --color-badge-modified-text: #92400E;
 
+  /* Review context panel */
+  --color-context-panel-bg: #F8FAFC;
+  --color-context-header-bg: #F1F5F9;
+  --color-context-neutral-border: #3B82F6;
+  --color-context-neutral-bg: #EFF6FF;
+  --color-context-review-border: #8B5CF6;
+  --color-context-review-bg: #F5F3FF;
+  --color-context-section-label: #64748B;
+  --color-context-chevron: #94A3B8;
+
   /* Overlay/shadow */
   --color-overlay: rgba(0,0,0,0.3);
   --color-shadow: rgba(0,0,0,0.1);
@@ -295,6 +305,16 @@
   --color-badge-removed-text: #FCA5A5;
   --color-badge-modified-bg: #451A00;
   --color-badge-modified-text: #FDE68A;
+
+  /* Review context panel */
+  --color-context-panel-bg: #1E293B;
+  --color-context-header-bg: #0F172A;
+  --color-context-neutral-border: #60A5FA;
+  --color-context-neutral-bg: #172554;
+  --color-context-review-border: #A78BFA;
+  --color-context-review-bg: #2E1065;
+  --color-context-section-label: #94A3B8;
+  --color-context-chevron: #64748B;
 
   /* Overlay/shadow */
   --color-overlay: rgba(0,0,0,0.5);

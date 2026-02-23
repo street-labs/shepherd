@@ -73,6 +73,16 @@
   --color-badge-modified-bg: var(--color-badge-modified-bg);
   --color-badge-modified-text: var(--color-badge-modified-text);
 
+  /* Review context panel */
+  --color-context-panel-bg: var(--color-context-panel-bg);
+  --color-context-header-bg: var(--color-context-header-bg);
+  --color-context-neutral-border: var(--color-context-neutral-border);
+  --color-context-neutral-bg: var(--color-context-neutral-bg);
+  --color-context-review-border: var(--color-context-review-border);
+  --color-context-review-bg: var(--color-context-review-bg);
+  --color-context-section-label: var(--color-context-section-label);
+  --color-context-chevron: var(--color-context-chevron);
+
   /* Font families */
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

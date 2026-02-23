@@ -116,7 +116,7 @@ Changes always flow: **markdown → code**, never code → markdown.
 
 | Metric | Count |
 |--------|-------|
-| Requirement slugs | 248 |
+| Requirement slugs | 261 |
 | Unit/integration tests | 210 |
 | E2E tests | 9 |
-| Product features | 85 |
+| Product features | 90 |

@@ -206,6 +206,32 @@ function handlePromptOutput(req: IncomingMessage, res: ServerResponse) {
   });
 }
 
+// Implements: FR-rc-api-endpoint
+function handleReviewContext(_req: IncomingMessage, res: ServerResponse) {
+  const homeDir = os.homedir();
+  const contextPath = path.join(homeDir, '.shepherd', 'review-context.json');
+
+  let content: string;
+  try {
+    content = fs.readFileSync(contextPath, 'utf-8');
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return jsonError(res, 404, 'No review context available');
+    }
+    return jsonError(res, 500, `Failed to read review context: ${(err as Error).message}`);
+  }
+
+  // Validate JSON before sending
+  try {
+    JSON.parse(content);
+  } catch {
+    return jsonError(res, 500, 'Review context file contains invalid JSON');
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(content);
+}
+
 export function fileApiPlugin(): Plugin {
   return {
     name: 'shepherd-file-api',
@@ -214,6 +240,12 @@ export function fileApiPlugin(): Plugin {
       server.middlewares.use((req, res, next) => {
         if (req.url !== '/api/prompt-output' || req.method !== 'POST') return next();
         handlePromptOutput(req, res);
+      });
+
+      // Review context endpoint
+      server.middlewares.use((req, res, next) => {
+        if (req.url !== '/api/review-context' || req.method !== 'GET') return next();
+        handleReviewContext(req, res);
       });
 
       server.middlewares.use((req, res, next) => {

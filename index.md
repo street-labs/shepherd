@@ -1498,6 +1498,84 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/code-review-prompt.md`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-last-empty-state`
 
+### `FR-sr-context-handoff`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-context-handoff`
+
+### `AC-sr-context-in-crpg`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-context-in-crpg`
+
+### `AC-sr-auto-open`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-auto-open`
+
+### `FR-crp-review-context-receive`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-graceful-missing`, `TC-crp-context-overall-visible`
+
+### `FR-crp-review-context-display`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-overall-visible`, `TC-crp-context-per-file-visible`, `TC-crp-context-neutral-vs-review`
+
+### `FR-crp-review-context-overall`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-overall-visible`
+
+### `FR-crp-review-context-per-file`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-per-file-visible`, `TC-crp-context-per-file-switches`
+
+### `AC-crp-context-overall-visible`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-overall-visible`
+
+### `AC-crp-context-per-file-visible`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-per-file-visible`
+
+### `AC-crp-context-per-file-switches`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-per-file-switches`
+
+### `AC-crp-context-neutral-vs-review`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-neutral-vs-review`
+
+### `AC-crp-context-graceful-missing`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-graceful-missing`
+
+### `AC-crp-context-readonly`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-readonly`
+
 <!--
 Entry template -- copy this when adding a new slug:
 

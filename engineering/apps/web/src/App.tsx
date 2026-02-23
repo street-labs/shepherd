@@ -14,6 +14,8 @@ import { DiffErrorState } from '@/components/DiffErrorState';
 import { DiffEmptyState } from '@/components/DiffEmptyState';
 import { RenderedViewer } from '@/components/RenderedViewer';
 import { RenderedDiffViewer } from '@/components/RenderedDiffViewer';
+import { ReviewContextPanel } from '@/components/ReviewContextPanel';
+import { ReviewContextSidebar } from '@/components/ReviewContextSidebar';
 import { PreambleInput } from '@/components/PreambleInput';
 import { PromptPreview } from '@/components/PromptPreview';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
@@ -349,6 +351,7 @@ export function App() {
             {/* Left column: code viewer */}
             <div className="flex-1 flex flex-col min-w-0 border-r border-border-default">
               {fileOrder.length >= 2 ? <FileTabBar /> : <FileHeader />}
+              <ReviewContextPanel />
               <div className="flex-1 min-h-0">
                 {renderCodePanel()}
               </div>
@@ -358,6 +361,7 @@ export function App() {
             <div className={`flex-shrink-0 flex flex-col bg-surface-sidebar overflow-y-auto ${
               windowWidth < 1280 ? 'w-72' : 'w-96'
             }`}>
+              <ReviewContextSidebar />
               <PreambleInput />
               <PromptPreview />
             </div>

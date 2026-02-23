@@ -89,6 +89,20 @@ interface AppState {
   // Slash-command fields
   isSlashCommandMode: boolean;
   doneState: 'idle' | 'sending' | 'sent';
+
+  // Review context (from shepherd-review command)
+  /** Structured review context data loaded from ~/.shepherd/review-context.json via GET /api/review-context. Null when no context is available (standalone mode, single /shepherd). */
+  reviewContext: ReviewContext | null;
+  /** Whether the ReviewContextPanel is collapsed. Session-level preference, not per-file. */
+  isReviewContextCollapsed: boolean;
+}
+
+/** Structured review context data passed from the shepherd-review command. */
+interface ReviewContext {
+  /** Overall changeset context (neutral description + agent's review feedback). */
+  overall: { neutral: string; review: string };
+  /** Per-file context, keyed by absolute file path. */
+  files: Record<string, { neutral: string; review: string }>;
 }
 
 /** State of the inline comment editor. */
@@ -107,6 +121,8 @@ Several values are computed from the store rather than stored directly:
 - **Current comment index**: Position of `focusedCommentId` within `commentOrder` (which is already filtered to the active file).
 - **commentOrder recomputation**: The `commentOrder` array is recomputed whenever the active file changes (via `setActiveFile`) or when comments are mutated (`addComment`, `updateComment`, `deleteComment`). It filters `comments` to those matching `activeFileId`, then sorts by `startLine` ascending, then `createdAt` ascending for ties.
 
+- **Per-file review context (active file)**: Derived from `state.reviewContext?.files[activeFilePath]` where `activeFilePath` is the `name` (full path) of the active file. Returns `{ neutral: string, review: string } | null`. Used by the ReviewContextPanel to display per-file context for the active tab.
+
 These are implemented as Zustand selectors (or derived via `useMemo` in components) to avoid redundant state.
 
 ---
@@ -121,9 +137,12 @@ App
  +-- MainContent
       +-- [if no files] FileDropZone (full variant)   (design: FileDropZone)
       +-- [if files loaded]
-           +-- FileTabBar                              NEW (design: FileTabBar)
+           +-- FileTabBar                              (design: FileTabBar)
            +-- CodeViewerPanel
            |    +-- FileHeader (single-file only, hidden when tab bar active)
+           |    +-- ReviewContextPanel                 NEW (design: ReviewContextPanel, conditional on context data)
+           |    |    +-- ContextSection (neutral)       NEW (design: ContextSection, "What Changed" variant)
+           |    |    +-- ContextSection (review)        NEW (design: ContextSection, "Agent Review" variant)
            |    +-- CodeViewer         (design: CodeViewer)
            |         +-- VirtualRow (repeated, virtualized)
            |              +-- GutterCell
@@ -219,6 +238,33 @@ Ephemeral notification rendered via a React portal. Auto-dismisses after the con
 
 Maps to: `AC-crp-copy-clipboard`.
 
+#### `ReviewContextPanel`
+Collapsible panel that displays structured review context data provided by the shepherd-review command. Positioned between the FileHeader (single-file mode) or the top of the Code Viewer Panel (multi-file mode) and the CodeViewer.
+
+This component is **conditionally rendered** -- it only appears when `state.reviewContext` is non-null. When no context data is available (standalone mode, single `/shepherd`), the component is not rendered at all. There is no empty or placeholder state (`AC-crp-context-graceful-missing`).
+
+The panel has two content groups:
+1. **Overall section** ("CHANGESET OVERVIEW"): Always visible when the panel is expanded. Displays `state.reviewContext.overall.neutral` and `state.reviewContext.overall.review` via two `ContextSection` sub-components.
+2. **Per-file section** ("FILE: [filename]"): Displays the per-file context for the currently active file. Derived from `state.reviewContext.files[activeFilePath]`. When the active file has no per-file context (e.g., file added via paste/upload), the per-file section is not rendered -- only the overall section shows. When tabs switch, the per-file section updates automatically via the Zustand selector (`AC-crp-context-per-file-switches`).
+
+Collapse/expand state is stored in `state.isReviewContextCollapsed`. Default is `false` (expanded on first load). The collapse state persists across tab switches -- it is a session-level preference, not per-file. The `clearSession` action resets it to `false`.
+
+The entire panel content is read-only (`AC-crp-context-readonly`). Max-height is 40% of the Code Viewer Panel height with vertical scroll overflow.
+
+Maps to: `FR-crp-review-context-receive`, `FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`, `AC-crp-context-overall-visible`, `AC-crp-context-per-file-visible`, `AC-crp-context-per-file-switches`, `AC-crp-context-graceful-missing`, `AC-crp-context-readonly`.
+
+#### `ContextSection`
+A single section within the ReviewContextPanel that displays either neutral context or review feedback. Two variants with distinct visual treatment per the design spec.
+
+- **`neutral` variant** ("What Changed"): Info circle icon (blue), blue left border, white background. Factual/objective content.
+- **`review` variant** ("Agent Review"): Sparkle/AI icon (violet), violet left border, faint violet background. Subjective agent content.
+
+Both variants render their `content` prop as plain text with `white-space: pre-wrap` in a read-only `<div>`. No markdown rendering. If the content string is empty or undefined, the section is not rendered (no empty placeholder).
+
+The visual distinction between the two variants is achieved through four cues: left border color (blue vs violet), background color (white vs violet tint), icon (info circle vs sparkle), and label text ("What Changed" vs "Agent Review"). These work together so even color-blind users can distinguish them via icon shape and label.
+
+Maps to: `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
+
 ---
 
 ## State Management
@@ -276,6 +322,10 @@ interface AppStore extends AppState {
   // Slash command (unchanged)
   setSlashCommandMode: (mode: boolean) => void;
   sendPromptToAgent: () => Promise<void>;
+
+  // Review context
+  setReviewContext: (context: ReviewContext | null) => void;
+  toggleReviewContextCollapsed: () => void;
 }
 ```
 
@@ -291,8 +341,10 @@ interface AppStore extends AppState {
 - **`navigateComment`**: Advances or retreats `focusedCommentId` within `commentOrder` (filtered to active file only), wrapping at boundaries.
 - **`setPreamble`**: Updates the preamble text. Automatically regenerates the prompt via `buildPrompt()` if comments exist on any file.
 - **`copyPrompt`**: Calls `navigator.clipboard.writeText(generatedPrompt)`. Returns a promise; the component handles success/failure UI.
-- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}` (`AC-crp-multi-file-clear-all`).
+- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`. Also resets `reviewContext` to `null` and `isReviewContextCollapsed` to `false` (`AC-crp-multi-file-clear-all`).
 - **`saveScrollPosition`**: Stores the given scroll offset for the specified file ID in `scrollPositions`. Called automatically by `setActiveFile` before switching.
+- **`setReviewContext`**: Sets the `reviewContext` field. Called once on mount by the `useFileFromUrl` hook after loading files, if context data is available from `GET /api/review-context`. Setting this to a non-null value causes the `ReviewContextPanel` to render.
+- **`toggleReviewContextCollapsed`**: Toggles `isReviewContextCollapsed`. This is a session-level preference — persists across tab switches.
 
 #### Selectors
 
@@ -331,6 +383,15 @@ const commentCountsByFile = useAppStore((s) => {
     counts.set(comment.fileId, (counts.get(comment.fileId) || 0) + 1);
   }
   return counts;
+});
+
+// Derived: per-file review context for the active file (ReviewContextPanel)
+const perFileContext = useAppStore((s) => {
+  if (!s.reviewContext || !s.activeFileId) return null;
+  const activeFile = s.files[s.activeFileId];
+  if (!activeFile) return null;
+  // Match by file name (which is the absolute path when loaded via ?file= URL params)
+  return s.reviewContext.files[activeFile.name] ?? null;
 });
 ```
 
@@ -701,13 +762,92 @@ Error handling:
 
 ---
 
+## Review Context Loading
+
+> Implements: `FR-crp-review-context-receive`, `FR-crp-review-context-display`
+> See requirements in `../product/code-review-prompt.md`
+> See design in `../design/code-review-prompt.md`
+
+This section covers how the CRPG receives and displays structured review context data from the shepherd-review command.
+
+### Vite Plugin Endpoint: `GET /api/review-context`
+
+A new endpoint is added to the Vite dev server plugin (in `vite.config.ts`, alongside the existing `/api/file` and `/api/prompt-output` endpoints). This endpoint reads the context data file written by the shepherd-review command.
+
+```typescript
+// In the Vite plugin's configureServer hook:
+server.middlewares.use('/api/review-context', (req, res) => {
+  if (req.method !== 'GET') {
+    res.statusCode = 405;
+    res.end('Method not allowed');
+    return;
+  }
+
+  const contextPath = path.join(os.homedir(), '.shepherd', 'review-context.json');
+
+  try {
+    const content = fs.readFileSync(contextPath, 'utf-8');
+    const parsed = JSON.parse(content);
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(parsed));
+  } catch (err) {
+    // File not found or invalid JSON — return 404
+    // This is the normal case for standalone mode or single /shepherd usage
+    res.statusCode = 404;
+    res.end('No review context available');
+  }
+});
+```
+
+Key details:
+- The endpoint reads `~/.shepherd/review-context.json` from disk each time it is called. No caching.
+- Returns the JSON content as-is (the agent wrote valid JSON matching the `ReviewContext` TypeScript interface).
+- Returns 404 if the file does not exist or is invalid JSON. The CRPG treats 404 as "no context available" and simply does not render the ReviewContextPanel (`AC-crp-context-graceful-missing`).
+- Same-origin request (same as `/api/file` and `/api/prompt-output`). No CORS headers needed.
+
+### Context Loading in `useFileFromUrl` Hook
+
+The existing `useFileFromUrl` hook is updated to also load review context data after loading files from URL parameters. The loading sequence:
+
+1. Read all `file` params from the URL (existing behavior).
+2. For each file, fetch via `GET /api/file?path=<encoded-path>` and call `store.addFile()` (existing behavior).
+3. Set slash command mode: `store.setSlashCommandMode(true)` (existing behavior).
+4. **NEW**: After all files are loaded, fetch `GET /api/review-context`:
+   - On success (200 with valid JSON): call `store.setReviewContext(data)`.
+   - On failure (404, network error, invalid JSON): do nothing. `reviewContext` remains `null` and the ReviewContextPanel is not rendered. This is the graceful degradation path (`AC-crp-context-graceful-missing`).
+5. Clean URL params (existing behavior).
+
+The context fetch is non-blocking with respect to file loading -- files load and render first, then context data populates the ReviewContextPanel. In practice, the context file is small (a few KB of JSON) and the fetch is same-origin to localhost, so it completes in <10ms.
+
+```typescript
+// In useFileFromUrl, after loading all files and setting slash command mode:
+try {
+  const contextRes = await fetch('/api/review-context');
+  if (contextRes.ok) {
+    const contextData: ReviewContext = await contextRes.json();
+    store.setReviewContext(contextData);
+  }
+  // 404 or other failure: silently ignore, no context panel shown
+} catch {
+  // Network error: silently ignore
+}
+```
+
+### File Path Matching
+
+The per-file context in `reviewContext.files` is keyed by **absolute file path** (e.g., `/Users/dev/my-project/src/utils.ts`). The files loaded via `?file=` URL parameters also use absolute paths. The CRPG matches per-file context to loaded files by comparing the file's `name` property (which is the absolute path when loaded via URL params) against the keys in `reviewContext.files`.
+
+This matching is exact-string. No normalization or fuzzy matching is needed because both the context file and the URL parameters are generated by the same agent using the same `git rev-parse --show-toplevel` + relative path construction.
+
+---
+
 ## Security Considerations
 
 ### Privacy (`NFR-crp-client-only`)
 
 - In standalone mode, no file content leaves the browser. There are no `fetch` calls, no analytics, no telemetry.
-- In slash command mode, the only network call is `POST /api/prompt-output` to the same-origin Vite dev server on localhost. The prompt text is written to a local file (`~/.shepherd/prompt-output.md`) and never transmitted over the network. This is consistent with the spirit of `NFR-crp-client-only` -- all data stays on the developer's machine.
-- Content Security Policy headers should be configured to block all outbound network requests except those needed to load the app's own assets and the same-origin API endpoints (`/api/file`, `/api/prompt-output`).
+- In slash command mode, the network calls are limited to same-origin requests to the local Vite dev server: `GET /api/file` (file loading), `POST /api/prompt-output` (prompt handoff), and `GET /api/review-context` (context data loading). All data stays on the developer's machine -- the context file is read from `~/.shepherd/review-context.json` on the local filesystem. This is consistent with the spirit of `NFR-crp-client-only`.
+- Content Security Policy headers should be configured to block all outbound network requests except those needed to load the app's own assets and the same-origin API endpoints (`/api/file`, `/api/prompt-output`, `/api/review-context`).
 - Shiki WASM grammars are bundled with the application and served from the same origin -- no CDN dependency at runtime.
 
 ### Input Safety
@@ -743,12 +883,14 @@ engineering/
           appStore.ts           Zustand store definition (multi-file state)
         components/
           Toolbar.tsx
-          FileTabBar.tsx        NEW — Tab bar for multi-file navigation
+          FileTabBar.tsx        Tab bar for multi-file navigation
           FileDropZone.tsx      (updated: full + modal variants)
           FileHeader.tsx
           CodeViewer.tsx
           CommentBubble.tsx
           InlineCommentEditor.tsx
+          ReviewContextPanel.tsx NEW — Collapsible panel for overall + per-file review context
+          ContextSection.tsx    NEW — Neutral/review variant sub-component
           PreambleInput.tsx
           PromptPreview.tsx
           ConfirmationDialog.tsx
@@ -770,11 +912,13 @@ engineering/
             languageDetect.test.ts
             appStore.test.ts          (includes Done action, slash command mode, and multi-file store tests)
           component/
-            FileTabBar.test.tsx       NEW — Tab bar rendering, interaction, badges
+            FileTabBar.test.tsx       Tab bar rendering, interaction, badges
             FileDropZone.test.tsx     (includes modal variant tests)
             CodeViewer.test.tsx
             CommentBubble.test.tsx
             InlineCommentEditor.test.tsx
+            ReviewContextPanel.test.tsx NEW — Conditional rendering, collapse/expand, per-file switching
+            ContextSection.test.tsx    NEW — Neutral/review variant styling, empty content hiding
             Toolbar.test.tsx          (includes Done button rendering/state tests)
             PromptPreview.test.tsx
           e2e/
@@ -783,7 +927,8 @@ engineering/
             auto-prompt.spec.ts
             keyboard-navigation.spec.ts
             done-action.spec.ts       Done button E2E flow in slash command mode
-            multi-file.spec.ts        NEW — Multi-file load, switch, comment, prompt, remove flows
+            multi-file.spec.ts        Multi-file load, switch, comment, prompt, remove flows
+            review-context.spec.ts    NEW — Context loading, display, per-file switching, collapse/expand, graceful missing
 ```
 
 > **Multi-platform note**: The `apps/` directory is structured as a pnpm workspace monorepo. Future platform targets (macOS, iOS) would be added as sibling directories to `apps/web/`. When shared logic is needed across platforms, it can be extracted into a `packages/core/` workspace package containing types, promptBuilder, binaryDetect, languageDetect, and other platform-agnostic modules.
@@ -801,7 +946,7 @@ Pure logic functions tested in isolation:
 | `promptBuilder.ts` | Correct format with preamble; without preamble; single-line comments; range comments; line number padding; ascending sort order; empty edge cases. **Multi-file tests**: multiple files with comments produce combined prompt; single file with comments among multiple loaded files; files without comments omitted from prompt; file ordering matches `fileOrder`; returns `null` when no comments on any file. Validates `FR-crp-prompt-format`, `FR-crp-multi-file-prompt-format`, `AC-crp-generate-prompt-structure`, `AC-crp-multi-file-prompt-structure`, `AC-crp-multi-file-prompt-omits-uncommented`. |
 | `binaryDetect.ts` | Detects null bytes; passes clean UTF-8; handles empty input; handles exactly 8,192 bytes boundary. Validates `AC-crp-binary-file-rejected`. |
 | `languageDetect.ts` | Maps all 14+ extensions correctly; returns "plaintext" for unknown; case-insensitive extension matching. Validates `FR-crp-syntax-highlight`. |
-| `appStore.ts` | `addFile` creates file with unique ID and preserves existing files; `addFile` sets new file as active; `removeFile` removes file and its comments; `removeFile` switches active file when removed file was active; `removeFile` returns to empty state when last file removed; `setActiveFile` preserves comments on previous file; `setActiveFile` recomputes `commentOrder` for new active file; `setActiveFile` saves and restores scroll positions; `addComment` auto-sets `fileId` to active file; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment on any file removed); `navigateComment` wraps correctly within active file; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including all files, all comments, and `generatedPrompt` to null; `setSlashCommandMode` sets the flag; `sendPromptToAgent` posts to `/api/prompt-output` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false`. Validates store-level behavior for most FR and AC slugs including `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`. |
+| `appStore.ts` | `addFile` creates file with unique ID and preserves existing files; `addFile` sets new file as active; `removeFile` removes file and its comments; `removeFile` switches active file when removed file was active; `removeFile` returns to empty state when last file removed; `setActiveFile` preserves comments on previous file; `setActiveFile` recomputes `commentOrder` for new active file; `setActiveFile` saves and restores scroll positions; `addComment` auto-sets `fileId` to active file; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment on any file removed); `navigateComment` wraps correctly within active file; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including all files, all comments, `generatedPrompt` to null, `reviewContext` to null, and `isReviewContextCollapsed` to false; `setSlashCommandMode` sets the flag; `sendPromptToAgent` posts to `/api/prompt-output` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false`; `setReviewContext` stores context data; `toggleReviewContextCollapsed` toggles collapse state. Validates store-level behavior for most FR and AC slugs including `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`. |
 
 ### Component Tests (React Testing Library)
 
@@ -813,6 +958,8 @@ Components tested with mocked store state:
 | `FileDropZone` | Renders empty state instructions (`AC-crp-empty-state`); file upload triggers `addFile` (`AC-crp-load-upload`); paste mode works (`AC-crp-load-paste`); binary file shows error (`AC-crp-binary-file-rejected`); **modal variant**: renders as overlay; multi-file drop loads all valid files (`AC-crp-multi-file-drop-multiple`); binary files in multi-drop are skipped with toast. |
 | `CodeViewer` | Renders line numbers; click on gutter opens editor (`AC-crp-add-comment-single-line`); Shift+click selects range (`AC-crp-add-comment-line-range`); keyboard navigation works (`AC-crp-keyboard-add-comment`). |
 | `Toolbar` | Copy button disabled until prompt exists (auto-generated when comments present); comment count displays correctly as global total across all files (`AC-crp-multi-file-comment-count`); no Generate button (prompt auto-generates); Done button hidden when `isSlashCommandMode` is false (`AC-crp-done-standalone-hidden`); Done button visible when `isSlashCommandMode` is true; Done button disabled when no comments (`AC-crp-done-disabled-no-comments`); Done button shows "Sending..." during send; Done button shows "Sent" after successful send (`AC-crp-done-confirmation`); Done button triggers `sendPromptToAgent`; Copy becomes secondary when Done is visible; Cmd+Shift+D keyboard shortcut fires `sendPromptToAgent` (`FR-crp-done-action`). |
+| `ReviewContextPanel` | Not rendered when `reviewContext` is null (`AC-crp-context-graceful-missing`); renders overall section when context data is available (`AC-crp-context-overall-visible`); renders per-file section when active file has per-file context (`AC-crp-context-per-file-visible`); hides per-file section when active file has no per-file context; updates per-file section on tab switch (`AC-crp-context-per-file-switches`); collapse/expand toggle works; collapse state persists across mock tab switches; all content is read-only (`AC-crp-context-readonly`). |
+| `ContextSection` | Neutral variant renders with blue styling, info icon, and "What Changed" label; review variant renders with violet styling, sparkle icon, and "Agent Review" label (`AC-crp-context-neutral-vs-review`); hidden when content is empty; content rendered as plain text with `pre-wrap`; content is not editable. |
 | `PromptPreview` | Shows empty variant when no comments (prompt is null); shows populated variant with current prompt text when comments exist; prompt always reflects latest comments and preamble. |
 | `ConfirmationDialog` | Renders with correct text; confirm button triggers callback; cancel closes dialog; escape closes dialog (`AC-crp-clear-confirmation`). |
 
@@ -841,6 +988,12 @@ Full user flows tested in a real browser:
 | Multi-file: drag and drop multiple files simultaneously | `AC-crp-multi-file-drop-multiple` |
 | Multi-file: comment count in toolbar spans all files | `AC-crp-multi-file-comment-count` |
 | Multi-file: clear session removes all files and comments | `AC-crp-multi-file-clear-all` |
+| Review context: context panel visible when context data exists | `FR-crp-review-context-display`, `AC-crp-context-overall-visible` |
+| Review context: context panel hidden when no context data (standalone) | `AC-crp-context-graceful-missing` |
+| Review context: per-file context switches when changing tabs | `AC-crp-context-per-file-switches`, `AC-crp-context-per-file-visible` |
+| Review context: neutral vs review sections visually distinct | `AC-crp-context-neutral-vs-review` |
+| Review context: collapse/expand persists across tab switches | `FR-crp-review-context-display` |
+| Review context: content is read-only (not editable) | `AC-crp-context-readonly` |
 
 ### Cross-Browser Testing (`NFR-crp-browser-support`)
 
@@ -942,6 +1095,22 @@ The work is divided into four phases. Each phase produces a deployable increment
 
 **Slug coverage**: `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-multi-file-prompt`, `FR-crp-multi-file-prompt-format`, `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-drop-multiple`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-remove-with-comments`, `AC-crp-multi-file-remove-no-comments`, `AC-crp-multi-file-prompt-structure`, `AC-crp-multi-file-prompt-omits-uncommented`, `AC-crp-multi-file-comment-count`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`.
 
+### Phase 6: Review Context Display (estimated 3-4 days)
+
+**Goal**: Receive structured review context data from the shepherd-review command and display it alongside diffs in the CRPG.
+
+1. Add `GET /api/review-context` Vite plugin endpoint that reads `~/.shepherd/review-context.json` and returns the JSON content (or 404 if the file doesn't exist).
+2. Add `ReviewContext` type and `reviewContext`/`isReviewContextCollapsed` fields to the Zustand store. Add `setReviewContext` and `toggleReviewContextCollapsed` actions. Update `clearSession` to reset these fields.
+3. Update `useFileFromUrl` hook: after loading files from URL params, fetch `GET /api/review-context`. On success, call `store.setReviewContext(data)`. On failure (404/error), silently ignore.
+4. Build `ContextSection` component with two variants: neutral ("What Changed", blue styling, info icon) and review ("Agent Review", violet styling, sparkle icon). Render content as plain text with `white-space: pre-wrap`. Hide when content is empty.
+5. Build `ReviewContextPanel` component: collapsible panel containing overall and per-file sections, each with neutral + review `ContextSection` sub-components. Position between FileHeader/FileTabBar and CodeViewer. Conditionally rendered only when `state.reviewContext` is non-null. Per-file section derived from `state.reviewContext.files[activeFilePath]` — updates on tab switch via Zustand selector. Max-height 40% of Code Viewer Panel with overflow scroll.
+6. Wire the ReviewContextPanel into the CodeViewerPanel layout. Verify it appears in both single-file and multi-file modes when context data is available, and is absent when not.
+7. Write unit tests for store changes. Write component tests for `ReviewContextPanel` and `ContextSection`. Write E2E tests for context loading, display, per-file switching, collapse/expand, and graceful missing.
+
+**Delivers**: When launched via `/shepherd-review`, the CRPG displays overall changeset context and per-file context alongside each diff. Neutral ("What Changed") and review ("Agent Review") sections are visually distinct. The context panel is collapsible and updates per-file context on tab switch. When launched standalone or via `/shepherd`, no context panel is shown.
+
+**Slug coverage**: `FR-crp-review-context-receive`, `FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`, `AC-crp-context-overall-visible`, `AC-crp-context-per-file-visible`, `AC-crp-context-per-file-switches`, `AC-crp-context-neutral-vs-review`, `AC-crp-context-graceful-missing`, `AC-crp-context-readonly`.
+
 ---
 
 ## Requirement Traceability
@@ -976,6 +1145,10 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-multi-file-remove` | `FileTabBar` close button; `ConfirmationDialog` (file removal variant); store `removeFile` action |
 | `FR-crp-multi-file-prompt` | `promptBuilder.ts` (multi-file mode); store auto-generation on any comment change across any file |
 | `FR-crp-multi-file-prompt-format` | `promptBuilder.ts` (multi-file format assembly with per-file sections) |
+| `FR-crp-review-context-receive` | `ReviewContextPanel` component (conditional rendering based on `state.reviewContext`); `useFileFromUrl` hook (fetches `GET /api/review-context` after loading files); Vite plugin endpoint (`GET /api/review-context` reads `~/.shepherd/review-context.json`); store `setReviewContext` action |
+| `FR-crp-review-context-display` | `ReviewContextPanel` component; `ContextSection` component (neutral/review variants); Code Viewer Panel layout (positioned between FileHeader/FileTabBar and CodeViewer) |
+| `FR-crp-review-context-overall` | `ReviewContextPanel` component (overall "CHANGESET OVERVIEW" section using `state.reviewContext.overall`) |
+| `FR-crp-review-context-per-file` | `ReviewContextPanel` component (per-file section derived from `state.reviewContext.files[activeFilePath]`); updates on `setActiveFile` via Zustand selector |
 
 ### Non-Functional Requirements
 
@@ -1029,3 +1202,9 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-multi-file-comment-count` | `Toolbar` reads global comment count from store (`Object.values(state.comments).length`) |
 | `AC-crp-multi-file-clear-all` | Store `clearSession` resets all files, all comments, preamble, and all derived state |
 | `AC-crp-multi-file-empty-after-remove-last` | Store `removeFile` returns to empty state (`activeFileId: null`, `fileOrder: []`, `files: {}`) when last file removed |
+| `AC-crp-context-overall-visible` | `ReviewContextPanel` component (expanded state renders overall "CHANGESET OVERVIEW" section with neutral and review ContextSections) |
+| `AC-crp-context-per-file-visible` | `ReviewContextPanel` component (expanded state renders per-file section when active file has per-file context in `reviewContext.files`) |
+| `AC-crp-context-per-file-switches` | `ReviewContextPanel` per-file section updates via Zustand selector when `setActiveFile` changes the active file; per-file section hidden if new active file has no context |
+| `AC-crp-context-neutral-vs-review` | `ContextSection` component (two variants: neutral with blue styling/info icon/"What Changed" label, review with violet styling/sparkle icon/"Agent Review" label) |
+| `AC-crp-context-graceful-missing` | `ReviewContextPanel` not rendered when `state.reviewContext` is null; `useFileFromUrl` silently handles 404 from `GET /api/review-context`; no empty placeholder state |
+| `AC-crp-context-readonly` | `ReviewContextPanel` and `ContextSection` render content in read-only `<div>` elements with `white-space: pre-wrap`; no `contenteditable`, no input elements |

@@ -9,8 +9,8 @@ This is a single-page application with one primary view that transitions through
 | View State | Description |
 |---|---|
 | **Empty State** | No file loaded. Shows drop zone and file loading instructions. |
-| **File Loaded State (Single File)** | One file is loaded and displayed in the code viewer. User can add, edit, delete comments. The prompt auto-generates when comments exist. |
-| **File Loaded State (Multi-File)** | Two or more files are loaded. A File Tab Bar appears between the toolbar and the content area, showing all loaded files with comment counts. The active file is displayed in the code viewer. User can switch between files, add/remove files, and annotate each independently. Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`. |
+| **File Loaded State (Single File)** | One file is loaded and displayed in the code viewer. User can add, edit, delete comments. The prompt auto-generates when comments exist. When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears between the FileHeader and the code viewer (`FR-crp-review-context-display`). |
+| **File Loaded State (Multi-File)** | Two or more files are loaded. A File Tab Bar appears between the toolbar and the content area, showing all loaded files with comment counts. The active file is displayed in the code viewer. User can switch between files, add/remove files, and annotate each independently. When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears between the File Tab Bar and the code viewer, showing overall changeset context and per-file context for the active tab (`FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`). Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`. |
 | **Prompt Preview State** | The auto-generated prompt is displayed in a preview panel alongside the code viewer. Active whenever >= 1 comment exists on any loaded file. When multiple files have comments, the prompt aggregates all files (`FR-crp-multi-file-prompt`). |
 
 Within the File Loaded State (both single and multi-file), the application has several sub-states depending on user activity (editing a comment, selecting a line range, etc.). These are described in detail below.
@@ -62,8 +62,20 @@ When a single file is loaded, the main content area splits into a two-column lay
 +----------------------------------------------+-------------------+
 ```
 
-- **Code Viewer Panel**: Takes remaining width after the sidebar. Contains the FileHeader, code viewer with line numbers, gutter, and inline comments. Scrolls vertically independently.
+When review context data is available (shepherd-review mode), a Review Context Panel appears inside the Code Viewer Panel between the FileHeader and the code viewer:
+
+```
++----------------------------------------------+-------------------+
+|  FileHeader                                   |                   |
+|  Review Context Panel (collapsible)           |  Sidebar Panel    |
+|  Code Viewer (scrollable)                     |  (360px fixed)    |
+|                                               |                   |
++----------------------------------------------+-------------------+
+```
+
+- **Code Viewer Panel**: Takes remaining width after the sidebar. Contains the FileHeader, the Review Context Panel (when context data is available, `FR-crp-review-context-display`), the code viewer with line numbers, gutter, and inline comments. Scrolls vertically independently.
 - **Sidebar Panel**: Fixed width of 360px on the right side. Contains the preamble input and the prompt preview (auto-populated when comments exist). Scrolls vertically independently.
+- **Review Context Panel**: Conditionally visible only when review context data is available (`AC-crp-context-graceful-missing`). See ReviewContextPanel component spec for details.
 
 ### Main Content Area — File Loaded State (Multi-File)
 
@@ -82,7 +94,23 @@ When two or more files are loaded, a **File Tab Bar** appears between the toolba
 +----------------------------------------------+-------------------+
 ```
 
+When review context data is available (shepherd-review mode), a Review Context Panel appears inside the Code Viewer Panel between the File Tab Bar and the code viewer:
+
+```
++------------------------------------------------------------------+
+|  Toolbar                                                          |
++------------------------------------------------------------------+
+|  File Tab Bar                                                     |
++----------------------------------------------+-------------------+
+|  Review Context Panel (collapsible)           |                   |
+|  Code Viewer (scrollable)                     |  Sidebar Panel    |
+|                                               |  (360px fixed)    |
+|                                               |                   |
++----------------------------------------------+-------------------+
+```
+
 - **File Tab Bar**: Full width, 40px height. Shows a tab for each loaded file plus an "Add file" button. See FileTabBar component spec for details. The tab bar replaces the FileHeader — file name and language info are shown in the active tab (with full details in a tooltip on hover).
+- **Review Context Panel**: Conditionally visible only when review context data is available (`AC-crp-context-graceful-missing`). Displays overall changeset context and per-file context for the active tab. The per-file context updates when tabs are switched (`AC-crp-context-per-file-switches`). See ReviewContextPanel component spec for details.
 - **Code Viewer Panel**: Same as single-file layout, but the FileHeader is no longer rendered (its information is in the tab bar). The code viewer displays the content of the currently active file.
 - **Sidebar Panel**: Same as single-file layout. The prompt preview aggregates comments across all files.
 
@@ -158,9 +186,11 @@ Contains the following from top to bottom:
    - If the file was pasted and no name was provided, shows an inline editable text field with placeholder "Untitled -- click to name". File names from upload/drag-and-drop are displayed as read-only text and cannot be renamed.
    - **In multi-file mode**, the FileHeader is not rendered. File name, language badge, and rename affordance (for pasted files) move into the File Tab Bar. Hovering over a tab shows a tooltip with the full file name and language. Right-clicking a tab for a pasted file opens the rename input inline.
 
-2. **CodeViewer**: The main scrollable code display area. See Component Specs for full details. Implements `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`. In multi-file mode, the CodeViewer displays the content of the currently active file only. When the user switches tabs, the CodeViewer swaps to the new file's content, restoring that file's scroll position and rendering its comments.
+2. **ReviewContextPanel** (conditional): Visible only when review context data is available (`FR-crp-review-context-receive`). Positioned between the FileHeader (or the top of the Code Viewer Panel in multi-file mode) and the CodeViewer. Shows overall changeset context and per-file context for the active file. Collapsible to maximize code viewing space. See ReviewContextPanel component spec for full details. When no context data is available (standalone mode, single `/shepherd`), this component is not rendered at all (`AC-crp-context-graceful-missing`).
 
-3. **InlineCommentEditor**: Appears inline within the CodeViewer when the user is creating or editing a comment. See Component Specs.
+3. **CodeViewer**: The main scrollable code display area. See Component Specs for full details. Implements `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`. In multi-file mode, the CodeViewer displays the content of the currently active file only. When the user switches tabs, the CodeViewer swaps to the new file's content, restoring that file's scroll position and rendering its comments.
+
+4. **InlineCommentEditor**: Appears inline within the CodeViewer when the user is creating or editing a comment. See Component Specs.
 
 #### Sidebar Panel
 
@@ -392,15 +422,16 @@ The mode is tracked as a boolean flag in application state (e.g., `isSlashComman
 6. The previous file's full state (comments, scroll position, line selections) is preserved in memory and will be restored when the user switches back to that tab.
 7. If this is the second file being loaded (first time going from one file to two), the File Tab Bar appears for the first time, and the FileHeader in the code viewer is replaced by the tab bar. The first file's tab is also present in the bar.
 
-### Flow 18: Switch Between Files (`FR-crp-multi-file-nav`, `AC-crp-multi-file-nav-preserves-state`)
+### Flow 18: Switch Between Files (`FR-crp-multi-file-nav`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-context-per-file-switches`)
 
 1. User sees multiple tabs in the File Tab Bar. One tab is active (highlighted with the bottom border).
 2. User clicks on an inactive tab (or focuses the tab bar with keyboard, uses `ArrowLeft`/`ArrowRight` to reach it, and presses `Enter` or `Space`).
 3. The code viewer transitions to display the selected file's content. The transition is instant (no loading spinner) since all file content is held in memory.
 4. All comments for the selected file are rendered in the code viewer. The scroll position is restored to where the user last was in that file.
 5. The previously active tab retains its full state (comments, scroll position, any in-progress line range selection is discarded). If the user had an InlineCommentEditor open on the previous file, it is closed without saving (same as pressing Escape).
-6. The prompt preview in the sidebar continues to reflect all comments across all files — it does not change when switching tabs (unless comments were modified).
-7. Comment navigation (`[` and `]` keys, toolbar next/prev) operates across all files. If the next comment is in a different file, switching to that comment automatically activates the corresponding file's tab.
+6. If the Review Context Panel is visible (`FR-crp-review-context-display`), the per-file context section updates to show the newly active file's context (`AC-crp-context-per-file-switches`). If the newly active file has no per-file context (e.g., it was added via paste/upload and was not part of the shepherd-review invocation), the per-file section is hidden; only the overall context remains visible. The overall changeset context is unaffected by tab switches (`FR-crp-review-context-overall`). The Review Context Panel's collapse/expand state is preserved across tab switches — it does not reset.
+7. The prompt preview in the sidebar continues to reflect all comments across all files — it does not change when switching tabs (unless comments were modified).
+8. Comment navigation (`[` and `]` keys, toolbar next/prev) operates across all files. If the next comment is in a different file, switching to that comment automatically activates the corresponding file's tab.
 
 ### Flow 19: Remove a File (`FR-crp-multi-file-remove`, `AC-crp-multi-file-remove-with-comments`, `AC-crp-multi-file-remove-no-comments`, `AC-crp-multi-file-empty-after-remove-last`)
 
@@ -806,6 +837,190 @@ The input form for creating or editing a comment. Appears inline within the code
 
 ---
 
+### ReviewContextPanel
+
+Collapsible panel that displays review context data provided by the shepherd-review command. Implements `FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`, `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
+
+This component is **conditionally rendered** — it only appears when the CRPG receives review context data from the agent (`FR-crp-review-context-receive`). When no context data is available (standalone mode, single `/shepherd`), this component is not rendered at all. There is no empty or placeholder state (`AC-crp-context-graceful-missing`).
+
+- **Position**: Inside the Code Viewer Panel, between the FileHeader (single-file mode) or the top of the panel (multi-file mode, since the FileHeader is replaced by the File Tab Bar) and the CodeViewer. The panel spans the full width of the Code Viewer Panel (does not extend into the Sidebar Panel).
+
+- **Props/Inputs**:
+  - `overallContext: { neutral: string; review: string } | null` — Overall changeset context. Both fields may be empty strings.
+  - `perFileContext: { neutral: string; review: string } | null` — Per-file context for the currently active file. Null when the active file has no per-file context (e.g., file added via paste/upload, not part of the shepherd-review invocation).
+  - `isCollapsed: boolean` — Whether the panel is in its collapsed state.
+  - `onToggleCollapse: () => void` — Callback to toggle collapse/expand.
+  - `activeFileName: string` — Name of the currently active file (used in the per-file section header).
+
+- **States**:
+
+  | State | Trigger | Appearance |
+  |---|---|---|
+  | **Expanded (overall + per-file)** | Default when context data is available and the active file has per-file context | Full panel showing both the overall changeset section and per-file section, each with neutral and review sub-sections. |
+  | **Expanded (overall only)** | Context data is available but the active file has no per-file context | Panel shows only the overall changeset section. The per-file section is not rendered (no empty placeholder). |
+  | **Collapsed** | User has collapsed the panel | Single-line indicator bar showing a collapsed state. |
+  | **Absent / Hidden** | No context data available at all (`AC-crp-context-graceful-missing`) | Component is not rendered. No DOM element, no empty space. |
+
+- **Visual Structure (expanded, both sections)**:
+  ```
+  +--------------------------------------------------------------+
+  | [v] Review Context                                            |
+  |--------------------------------------------------------------|
+  | CHANGESET OVERVIEW                                            |
+  |                                                               |
+  | [ContextSection: "What Changed" — neutral styling]            |
+  | [ContextSection: "Agent Review" — review styling]             |
+  |                                                               |
+  |--------------------------------------------------------------|
+  | FILE: utils.ts                                                |
+  |                                                               |
+  | [ContextSection: "What Changed" — neutral styling]            |
+  | [ContextSection: "Agent Review" — review styling]             |
+  +--------------------------------------------------------------+
+  ```
+
+- **Visual Structure (collapsed)**:
+  ```
+  +--------------------------------------------------------------+
+  | [>] Review Context                                            |
+  +--------------------------------------------------------------+
+  ```
+
+- **Styling (expanded)**:
+  - **Container**: Full width of the Code Viewer Panel. Background: `#FAFBFC`. Border-bottom: 1px solid `#E2E8F0`. Padding: 0 (internal sections provide their own padding). Max-height: 40% of the Code Viewer Panel height (to prevent the context from consuming too much space). Overflows vertically with scrolling when content exceeds the max-height.
+  - **Dark mode**: Background: `#1A1D23`. Border-bottom: 1px solid `#2D3139`.
+  - **Header bar**: Height: 36px. Padding: 0 16px. Background: `#F1F5F9`. Border-bottom: 1px solid `#E2E8F0`. Display: flex, align-items center. Cursor: pointer (entire header is the collapse/expand toggle).
+    - Chevron icon: 14px, color `#64748B`. Points down when expanded (`v`), right when collapsed (`>`). Rotates with a 150ms CSS transition.
+    - Label: "Review Context" in 12px semi-bold (600), color `#475569`, uppercase tracking (`letter-spacing: 0.05em`).
+    - Dark mode header: Background: `#21252B`. Border-bottom: 1px solid `#2D3139`. Chevron: `#8B95A5`. Label: `#A0AABB`.
+  - **Overall section**: Padding: 12px 16px. Border-bottom: 1px solid `#E2E8F0` (only if per-file section follows).
+    - Section label: "CHANGESET OVERVIEW" in 11px semi-bold, color `#64748B`, uppercase, letter-spacing `0.05em`, margin-bottom 8px.
+    - Dark mode section label: color `#8B95A5`.
+    - Dark mode border-bottom: 1px solid `#2D3139`.
+  - **Per-file section**: Padding: 12px 16px. No border-bottom (last section).
+    - Section label: "FILE: [filename]" in 11px semi-bold, color `#64748B`, uppercase, letter-spacing `0.05em`, margin-bottom 8px. The filename portion is not uppercased — it uses its original casing.
+    - Dark mode section label: color `#8B95A5`.
+
+- **Styling (collapsed)**:
+  - **Container**: Full width. Height: 36px. Background: `#F1F5F9`. Border-bottom: 1px solid `#E2E8F0`. Cursor: pointer.
+  - Dark mode collapsed: Background: `#21252B`. Border-bottom: 1px solid `#2D3139`.
+  - The collapsed state matches the header bar styling from the expanded state. Clicking anywhere on the collapsed bar expands the panel.
+
+- **Collapse/Expand Behavior**:
+  - Default state on first load: **expanded**. The user should see the context when the CRPG first opens with review data.
+  - Toggle: Clicking the header bar toggles between collapsed and expanded. The expand/collapse is animated with a 200ms CSS transition on `max-height` and `opacity`.
+  - **Persistence across tab switches**: The collapse/expand state is maintained when the user switches between file tabs. If the panel is collapsed, it stays collapsed when switching to another file. This is a session-level preference, not per-file.
+  - **Reset**: The collapse state resets to expanded if the session is cleared and re-populated with context data.
+
+- **Content Rendering**: Each section (overall and per-file) contains two ContextSection sub-components: one for neutral context ("What Changed") and one for review feedback ("Agent Review"). See the ContextSection component spec below.
+
+- **Keyboard Accessibility** (`NFR-crp-accessibility-keyboard`):
+  - The header bar is focusable (`tabindex="0"`).
+  - `Enter` or `Space` toggles collapse/expand.
+  - `Tab` from the header bar moves focus into the panel content (when expanded) or to the next focusable element (when collapsed).
+  - Screen reader: The header bar has `aria-expanded="true|false"` and `aria-controls` pointing to the panel content ID.
+
+- **ARIA Attributes**:
+  - Header bar: `role="button"`, `aria-expanded="true|false"`, `aria-controls="review-context-content"`.
+  - Panel content: `id="review-context-content"`, `role="region"`, `aria-label="Review context"`.
+  - Overall section: `role="group"`, `aria-label="Changeset overview"`.
+  - Per-file section: `role="group"`, `aria-label="File context for [filename]"`.
+  - All text content within the panel: read-only, not editable (`AC-crp-context-readonly`). No `contenteditable`, no input elements for the context text.
+
+---
+
+### ContextSection
+
+A single section within the ReviewContextPanel that displays either neutral context ("What Changed") or review feedback ("Agent Review"). Used twice within each group (overall and per-file) — once for the neutral variant and once for the review variant. Implements `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
+
+- **Variants**:
+  - `neutral` — Displays factual/neutral context ("What Changed"). Uses informational styling.
+  - `review` — Displays the agent's review feedback ("Agent Review"). Uses a distinct styling that signals subjective AI content.
+
+- **Props/Inputs**:
+  - `variant: 'neutral' | 'review'`
+  - `content: string` — The context text to display. May contain multiple paragraphs.
+  - `label: string` — The section header ("What Changed" for neutral, "Agent Review" for review).
+
+- **States**:
+
+  | State | Trigger | Appearance |
+  |---|---|---|
+  | **Visible** | Content string is non-empty | Section is rendered with label and content. |
+  | **Hidden** | Content string is empty or undefined | Section is not rendered. No empty placeholder. |
+
+- **Visual Structure (neutral variant — "What Changed")**:
+  ```
+  +--------------------------------------------------------------+
+  |  [info-icon] What Changed                                     |
+  |  +---------------------------------------------------------+  |
+  |  | Added a new validateInput() function in the utils        |  |
+  |  | module. Modified the processData() handler to call       |  |
+  |  | validateInput() before processing. Removed the inline    |  |
+  |  | validation logic from the handler.                       |  |
+  |  +---------------------------------------------------------+  |
+  +--------------------------------------------------------------+
+  ```
+
+- **Visual Structure (review variant — "Agent Review")**:
+  ```
+  +--------------------------------------------------------------+
+  |  [sparkle-icon] Agent Review                                  |
+  |  +---------------------------------------------------------+  |
+  |  | The new validation function is a good separation of      |  |
+  |  | concerns. However, the error messages are generic —      |  |
+  |  | consider adding specific validation failure reasons.     |  |
+  |  | The removal of inline validation is clean.               |  |
+  |  +---------------------------------------------------------+  |
+  +--------------------------------------------------------------+
+  ```
+
+- **Styling (neutral variant — light mode)**:
+  - **Container**: Margin-bottom: 8px (gap between neutral and review within the same group). Padding: 0.
+  - **Header row**: Display flex, align-items center, margin-bottom: 6px.
+    - Icon: Info circle icon (`i` in a circle), 14px, color `#3B82F6` (blue-500). Margin-right: 6px.
+    - Label: "What Changed" in 12px semi-bold (600), color `#475569`.
+  - **Content area**: Background: `#FFFFFF`. Border: 1px solid `#E2E8F0`. Border-left: 3px solid `#3B82F6` (blue-500). Border-radius: 4px. Padding: 10px 12px.
+  - **Content text**: Font-size: 13px. Line-height: 20px. Color: `#374151`. Font-family: system sans-serif. White-space: `pre-wrap` (preserves line breaks in the content). The text is read-only — no cursor change, no selection affordance beyond normal text selection for copy.
+
+- **Styling (review variant — light mode)**:
+  - **Container**: Margin-bottom: 0 (last within its group, or 8px if followed by more content).
+  - **Header row**: Same layout as neutral.
+    - Icon: Sparkle/AI icon (a small sparkle or robot head), 14px, color `#7C3AED` (violet-600). Margin-right: 6px.
+    - Label: "Agent Review" in 12px semi-bold (600), color `#475569`.
+  - **Content area**: Background: `#F5F3FF` (violet-50). Border: 1px solid `#DDD6FE` (violet-200). Border-left: 3px solid `#7C3AED` (violet-600). Border-radius: 4px. Padding: 10px 12px.
+  - **Content text**: Same font properties as neutral. Color: `#374151`.
+
+- **Styling (neutral variant — dark mode)**:
+  - **Header row**: Icon color: `#60A5FA` (blue-400). Label color: `#A0AABB`.
+  - **Content area**: Background: `#1E2028`. Border: 1px solid `#2D3139`. Border-left: 3px solid `#60A5FA` (blue-400).
+  - **Content text**: Color: `#D1D5DB`.
+
+- **Styling (review variant — dark mode)**:
+  - **Header row**: Icon color: `#A78BFA` (violet-400). Label color: `#A0AABB`.
+  - **Content area**: Background: `#1E1B2E` (dark violet tint). Border: 1px solid `#312E4A`. Border-left: 3px solid `#A78BFA` (violet-400).
+  - **Content text**: Color: `#D1D5DB`.
+
+- **Content Rendering**:
+  - The content is rendered as plain text with `white-space: pre-wrap`. Line breaks in the content string are preserved.
+  - No markdown rendering is applied. The content is displayed as-is.
+  - The content is read-only. It is rendered in a `<div>` (not an `<input>` or `<textarea>`). Users can select and copy the text via normal browser text selection, but cannot edit it.
+
+- **Visual Distinction Rationale** (`AC-crp-context-neutral-vs-review`):
+  The neutral and review variants are distinguishable at a glance through multiple visual cues:
+  1. **Left border color**: Blue (neutral) vs violet (review).
+  2. **Background color**: White/transparent (neutral) vs faint violet tint (review).
+  3. **Icon**: Info circle (neutral) vs sparkle/AI (review).
+  4. **Label text**: "What Changed" (neutral) vs "Agent Review" (review).
+  These four signals work together so that even users who are color-blind can distinguish the two sections via icon shape and label text.
+
+- **Keyboard Accessibility**:
+  - No interactive elements within a ContextSection — content is read-only.
+  - Text is selectable via standard browser text selection (for copy-paste).
+  - Screen reader: Content area has `role="note"`, `aria-label` set to the label text (e.g., "What Changed" or "Agent Review").
+
+---
+
 ### PreambleInput
 
 Text area for the optional prompt preamble. Implements `FR-crp-prompt-preamble`.
@@ -1136,6 +1351,7 @@ All core workflows are achievable via keyboard:
 | **Switch between files** | `Tab` to File Tab Bar, `ArrowLeft`/`ArrowRight` to navigate tabs, `Enter` or `Space` to activate |
 | **Add another file** | `Tab` to File Tab Bar, `Tab` to "+" button, `Enter` to open add-file modal |
 | **Remove a file** | Focus a tab in the File Tab Bar, press `Delete` or `Backspace` |
+| **Toggle review context panel** | `Tab` to context panel header, `Enter` or `Space` to collapse/expand |
 | **Navigate to a line** | `Tab` to code viewer, `ArrowUp`/`ArrowDown` |
 | **Add comment on a line** | Focus line, press `Enter` or `c`, type comment, `Cmd+Enter` to submit |
 | **Add comment on a range** | Focus start line, `Shift+ArrowDown` to select range, `Enter` to open editor |
@@ -1174,6 +1390,10 @@ All core workflows are achievable via keyboard:
 | Prompt preview | `role="region"`, `aria-label="Generated prompt preview"` |
 | Drop zone | `role="region"`, `aria-label="File loading area"` |
 | Add file modal | `role="dialog"`, `aria-label="Add file"`, `aria-modal="true"` |
+| Review context panel header | `role="button"`, `aria-expanded="true\|false"`, `aria-controls="review-context-content"` |
+| Review context panel content | `role="region"`, `aria-label="Review context"` |
+| Context section (neutral) | `role="note"`, `aria-label="What Changed"` |
+| Context section (review) | `role="note"`, `aria-label="Agent Review"` |
 
 ### Color and Contrast
 
@@ -1214,6 +1434,14 @@ All core workflows are achievable via keyboard:
 | Drop zone border | Dashed gray | `#CBD5E1` |
 | Hover background | Very light | `#F8FAFC` |
 | Page background | Off-white | `#F1F5F9` |
+| Context panel background | Near-white | `#FAFBFC` |
+| Context panel header | Light slate | `#F1F5F9` |
+| Neutral context border (left) | Blue | `#3B82F6` |
+| Neutral context icon | Blue | `#3B82F6` |
+| Review context border (left) | Violet | `#7C3AED` |
+| Review context background | Violet-50 | `#F5F3FF` |
+| Review context border | Violet-200 | `#DDD6FE` |
+| Review context icon | Violet | `#7C3AED` |
 
 ---
 
@@ -1233,6 +1461,10 @@ All core workflows are achievable via keyboard:
 | Dialog title | System sans-serif | 18px | 600 | 28px |
 | Dialog body | System sans-serif | 14px | 400 | 22px |
 | Prompt preview text | Monospace stack | 12px | 400 | 18px |
+| Context panel header | System sans-serif | 12px | 600 | 16px |
+| Context section label | System sans-serif | 11px | 600 | 16px |
+| Context section header | System sans-serif | 12px | 600 | 16px |
+| Context content text | System sans-serif | 13px | 400 | 20px |
 
 System sans-serif stack: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`
 
@@ -1272,6 +1504,10 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-multi-file-remove` | FileTabBar (close button on tabs); ConfirmationDialog (remove file variant); Flow 19 |
 | `FR-crp-multi-file-prompt` | PromptPreview component (multi-file populated variant); Prompt Output Format section (multi-file format); Flow 9 |
 | `FR-crp-multi-file-prompt-format` | Prompt Output Format section (multi-file format rules) |
+| `FR-crp-review-context-receive` | ReviewContextPanel component (conditional rendering based on data availability); Code Viewer Panel layout (item 2) |
+| `FR-crp-review-context-display` | ReviewContextPanel component; ContextSection component; Application Layout (single-file and multi-file with context panel); Code Viewer Panel layout; Flow 18 step 6 |
+| `FR-crp-review-context-overall` | ReviewContextPanel component (overall section); Application Layout diagrams; Flow 18 step 6 |
+| `FR-crp-review-context-per-file` | ReviewContextPanel component (per-file section); Flow 18 step 6 (per-file context updates on tab switch) |
 
 ### Non-Functional Requirements
 
@@ -1325,3 +1561,9 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-multi-file-comment-count` | Toolbar component (`commentCount` prop — global across all files); FileTabBar (per-file badge) |
 | `AC-crp-multi-file-clear-all` | Flow 12; ConfirmationDialog (clear session variant with multi-file count); File Loaded Screen states |
 | `AC-crp-multi-file-empty-after-remove-last` | Flow 19 step 6 (returns to Empty State when last file removed) |
+| `AC-crp-context-overall-visible` | ReviewContextPanel component (expanded state with overall section); Application Layout diagrams |
+| `AC-crp-context-per-file-visible` | ReviewContextPanel component (expanded state with per-file section); Application Layout diagrams |
+| `AC-crp-context-per-file-switches` | Flow 18 step 6 (per-file context updates on tab switch); ReviewContextPanel component |
+| `AC-crp-context-neutral-vs-review` | ContextSection component (neutral vs review variants with distinct visual treatment); ReviewContextPanel component |
+| `AC-crp-context-graceful-missing` | ReviewContextPanel component (absent/hidden state — not rendered when no context data); Code Viewer Panel layout |
+| `AC-crp-context-readonly` | ReviewContextPanel component (read-only content); ContextSection component (read-only div, no editable elements) |

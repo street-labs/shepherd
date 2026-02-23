@@ -40,6 +40,9 @@ This bridges the gap between a developer's code review observations and an actio
 ### US-10: Generate a combined multi-file prompt
 **As a** developer, **I want** the generated prompt to include all files and their comments in a single structured output, **so that** the AI agent has full context across the entire changeset.
 
+### US-11: See review context alongside files
+**As a** developer reviewing files in the CRPG, **I want to** see what changed in each file and the agent's review feedback without switching back to the terminal, **so that** I have all the context I need right where I'm doing my review.
+
 ## Requirements
 
 ### Functional Requirements
@@ -129,6 +132,22 @@ When multiple files are loaded with comments, the generated prompt includes all 
 
 #### `FR-crp-multi-file-prompt-format` -- Multi-file prompt format
 The combined prompt follows this structure: (1) An "Instructions" section with the preamble (if provided) — shared across all files, not per-file; (2) For each file that has comments: a "File" heading with the file name and language, followed by a "Requested Changes" subsection listing each comment paired with its code snippet in source order; (3) Comments within each file are ordered by line number; files are ordered by their position in the file list. The preamble applies globally to the entire review, not per-file.
+
+#### `FR-crp-review-context-receive` -- Receive context data from the agent
+The CRPG must accept structured review context data passed from the shepherd-review command. The data includes overall changeset context and per-file context, each split into two parts: neutral context and review feedback. Per-file context is keyed by file path. The mechanism for receiving this data (URL params, file-based, API endpoint) is an engineering decision. The CRPG gracefully handles missing context — if no context data is provided (standalone mode, `/shepherd` single file), the context UI is simply not shown and the CRPG works exactly as before.
+
+#### `FR-crp-review-context-display` -- Display review context in the CRPG
+When the CRPG receives review context data (from the shepherd-review command), it displays the context in the UI for each file and for the overall changeset. The context has two distinct parts:
+- **Neutral context**: Factual description of what changed (what was added/modified/removed, which functions were touched, structural changes). Displayed with neutral/informational styling. Contains no opinions.
+- **Review feedback**: The AI agent's assessment and opinions (code quality observations, potential concerns, suggestions, things done well). Displayed with distinct styling that makes it clear this is the agent's subjective take, not objective fact.
+
+Both parts are read-only — the user cannot edit them. They serve as reference material while the user adds their own inline comments.
+
+#### `FR-crp-review-context-overall` -- Display overall changeset context
+The CRPG displays an overall changeset summary (neutral context + review feedback) that applies to the entire review session, not tied to a specific file. This orients the user on the scope and purpose of the changes before they dive into individual files. The overall context is visible regardless of which file tab is active.
+
+#### `FR-crp-review-context-per-file` -- Display per-file context
+Each file tab displays context specific to that file (neutral context + review feedback). When the user switches tabs, the context updates to show the relevant file's context. Files without context data (e.g., files loaded via paste/upload/drag-drop that were not part of the shepherd-review invocation) simply don't show the context panel — no empty or placeholder state is needed.
 
 ### Non-Functional Requirements
 
@@ -263,6 +282,24 @@ The application is not required to persist sessions across page reloads in this 
 #### `AC-crp-multi-file-empty-after-remove-last` -- Removing the last file returns to empty state
 **Given** only one file is loaded, **when** the user removes it, **then** the application returns to the initial empty state.
 
+#### `AC-crp-context-overall-visible` -- Overall changeset context is visible
+**Given** the CRPG is opened via shepherd-review with context data, **when** the user views any file, **then** an overall changeset context section is visible showing both neutral context and review feedback with visually distinct styling.
+
+#### `AC-crp-context-per-file-visible` -- Per-file context is visible
+**Given** a file loaded via shepherd-review has per-file context, **when** the user views that file's tab, **then** the file's neutral context and review feedback are visible with distinct styling.
+
+#### `AC-crp-context-per-file-switches` -- Per-file context switches with tabs
+**Given** files A and B both have per-file context, **when** the user switches from tab A to tab B, **then** the displayed per-file context updates to show file B's context (not file A's).
+
+#### `AC-crp-context-neutral-vs-review` -- Neutral context and review feedback are visually distinct
+**Given** context is displayed (either overall or per-file), **then** the neutral context section and review feedback section are visually distinct (different styling, headers, or containers) so a user can immediately tell which is factual description and which is the agent's opinion.
+
+#### `AC-crp-context-graceful-missing` -- No context panel when context data is absent
+**Given** a file is loaded via paste/upload/drag-drop (no context data provided), **then** no context panel is shown for that file. The CRPG works exactly as before when no context data is provided — there is no empty or placeholder context state.
+
+#### `AC-crp-context-readonly` -- Context is read-only
+**Given** context is displayed (neutral or review feedback), **then** the user cannot edit the neutral context or review feedback text. They are read-only reference material.
+
 ## Open Questions
 
 1. **Prompt format customization**: Should the user be able to choose between different prompt formats (e.g., one optimized for ChatGPT, one for Claude, one for Copilot)? For v1, a single well-structured format is assumed sufficient.
@@ -284,6 +321,8 @@ The application is not required to persist sessions across page reloads in this 
 9. **Per-file preamble**: Should users be able to add per-file instructions in addition to the global preamble? V1 assumes a single global preamble only.
 
 10. **Maximum file count**: Should there be a hard limit on the number of files that can be loaded? V1 has no hard limit but acknowledges performance may degrade past 20 files.
+
+11. **Review context layout placement**: Where should the review context (overall changeset context and per-file context) appear in the layout? Options include a sidebar panel, a collapsible header area above the code viewer, a dedicated tab/pane, or an overlay. This is a design decision that should balance visibility (context is always accessible) with screen real estate (code viewer is the primary workspace). The overall changeset context and per-file context may also warrant different placement strategies.
 
 ## Dependencies
 

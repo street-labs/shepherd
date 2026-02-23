@@ -50,6 +50,16 @@
 | `FR-crp-multi-file-remove` | `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-no-comments-immediate`, `TC-crp-multi-file-remove-active-switches` | Not started |
 | `FR-crp-multi-file-prompt` | `TC-crp-multi-file-prompt-structure-happy` | Not started |
 | `FR-crp-multi-file-prompt-format` | `TC-crp-multi-file-prompt-structure-happy`, `TC-crp-multi-file-prompt-order` | Not started |
+| `FR-crp-review-context-receive` | `TC-crp-context-graceful-missing`, `TC-crp-context-overall-visible` | Not started |
+| `FR-crp-review-context-display` | `TC-crp-context-overall-visible`, `TC-crp-context-per-file-visible`, `TC-crp-context-neutral-vs-review`, `TC-crp-context-dark-mode` | Not started |
+| `FR-crp-review-context-overall` | `TC-crp-context-overall-visible`, `TC-crp-context-collapse` | Not started |
+| `FR-crp-review-context-per-file` | `TC-crp-context-per-file-visible`, `TC-crp-context-per-file-switches` | Not started |
+| `AC-crp-context-overall-visible` | `TC-crp-context-overall-visible` | Not started |
+| `AC-crp-context-per-file-visible` | `TC-crp-context-per-file-visible` | Not started |
+| `AC-crp-context-per-file-switches` | `TC-crp-context-per-file-switches` | Not started |
+| `AC-crp-context-neutral-vs-review` | `TC-crp-context-neutral-vs-review` | Not started |
+| `AC-crp-context-graceful-missing` | `TC-crp-context-graceful-missing` | Not started |
+| `AC-crp-context-readonly` | `TC-crp-context-readonly` | Not started |
 
 ---
 
@@ -1274,6 +1284,171 @@
 
 ---
 
+### Review Context Display
+
+---
+
+#### `TC-crp-context-overall-visible`: Overall changeset context is visible in the CRPG
+
+- **Type**: E2E
+- **Covers**: `AC-crp-context-overall-visible`, `FR-crp-review-context-receive`, `FR-crp-review-context-display`, `FR-crp-review-context-overall`
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data provided. At least 2 files are loaded as tabs. The context data includes overall neutral context and overall review feedback.
+- **Steps**:
+  1. Open the CRPG via `/shepherd-review` (which passes context data).
+  2. Look for an overall changeset context section in the CRPG UI.
+  3. Verify the overall neutral context is displayed (factual description of the changeset).
+  4. Verify the overall review feedback is displayed (agent's opinions and suggestions).
+  5. Switch between file tabs and verify the overall context remains visible regardless of which tab is active.
+- **Expected Result**: An overall changeset context section is visible in the CRPG. It contains two visually distinct parts: (1) neutral context with factual description (e.g., "This changeset adds a new route and refactors utility functions"), and (2) review feedback with the agent's assessment (e.g., "The route implementation follows good patterns. Consider adding error handling."). The overall context is not tied to a specific file and remains visible when switching tabs. Both sections have clear labels or headers identifying them as "neutral" / "what changed" versus "review" / "feedback."
+- **Edge Cases**:
+  - Overall context with only neutral content (no review feedback): the neutral section is shown; the review section is absent or empty.
+  - Very long overall context text: the section should be scrollable or otherwise handle overflow gracefully.
+
+---
+
+#### `TC-crp-context-per-file-visible`: Per-file context is visible for each file tab
+
+- **Type**: E2E
+- **Covers**: `AC-crp-context-per-file-visible`, `FR-crp-review-context-per-file`, `FR-crp-review-context-display`
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data. At least 2 files are loaded. Each file has per-file neutral context and per-file review feedback in the context data.
+- **Steps**:
+  1. Select the first file tab.
+  2. Verify per-file neutral context is displayed alongside the diff (factual description of what changed in this file).
+  3. Verify per-file review feedback is displayed alongside the diff (agent's opinions about this file).
+  4. Verify the neutral and review sections have visually distinct styling.
+- **Expected Result**: The per-file context appears alongside the file's diff content. The neutral context describes specific changes in the file (e.g., "Added `processData()` function; modified `handleSubmit()` to use async/await"). The review feedback provides the agent's observations (e.g., "The async refactor looks clean. The error handling could be more specific."). Both sections are clearly labeled and visually distinct.
+- **Edge Cases**:
+  - A file loaded via paste/upload/drag-drop (not from `/shepherd-review`): no per-file context is shown for that file (see `TC-crp-context-graceful-missing`).
+  - Per-file context with only neutral content (no review feedback): the neutral section is shown; the review section is absent.
+
+---
+
+#### `TC-crp-context-per-file-switches`: Per-file context updates when switching tabs
+
+- **Type**: E2E
+- **Covers**: `AC-crp-context-per-file-switches`, `FR-crp-review-context-per-file`
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data for files A.ts and B.ts. Both files have distinct per-file context (different neutral and review content).
+- **Steps**:
+  1. Select the A.ts tab.
+  2. Read the per-file neutral context and review feedback displayed.
+  3. Note the specific content (e.g., neutral says "Modified `fetchData()` function").
+  4. Switch to the B.ts tab.
+  5. Read the per-file neutral context and review feedback.
+  6. Verify the content is different from A.ts's context (e.g., neutral says "Added new `Validator` class").
+  7. Switch back to A.ts.
+  8. Verify A.ts's per-file context is restored.
+- **Expected Result**: When switching from A.ts to B.ts, the per-file context updates to show B.ts's context. The content is specific to B.ts and different from A.ts. Switching back to A.ts restores A.ts's context. The update happens immediately on tab switch with no stale data or flicker.
+- **Edge Cases**:
+  - Rapidly switching between 3+ tabs: context updates correctly for each tab without race conditions.
+  - A tab with no per-file context (e.g., a file added manually): switching to it shows no per-file context panel; switching back to a context-bearing tab restores that file's context.
+
+---
+
+#### `TC-crp-context-neutral-vs-review`: Neutral and review sections have distinct visual styling
+
+- **Type**: E2E
+- **Covers**: `AC-crp-context-neutral-vs-review`, `FR-crp-review-context-display`
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data that includes both neutral context and review feedback (overall and per-file).
+- **Steps**:
+  1. Observe the overall context section in the CRPG.
+  2. Compare the visual styling of the neutral context area versus the review feedback area.
+  3. Check for differences in: background color, border color, section header/label text, icons (if any).
+  4. Repeat for per-file context on any file tab.
+- **Expected Result**: The neutral context and review feedback are visually distinct in all of these ways:
+  - **Different background/border colors**: Neutral uses informational styling (e.g., blue tones), review uses a distinct color (e.g., violet/purple tones).
+  - **Different labels/headers**: Neutral is labeled something like "What changed" or "Changes"; review is labeled something like "Review feedback" or "Agent feedback."
+  - **Different icons** (if used): Each section type has its own icon.
+
+  A user who has never used the tool can tell at a glance which section is factual description and which is the agent's opinion. The distinction is consistent between overall context and per-file context.
+- **Edge Cases**:
+  - Color-blind users: the distinction should not rely solely on color (e.g., labels and/or icons provide redundant differentiation).
+
+---
+
+#### `TC-crp-context-graceful-missing`: No context panel when context data is absent
+
+- **Type**: E2E
+- **Covers**: `AC-crp-context-graceful-missing`, `FR-crp-review-context-receive`
+- **Preconditions**: The CRPG is opened in standalone mode (no `/shepherd-review` invocation). Files are loaded via paste, upload, or drag-and-drop.
+- **Steps**:
+  1. Open the CRPG directly (e.g., navigate to the URL without context parameters).
+  2. Load a file via paste or upload.
+  3. Inspect the UI for any context panels.
+  4. Add a second file via drag-and-drop.
+  5. Inspect the UI again.
+- **Expected Result**: No context panel is shown -- neither overall context nor per-file context. The CRPG works exactly as it did before context support was added. There is no empty context panel, no placeholder text like "No context available," and no collapsed/hidden context section. The UI behaves as if context support does not exist. All existing functionality (comments, prompt generation, copy, Done) works normally.
+- **Edge Cases**:
+  - Loading a file via `?file=` URL parameter (single-file `/shepherd` mode, no context data): no context panel is shown for this file either.
+  - A mixed session where some files have context (from `/shepherd-review`) and some were added manually: only the files from `/shepherd-review` show per-file context; manually-added files do not.
+
+---
+
+#### `TC-crp-context-readonly`: Context text cannot be edited
+
+- **Type**: E2E
+- **Covers**: `AC-crp-context-readonly`, `FR-crp-review-context-display`
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data. Both overall and per-file context are visible.
+- **Steps**:
+  1. Click on the overall neutral context text and attempt to type.
+  2. Click on the overall review feedback text and attempt to type.
+  3. Click on the per-file neutral context text and attempt to type.
+  4. Click on the per-file review feedback text and attempt to type.
+  5. Try selecting context text and pressing Delete or Backspace.
+  6. Try right-clicking context text to check for an "Edit" option.
+- **Expected Result**: None of the context text is editable. Clicking on it does not open an editor or place a cursor. Keyboard input does not modify the text. The text can be selected (for copy-paste) but not modified. There are no edit buttons, pencil icons, or other edit affordances on the context sections.
+- **Edge Cases**:
+  - Selecting context text and pressing Cmd+A / Ctrl+A followed by typing: no modification occurs.
+  - The context text is separate from the inline comment system -- clicking on context should not open the InlineCommentEditor.
+
+---
+
+#### `TC-crp-context-collapse`: Context panel can be collapsed and expanded
+
+- **Type**: E2E
+- **Covers**: `FR-crp-review-context-display`
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data. At least 2 files are loaded as tabs.
+- **Steps**:
+  1. Locate the context panel (overall or per-file).
+  2. Click the collapse/toggle control to collapse the context panel.
+  3. Verify the context content is hidden and the panel is minimized.
+  4. Switch to another file tab.
+  5. Verify the collapsed state persists (context panel remains collapsed on the new tab).
+  6. Click the expand/toggle control to expand the context panel.
+  7. Verify the context content is visible again.
+  8. Switch tabs again.
+  9. Verify the expanded state persists.
+- **Expected Result**: The context panel can be collapsed to save vertical space when the reviewer wants to focus on the code. The collapsed state persists across tab switches (the collapse preference is global, not per-tab). Expanding the panel restores the full context view. The toggle control is clearly visible (e.g., a chevron icon or "Show/Hide context" label).
+- **Edge Cases**:
+  - Collapsing the panel and then reloading the page: the collapsed state may or may not persist (per `NFR-crp-no-data-persistence`, session state is not persisted across reloads).
+  - Collapsing when only overall context is visible (no per-file context): the overall context collapses.
+  - Collapsing when both overall and per-file context are visible: both collapse together (or each has its own toggle, depending on design).
+
+---
+
+#### `TC-crp-context-dark-mode`: Context panel renders correctly in dark mode
+
+- **Type**: E2E
+- **Covers**: `FR-crp-review-context-display`
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data. Dark mode is enabled (either via system preference or manual toggle).
+- **Steps**:
+  1. Enable dark mode in the CRPG (or ensure the system is set to dark mode).
+  2. Observe the overall context panel (neutral and review sections).
+  3. Observe the per-file context panel on a file tab.
+  4. Verify the neutral vs review visual distinction is maintained in dark mode.
+  5. Verify text is readable against the dark background.
+  6. Toggle between light and dark mode and verify the context panel adapts.
+- **Expected Result**: In dark mode:
+  - Context panel backgrounds use appropriate dark-mode colors (not the same light-mode blues/violets).
+  - The neutral vs review distinction is still visually clear (different shades, different border colors adapted for dark backgrounds).
+  - Text contrast is sufficient for readability (meets accessibility contrast ratio guidelines).
+  - Section headers, labels, and icons adapt to dark mode.
+  - Toggling between light and dark mode causes the context panel to re-render with the correct color scheme.
+- **Edge Cases**:
+  - System preference set to dark mode but CRPG manually set to light: the CRPG setting takes precedence and context renders in light mode.
+  - Very long context text in dark mode: scrollbar styling should also adapt.
+
+---
+
 ## Edge Cases & Error Scenarios
 
 This section covers additional edge cases and error conditions not directly mapped to a single AC slug but important for comprehensive coverage.
@@ -1599,6 +1774,12 @@ Since this is a greenfield single-page application with no existing features, tr
 
 10. **Tab bar interaction with toolbar**: The tab bar introduces a new layer of navigation. Ensure toolbar actions (Copy, Clear, Done) still reference the correct aggregated state across all files, not just the active file.
 
+11. **Review context display**: The context panel is a new UI element overlaid on the existing CRPG layout. Changes to the layout, sidebar, toolbar, or file tab bar could cause the context panel to overlap or be hidden. The context panel must coexist with the existing code viewer, comment bubbles, and prompt preview without layout conflicts.
+
+12. **Context data handoff mechanism**: The mechanism for receiving context data (URL parameters, file-based, API) must be backward-compatible. When no context data is provided (standalone mode, `/shepherd` single file), the CRPG must work exactly as before -- no empty context panels, no errors, no layout shifts.
+
+13. **Dark mode and context**: The context panel introduces new color tokens (blue for neutral, violet for review). Dark mode must provide appropriate dark-mode variants of these colors. Changes to the dark mode implementation could cause the context panel to render with light-mode colors or insufficient contrast.
+
 ### Recommended regression suite
 
 Run the following test cases as a minimum regression suite before any release:
@@ -1621,3 +1802,7 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-multi-file-switch-preserves-comments` (state isolation works)
 - `TC-crp-multi-file-prompt-structure-happy` (combined prompt is correct)
 - `TC-crp-multi-file-remove-last-empty-state` (cleanup works)
+- `TC-crp-context-graceful-missing` (no context panel in standalone mode)
+- `TC-crp-context-overall-visible` (overall context displayed with context data)
+- `TC-crp-context-per-file-switches` (per-file context updates on tab switch)
+- `TC-crp-context-neutral-vs-review` (neutral vs review visual distinction)

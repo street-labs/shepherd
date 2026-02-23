@@ -2,11 +2,11 @@
 
 ## Overview
 
-A slash command (`/shepherd-review`) that orchestrates a multi-file code review workflow within an AI coding agent conversation. Instead of manually identifying which files changed, finding the interesting ones, and invoking `/shepherd` on each one individually, the developer types `/shepherd-review` and the command automatically discovers the changeset of the current branch versus main, filters out uninteresting files (lockfiles, generated code, binaries), presents a prioritized list of files to review, and then opens all reviewable files at once in a single CRPG session — each file appearing as a tab that the user can navigate freely.
+A slash command (`/shepherd-review`) that orchestrates a multi-file code review workflow within an AI coding agent conversation. Instead of manually identifying which files changed, finding the interesting ones, and invoking `/shepherd` on each one individually, the developer types `/shepherd-review` and the command automatically discovers the changeset of the current branch versus main, filters out uninteresting files (lockfiles, generated code, binaries), generates structured review context (both neutral descriptions and the agent's review feedback), and immediately auto-opens all reviewable files in a single CRPG session — each file appearing as a tab that the user can navigate freely, with context and feedback visible in the tool UI.
 
-This addresses the workflow gap between "I have a branch with changes" and "I want to review my changed files in the CRPG." Today, the developer must manually run `git diff --name-only`, mentally filter out noise files, and invoke `/shepherd` repeatedly. `/shepherd-review` collapses that entire workflow into a single command that batch-opens every reviewable file in one CRPG session.
+This addresses the workflow gap between "I have a branch with changes" and "I want to review my changed files in the CRPG." Today, the developer must manually run `git diff --name-only`, mentally filter out noise files, and invoke `/shepherd` repeatedly. `/shepherd-review` collapses that entire workflow into a single command that batch-opens every reviewable file in one CRPG session with full review context.
 
-The CRPG already supports multi-file tabs, per-file comments, and multi-file prompt generation. `/shepherd-review` leverages this by passing all files to a single launch, letting the user review files in any order, add comments on whichever files they choose, and click "Done" once to produce a unified multi-file prompt covering all reviewed files.
+The CRPG already supports multi-file tabs, per-file comments, and multi-file prompt generation. `/shepherd-review` leverages this by passing all files and structured context data to a single launch, letting the user review files in any order with the agent's context and feedback visible alongside each diff. The user adds comments on whichever files they choose and clicks "Done" once to produce a unified multi-file prompt covering all reviewed files. The context is split into neutral (factual descriptions of what changed) and review feedback (the agent's opinions and suggestions), displayed as visually distinct sections so the reviewer always knows which is which.
 
 ## User Stories
 
@@ -16,8 +16,8 @@ The CRPG already supports multi-file tabs, per-file comments, and multi-file pro
 ### US-SR-2: Skip uninteresting files automatically
 **As a** developer, **I want** the review command to automatically exclude lockfiles, generated files, and binary files from the review list, **so that** I only spend time reviewing files that contain meaningful, human-authored changes.
 
-### US-SR-3: See the full list before starting
-**As a** developer, **I want to** see the complete list of files that will be reviewed before the iteration begins, **so that** I can understand the scope of the review and mentally prepare for what is ahead.
+### US-SR-3: Get straight into the review without unnecessary prompts
+**As a** developer, **I want** the CRPG to open immediately after I invoke `/shepherd-review` without asking me to confirm, **so that** I can start reviewing right away instead of typing "go" in a confirmation step that adds no value.
 
 ### US-SR-4: Control the pace of review
 **As a** developer, **I want to** navigate between file tabs freely in the CRPG, reviewing files in whatever order and at whatever pace I choose, **so that** I am never forced into a fixed sequence and can spend as much time as I need on each file.
@@ -30,6 +30,12 @@ The CRPG already supports multi-file tabs, per-file comments, and multi-file pro
 
 ### US-SR-7: Review all files in a single CRPG session
 **As a** developer, **I want** all reviewable files to open together in one CRPG session with a tab per file, **so that** I can see the full scope of changes, navigate between related files, and produce a single unified review prompt covering all my comments.
+
+### US-SR-8: See context and review feedback in the tool, not the terminal
+**As a** developer, **I want** the changeset context and the agent's review feedback to appear in the CRPG UI alongside the diffs I am reviewing, **so that** I do not have to scroll back through the agent conversation in a separate terminal window to find the context about what changed and what the agent thinks. The review context should be where I am doing the review.
+
+### US-SR-9: Distinguish factual context from the agent's opinions
+**As a** developer, **I want** the CRPG to clearly separate neutral descriptions of what changed from the agent's review opinions, **so that** I can quickly get oriented on the facts and then decide how much weight to give the agent's suggestions. I do not want the two mixed together as if they are the same kind of information.
 
 ## Requirements
 
@@ -66,28 +72,52 @@ After filtering, the command sorts files by review importance rather than alphab
 
 Within each tier, larger/more significant changes rank higher. The goal is that the reviewer sees the most impactful files first, so they can focus attention where it matters most.
 
-#### `FR-sr-changeset-overview` -- Provide a changeset overview before starting
-Before presenting the file list, the command reads the diffs for all reviewable files and provides a brief (2-4 sentence) summary of the overall changeset: what is being changed, what the theme or purpose is. This orients the reviewer before they dive into individual files.
+#### `FR-sr-changeset-overview` -- Generate a structured changeset overview for the CRPG
+After detecting and filtering the changeset, the command reads the diffs for all reviewable files and generates a structured overview with two distinct parts:
 
-#### `FR-sr-file-list-display` -- Present the prioritized file list to the user
-After ordering and generating the overview, the command presents the list of files to review in a numbered format. The display includes:
+- **Neutral context** (overall): A factual summary of what the changeset contains — what features or areas are touched, what files changed, the structural nature of the changes (new feature, refactor, bug fix, etc.). This is objective description only; no opinions, quality judgments, or suggestions.
+- **Review feedback** (overall): The agent's assessment of the changes — quality observations, potential concerns, patterns worth noting, suggestions for improvement, and things that look good. This is explicitly the agent's take on the changeset.
+
+This overview is not displayed in the agent conversation. Instead, it is passed as structured data to the CRPG (see `FR-sr-context-handoff`) where it is displayed in the tool UI. The separation between neutral context and review feedback must be preserved so the CRPG can present them distinctly, making it clear to the reviewer what is factual description versus the agent's opinion.
+
+#### `FR-sr-file-list-display` -- Show a brief summary in the conversation before auto-opening
+After ordering and generating context, the command displays a brief summary in the agent conversation before auto-opening the CRPG. The summary includes:
 1. The scope label (all changes vs main, staged only, or unstaged only)
-2. The changeset overview paragraph
-3. The total count of files to review (e.g., "Found 7 files to review")
-4. A numbered list showing each file's relative path in priority order
-5. If any files were filtered out, a note indicating how many were excluded
+2. The total count of files to review (e.g., "Opening 7 files for review")
+3. If any files were filtered out, a note indicating how many were excluded
 
-After presenting the list, the command asks the user if they want to proceed.
+The detailed file list with per-file context and review feedback is not displayed in the conversation. That information is passed to the CRPG (see `FR-sr-context-handoff`) where it is displayed in the tool UI alongside the actual diffs. The conversation summary is intentionally minimal — just enough to confirm what is happening before the CRPG opens.
 
-#### `FR-sr-per-file-context` -- Provide per-file context in the changeset overview
-Since all files open simultaneously in a single CRPG session, per-file context is presented upfront as part of the changeset overview (see `FR-sr-changeset-overview`) rather than announced before each file. The changeset overview includes a brief (1-2 sentence) summary for each file describing what changed: what was added, modified, or removed, and why it matters. This is derived from the diff and should mention specific function names, sections, or structural changes. The reviewer can consult this overview while navigating tabs in the CRPG.
+#### `FR-sr-per-file-context` -- Generate per-file context with neutral and review separation
+For each reviewable file, the command generates context with two distinct parts:
 
-#### `FR-sr-iteration-loop` -- Batch-open all files in a single CRPG session
-When the user confirms they want to proceed, the command opens all reviewable files at once in a single CRPG session. The files appear as tabs in the CRPG, ordered by review priority (see `FR-sr-priority-ordering`). The user navigates between tabs freely, reviewing files in whatever order they choose and adding comments on whichever files they want.
+- **Neutral context** (per-file): A factual description of what changed in this file — functions added, modified, or removed; lines changed; structural changes (new exports, renamed parameters, moved logic). This is derived from the diff and should mention specific names and locations. No opinions or quality judgments.
+- **Review feedback** (per-file): The agent's observations about this specific file — code quality notes, potential issues, suggestions for improvement, things done well, patterns that look unusual. This is explicitly the agent's opinion.
 
-The command invokes the launch script (see `FR-sr-multi-file-launch`) with all file paths, which opens the CRPG with one tab per file. The command then waits for the user to complete their review. The user clicks "Done" once in the CRPG when finished, which generates a single multi-file prompt covering all files that received comments. The user pastes this prompt back into the conversation (or it is returned automatically, depending on CRPG integration).
+Per-file context is not displayed in the agent conversation. It is passed as structured data to the CRPG (see `FR-sr-context-handoff`) where each file's context appears alongside its diff in the tool UI. This keeps the review context co-located with the code being reviewed, rather than in a separate conversation window the developer must scroll back to.
 
-There is no sequential iteration, no "next" or "skip" commands, and no per-file prompting. The user controls their review entirely within the CRPG UI.
+#### `FR-sr-context-handoff` -- Pass structured context data to the CRPG
+The command passes all generated context to the CRPG as structured data so the tool can display it in its UI. The data includes:
+
+1. **Overall neutral context**: The factual changeset summary (from `FR-sr-changeset-overview`)
+2. **Overall review feedback**: The agent's assessment of the changeset (from `FR-sr-changeset-overview`)
+3. **Per-file entries**, each containing:
+   - File path (relative to repo root)
+   - Change type (added, modified, renamed)
+   - Neutral context for this file (from `FR-sr-per-file-context`)
+   - Review feedback for this file (from `FR-sr-per-file-context`)
+4. **File ordering**: The priority order from `FR-sr-priority-ordering`
+
+The specific mechanism for passing this data (file on disk, URL parameters, or other approach) is an engineering decision. The product requirement is that the CRPG receives all of the above as structured data with the neutral/review distinction preserved, and displays both parts in its UI with clear visual separation so the reviewer can distinguish factual context from the agent's opinions.
+
+#### `FR-sr-iteration-loop` -- Auto-open all files in a single CRPG session
+Immediately after changeset detection, context generation, and the brief conversation summary (see `FR-sr-file-list-display`), the command auto-opens all reviewable files in a single CRPG session. There is no confirmation prompt — the user invoked `/shepherd-review`, so the intent to review is already established. The CRPG opens automatically.
+
+The files appear as tabs in the CRPG, ordered by review priority (see `FR-sr-priority-ordering`). The structured context data (overall and per-file, neutral and review) is passed to the CRPG alongside the file list (see `FR-sr-context-handoff`). The user navigates between tabs freely, reviewing files in whatever order they choose and adding comments on whichever files they want.
+
+The command invokes the launch script (see `FR-sr-multi-file-launch`) with all file paths and context data, which opens the CRPG with one tab per file. The command then waits for the user to complete their review. The user clicks "Done" once in the CRPG when finished, which generates a single multi-file prompt covering all files that received comments. The user pastes this prompt back into the conversation (or it is returned automatically, depending on CRPG integration).
+
+There is no sequential iteration, no "next" or "skip" commands, no per-file prompting, and no pre-launch confirmation prompt. The user controls their review entirely within the CRPG UI.
 
 #### `FR-sr-feedback-collection` -- Receive unified multi-file feedback from CRPG
 Feedback is collected as a single multi-file prompt generated by the CRPG when the user clicks "Done." This prompt contains all comments across all files, organized by file. The user pastes this prompt back into the conversation (or it is returned automatically). The command does NOT need to collect feedback file-by-file or prompt the user to paste after each file — the CRPG handles aggregation internally and produces one unified output.
@@ -126,8 +156,8 @@ The command must be invoked from within a git repository. If the current working
 
 ### Non-Functional Requirements
 
-#### `NFR-sr-startup-speed` -- Fast changeset detection
-The time from invoking `/shepherd-review` to displaying the file list must be under 3 seconds for repositories with up to 1,000 changed files. The changeset detection relies on git commands that are inherently fast.
+#### `NFR-sr-startup-speed` -- Fast changeset detection and context generation
+The time from invoking `/shepherd-review` to auto-opening the CRPG must be under 5 seconds for repositories with up to 1,000 changed files. The changeset detection relies on git commands that are inherently fast. Context generation (neutral and review, overall and per-file) adds agent processing time but should not introduce significant delay.
 
 #### `NFR-sr-no-dependencies` -- No additional dependencies
 The command requires only git (available on the PATH) and the existing `/shepherd` command infrastructure. It does not introduce any new runtime dependencies, npm packages, or compiled binaries.
@@ -141,7 +171,7 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 ## Acceptance Criteria
 
 #### `AC-sr-happy-path` -- Full review session completes successfully
-**Given** the user is on a feature branch with 5 modified source files and 3 lockfiles/generated files relative to main, **when** the user types `/shepherd-review`, **then** the command displays "Found 5 files to review (3 excluded)" with a prioritized list and changeset overview, and after the user confirms, opens all 5 files at once in a single CRPG session with one tab per file. The user reviews files freely, clicks "Done" in the CRPG, pastes the generated prompt, and the command displays a summary with feedback action options.
+**Given** the user is on a feature branch with 5 modified source files and 3 lockfiles/generated files relative to main, **when** the user types `/shepherd-review`, **then** the command displays a brief summary ("Opening 5 files for review (3 excluded)") in the conversation and immediately auto-opens all 5 files in a single CRPG session with one tab per file. The CRPG displays the overall neutral context and review feedback, and each file tab shows its per-file neutral context and review feedback alongside the diff. There is no confirmation prompt. The user reviews files freely, clicks "Done" in the CRPG, pastes the generated prompt, and the command displays a summary with feedback action options.
 
 #### `AC-sr-filters-lockfiles` -- Lockfiles are excluded
 **Given** the changeset includes `package-lock.json` and `pnpm-lock.yaml`, **when** the file list is displayed, **then** neither lockfile appears in the review list and the exclusion count reflects them.
@@ -176,8 +206,8 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 #### `AC-sr-invokes-shepherd` -- All files open in a single CRPG session
 **Given** the reviewable files are `src/utils.ts`, `src/app.tsx`, and `lib/helpers.ts`, **when** the command launches the review, **then** it invokes the launch script with all three file paths, opening a single CRPG session in the browser with three tabs (one per file) in priority order.
 
-#### `AC-sr-list-command` -- File list is available in the changeset overview
-**Given** the command has displayed the changeset overview with per-file context summaries, **when** the user wants to reference the file list while reviewing in the CRPG, **then** the file list and summaries are visible in the conversation history above. The CRPG tab bar also shows all file names for navigation.
+#### `AC-sr-list-command` -- File list and context are available in the CRPG
+**Given** the command has opened the CRPG with 5 files, **when** the user wants to reference the file list and context while reviewing, **then** the overall neutral context and review feedback are visible in the CRPG UI (not in the agent conversation). Each file tab shows its per-file neutral context and review feedback alongside the diff. The CRPG tab bar shows all file names for navigation.
 
 #### `AC-sr-completion-summary` -- Summary displays after CRPG prompt is returned
 **Given** the user completes a review of 5 files and pastes the CRPG-generated prompt, **when** the command receives the prompt, **then** the command displays a summary showing the total files opened, the number of files that received comments, and presents the action options (apply, discuss, save, nothing).
@@ -186,13 +216,19 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 **Given** the changeset includes `src/utils.ts`, `src/app.tsx`, `lib/helpers.ts`, `tests/utils.test.ts`, and `README.md`, **when** the file list is displayed and the CRPG opens, **then** the files appear in priority order (core source first, then config, then docs, then tests) both in the displayed list and in the CRPG tab order.
 
 #### `AC-sr-batch-open` -- All files open as tabs in a single CRPG session
-**Given** there are 5 reviewable files, **when** the user confirms they want to proceed, **then** a single CRPG session opens in the browser with 5 tabs (one per file). The user does not need to wait for sequential prompts or invoke any per-file commands.
+**Given** there are 5 reviewable files, **when** the command finishes changeset detection and context generation, **then** a single CRPG session auto-opens in the browser with 5 tabs (one per file), without any confirmation prompt. The user does not need to wait for sequential prompts or invoke any per-file commands.
 
 #### `AC-sr-unified-prompt` -- CRPG generates a single multi-file prompt
 **Given** the user has added comments on 3 of 5 open files in the CRPG, **when** the user clicks "Done", **then** the CRPG generates a single prompt that includes all comments organized by file. This prompt is what gets pasted back into the conversation.
 
 #### `AC-sr-install-global` -- Command is available globally via symlink
 **Given** the user runs `./scripts/install-command.sh`, **when** the script completes, **then** a symlink exists at `~/.claude/commands/shepherd-review.md` pointing to the repo's `.claude/commands/shepherd-review.md`, and `/shepherd-review` is available as a global command in Claude Code.
+
+#### `AC-sr-context-in-crpg` -- Context is displayed in the CRPG with clear neutral/review separation
+**Given** the command has generated overall and per-file context (both neutral and review), **when** the CRPG opens, **then** the overall neutral context and overall review feedback are displayed in the CRPG UI as visually distinct sections. For each file tab, the per-file neutral context and per-file review feedback are displayed alongside the diff, also as visually distinct sections. The reviewer can tell at a glance which text is factual description and which is the agent's opinion.
+
+#### `AC-sr-auto-open` -- CRPG opens without confirmation prompt
+**Given** the user types `/shepherd-review` and there are reviewable files, **when** changeset detection and context generation complete, **then** the CRPG opens automatically. The user is not asked "Ready to start?" or any similar confirmation question. The brief summary appears in the conversation and the CRPG opens immediately.
 
 ## Open Questions
 
@@ -202,7 +238,7 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 
 3. **Resumable sessions**: If the user quits early and later runs `/shepherd-review` again, should it offer to resume where they left off? This would require some form of state persistence (e.g., a dotfile in the repo). Deferred; each invocation starts fresh in v1.
 
-4. ~~**Per-file context/summary**: Resolved — per-file context summaries are now included in the changeset overview (see `FR-sr-per-file-context`). Since all files open at once, there is no per-file announcement moment; instead, summaries are presented upfront before the CRPG opens.~~
+4. ~~**Per-file context/summary**: Resolved — per-file context is generated by the agent and passed to the CRPG as structured data (see `FR-sr-per-file-context`, `FR-sr-context-handoff`). Each file's context appears in the CRPG UI alongside its diff, split into neutral context (factual) and review feedback (agent's opinion). Context is displayed in the tool where the review happens, not in the agent conversation.~~
 
 5. **Custom exclusion patterns**: Should the user be able to customize which files are filtered out (e.g., via a `.shepherd-review.yml` config file)? Deferred. The built-in heuristics should cover the vast majority of cases for v1.
 
@@ -218,8 +254,9 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 
 ## Dependencies
 
-- **`shepherd-launch.sh` script**: The launch script must be updated to accept multiple file path arguments and construct a URL that loads all files as tabs in a single CRPG session. Currently supports a single `?file=<path>` parameter.
+- **`shepherd-launch.sh` script**: The launch script must be updated to accept multiple file path arguments, context data, and construct a URL that loads all files as tabs in a single CRPG session. Currently supports a single `?file=<path>` parameter. Must also support passing structured context data (overall and per-file, neutral and review) to the CRPG.
 - **CRPG multi-file URL support**: The CRPG web app must support loading multiple files from URL parameters (new engineering work). The in-app multi-file tab support already exists; this dependency is specifically about initializing a multi-file session from a URL.
+- **CRPG context display**: The CRPG web app must support receiving and displaying structured context data (see `FR-sr-context-handoff`). This includes overall neutral context and review feedback displayed in the UI, plus per-file neutral context and review feedback displayed alongside each file's diff. The neutral and review sections must be visually distinct. This is new engineering work.
 - **CRPG multi-file prompt generation**: The CRPG already supports generating a unified multi-file prompt from comments across tabs. No new work needed here.
 - **Git**: The command requires git to be installed and the working directory to be inside a git repository. Git is used for changeset detection (`git diff`, `git merge-base`).
 - **Claude Code custom commands**: The command is implemented as a `.claude/commands/` markdown file and relies on Claude Code's custom command execution model.

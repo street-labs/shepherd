@@ -109,6 +109,17 @@ export function useFileFromUrl(): FileFromUrlState {
       }
       setSlashCommandMode(true);
 
+      // Phase 3: Load review context (graceful degradation — panel just won't show if missing)
+      try {
+        const contextRes = await fetch('/api/review-context');
+        if (contextRes.ok) {
+          const contextData = await contextRes.json();
+          useAppStore.getState().setReviewContext(contextData);
+        }
+      } catch {
+        // No review context available — panel simply won't render
+      }
+
       setState({ loading: false, error: null });
 
       // Clean the URL without reloading — removes all 'file' params at once

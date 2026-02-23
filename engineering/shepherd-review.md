@@ -7,9 +7,11 @@
 
 The `/shepherd-review` command is a Claude Code custom command file -- a markdown prompt that instructs the AI agent to orchestrate a multi-file code review workflow. There is no compiled code, no new npm packages, no server-side logic, and no binaries. The core implementation is the prompt file at `.claude/commands/shepherd-review.md`, plus targeted updates to `scripts/shepherd-launch.sh` (multi-file support), `engineering/apps/web/src/hooks/useFileFromUrl.ts` (multi-file URL loading), and `scripts/install-command.sh` (global installation).
 
-The agent executes the prompt by running git commands via `Bash` tool calls, applying filtering logic described in the prompt, reading diffs for context, presenting a changeset overview with per-file summaries, and invoking `shepherd-launch.sh` with all file paths to open a single CRPG session with one tab per file. The iteration loop is replaced with a batch-open + wait-for-done model: all files open at once, the user reviews freely in the CRPG, clicks "Done" to generate a unified multi-file prompt, and the prompt output is returned to the agent via the existing `~/.shepherd/prompt-output.md` file-watcher mechanism. Session state is minimal -- just the file list, counts, and the prompt output.
+The agent executes the prompt by running git commands via `Bash` tool calls, applying filtering logic described in the prompt, reading diffs for context, generating structured review context (both neutral descriptions and review feedback at the overall and per-file levels), writing the context to `~/.shepherd/review-context.json`, and immediately auto-opening `shepherd-launch.sh` with all file paths to launch a single CRPG session with one tab per file. The conversation output is a brief summary (scope, file count, exclusion count) -- not the detailed file list. There is no confirmation prompt before launch. The CRPG reads the context file on load and displays it alongside the diffs.
 
-> Implements: `FR-sr-command-file`, `FR-sr-multi-file-launch`, `NFR-sr-no-dependencies`, `NFR-sr-agent-native`
+The iteration loop is replaced with a batch-open + wait-for-done model: all files open at once, the user reviews freely in the CRPG with context and review feedback visible in the tool UI, clicks "Done" to generate a unified multi-file prompt, and the prompt output is returned to the agent via the existing `~/.shepherd/prompt-output.md` file-watcher mechanism. Session state is minimal -- just the file list, counts, and the prompt output.
+
+> Implements: `FR-sr-command-file`, `FR-sr-multi-file-launch`, `FR-sr-context-handoff`, `NFR-sr-no-dependencies`, `NFR-sr-agent-native`
 
 ### Key Technical Decisions
 
@@ -20,6 +22,9 @@ The agent executes the prompt by running git commands via `Bash` tool calls, app
 | File filtering | Prompt-embedded pattern lists | The exclusion rules are written directly in the command file as lists of patterns. The agent applies them by evaluating file paths -- no regex engine or external tool needed. |
 | Git operations | `git rev-parse`, `git merge-base`, `git diff --name-status` | Standard cross-platform git commands. No git libraries, no wrappers. The agent runs them via `Bash` and parses the output. |
 | Batch file open | Invokes `shepherd-launch.sh` with all file paths | The agent calls `shepherd-launch.sh` with multiple absolute paths. The script constructs a URL with multiple `file` query parameters and opens a single CRPG session with one tab per file. Reuses all existing CRPG infrastructure. |
+| Context handoff | JSON file at `~/.shepherd/review-context.json` | The agent writes structured context data (overall + per-file, each with neutral + review) to a JSON file before launching. The CRPG reads it on load via `GET /api/review-context`. This avoids URL length limits and is consistent with the existing `prompt-output.md` file-based handoff pattern. |
+| Auto-open (no confirmation) | Skip the "go"/"quit" prompt | The user invoked `/shepherd-review`, so intent to review is already established. Removing the confirmation step gets the user into the CRPG faster (`AC-sr-auto-open`). |
+| Conversation output | Brief summary only | The detailed changeset overview, per-file context, and review feedback are passed to the CRPG via the context file -- not displayed in the agent conversation. The conversation shows only scope, file count, and exclusion count. |
 | Prompt return | File-watcher on `~/.shepherd/prompt-output.md` | After opening the browser, the agent cleans up stale prompt output and polls for `~/.shepherd/prompt-output.md` to appear. Same mechanism as `/shepherd`. |
 
 ---
@@ -55,15 +60,15 @@ The command file is organized into these sections:
 3. **Step 2: Get repository root** -- Run `git rev-parse --show-toplevel`.
 4. **Step 3: Parse scope argument and changeset detection** -- Determine which git commands to run based on `$ARGUMENTS`, find the merge base, run the appropriate `git diff`.
 5. **Step 4: Filtering** -- The complete exclusion pattern list and instructions to apply them.
-6. **Step 5: Read diffs for context** -- Read the diffs for all reviewable files to generate per-file summaries.
-7. **Step 6: Changeset overview and file list** -- Present the changeset overview with per-file summaries, the prioritized file list, and ask to proceed ("go" or "quit").
-8. **Step 7: Batch-open all files** -- Invoke `shepherd-launch.sh` with all file paths, clean up stale `~/.shepherd/prompt-output.md`, wait for the prompt-output file to appear (file-watcher pattern).
+6. **Step 5: Read diffs and generate structured context** -- Read the diffs for all reviewable files. Generate structured context data with two levels (overall and per-file), each split into neutral context and review feedback (`FR-sr-changeset-overview`, `FR-sr-per-file-context`).
+7. **Step 6: Write context file and display brief summary** -- Write the structured context data to `~/.shepherd/review-context.json` (`FR-sr-context-handoff`). Display a brief summary in the conversation: scope label, file count, and exclusion count. The detailed changeset overview, per-file context, and review feedback are NOT displayed in the conversation -- they are in the context file for the CRPG to display.
+8. **Step 7: Auto-open all files** -- Immediately invoke `shepherd-launch.sh` with all file paths (no confirmation prompt, `AC-sr-auto-open`), clean up stale `~/.shepherd/prompt-output.md`, wait for the prompt-output file to appear (file-watcher pattern).
 9. **Step 8: Completion summary and feedback handoff** -- Display summary (total opened, filtered, files with comments) and present the feedback action options (apply, discuss, save, nothing).
 10. **Error messages** -- Exact wording for each error case.
 
 ### Allowed Tools
 
-The command file declares `Allowed tools: Bash, Read` at the top. The agent needs `Bash` to run git commands and invoke `shepherd-launch.sh`. It needs `Read` to read file diffs for generating per-file context summaries in the changeset overview. It does not need `Write`, `Edit`, or any other tools.
+The command file declares `Allowed tools: Bash, Read, Write` at the top. The agent needs `Bash` to run git commands and invoke `shepherd-launch.sh`. It needs `Read` to read file diffs for generating per-file context summaries. It needs `Write` to write the structured context data to `~/.shepherd/review-context.json` before launching the CRPG (`FR-sr-context-handoff`). It does not need `Edit` or any other tools.
 
 ---
 
@@ -270,6 +275,78 @@ Sorted: `src/app.tsx`, `src/utils.ts`, `vite.config.ts`, `README.md`, `tests/uti
 
 ---
 
+## Context Data Handoff
+
+> Implements: `FR-sr-context-handoff`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`, `AC-sr-context-in-crpg`
+
+After reading diffs for all reviewable files, the agent generates structured context and writes it to `~/.shepherd/review-context.json` before launching the CRPG. The CRPG reads this file on load via the `GET /api/review-context` Vite plugin endpoint (see `../engineering/code-review-prompt.md`).
+
+### Context Generation
+
+The agent reads the diff for each reviewable file (using `git diff <MERGE_BASE> -- <file>` via the `Read` tool or `Bash`) and generates two levels of context:
+
+1. **Overall context** (applies to the entire changeset):
+   - **Neutral**: A factual summary of the changeset -- what features or areas are touched, structural nature of changes (new feature, refactor, bug fix, etc.). No opinions, no quality judgments.
+   - **Review**: The agent's assessment of the changes -- quality observations, potential concerns, patterns worth noting, suggestions for improvement.
+
+2. **Per-file context** (one entry per reviewable file):
+   - **Neutral**: A factual description of what changed in this file -- functions added/modified/removed, lines changed, structural changes. Mentions specific names and locations.
+   - **Review**: The agent's observations about this file -- code quality notes, potential issues, suggestions for improvement.
+
+### Context File Format
+
+The agent writes the context data to `~/.shepherd/review-context.json` using the `Write` tool. The JSON structure:
+
+```json
+{
+  "overall": {
+    "neutral": "This changeset adds a new validation module...",
+    "review": "The validation approach is well-structured, but..."
+  },
+  "files": {
+    "/absolute/path/to/src/utils.ts": {
+      "neutral": "Added validateInput() function. Modified processData()...",
+      "review": "The error handling in validateInput() could be more specific..."
+    },
+    "/absolute/path/to/src/app.tsx": {
+      "neutral": "Updated the main App component to import the new...",
+      "review": "Good separation of concerns. The import order follows..."
+    }
+  }
+}
+```
+
+Key details:
+- File paths in the `files` object use **absolute paths** (matching the paths passed to `shepherd-launch.sh` and the `?file=` URL parameters in the CRPG). This ensures the CRPG can match each file's context to its tab.
+- Both `neutral` and `review` fields are plain text strings. They may contain multiple paragraphs separated by newlines.
+- Either field may be an empty string if the agent has nothing to say for that category (e.g., a trivially simple change might have no review feedback).
+- The `overall` and `files` keys are always present. If no overall context is relevant, the fields are empty strings.
+
+### Handoff Sequence
+
+1. Agent generates context (reading diffs, applying its reasoning).
+2. Agent writes `~/.shepherd/review-context.json` using the `Write` tool.
+3. Agent displays the brief conversation summary (scope, file count, exclusion count).
+4. Agent invokes `shepherd-launch.sh` with all file paths.
+5. CRPG loads, reads the context file via `GET /api/review-context`, and displays it in the ReviewContextPanel.
+
+The context file is written once per `/shepherd-review` invocation. It is overwritten on subsequent invocations (no accumulation). The CRPG reads it once on load and holds the data in memory.
+
+### Conversation Output Format
+
+The agent displays only a brief summary in the conversation, not the detailed changeset overview or per-file context. The format (from the design spec):
+
+```
+Reviewing: <scope-label>
+
+Opening <N> files for review.
+<M> files excluded (lockfiles, generated, binary).
+```
+
+The exclusion line appears only if `<M>` is greater than zero. The detailed context is in the JSON file for the CRPG to display.
+
+---
+
 ## Session State
 
 > Implements: `FR-sr-iteration-loop`, `FR-sr-completion-summary`
@@ -286,23 +363,24 @@ The agent tracks minimal state during the review session. All state lives in the
 
 ### Session Flow
 
-There is no per-file iteration loop. The flow is:
+There is no per-file iteration loop and no confirmation prompt. The flow is:
 
-1. Agent presents the changeset overview with per-file summaries and the prioritized file list.
-2. User confirms they want to proceed.
-3. Agent invokes `shepherd-launch.sh` with all file paths (as absolute paths).
-4. Agent cleans up stale `~/.shepherd/prompt-output.md` (deletes if exists).
-5. Agent waits (polls) for `~/.shepherd/prompt-output.md` to appear.
-6. When the file appears, agent reads it and stores the content as `prompt_output`.
-7. Agent displays the completion summary and feedback handoff.
+1. Agent generates structured context data (overall + per-file, each with neutral + review).
+2. Agent writes `~/.shepherd/review-context.json` to disk (`FR-sr-context-handoff`).
+3. Agent displays a brief conversation summary (scope, file count, exclusion count).
+4. Agent immediately invokes `shepherd-launch.sh` with all file paths as absolute paths (`AC-sr-auto-open`). No "go"/"quit" prompt.
+5. Agent cleans up stale `~/.shepherd/prompt-output.md` (deletes if exists).
+6. Agent waits (polls) for `~/.shepherd/prompt-output.md` to appear.
+7. When the file appears, agent reads it and stores the content as `prompt_output`.
+8. Agent displays the completion summary and feedback handoff.
 
-The user controls the review entirely within the CRPG UI -- navigating tabs freely, adding comments on whichever files they choose, and clicking "Done" once when finished.
+The user controls the review entirely within the CRPG UI -- navigating tabs freely, reading context and review feedback alongside each diff, adding comments on whichever files they choose, and clicking "Done" once when finished.
 
 ### Skip and Quit Behavior
 
 There are no explicit "skip" or "quit" commands during the review. The user simply reviews whichever files they want in the CRPG and clicks "Done" at any point. Files without comments are implicitly skipped. The user can end the session at any time by clicking "Done" -- there is no concept of "remaining" files.
 
-> Implements: `AC-sr-skip-file`, `AC-sr-quit-early`, `AC-sr-batch-open`, `AC-sr-unified-prompt`
+> Implements: `AC-sr-skip-file`, `AC-sr-quit-early`, `AC-sr-batch-open`, `AC-sr-unified-prompt`, `AC-sr-auto-open`
 
 ---
 
@@ -363,10 +441,8 @@ The `--force` flag applies to all commands (if set, it overwrites all existing f
 | No merge base found | `git merge-base HEAD main` returns non-zero | `No changes found relative to main.` | Yes |
 | Empty diff (no changes) | `git diff --name-status` produces no output | `No changes found relative to main.` | Yes |
 | All files filtered | Filter step produces zero reviewable files | `No reviewable files found. All <N> changed files were filtered out (lockfiles, generated, binary).` | Yes |
-| User cancels before starting | User says "quit"/"cancel" at the pre-launch prompt | `Review cancelled.` | Yes |
 | Launch script fails | `shepherd-launch.sh` exits with non-zero status | Agent displays the error output from the launch script and stops. | Yes |
 | Unrecognized argument | `$ARGUMENTS` is not empty and does not match `--staged` or `--unstaged` | Agent displays a usage message: `Usage: /shepherd-review [--staged | --unstaged]` | Yes |
-| Unrecognized user input (pre-launch) | User input does not match "go" or "quit" synonyms | `I did not understand that. Say "go" to begin the review, or "quit" to cancel.` | No -- re-prompt |
 
 ### Git Command Failures
 
@@ -432,7 +508,7 @@ The actual `.claude/commands/shepherd-review.md` file will contain the following
 ```
 Orchestrate a multi-file code review using the CRPG.
 
-Allowed tools: Bash, Read
+Allowed tools: Bash, Read, Write
 
 ## Instructions
 
@@ -451,18 +527,24 @@ You are orchestrating a multi-file code review. Follow these steps exactly.
 ### Step 4: Filter files
 [Complete exclusion pattern list, filtering instructions]
 
-### Step 5: Read diffs for context
-[Read diffs for all reviewable files to generate per-file summaries]
+### Step 5: Read diffs and generate structured context
+[Read diffs for all reviewable files. For each file, generate neutral
+ context (factual description of changes) and review feedback (agent's
+ opinions and suggestions). Also generate overall neutral context and
+ review feedback for the entire changeset.]
 
-### Step 6: Changeset overview and file list
-[Present changeset overview paragraph, per-file context summaries,
- prioritized file list, exclusion count, wait for go/quit]
+### Step 6: Write context file and display brief summary
+[Write ~/.shepherd/review-context.json with the structured context data.
+ Display brief conversation summary: scope label, file count, exclusion
+ count. Do NOT display the detailed changeset overview, per-file context,
+ or review feedback in the conversation.]
 
-### Step 7: Batch-open all files
-[Invoke shepherd-launch.sh with all absolute file paths,
- delete stale ~/.shepherd/prompt-output.md,
+### Step 7: Auto-open all files
+[Immediately invoke shepherd-launch.sh with all absolute file paths.
+ No confirmation prompt -- the CRPG opens automatically.
+ Delete stale ~/.shepherd/prompt-output.md,
  poll for ~/.shepherd/prompt-output.md to appear,
- read the prompt output]
+ read the prompt output.]
 
 ### Step 8: Completion summary and feedback handoff
 [Display summary: total opened, filtered, files with comments.
@@ -487,7 +569,9 @@ The prompt must be self-contained -- the agent should not need to read any other
 | Merge base computation | ~10ms | `git merge-base` reads the commit graph |
 | Changeset detection | ~50ms | `git diff --name-status` for up to 1,000 files |
 | Agent filtering + sorting | ~0ms (agent reasoning) | No shell commands; the agent applies rules in its reasoning |
-| **Total to file list display** | **< 1 second** | Well within the 3-second budget |
+| Diff reading + context generation | Agent-dependent | The agent reads diffs and generates context using its reasoning. This is the slowest step but is bounded by the agent's processing speed, not I/O. For typical changesets (5-20 files), this takes a few seconds of agent reasoning time. |
+| Context file write | ~5ms | Writing a JSON file to `~/.shepherd/` is near-instant |
+| **Total to CRPG auto-open** | **< 5 seconds** | Within the 5-second budget for up to 1,000 changed files (per `NFR-sr-startup-speed`). The git operations are sub-second; the remainder is agent reasoning time for context generation. |
 
 The batch-open speed depends on the launch script's server startup and browser opening, which are outside this command's control. Once the CRPG is open, the review pace is entirely user-driven.
 
@@ -502,7 +586,7 @@ shepherd/                                    (project root)
   .claude/
     commands/
       shepherd.md                            EXISTING -- no changes
-      shepherd-review.md                     NEW -- the review orchestration command
+      shepherd-review.md                     NEW -- the review orchestration command (Allowed tools: Bash, Read, Write)
 
   scripts/
     shepherd-launch.sh                       MODIFIED -- accept multiple file paths, construct multi-file URL
@@ -510,11 +594,20 @@ shepherd/                                    (project root)
 
   engineering/
     apps/web/src/hooks/
-      useFileFromUrl.ts                      MODIFIED -- read multiple ?file= params, load via loadFile + addFile
+      useFileFromUrl.ts                      MODIFIED -- read multiple ?file= params, load via loadFile + addFile; also loads context data
+    apps/web/src/components/
+      ReviewContextPanel.tsx                 NEW -- collapsible panel displaying overall + per-file context
+      ContextSection.tsx                     NEW -- neutral/review variant component within ReviewContextPanel
+    apps/web/src/store/
+      appStore.ts                            MODIFIED -- add reviewContext state field
+    apps/web/vite.config.ts                  MODIFIED -- add GET /api/review-context plugin endpoint
     shepherd-review.md                       NEW -- this spec
+
+  ~/.shepherd/
+    review-context.json                      RUNTIME -- written by the agent before launch, read by the CRPG
 ```
 
-The changes touch the launch script, the web app's URL-loading hook, the command file, and the install script. No new npm packages or binaries.
+The changes touch the launch script, the command file, the install script, the web app's URL-loading hook, the Zustand store, the Vite config (new API endpoint), and two new React components (ReviewContextPanel, ContextSection). No new npm packages or binaries.
 
 ---
 
@@ -536,19 +629,20 @@ Modify `engineering/apps/web/src/hooks/useFileFromUrl.ts` to read all `file` par
 
 Create `.claude/commands/shepherd-review.md` with the complete prompt instructions. This is the core implementation. The file must:
 
-- Declare `Allowed tools: Bash, Read` at the top.
+- Declare `Allowed tools: Bash, Read, Write` at the top.
 - Contain all git commands to run, with exact command strings.
 - Handle `$ARGUMENTS` for `--staged` / `--unstaged` scope (`FR-sr-scope-argument`).
 - Contain the complete exclusion pattern list from `FR-sr-file-filtering`.
 - Specify the priority sorting heuristic from `FR-sr-priority-ordering`.
-- Instruct the agent to read diffs and generate per-file context summaries (`FR-sr-per-file-context`).
-- Present the changeset overview with per-file summaries and file list (`FR-sr-changeset-overview`, `FR-sr-file-list-display`).
-- Invoke `shepherd-launch.sh` with all file paths (`FR-sr-multi-file-launch`).
+- Instruct the agent to read diffs and generate structured context data with neutral + review at both overall and per-file levels (`FR-sr-changeset-overview`, `FR-sr-per-file-context`).
+- Write the context data to `~/.shepherd/review-context.json` (`FR-sr-context-handoff`).
+- Display a brief conversation summary: scope, file count, exclusion count (`FR-sr-file-list-display`). Do NOT display the detailed changeset overview, per-file context, or review feedback in the conversation.
+- Immediately invoke `shepherd-launch.sh` with all file paths -- no confirmation prompt (`AC-sr-auto-open`).
 - Clean up stale prompt output, wait for `~/.shepherd/prompt-output.md`, read it.
 - Display the completion summary and feedback handoff (`FR-sr-completion-summary`).
-- Handle all error cases (not a git repo, no changes, all filtered, user cancel, launch failure, unrecognized argument).
+- Handle all error cases (not a git repo, no changes, all filtered, launch failure, unrecognized argument).
 
-**Slug coverage**: `FR-sr-command-file`, `FR-sr-changeset-detection`, `FR-sr-file-filtering`, `FR-sr-file-list-display`, `FR-sr-iteration-loop`, `FR-sr-completion-summary`, `FR-sr-scope-argument`, `FR-sr-git-required`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`, `FR-sr-priority-ordering`, `FR-sr-feedback-collection`, `NFR-sr-agent-native`, `NFR-sr-no-dependencies`, `NFR-sr-cross-platform`, `NFR-sr-startup-speed`, `AC-sr-happy-path`, `AC-sr-filters-lockfiles`, `AC-sr-filters-generated`, `AC-sr-filters-binary`, `AC-sr-includes-config`, `AC-sr-excludes-deleted`, `AC-sr-skip-file`, `AC-sr-quit-early`, `AC-sr-no-changes`, `AC-sr-all-filtered`, `AC-sr-not-git-repo`, `AC-sr-invokes-shepherd`, `AC-sr-list-command`, `AC-sr-completion-summary`, `AC-sr-sorted-file-list`, `AC-sr-batch-open`, `AC-sr-unified-prompt`
+**Slug coverage**: `FR-sr-command-file`, `FR-sr-changeset-detection`, `FR-sr-file-filtering`, `FR-sr-file-list-display`, `FR-sr-iteration-loop`, `FR-sr-completion-summary`, `FR-sr-scope-argument`, `FR-sr-git-required`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`, `FR-sr-context-handoff`, `FR-sr-priority-ordering`, `FR-sr-feedback-collection`, `NFR-sr-agent-native`, `NFR-sr-no-dependencies`, `NFR-sr-cross-platform`, `NFR-sr-startup-speed`, `AC-sr-happy-path`, `AC-sr-filters-lockfiles`, `AC-sr-filters-generated`, `AC-sr-filters-binary`, `AC-sr-includes-config`, `AC-sr-excludes-deleted`, `AC-sr-skip-file`, `AC-sr-quit-early`, `AC-sr-no-changes`, `AC-sr-all-filtered`, `AC-sr-not-git-repo`, `AC-sr-invokes-shepherd`, `AC-sr-list-command`, `AC-sr-completion-summary`, `AC-sr-sorted-file-list`, `AC-sr-batch-open`, `AC-sr-unified-prompt`, `AC-sr-auto-open`, `AC-sr-context-in-crpg`
 
 ### Step 4: Update the install script
 
@@ -563,12 +657,16 @@ Test the command by running `/shepherd-review` in a Claude Code session on a bra
 1. Git repository detection works (run from a git repo and from a non-git directory).
 2. Changeset detection finds the correct files (compare against manual `git diff --name-only`).
 3. Filtering excludes lockfiles, generated files, and binaries.
-4. File list displays in the correct priority-sorted order.
-5. `--staged` and `--unstaged` scope arguments work correctly.
-6. All files open in a single CRPG session with one tab per file in priority order.
-7. The prompt output is returned via `~/.shepherd/prompt-output.md`.
-8. Completion summary shows correct counts and feedback handoff works.
-9. Edge cases: no changes, all files filtered, user cancel before start, launch script failure.
+4. `--staged` and `--unstaged` scope arguments work correctly.
+5. Context file `~/.shepherd/review-context.json` is written with valid JSON containing overall and per-file context with both neutral and review fields.
+6. Conversation output is a brief summary (scope, count, exclusions) -- no detailed file list or context.
+7. CRPG auto-opens immediately after the summary (no confirmation prompt).
+8. All files open in a single CRPG session with one tab per file in priority order.
+9. The CRPG displays the ReviewContextPanel with overall and per-file context, with neutral/review sections visually distinct.
+10. Per-file context switches correctly when navigating between tabs.
+11. The prompt output is returned via `~/.shepherd/prompt-output.md`.
+12. Completion summary shows correct counts and feedback handoff works.
+13. Edge cases: no changes, all files filtered, launch script failure.
 
 ### Step 6: Iterate on prompt wording
 
@@ -585,10 +683,11 @@ After initial testing, refine the prompt instructions in the command file based 
 | `FR-sr-changeset-detection` | Git Commands section (merge-base + diff --name-status); Command file Step 3 |
 | `FR-sr-file-filtering` | Filtering Logic section (complete exclusion/inclusion pattern lists); Command file Step 4 |
 | `FR-sr-priority-ordering` | Sorting section (tiered priority heuristic); determines file list order and CRPG tab order |
-| `FR-sr-changeset-overview` | Command file Step 5-6; agent reads diffs and generates changeset overview paragraph |
-| `FR-sr-file-list-display` | Sorting section; Command file Step 6; output format from design spec embedded in prompt |
-| `FR-sr-per-file-context` | Command file Step 5-6; per-file summaries presented in changeset overview |
-| `FR-sr-iteration-loop` | Session State section; Command file Step 7; batch-open via `shepherd-launch.sh` |
+| `FR-sr-changeset-overview` | Context Data Handoff section (overall neutral + review); Command file Step 5 |
+| `FR-sr-file-list-display` | Command file Step 6; brief conversation summary (scope, file count, exclusion count) |
+| `FR-sr-per-file-context` | Context Data Handoff section (per-file neutral + review); Command file Step 5 |
+| `FR-sr-context-handoff` | Context Data Handoff section; `~/.shepherd/review-context.json` file format; Command file Step 6 (writes context file before launch); CRPG reads via `GET /api/review-context` |
+| `FR-sr-iteration-loop` | Session State section; Command file Step 7; auto-open via `shepherd-launch.sh` (no confirmation prompt) |
 | `FR-sr-feedback-collection` | Multi-File Launch section (prompt output mechanism); Command file Step 7-8 |
 | `FR-sr-completion-summary` | Session State section; Command file Step 8; summary + feedback handoff |
 | `FR-sr-command-file` | Command File Design section; `.claude/commands/shepherd-review.md` |
@@ -610,7 +709,9 @@ After initial testing, refine the prompt instructions in the command file based 
 
 | Slug | Engineering Coverage |
 |---|---|
-| `AC-sr-happy-path` | Full flow: Git Commands -> Filtering -> Sorting -> Changeset Overview -> Batch Open -> Wait -> Summary |
+| `AC-sr-happy-path` | Full flow: Git Commands -> Filtering -> Sorting -> Context Generation -> Write Context File -> Brief Summary -> Auto-Open -> Wait -> Summary |
+| `AC-sr-auto-open` | Session Flow step 4 (immediate launch, no confirmation prompt); Command file Step 7 |
+| `AC-sr-context-in-crpg` | Context Data Handoff section (structured JSON written by agent, read by CRPG via `GET /api/review-context`, displayed in ReviewContextPanel) |
 | `AC-sr-filters-lockfiles` | Filtering Logic -- Lockfiles exclusion list |
 | `AC-sr-filters-generated` | Filtering Logic -- Generated files exclusion list |
 | `AC-sr-filters-binary` | Filtering Logic -- Binary files exclusion list |

@@ -1,6 +1,6 @@
 Orchestrate a guided, multi-file code review of the current branch's changeset using the CRPG.
 
-Allowed tools: Bash, Read
+Allowed tools: Bash, Read, Write
 
 Arguments: $ARGUMENTS
 
@@ -120,7 +120,7 @@ If zero files remain after filtering, output: `No reviewable files found. All <N
 
 ---
 
-### Step 5: Read file diffs for context
+### Step 5: Read file diffs and generate structured context
 
 For each reviewable file, get its diff so you can provide context. Run:
 
@@ -131,13 +131,13 @@ git diff $MERGE_BASE -- <path>
 (For `unstaged` scope, use `git diff -- <path>`. For new/untracked files, there is no diff — note them as entirely new.)
 
 Read each diff output. You will use this to:
-1. Write the changeset overview (Step 6).
-2. Write per-file context summaries (Step 6).
-3. Rank files by importance (Step 6).
+1. Rank files by importance (Step 6).
+2. Generate structured review context JSON (Step 6).
+3. Display a brief summary (Step 6).
 
 ---
 
-### Step 6: Changeset overview and batch open
+### Step 6: Generate context, display summary, and proceed
 
 **6a. Prioritize files by review importance.**
 
@@ -150,38 +150,46 @@ Rank files using these heuristics (highest priority first):
 
 Within each tier, rank by the size/significance of the change (larger diffs first). Use your judgment — the goal is that the reviewer sees the most important files first.
 
-**6b. Display the changeset overview with per-file summaries.**
+**6b. Generate structured review context JSON.**
 
-First, write a brief (2-4 sentence) summary of the overall changeset: what is being changed, what's the theme or purpose of these changes as a whole. This helps the reviewer orient before diving into individual files.
+Build a JSON object with the following structure and write it to `~/.shepherd/review-context.json` using the Write tool:
 
-Then display the file list with a per-file context summary for each file (1-2 sentences describing what changed). Be specific — mention function names, sections, or structural changes:
+```json
+{
+  "overall": {
+    "neutral": "<factual 2-4 sentence summary of what changed across the changeset>",
+    "review": "<your opinion: what looks good, what deserves attention, potential concerns>"
+  },
+  "files": {
+    "<absolute-file-path>": {
+      "neutral": "<factual 1-2 sentence summary of what changed in this file>",
+      "review": "<your opinion on this file's changes: quality, concerns, suggestions>"
+    }
+  }
+}
+```
+
+The `neutral` fields should be purely factual — what changed, which functions/sections were modified, structural changes. No opinions.
+
+The `review` fields contain your agent assessment — what looks good, what might be risky, suggestions for the reviewer to focus on.
+
+Use **absolute file paths** as keys in the `files` object (these must match the paths passed to `shepherd-launch.sh` so the CRPG can correlate them with loaded files).
+
+Make sure to create the `~/.shepherd/` directory if it doesn't exist.
+
+**6c. Display a brief summary and proceed immediately.**
+
+Output a brief summary (no per-file details — those are now in the CRPG):
 
 ```
 Reviewing: <scope-label>
-
-<changeset overview paragraph>
-
-Found <N> files to review (<M> filtered out):
-
-  1. <relative-path>  [<change-type>]
-     <per-file context summary>
-
-  2. <relative-path>  [<change-type>]
-     <per-file context summary>
-
-  ...
-
-Ready to open all files in the CRPG.
+Opening <N> files for review.
+<M> files excluded (lockfiles, generated, binary).
 ```
 
 Where `<scope-label>` is: `all changes vs main`, `staged changes only`, or `unstaged changes only`.
 
-Files are listed in priority order (not alphabetical). Position numbers are right-aligned for 10+ files. The "filtered out" parenthetical is omitted if zero.
-
-Use the `AskUserQuestion` tool to let the user choose:
-
-- **"Go"** (description: "Open all files in the CRPG for review") → proceed to Step 7
-- **"Quit"** (description: "Cancel the review") → output `Review cancelled.` and stop
+The "excluded" line is omitted if zero files were filtered. **Do not use `AskUserQuestion` here — proceed directly to Step 7.**
 
 ---
 
@@ -189,7 +197,7 @@ Use the `AskUserQuestion` tool to let the user choose:
 
 **7a. Clean stale prompt output.**
 
-Remove any previous prompt output file so we can detect a fresh one:
+Remove any previous prompt output file so we can detect a fresh one (do NOT remove `review-context.json` — it was just freshly written in Step 6):
 
 ```bash
 rm -f ~/.shepherd/prompt-output.md
