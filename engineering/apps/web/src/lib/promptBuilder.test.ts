@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildPrompt, buildDiffPrompt, formatDiffCommentLabel, buildRenderedPrompt, buildRenderedDiffPrompt } from './promptBuilder';
+import { buildPrompt, buildMultiFilePrompt, buildDiffPrompt, formatDiffCommentLabel, buildRenderedPrompt, buildRenderedDiffPrompt } from './promptBuilder';
 import type { Comment, FileInfo, DiffLine, DiffComment, DiffLineId, CollapsedSection, RenderedComment, RenderedDiffComment, ElementSourceMapping, AstDiffResult, ElementId } from '@/types';
 
 function makeFile(overrides: Partial<FileInfo> = {}): FileInfo {
   return {
+    id: 'file-1',
     name: 'app.ts',
     language: 'typescript',
     content: 'line1\nline2\nline3\nline4\nline5',
@@ -15,6 +16,7 @@ function makeFile(overrides: Partial<FileInfo> = {}): FileInfo {
 function makeComment(overrides: Partial<Comment> = {}): Comment {
   return {
     id: 'c1',
+    fileId: 'file-1',
     startLine: 1,
     endLine: 1,
     text: 'Fix this',
@@ -338,5 +340,110 @@ describe('buildRenderedDiffPrompt', () => {
   it('includes MODIFIED status label', () => {
     const result = buildRenderedDiffPrompt(makeFile(), [makeRenderedDiffComment()], '', diffResult, sourceMap);
     expect(result).toContain('[MODIFIED]');
+  });
+});
+
+// ─── buildMultiFilePrompt ───────────────────────────────────────
+
+describe('buildMultiFilePrompt', () => {
+  const file1 = makeFile({ id: 'f1', name: 'app.ts', language: 'typescript' });
+  const file2 = makeFile({
+    id: 'f2',
+    name: 'utils.py',
+    language: 'python',
+    content: 'def foo():\n  pass',
+    lines: ['def foo():', '  pass'],
+  });
+
+  it('returns null when no comments exist', () => {
+    const result = buildMultiFilePrompt(
+      { f1: file1, f2: file2 },
+      ['f1', 'f2'],
+      {},
+      '',
+    );
+    expect(result).toBeNull();
+  });
+
+  it('uses single-file format when only one file has comments', () => {
+    const comments: Record<string, Comment> = {
+      c1: makeComment({ id: 'c1', fileId: 'f1', text: 'Fix this' }),
+    };
+    const result = buildMultiFilePrompt(
+      { f1: file1, f2: file2 },
+      ['f1', 'f2'],
+      comments,
+      '',
+    );
+    expect(result).not.toBeNull();
+    expect(result).toContain('## File: app.ts');
+    expect(result).not.toContain('### File:');
+  });
+
+  it('uses multi-file format when multiple files have comments', () => {
+    const comments: Record<string, Comment> = {
+      c1: makeComment({ id: 'c1', fileId: 'f1', text: 'Fix TS' }),
+      c2: makeComment({ id: 'c2', fileId: 'f2', startLine: 1, endLine: 1, text: 'Fix Python' }),
+    };
+    const result = buildMultiFilePrompt(
+      { f1: file1, f2: file2 },
+      ['f1', 'f2'],
+      comments,
+      '',
+    );
+    expect(result).not.toBeNull();
+    expect(result).toContain('### File: app.ts (typescript)');
+    expect(result).toContain('### File: utils.py (python)');
+    expect(result).toContain('Fix TS');
+    expect(result).toContain('Fix Python');
+  });
+
+  it('omits files with no comments', () => {
+    const comments: Record<string, Comment> = {
+      c1: makeComment({ id: 'c1', fileId: 'f2', startLine: 1, endLine: 1, text: 'Only Python' }),
+    };
+    const result = buildMultiFilePrompt(
+      { f1: file1, f2: file2 },
+      ['f1', 'f2'],
+      comments,
+      '',
+    );
+    expect(result).not.toBeNull();
+    expect(result).not.toContain('app.ts');
+    expect(result).toContain('utils.py');
+  });
+
+  it('respects fileOrder for section ordering', () => {
+    const comments: Record<string, Comment> = {
+      c1: makeComment({ id: 'c1', fileId: 'f1', text: 'TS comment' }),
+      c2: makeComment({ id: 'c2', fileId: 'f2', startLine: 1, endLine: 1, text: 'PY comment' }),
+    };
+
+    // f2 before f1
+    const result = buildMultiFilePrompt(
+      { f1: file1, f2: file2 },
+      ['f2', 'f1'],
+      comments,
+      '',
+    );
+    expect(result).not.toBeNull();
+    const pyIdx = result!.indexOf('utils.py');
+    const tsIdx = result!.indexOf('app.ts');
+    expect(pyIdx).toBeLessThan(tsIdx);
+  });
+
+  it('includes preamble as Instructions section', () => {
+    const comments: Record<string, Comment> = {
+      c1: makeComment({ id: 'c1', fileId: 'f1', text: 'Fix' }),
+      c2: makeComment({ id: 'c2', fileId: 'f2', startLine: 1, endLine: 1, text: 'Fix' }),
+    };
+    const result = buildMultiFilePrompt(
+      { f1: file1, f2: file2 },
+      ['f1', 'f2'],
+      comments,
+      'Review carefully',
+    );
+    expect(result).toContain('## Instructions');
+    expect(result).toContain('Review carefully');
   });
 });

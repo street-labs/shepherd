@@ -1366,6 +1366,96 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/dark-mode.md`
 - **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-keyboard`, `TC-dm-a11y-toggle-aria`
 
+### `FR-crp-multi-file-load`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`, `TC-crp-multi-file-drop-multiple-happy`
+
+### `FR-crp-multi-file-nav`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-tab-shows-info`
+
+### `FR-crp-multi-file-remove`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-no-comments-immediate`, `TC-crp-multi-file-remove-active-switches`
+
+### `FR-crp-multi-file-prompt`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`
+
+### `FR-crp-multi-file-prompt-format`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`, `TC-crp-multi-file-prompt-order`
+
+### `AC-crp-multi-file-load-adds`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`
+
+### `AC-crp-multi-file-drop-multiple`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-drop-multiple-happy`, `TC-crp-multi-file-drop-mixed-binary`
+
+### `AC-crp-multi-file-nav-preserves-state`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-switch-preserves-scroll`
+
+### `AC-crp-multi-file-remove-with-comments`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-with-comments-cancel`
+
+### `AC-crp-multi-file-remove-no-comments`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-no-comments-immediate`
+
+### `AC-crp-multi-file-prompt-structure`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`
+
+### `AC-crp-multi-file-prompt-omits-uncommented`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-prompt-omits-uncommented`
+
+### `AC-crp-multi-file-comment-count`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-comment-count-global`
+
+### `AC-crp-multi-file-clear-all`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-clear-all-confirm`, `TC-crp-multi-file-clear-all-resets`
+
+### `AC-crp-multi-file-empty-after-remove-last`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-last-empty-state`
+
 <!--
 Entry template -- copy this when adding a new slug:
 

@@ -21,7 +21,7 @@ import type {
   RenderMode,
   ElementId,
 } from '@/types';
-import { buildPrompt, buildDiffPrompt, buildRenderedPrompt, buildRenderedDiffPrompt } from '@/lib/promptBuilder';
+import { buildMultiFilePrompt, buildDiffPrompt, buildRenderedPrompt, buildRenderedDiffPrompt } from '@/lib/promptBuilder';
 import { copyToClipboard } from '@/lib/clipboard';
 import { computeFileDiff } from '@/lib/diffCompute';
 import { isMarkdownFile } from '@/lib/markdownDetect';
@@ -70,6 +70,11 @@ const initialRenderedState: RenderedState = {
 
 const initialState: AppState & DiffState & RenderedState = {
   file: null,
+  files: {},
+  fileOrder: [],
+  activeFileId: null,
+  scrollPositions: {},
+  isAddFileModalOpen: false,
   comments: {},
   commentOrder: [],
   preamble: '',
@@ -83,8 +88,9 @@ const initialState: AppState & DiffState & RenderedState = {
   ...initialRenderedState,
 };
 
-function computeCommentOrder(comments: Record<string, Comment>): string[] {
+function computeCommentOrder(comments: Record<string, Comment>, fileId?: string | null): string[] {
   return Object.values(comments)
+    .filter((c) => !fileId || c.fileId === fileId)
     .sort((a, b) => {
       if (a.startLine !== b.startLine) return a.startLine - b.startLine;
       return a.createdAt.localeCompare(b.createdAt);
@@ -105,14 +111,9 @@ type FullState = AppState & DiffState & RenderedState;
 
 /** Auto-generate the prompt for file mode. Returns the prompt string or null if no comments. */
 function autoGenerateFilePrompt(state: FullState): string | null {
-  const { file, preamble } = state;
-  if (!file) return null;
-  // Use the comments/commentOrder that are being set (caller must pass updated state)
-  const orderedComments = state.commentOrder
-    .map((id) => state.comments[id])
-    .filter((c): c is Comment => c !== undefined);
-  if (orderedComments.length === 0) return null;
-  return buildPrompt(file, orderedComments, preamble);
+  const { files, fileOrder, comments, preamble } = state;
+  if (fileOrder.length === 0) return null;
+  return buildMultiFilePrompt(files, fileOrder, comments, preamble);
 }
 
 /** Auto-generate the prompt for diff mode. Returns the prompt string or null if no comments. */
@@ -163,6 +164,12 @@ function autoGenerateRenderedDiffPrompt(state: FullState): string | null {
 interface AppActions {
   // File actions
   loadFile: (content: string, fileName: string, language: string) => void;
+  addFile: (content: string, fileName: string, language: string) => void;
+  removeFile: (fileId: string) => void;
+  setActiveFile: (fileId: string) => void;
+  saveScrollPosition: (fileId: string, offset: number) => void;
+  openAddFileModal: () => void;
+  closeAddFileModal: () => void;
   updateFileName: (name: string) => void;
 
   // Comment actions
@@ -270,31 +277,175 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   loadFile: (content, fileName, language) => {
     const lines = content.split('\n');
+    const id = crypto.randomUUID();
+    const fileInfo = { id, name: fileName, language, content, lines };
     set({
       ...initialState,
-      file: { name: fileName, language, content, lines },
+      file: fileInfo,
+      files: { [id]: fileInfo },
+      fileOrder: [id],
+      activeFileId: id,
       showLargeFileWarning: lines.length > LARGE_FILE_THRESHOLD,
       isMarkdownFile: isMarkdownFile(fileName),
       renderMode: 'raw',
     });
   },
 
+  addFile: (content, fileName, language) => {
+    const lines = content.split('\n');
+    const id = crypto.randomUUID();
+    const fileInfo = { id, name: fileName, language, content, lines };
+    const { files, fileOrder, comments } = get();
+    const newFiles = { ...files, [id]: fileInfo };
+    const newFileOrder = [...fileOrder, id];
+    const commentOrder = computeCommentOrder(comments, id);
+    // Build prompt state with all files for multi-file prompt
+    const promptState = {
+      ...get(),
+      file: fileInfo,
+      files: newFiles,
+      fileOrder: newFileOrder,
+      activeFileId: id,
+      commentOrder,
+    };
+    set({
+      ...initialDiffState,
+      ...initialRenderedState,
+      file: fileInfo,
+      files: newFiles,
+      fileOrder: newFileOrder,
+      activeFileId: id,
+      commentOrder,
+      focusedCommentId: null,
+      selectedRange: null,
+      editorState: null,
+      isAddFileModalOpen: false,
+      showLargeFileWarning: lines.length > LARGE_FILE_THRESHOLD,
+      largeFileWarningDismissed: false,
+      isMarkdownFile: isMarkdownFile(fileName),
+      renderMode: 'raw',
+      viewMode: 'file',
+      generatedPrompt: autoGenerateFilePrompt(promptState),
+    });
+  },
+
+  removeFile: (fileId) => {
+    const { files, fileOrder, comments, activeFileId } = get();
+    const newFileOrder = fileOrder.filter((id) => id !== fileId);
+    const { [fileId]: _, ...newFiles } = files;
+
+    // Remove all comments for this file
+    const newComments: Record<string, Comment> = {};
+    for (const [cid, comment] of Object.entries(comments)) {
+      if (comment.fileId !== fileId) {
+        newComments[cid] = comment;
+      }
+    }
+
+    // If no files remain, reset to initial state
+    if (newFileOrder.length === 0) {
+      set({ ...initialState, toast: get().toast });
+      return;
+    }
+
+    // Switch to adjacent file if we removed the active one
+    let newActiveId = activeFileId;
+    if (activeFileId === fileId) {
+      const oldIndex = fileOrder.indexOf(fileId);
+      const newIndex = Math.min(oldIndex, newFileOrder.length - 1);
+      newActiveId = newFileOrder[newIndex]!;
+    }
+
+    const newActiveFile = newFiles[newActiveId!] ?? null;
+    const commentOrder = computeCommentOrder(newComments, newActiveId);
+
+    const newState = {
+      ...get(),
+      file: newActiveFile,
+      files: newFiles,
+      fileOrder: newFileOrder,
+      activeFileId: newActiveId,
+      comments: newComments,
+      commentOrder,
+      focusedCommentId: null,
+      selectedRange: null,
+      editorState: null,
+    };
+
+    set({
+      file: newActiveFile,
+      files: newFiles,
+      fileOrder: newFileOrder,
+      activeFileId: newActiveId,
+      comments: newComments,
+      commentOrder,
+      focusedCommentId: null,
+      selectedRange: null,
+      editorState: null,
+      generatedPrompt: autoGenerateFilePrompt(newState),
+    });
+  },
+
+  setActiveFile: (fileId) => {
+    const { files, activeFileId } = get();
+    if (fileId === activeFileId) return;
+    const targetFile = files[fileId];
+    if (!targetFile) return;
+
+    const commentOrder = computeCommentOrder(get().comments, fileId);
+
+    set({
+      ...initialDiffState,
+      ...initialRenderedState,
+      activeFileId: fileId,
+      file: targetFile,
+      commentOrder,
+      focusedCommentId: null,
+      selectedRange: null,
+      editorState: null,
+      viewMode: 'file',
+      renderMode: 'raw',
+      isMarkdownFile: isMarkdownFile(targetFile.name),
+      showLargeFileWarning: targetFile.lines.length > LARGE_FILE_THRESHOLD,
+      largeFileWarningDismissed: false,
+    });
+  },
+
+  saveScrollPosition: (fileId, offset) => {
+    set({ scrollPositions: { ...get().scrollPositions, [fileId]: offset } });
+  },
+
+  openAddFileModal: () => {
+    set({ isAddFileModalOpen: true });
+  },
+
+  closeAddFileModal: () => {
+    set({ isAddFileModalOpen: false });
+  },
+
   updateFileName: (name) => {
-    const { file } = get();
-    if (!file) return;
-    set({ file: { ...file, name } });
+    const { file, activeFileId, files } = get();
+    if (!file || !activeFileId) return;
+    const updated = { ...file, name };
+    set({
+      file: updated,
+      files: { ...files, [activeFileId]: updated },
+    });
   },
 
   addComment: (startLine, endLine, text) => {
+    const { activeFileId } = get();
+    if (!activeFileId) return;
     const comment: Comment = {
       id: crypto.randomUUID(),
+      fileId: activeFileId,
       startLine,
       endLine,
       text,
       createdAt: new Date().toISOString(),
     };
     const comments = { ...get().comments, [comment.id]: comment };
-    const commentOrder = computeCommentOrder(comments);
+    const commentOrder = computeCommentOrder(comments, activeFileId);
     const newState = { ...get(), comments, commentOrder, editorState: null as EditorState | null, selectedRange: null as { start: number; end: number } | null };
     set({
       comments,
@@ -324,7 +475,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   deleteComment: (commentId) => {
     const { [commentId]: _, ...rest } = get().comments;
-    const commentOrder = computeCommentOrder(rest);
+    const commentOrder = computeCommentOrder(rest, get().activeFileId);
     const focusedCommentId =
       get().focusedCommentId === commentId ? null : get().focusedCommentId;
     const newState = { ...get(), comments: rest, commentOrder, focusedCommentId };
@@ -615,7 +766,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
         const fileName = res.headers.get('X-File-Name') || filePath.split('/').pop() || 'Untitled';
         const language = res.headers.get('X-File-Language') || 'plaintext';
         const lines = content.split('\n');
-        set({ file: { name: fileName, language, content, lines } });
+        const { activeFileId, files } = get();
+        const id = activeFileId ?? crypto.randomUUID();
+        const updated = { id, name: fileName, language, content, lines };
+        set({
+          file: updated,
+          files: { ...files, [id]: updated },
+        });
       }
     } catch {
       // If working copy re-fetch fails, proceed with existing content

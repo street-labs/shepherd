@@ -9,7 +9,7 @@ This is a client-side-only React + TypeScript single-page application (`NFR-crp-
 
 The application is built with **Vite** as the build tool and dev server, using the `react-ts` template. It uses **Shiki** for syntax highlighting, **TanStack Virtual** for virtualized scrolling of large files, **Zustand** for state management, and **Tailwind CSS v4** for styling.
 
-The core architectural idea is straightforward: the user loads a file, the file is parsed into an array of lines held in a Zustand store, the user attaches comments to line numbers, and a pure function assembles those inputs into a structured prompt string. The prompt is generated automatically and reactively — every comment or preamble mutation triggers `buildPrompt()` within the store, so the displayed prompt is always current with no manual "generate" step. Every piece of this runs in-browser with no side effects beyond the clipboard write.
+The core architectural idea is straightforward: the user loads one or more files, each file is parsed into an array of lines held in a Zustand store keyed by a unique file ID, the user attaches comments to line numbers on any loaded file, and a pure function assembles those inputs into a structured prompt string. Multiple files are supported simultaneously — the store maintains an ordered collection of files, an active file pointer, and per-file comment associations. The prompt is generated automatically and reactively — every comment or preamble mutation triggers `buildPrompt()` within the store, aggregating comments across all files so the displayed prompt is always current with no manual "generate" step. Every piece of this runs in-browser with no side effects beyond the clipboard write.
 
 ### Key Technical Decisions
 
@@ -32,22 +32,10 @@ All data lives in memory as TypeScript types. No persistence layer, no serializa
 ### Core Types
 
 ```typescript
-/** A single inline comment attached to one or more lines. */
-interface Comment {
+/** Metadata about a loaded file. Each file in the session has its own FileInfo. */
+interface FileInfo {
   /** Unique identifier. Generated via crypto.randomUUID(). */
   id: string;
-  /** First line of the commented range (1-indexed). */
-  startLine: number;
-  /** Last line of the commented range (1-indexed). Same as startLine for single-line comments. */
-  endLine: number;
-  /** The user's comment text. */
-  text: string;
-  /** ISO-8601 timestamp of creation. Used for stable ordering when line numbers are equal. */
-  createdAt: string;
-}
-
-/** Metadata about the loaded file. */
-interface FileInfo {
   /** File name, or "Untitled" if pasted without a name. */
   name: string;
   /** Detected or inferred programming language identifier (e.g., "typescript", "python"). */
@@ -58,17 +46,37 @@ interface FileInfo {
   lines: string[];
 }
 
+/** A single inline comment attached to one or more lines of a specific file. */
+interface Comment {
+  /** Unique identifier. Generated via crypto.randomUUID(). */
+  id: string;
+  /** The file this comment belongs to. */
+  fileId: string;
+  /** First line of the commented range (1-indexed). */
+  startLine: number;
+  /** Last line of the commented range (1-indexed). Same as startLine for single-line comments. */
+  endLine: number;
+  /** The user's comment text. */
+  text: string;
+  /** ISO-8601 timestamp of creation. Used for stable ordering when line numbers are equal. */
+  createdAt: string;
+}
+
 /** The full application state. */
 interface AppState {
-  /** The currently loaded file, or null if no file is loaded. */
-  file: FileInfo | null;
-  /** All comments, keyed by comment ID for O(1) lookup. */
+  /** All loaded files, keyed by file ID. Supports multiple simultaneous files. */
+  files: Record<string, FileInfo>;
+  /** Ordered array of file IDs reflecting load order (used for tab ordering and prompt output). */
+  fileOrder: string[];
+  /** The ID of the currently active (visible) file, or null if no files loaded. */
+  activeFileId: string | null;
+  /** All comments across all files, keyed by comment ID for O(1) lookup. */
   comments: Record<string, Comment>;
-  /** Ordered array of comment IDs sorted by startLine then createdAt. Derived/maintained on mutation. */
+  /** Ordered array of comment IDs for the active file, sorted by startLine then createdAt. Recomputed on active file switch and comment mutations. */
   commentOrder: string[];
-  /** The user's preamble text. */
+  /** The user's preamble text (global, not per-file). */
   preamble: string;
-  /** The most recently generated prompt string, or null. Auto-computed after every comment or preamble change. */
+  /** The most recently generated prompt string, or null. Aggregates all files with comments. Auto-computed after every comment or preamble change. */
   generatedPrompt: string | null;
   /** The ID of the currently focused comment (via navigation), or null. */
   focusedCommentId: string | null;
@@ -76,6 +84,11 @@ interface AppState {
   selectedRange: { start: number; end: number } | null;
   /** Whether the inline comment editor is open, and if so, in what mode. */
   editorState: EditorState | null;
+  /** Scroll positions per file, so switching back restores position. */
+  scrollPositions: Record<string, number>;
+  // Slash-command fields
+  isSlashCommandMode: boolean;
+  doneState: 'idle' | 'sending' | 'sent';
 }
 
 /** State of the inline comment editor. */
@@ -88,9 +101,11 @@ type EditorState =
 
 Several values are computed from the store rather than stored directly:
 
-- **Comment count**: `Object.keys(state.comments).length`
-- **Lines with comments**: A `Map<number, string[]>` mapping each line number to the IDs of comments covering that line. Computed via a selector that iterates `comments` and expands each `[startLine, endLine]` range.
-- **Current comment index**: Position of `focusedCommentId` within `commentOrder`.
+- **Comment count (global)**: `Object.values(state.comments).length` — total across all files. Used by the Toolbar (`FR-crp-comment-count`).
+- **Comments per file**: `Map<string, number>` counting comments per `fileId`. Used by FileTabBar for per-file comment count badges.
+- **Lines with comments (active file)**: A `Map<number, string[]>` mapping each line number to the IDs of comments covering that line, filtered to only comments where `fileId === state.activeFileId`. Computed via a selector that iterates `comments`, filters by active file, and expands each `[startLine, endLine]` range.
+- **Current comment index**: Position of `focusedCommentId` within `commentOrder` (which is already filtered to the active file).
+- **commentOrder recomputation**: The `commentOrder` array is recomputed whenever the active file changes (via `setActiveFile`) or when comments are mutated (`addComment`, `updateComment`, `deleteComment`). It filters `comments` to those matching `activeFileId`, then sorts by `startLine` ascending, then `createdAt` ascending for ties.
 
 These are implemented as Zustand selectors (or derived via `useMemo` in components) to avoid redundant state.
 
@@ -104,10 +119,11 @@ The component tree maps directly to the design spec's component inventory. Each 
 App
  +-- Toolbar                          (design: Toolbar)
  +-- MainContent
-      +-- [if no file] FileDropZone   (design: FileDropZone)
-      +-- [if file loaded]
+      +-- [if no files] FileDropZone (full variant)   (design: FileDropZone)
+      +-- [if files loaded]
+           +-- FileTabBar                              NEW (design: FileTabBar)
            +-- CodeViewerPanel
-           |    +-- FileHeader
+           |    +-- FileHeader (single-file only, hidden when tab bar active)
            |    +-- CodeViewer         (design: CodeViewer)
            |         +-- VirtualRow (repeated, virtualized)
            |              +-- GutterCell
@@ -118,6 +134,7 @@ App
            +-- SidebarPanel
                 +-- PreambleInput     (design: PreambleInput)
                 +-- PromptPreview     (design: PromptPreview)
+ +-- FileDropZone (modal variant, rendered via portal when adding files)
  +-- ConfirmationDialog               (design: ConfirmationDialog, rendered via portal)
  +-- ToastNotification                (design: ToastNotification, rendered via portal)
 ```
@@ -125,24 +142,41 @@ App
 ### Component Responsibilities
 
 #### `App`
-Root component. Renders the top-level layout: Toolbar at top, MainContent below. Provides no context providers -- Zustand store is accessed directly by each component that needs it.
+Root component. Renders the top-level layout: Toolbar at top, MainContent below. Provides no context providers -- Zustand store is accessed directly by each component that needs it. Registers a global drag-and-drop listener on the entire window when files are loaded — dropping files anywhere on the app adds them to the session (calls `store.addFile()` for each valid file). This implements the design spec's "entire app window is a drop target" behavior.
 
 #### `Toolbar`
-Implements the persistent toolbar. Reads `commentCount`, `focusedCommentId`, `commentOrder`, `file` from the store to determine button states. Dispatches actions: `copyPrompt`, `clearSession`, `navigateComment('next' | 'prev')`. Registers keyboard shortcuts (`Cmd+Shift+C`, `[`, `]`) via a `useEffect` with `keydown` listener on `document`. Prompt generation is handled automatically by the store on comment/preamble mutation, so the Toolbar does not include a Generate button.
+Implements the persistent toolbar. Reads the global comment count (across all files via `Object.values(state.comments).length`), `focusedCommentId`, `commentOrder`, and `activeFileId` from the store to determine button states. Dispatches actions: `copyPrompt`, `clearSession`, `navigateComment('next' | 'prev')`. Registers keyboard shortcuts (`Cmd+Shift+C`, `[`, `]`) via a `useEffect` with `keydown` listener on `document`. Prompt generation is handled automatically by the store on comment/preamble mutation, so the Toolbar does not include a Generate button.
 
-Maps to: `FR-crp-comment-count`, `FR-crp-comment-navigation`, `FR-crp-prompt-copy`, `FR-crp-clear-session`.
+Maps to: `FR-crp-comment-count`, `FR-crp-comment-navigation`, `FR-crp-prompt-copy`, `FR-crp-clear-session`, `AC-crp-multi-file-comment-count`.
 
 #### `FileDropZone`
-Handles all three file-loading methods: paste, upload, drag-and-drop (`FR-crp-file-load`). Manages its own local UI state (current variant: default, drag-hover, paste-mode, loading, error). On successful load, calls the store's `loadFile(content, fileName, language)` action.
+Handles all three file-loading methods: paste, upload, drag-and-drop (`FR-crp-file-load`). Supports two variants:
+- **`variant: 'full'`** — Original behavior: fills the main content area when no files are loaded. This is the empty-state drop zone.
+- **`variant: 'modal'`** — Rendered as a portal modal overlay when adding files to an existing session (triggered by the "+" button in FileTabBar or via `store.openAddFileModal()`). The existing file content remains visible behind the backdrop.
+
+Manages its own local UI state (current variant: default, drag-hover, paste-mode, loading, error). On successful load, calls the store's `addFile(content, fileName, language)` action.
+
+Multi-file drop: When `event.dataTransfer.files.length > 1`, iterates all files and calls `store.addFile()` for each (with per-file binary detection). Valid files are loaded; binary files trigger an error toast per file (e.g., "Loaded 3 files. 1 file was skipped (binary)."). This replaces the previous single-file-only behavior.
 
 Binary detection: reads the first 8,192 bytes of the file as an `ArrayBuffer`, checks for null bytes (`0x00`). If found, surfaces the error state (`AC-crp-binary-file-rejected`).
 
 Language detection: maps file extension to Shiki language ID using a static lookup table. Falls back to `"plaintext"`. Supports: `.js`/`.jsx` (javascript), `.ts`/`.tsx` (typescript), `.py` (python), `.go` (go), `.rs` (rust), `.java` (java), `.c`/`.h` (c), `.cpp`/`.cc`/`.cxx`/`.hpp` (cpp), `.html` (html), `.css` (css), `.json` (json), `.yaml`/`.yml` (yaml), `.md` (markdown).
 
-Maps to: `FR-crp-file-load`, `AC-crp-load-paste`, `AC-crp-load-upload`, `AC-crp-load-drag-drop`, `AC-crp-binary-file-rejected`.
+Maps to: `FR-crp-file-load`, `FR-crp-multi-file-load`, `AC-crp-load-paste`, `AC-crp-load-upload`, `AC-crp-load-drag-drop`, `AC-crp-binary-file-rejected`, `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-drop-multiple`.
+
+#### `FileTabBar`
+Renders the horizontal tab bar for navigating between loaded files. Appears between the Toolbar and the code viewer panel when two or more files are loaded. Reads `files`, `fileOrder`, `activeFileId`, and per-file comment counts from the store. Dispatches: `setActiveFile(fileId)`, `removeFile(fileId)`, `openAddFileModal()`.
+
+Tab order matches `fileOrder` (load order). Each tab displays: the file name (truncated with ellipsis if needed), a comment count badge (if > 0 comments on that file), and a close (X) button. The active tab has distinct styling (per design spec). A "+" button at the end of the tab row opens the FileDropZone in modal variant for adding additional files.
+
+When the tab bar has only one file remaining (after removals), it collapses and the FileHeader is shown instead (single-file layout). The tab bar re-appears when a second file is loaded.
+
+For pasted files named "Untitled", right-clicking the tab opens an inline rename input (matching the FileHeader's rename affordance).
+
+Maps to: `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `AC-crp-multi-file-nav-preserves-state`.
 
 #### `FileHeader`
-Displays file name and language badge (`FR-crp-filename-display`). When the file was pasted without a name, renders an inline-editable text input. Calls `store.updateFileName(name)` on change.
+Displays file name and language badge (`FR-crp-filename-display`). Only rendered in single-file mode (when `fileOrder.length === 1`); in multi-file mode, the FileTabBar provides this information instead. When the file was pasted without a name, renders an inline-editable text input. Calls `store.updateFileName(fileId, name)` on change.
 
 #### `CodeViewer`
 The most complex component. Renders the virtualized list of code lines using TanStack Virtual (`NFR-crp-large-file-perf`, `AC-crp-large-file-scroll`). Each visible row is a `VirtualRow` containing the gutter, line number, and syntax-highlighted code content.
@@ -176,7 +210,9 @@ Read-only display of `store.generatedPrompt` rendered inside a `<pre>` element a
 Maps to: `FR-crp-prompt-preview`, `FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`, `AC-crp-preview-matches-copy`.
 
 #### `ConfirmationDialog`
-Generic modal. Rendered via a React portal to `document.body`. Traps focus while open. Used by the clear session flow (`AC-crp-clear-confirmation`, `AC-crp-clear-no-confirm-empty`).
+Generic modal. Rendered via a React portal to `document.body`. Traps focus while open. Used by:
+- Clear session flow: Confirms removal of all files and comments (`AC-crp-clear-confirmation`, `AC-crp-clear-no-confirm-empty`).
+- File removal flow: Confirms removal of an individual file that has comments (`AC-crp-multi-file-remove-with-comments`). Files without comments are removed immediately without confirmation (`AC-crp-multi-file-remove-no-comments`).
 
 #### `ToastNotification`
 Ephemeral notification rendered via a React portal. Auto-dismisses after the configured duration. Slide-up and fade-out animations via CSS transitions. Announced to screen readers via `role="status"` and `aria-live="polite"`.
@@ -197,11 +233,13 @@ The store exposes state (matching the `AppState` type above) and actions:
 
 ```typescript
 interface AppStore extends AppState {
-  // File actions
-  loadFile: (content: string, fileName: string, language: string) => void;
-  updateFileName: (name: string) => void;
+  // File actions (multi-file)
+  addFile: (content: string, fileName: string, language: string) => void;
+  removeFile: (fileId: string) => void;
+  setActiveFile: (fileId: string) => void;
+  updateFileName: (fileId: string, name: string) => void;
 
-  // Comment actions
+  // Comment actions (comments now have fileId)
   addComment: (startLine: number, endLine: number, text: string) => void;
   updateComment: (commentId: string, text: string) => void;
   deleteComment: (commentId: string) => void;
@@ -211,51 +249,72 @@ interface AppStore extends AppState {
   openEditor: (mode: 'edit', commentId: string) => void;
   closeEditor: () => void;
 
-  // Navigation
+  // Navigation (within active file's comments)
   navigateComment: (direction: 'next' | 'prev') => void;
   setFocusedComment: (commentId: string | null) => void;
 
-  // Line selection
+  // Line selection (unchanged)
   setSelectedRange: (range: { start: number; end: number } | null) => void;
 
-  // Preamble
+  // Preamble (unchanged)
   setPreamble: (text: string) => void;
 
-  // Prompt
+  // Prompt (unchanged)
   copyPrompt: () => Promise<void>;
 
   // Session
   clearSession: () => void;
+
+  // Add file modal
+  isAddFileModalOpen: boolean;
+  openAddFileModal: () => void;
+  closeAddFileModal: () => void;
+
+  // Scroll position
+  saveScrollPosition: (fileId: string, scrollOffset: number) => void;
+
+  // Slash command (unchanged)
+  setSlashCommandMode: (mode: boolean) => void;
+  sendPromptToAgent: () => Promise<void>;
 }
 ```
 
 #### Action Semantics
 
-- **`loadFile`**: Sets `file` with parsed lines (`content.split('\n')`). Resets all other state. Detects language from file extension if not already provided.
-- **`addComment`**: Creates a `Comment` with `crypto.randomUUID()`, inserts into `comments` map, recomputes `commentOrder`. Automatically regenerates the prompt via `buildPrompt()`.
+- **`addFile`** (replaces `loadFile`): Creates a new `FileInfo` with `crypto.randomUUID()` as `id` and parsed lines (`content.split('\n')`). Appends to `files` map and `fileOrder` array. Sets `activeFileId` to the new file. Does NOT reset comments or preamble — existing files and comments are preserved (`AC-crp-multi-file-load-adds`). Recomputes `commentOrder` for the new active file (which will be empty). Triggers `buildPrompt()`. Closes the add file modal if open.
+- **`removeFile`**: Removes the file from `files` map and `fileOrder` array. Removes all comments with matching `fileId` from the `comments` map. If the removed file was active, sets `activeFileId` to the next file in `fileOrder` (or previous, or `null` if no files remain). If no files remain, returns to empty state (`AC-crp-multi-file-empty-after-remove-last`). Removes the file's entry from `scrollPositions`. Triggers `buildPrompt()`. Recomputes `commentOrder` for the new active file.
+- **`setActiveFile`**: Saves the current file's scroll position via `saveScrollPosition`. Updates `activeFileId`. Recomputes `commentOrder` for the newly active file. Clears `focusedCommentId`, `selectedRange`, and `editorState` (switching files cancels any in-progress editing).
+- **`updateFileName`**: Now takes `(fileId, name)` instead of just `(name)`. Updates the `name` field on the specified file.
+- **`addComment`**: Creates a `Comment` with `crypto.randomUUID()`, automatically sets `fileId` to `state.activeFileId` on the new comment. Inserts into `comments` map, recomputes `commentOrder`. Automatically regenerates the prompt via `buildPrompt()`.
 - **`updateComment`**: Updates the `text` field on an existing comment. Automatically regenerates the prompt via `buildPrompt()`.
-- **`deleteComment`**: Removes from `comments` map and `commentOrder`. If the deleted comment was `focusedCommentId`, clears focus. Automatically regenerates the prompt via `buildPrompt()` (sets `generatedPrompt` to `null` if no comments remain).
-- **`navigateComment`**: Advances or retreats `focusedCommentId` within `commentOrder`, wrapping at boundaries.
-- **`setPreamble`**: Updates the preamble text. Automatically regenerates the prompt via `buildPrompt()` if comments exist.
+- **`deleteComment`**: Removes from `comments` map and `commentOrder`. If the deleted comment was `focusedCommentId`, clears focus. Automatically regenerates the prompt via `buildPrompt()` (sets `generatedPrompt` to `null` if no comments remain on any file).
+- **`navigateComment`**: Advances or retreats `focusedCommentId` within `commentOrder` (filtered to active file only), wrapping at boundaries.
+- **`setPreamble`**: Updates the preamble text. Automatically regenerates the prompt via `buildPrompt()` if comments exist on any file.
 - **`copyPrompt`**: Calls `navigator.clipboard.writeText(generatedPrompt)`. Returns a promise; the component handles success/failure UI.
-- **`clearSession`**: Resets the entire store to its initial state, including clearing `generatedPrompt` to `null`.
+- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}` (`AC-crp-multi-file-clear-all`).
+- **`saveScrollPosition`**: Stores the given scroll offset for the specified file ID in `scrollPositions`. Called automatically by `setActiveFile` before switching.
 
 #### Selectors
 
 Zustand selectors with shallow equality checks minimize re-renders:
 
 ```typescript
-// Example: CodeViewer only re-renders when these specific values change
+// Example: CodeViewer only re-renders when the active file's lines/language change
 const { lines, language } = useAppStore(
-  (s) => ({ lines: s.file?.lines, language: s.file?.language }),
+  (s) => {
+    const activeFile = s.activeFileId ? s.files[s.activeFileId] : null;
+    return { lines: activeFile?.lines, language: activeFile?.language };
+  },
   shallow
 );
 
-// Derived: map of line numbers to comment arrays
+// Derived: map of line numbers to comment arrays (active file only)
 const commentsByLine = useAppStore((s) => {
   const map = new Map<number, Comment[]>();
   for (const id of s.commentOrder) {
     const comment = s.comments[id];
+    // commentOrder is already filtered to activeFileId, but guard just in case
+    if (comment.fileId !== s.activeFileId) continue;
     for (let line = comment.startLine; line <= comment.endLine; line++) {
       const existing = map.get(line) || [];
       existing.push(comment);
@@ -263,6 +322,15 @@ const commentsByLine = useAppStore((s) => {
     }
   }
   return map;
+});
+
+// Derived: per-file comment counts for FileTabBar badges
+const commentCountsByFile = useAppStore((s) => {
+  const counts = new Map<string, number>();
+  for (const comment of Object.values(s.comments)) {
+    counts.set(comment.fileId, (counts.get(comment.fileId) || 0) + 1);
+  }
+  return counts;
 });
 ```
 
@@ -363,40 +431,54 @@ Comment navigation (`FR-crp-comment-navigation`, `AC-crp-comment-navigation-next
 
 ### `buildPrompt()` Pure Function
 
-Prompt generation (`FR-crp-prompt-generate`, `FR-crp-prompt-format`) is implemented as a pure function with no side effects. The store calls `buildPrompt()` automatically after every comment mutation (`addComment`, `updateComment`, `deleteComment`) and preamble change (`setPreamble`), so the prompt is always up to date without user-triggered generation:
+Prompt generation (`FR-crp-prompt-generate`, `FR-crp-prompt-format`, `FR-crp-multi-file-prompt`, `FR-crp-multi-file-prompt-format`) is implemented as a pure function with no side effects. The store calls `buildPrompt()` automatically after every comment mutation (`addComment`, `updateComment`, `deleteComment`), preamble change (`setPreamble`), and file change (`addFile`, `removeFile`), so the prompt is always up to date without user-triggered generation:
 
 ```typescript
-function buildPrompt(file: FileInfo, comments: Comment[], preamble: string): string
+function buildPrompt(
+  files: Record<string, FileInfo>,
+  fileOrder: string[],
+  comments: Record<string, Comment>,
+  preamble: string
+): string | null
 ```
 
 The function:
 
-1. Sorts comments by `startLine` ascending, then `createdAt` ascending for ties.
-2. For each comment, extracts the code snippet from `file.lines` spanning `[startLine, endLine]` (1-indexed, inclusive). The snippet is the actual source lines the comment references, preserving original indentation.
-3. Assembles the sections per `FR-crp-prompt-format`:
-   - **Instructions section** (only if preamble is non-empty after trimming -- whitespace-only preambles are treated as empty): `## Instructions` followed by the preamble text.
-   - **File heading**: `## File: <fileName> (<language>)` (e.g., `## File: utils.ts (typescript)`).
-   - **Requested Changes section**: `## Requested Changes` followed by each comment formatted as:
-     ```
-     - **Code:**
+1. Groups comments by `fileId`.
+2. Filters to only files that have at least one comment. Files without comments are omitted from the prompt (`AC-crp-multi-file-prompt-omits-uncommented`).
+3. Orders the included files by their position in `fileOrder` (load order).
+4. For each file with comments, sorts its comments by `startLine` ascending, then `createdAt` ascending for ties.
+5. Returns `null` if no comments exist on any file.
+6. Assembles the sections per `FR-crp-prompt-format` and `FR-crp-multi-file-prompt-format`:
+   - **Instructions section** (only if preamble is non-empty after trimming -- whitespace-only preambles are treated as empty): `## Instructions` followed by the preamble text. The preamble is global, not per-file.
+   - **For each file with comments**:
+     - `## File: <fileName> (<language>)` heading (e.g., `## File: utils.ts (typescript)`).
+     - `### Requested Changes` subheading.
+     - Each comment formatted as a fenced code snippet + comment text:
        ```
-       <extracted code snippet>
+       - **Code:**
+         ```
+         <extracted code snippet>
+         ```
+         <comment text>
        ```
-       <comment text>
-     ```
+   - For each comment, extracts the code snippet from the file's `lines` spanning `[startLine, endLine]` (1-indexed, inclusive). The snippet is the actual source lines the comment references, preserving original indentation.
 
 The prompt does **not** include the full file content or line numbers. Each comment is paired directly with the code snippet it references. This design ensures the prompt remains accurate even if line numbers shift as the file is edited between prompt generation and AI consumption.
 
-This function is unit-testable in isolation. It satisfies `AC-crp-generate-prompt-structure` and `AC-crp-preview-matches-copy` (the same string is stored, displayed, and copied).
+For single-file sessions, the output format is identical to the previous single-file format (one file heading, one Requested Changes section). The multi-file format is a natural extension with additional file sections.
+
+This function is unit-testable in isolation. It satisfies `AC-crp-generate-prompt-structure`, `AC-crp-multi-file-prompt-structure`, `AC-crp-multi-file-prompt-omits-uncommented`, and `AC-crp-preview-matches-copy` (the same string is stored, displayed, and copied).
 
 ### Performance (`NFR-crp-prompt-gen-time`)
 
-For a 10,000-line file with 200 comments, this function performs:
-- One sort of comments: O(200 log 200)
-- One pass to extract snippets and format comments: O(200 * average_snippet_lines)
+For a session with multiple files totaling 10,000+ lines and 200 comments across all files, this function performs:
+- One grouping pass over all comments: O(total_comments)
+- Per-file sort of comments: O(total_comments * log(max_comments_per_file))
+- One pass per file to extract snippets and format comments: O(total_comments * average_snippet_lines)
 - String concatenation via array join: O(total characters)
 
-The full file content is no longer included in the prompt, so the output size scales with the number of comments and their snippet sizes rather than the total file length. This is well under the 300ms budget. Expected real-world time: <5ms.
+The output size scales with the number of comments and their snippet sizes rather than the total file length. This is well under the 300ms budget. Expected real-world time: <5ms.
 
 ---
 
@@ -420,7 +502,7 @@ This two-step approach avoids garbled content from reaching the viewer.
 
 ### Large File Warning
 
-When `file.lines.length > 10_000`, set a `showLargeFileWarning` flag in the store. The `CodeViewer` renders a dismissible yellow banner per the design spec. Dismissing sets a `largeFileWarningDismissed` flag in the store (session-only, reset on `clearSession`). The file is still loaded and functional.
+When a file's `lines.length > 10_000`, the `CodeViewer` renders a dismissible yellow banner per the design spec. Each file tracks its own warning dismissal state independently — dismissing the warning for one file does not affect other files. Dismissal state is stored per file ID in the store (session-only, reset on `clearSession`). The file is still loaded and functional.
 
 ---
 
@@ -464,7 +546,7 @@ The modern Clipboard API is preferred. The `execCommand` fallback handles Safari
 | File read failure | `FileReader.onerror` | Error message in FileDropZone | Dismiss and try again |
 | Clipboard write failure | Caught promise rejection from `navigator.clipboard.writeText` | Error toast: "Failed to copy. Try selecting the text manually." | User can manually select text in the preview |
 | Shiki grammar load failure | Caught error from `highlighter.loadLanguage()` | File renders as plain text (no highlighting). Info toast: "Syntax highlighting unavailable for this file. Displaying as plain text." | Automatic fallback |
-| Multiple files dropped | `event.dataTransfer.files.length > 1` | Load only the first file. Info toast: "Loaded [filename]. Only one file can be loaded at a time." | First file loaded, rest ignored |
+| Binary file in multi-drop | Per-file binary detection during multi-file drop | Valid files are loaded; binary files are skipped. Summary toast: "Loaded N files. M file(s) skipped (binary)." | Valid files added to session; binary files ignored |
 | File exceeds 10,000 lines | `lines.length > 10_000` | Dismissible warning banner | User acknowledges and continues |
 
 All errors are caught at the component level and rendered in the UI. No errors should reach the console unhandled in production. No errors crash the application -- every error path has a defined recovery.
@@ -594,7 +676,7 @@ Maps to: `FR-crp-done-action`, `AC-crp-done-sends-prompt`, `AC-crp-done-confirma
 
 > See existing hook spec in `../engineering/slash-command.md`
 
-Minor addition: after successfully loading a file from the URL parameter (after calling `store.loadFile()`), also call `store.setSlashCommandMode(true)`. This is the single signal that places the CRPG into slash command mode for the duration of the session.
+Minor addition: after successfully loading a file from the URL parameter (after calling `store.addFile()`), also call `store.setSlashCommandMode(true)`. This is the single signal that places the CRPG into slash command mode for the duration of the session.
 
 The `clearSession` action resets `isSlashCommandMode` to `false`, so clearing the session returns the app to standalone mode.
 
@@ -656,12 +738,13 @@ engineering/
       tsconfig.json
       src/
         main.tsx                React root mount
-        App.tsx                 Root component
+        App.tsx                 Root component (includes global drop target for multi-file)
         store/
-          appStore.ts           Zustand store definition
+          appStore.ts           Zustand store definition (multi-file state)
         components/
           Toolbar.tsx
-          FileDropZone.tsx
+          FileTabBar.tsx        NEW — Tab bar for multi-file navigation
+          FileDropZone.tsx      (updated: full + modal variants)
           FileHeader.tsx
           CodeViewer.tsx
           CommentBubble.tsx
@@ -674,7 +757,7 @@ engineering/
           highlighter.ts        Shiki highlighter initialization and caching
           languageDetect.ts     File extension to language mapping
           binaryDetect.ts       Null-byte binary detection
-          promptBuilder.ts      Pure buildPrompt() function
+          promptBuilder.ts      Pure buildPrompt() function (multi-file)
           clipboard.ts          Clipboard write with fallback
         types/
           index.ts              Shared TypeScript type definitions
@@ -682,12 +765,13 @@ engineering/
           app.css               Tailwind directives and custom theme tokens
         __tests__/
           unit/
-            promptBuilder.test.ts
+            promptBuilder.test.ts     (includes multi-file prompt tests)
             binaryDetect.test.ts
             languageDetect.test.ts
-            appStore.test.ts          (includes Done action + slash command mode tests)
+            appStore.test.ts          (includes Done action, slash command mode, and multi-file store tests)
           component/
-            FileDropZone.test.tsx
+            FileTabBar.test.tsx       NEW — Tab bar rendering, interaction, badges
+            FileDropZone.test.tsx     (includes modal variant tests)
             CodeViewer.test.tsx
             CommentBubble.test.tsx
             InlineCommentEditor.test.tsx
@@ -698,7 +782,8 @@ engineering/
             add-comment.spec.ts
             auto-prompt.spec.ts
             keyboard-navigation.spec.ts
-            done-action.spec.ts       NEW -- Done button E2E flow in slash command mode
+            done-action.spec.ts       Done button E2E flow in slash command mode
+            multi-file.spec.ts        NEW — Multi-file load, switch, comment, prompt, remove flows
 ```
 
 > **Multi-platform note**: The `apps/` directory is structured as a pnpm workspace monorepo. Future platform targets (macOS, iOS) would be added as sibling directories to `apps/web/`. When shared logic is needed across platforms, it can be extracted into a `packages/core/` workspace package containing types, promptBuilder, binaryDetect, languageDetect, and other platform-agnostic modules.
@@ -713,10 +798,10 @@ Pure logic functions tested in isolation:
 
 | Module | Key Test Cases |
 |---|---|
-| `promptBuilder.ts` | Correct format with preamble; without preamble; single-line comments; range comments; line number padding; ascending sort order; empty edge cases. Validates `FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`. |
+| `promptBuilder.ts` | Correct format with preamble; without preamble; single-line comments; range comments; line number padding; ascending sort order; empty edge cases. **Multi-file tests**: multiple files with comments produce combined prompt; single file with comments among multiple loaded files; files without comments omitted from prompt; file ordering matches `fileOrder`; returns `null` when no comments on any file. Validates `FR-crp-prompt-format`, `FR-crp-multi-file-prompt-format`, `AC-crp-generate-prompt-structure`, `AC-crp-multi-file-prompt-structure`, `AC-crp-multi-file-prompt-omits-uncommented`. |
 | `binaryDetect.ts` | Detects null bytes; passes clean UTF-8; handles empty input; handles exactly 8,192 bytes boundary. Validates `AC-crp-binary-file-rejected`. |
 | `languageDetect.ts` | Maps all 14+ extensions correctly; returns "plaintext" for unknown; case-insensitive extension matching. Validates `FR-crp-syntax-highlight`. |
-| `appStore.ts` | `loadFile` sets file and resets state; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment removed); `navigateComment` wraps correctly; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including `generatedPrompt` to null; `setSlashCommandMode` sets the flag; `sendPromptToAgent` posts to `/api/prompt-output` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false`. Validates store-level behavior for most FR and AC slugs. |
+| `appStore.ts` | `addFile` creates file with unique ID and preserves existing files; `addFile` sets new file as active; `removeFile` removes file and its comments; `removeFile` switches active file when removed file was active; `removeFile` returns to empty state when last file removed; `setActiveFile` preserves comments on previous file; `setActiveFile` recomputes `commentOrder` for new active file; `setActiveFile` saves and restores scroll positions; `addComment` auto-sets `fileId` to active file; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment on any file removed); `navigateComment` wraps correctly within active file; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including all files, all comments, and `generatedPrompt` to null; `setSlashCommandMode` sets the flag; `sendPromptToAgent` posts to `/api/prompt-output` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false`. Validates store-level behavior for most FR and AC slugs including `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`. |
 
 ### Component Tests (React Testing Library)
 
@@ -724,9 +809,10 @@ Components tested with mocked store state:
 
 | Component | Key Test Cases |
 |---|---|
-| `FileDropZone` | Renders empty state instructions (`AC-crp-empty-state`); file upload triggers `loadFile` (`AC-crp-load-upload`); paste mode works (`AC-crp-load-paste`); binary file shows error (`AC-crp-binary-file-rejected`). |
+| `FileTabBar` | Renders tabs for all files in `fileOrder`; shows comment count badges for files with comments; active tab has correct styling; click tab calls `setActiveFile`; click X calls `removeFile`; "+" button calls `openAddFileModal`; tab for pasted file supports rename on right-click. Validates `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`. |
+| `FileDropZone` | Renders empty state instructions (`AC-crp-empty-state`); file upload triggers `addFile` (`AC-crp-load-upload`); paste mode works (`AC-crp-load-paste`); binary file shows error (`AC-crp-binary-file-rejected`); **modal variant**: renders as overlay; multi-file drop loads all valid files (`AC-crp-multi-file-drop-multiple`); binary files in multi-drop are skipped with toast. |
 | `CodeViewer` | Renders line numbers; click on gutter opens editor (`AC-crp-add-comment-single-line`); Shift+click selects range (`AC-crp-add-comment-line-range`); keyboard navigation works (`AC-crp-keyboard-add-comment`). |
-| `Toolbar` | Copy button disabled until prompt exists (auto-generated when comments present); comment count displays correctly; no Generate button (prompt auto-generates); Done button hidden when `isSlashCommandMode` is false (`AC-crp-done-standalone-hidden`); Done button visible when `isSlashCommandMode` is true; Done button disabled when no comments (`AC-crp-done-disabled-no-comments`); Done button shows "Sending..." during send; Done button shows "Sent" after successful send (`AC-crp-done-confirmation`); Done button triggers `sendPromptToAgent`; Copy becomes secondary when Done is visible; Cmd+Shift+D keyboard shortcut fires `sendPromptToAgent` (`FR-crp-done-action`). |
+| `Toolbar` | Copy button disabled until prompt exists (auto-generated when comments present); comment count displays correctly as global total across all files (`AC-crp-multi-file-comment-count`); no Generate button (prompt auto-generates); Done button hidden when `isSlashCommandMode` is false (`AC-crp-done-standalone-hidden`); Done button visible when `isSlashCommandMode` is true; Done button disabled when no comments (`AC-crp-done-disabled-no-comments`); Done button shows "Sending..." during send; Done button shows "Sent" after successful send (`AC-crp-done-confirmation`); Done button triggers `sendPromptToAgent`; Copy becomes secondary when Done is visible; Cmd+Shift+D keyboard shortcut fires `sendPromptToAgent` (`FR-crp-done-action`). |
 | `PromptPreview` | Shows empty variant when no comments (prompt is null); shows populated variant with current prompt text when comments exist; prompt always reflects latest comments and preamble. |
 | `ConfirmationDialog` | Renders with correct text; confirm button triggers callback; cancel closes dialog; escape closes dialog (`AC-crp-clear-confirmation`). |
 
@@ -748,6 +834,13 @@ Full user flows tested in a real browser:
 | Done button disabled with no comments | `AC-crp-done-disabled-no-comments` |
 | Done fallback copies to clipboard on POST failure | `AC-crp-done-fallback-clipboard` |
 | Keyboard shortcut Cmd+Shift+D sends prompt | `FR-crp-done-action` |
+| Multi-file: load two files, switch between them, verify comments preserved | `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-nav-preserves-state` |
+| Multi-file: add comments on multiple files, verify combined prompt structure | `FR-crp-multi-file-prompt`, `AC-crp-multi-file-prompt-structure`, `AC-crp-multi-file-prompt-omits-uncommented` |
+| Multi-file: remove file with comments (confirmation), remove file without comments (no confirmation) | `FR-crp-multi-file-remove`, `AC-crp-multi-file-remove-with-comments`, `AC-crp-multi-file-remove-no-comments` |
+| Multi-file: remove last file returns to empty state | `AC-crp-multi-file-empty-after-remove-last` |
+| Multi-file: drag and drop multiple files simultaneously | `AC-crp-multi-file-drop-multiple` |
+| Multi-file: comment count in toolbar spans all files | `AC-crp-multi-file-comment-count` |
+| Multi-file: clear session removes all files and comments | `AC-crp-multi-file-clear-all` |
 
 ### Cross-Browser Testing (`NFR-crp-browser-support`)
 
@@ -830,6 +923,25 @@ The work is divided into four phases. Each phase produces a deployable increment
 
 **Slug coverage**: `NFR-crp-accessibility-keyboard`, `NFR-crp-responsive-layout`, `NFR-crp-browser-support`, `AC-crp-keyboard-add-comment`.
 
+### Phase 5: Multi-File Support (estimated 4-5 days)
+
+**Goal**: Full multi-file session support — load, navigate, remove, and generate combined prompts.
+
+1. Refactor data model: Update TypeScript types for multi-file (`FileInfo` gets `id`, `Comment` gets `fileId`, `AppState` gets `files`/`fileOrder`/`activeFileId`/`scrollPositions`).
+2. Refactor Zustand store: Replace `loadFile` with `addFile`, add `removeFile`, `setActiveFile`, `saveScrollPosition`, `openAddFileModal`/`closeAddFileModal`. Update all actions that reference `state.file` to use `state.files[state.activeFileId]`.
+3. Build `FileTabBar` component with tab rendering, close buttons, comment count badges, "+" button, and rename affordance for pasted files.
+4. Update `FileDropZone` to support `modal` variant (portal overlay). Update multi-file drop logic to iterate all files and call `addFile()` for each (with per-file binary detection and summary toast).
+5. Add global drop target on `App` — register drag-and-drop listener on the entire window when files are loaded so dropping files anywhere adds them to the session.
+6. Update `promptBuilder.ts` for multi-file: accept `files`, `fileOrder`, `comments`, and `preamble`. Group comments by `fileId`, filter to files with comments, order by `fileOrder`, produce combined output with per-file sections.
+7. Update `CodeViewer` to restore scroll position on file switch (read from `scrollPositions` when `activeFileId` changes).
+8. Update `Toolbar` to read global comment count across all files (`Object.values(state.comments).length`).
+9. Update `ConfirmationDialog` to handle both "clear session" (remove all files) and "remove file" (remove individual file with comments) use cases.
+10. Write unit tests for multi-file `promptBuilder` and store. Write component tests for `FileTabBar`. Write E2E tests for multi-file flows.
+
+**Delivers**: Complete multi-file workflow: load multiple files via any method, navigate between files via tab bar, add/edit/delete comments per file, generate combined prompt, remove individual files or clear entire session.
+
+**Slug coverage**: `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-multi-file-prompt`, `FR-crp-multi-file-prompt-format`, `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-drop-multiple`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-remove-with-comments`, `AC-crp-multi-file-remove-no-comments`, `AC-crp-multi-file-prompt-structure`, `AC-crp-multi-file-prompt-omits-uncommented`, `AC-crp-multi-file-comment-count`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`.
+
 ---
 
 ## Requirement Traceability
@@ -840,25 +952,30 @@ This section maps every requirement and acceptance criterion to the engineering 
 
 | Slug | Engineering Coverage |
 |---|---|
-| `FR-crp-file-load` | `FileDropZone` component; `binaryDetect.ts`; `languageDetect.ts`; store `loadFile` action |
+| `FR-crp-file-load` | `FileDropZone` component (full + modal variants); `binaryDetect.ts`; `languageDetect.ts`; store `addFile` action; global drop target on `App` |
 | `FR-crp-file-display` | `CodeViewer` component; `VirtualRow` component; TanStack Virtual integration |
 | `FR-crp-syntax-highlight` | `highlighter.ts` (Shiki); `languageDetect.ts`; `CodeViewer` token rendering |
 | `FR-crp-line-comment-create` | `InlineCommentEditor` component; store `addComment` action; `CodeViewer` gutter click handler |
 | `FR-crp-line-comment-edit` | `InlineCommentEditor` (edit variant); `CommentBubble` edit button; store `updateComment` action |
 | `FR-crp-line-comment-delete` | `CommentBubble` delete button; store `deleteComment` action |
 | `FR-crp-comment-indicator` | `CodeViewer` gutter rendering (blue dot for commented lines) |
-| `FR-crp-comment-count` | `Toolbar` component (reads `commentCount` from store) |
+| `FR-crp-comment-count` | `Toolbar` component (reads global `commentCount` across all files from store) |
 | `FR-crp-prompt-preamble` | `PreambleInput` component; store `preamble` state and `setPreamble` action |
 | `FR-crp-prompt-generate` | `promptBuilder.ts`; Zustand store auto-generation on comment/preamble mutation |
 | `FR-crp-prompt-preview` | `PromptPreview` component (reads `generatedPrompt` from store) |
 | `FR-crp-prompt-copy` | `clipboard.ts`; store `copyPrompt` action; `Toolbar` Copy button; `ToastNotification` |
 | `FR-crp-prompt-format` | `promptBuilder.ts` (format assembly logic) |
-| `FR-crp-clear-session` | `ConfirmationDialog` component; store `clearSession` action; `Toolbar` Clear button |
-| `FR-crp-filename-display` | `FileHeader` component; store `file.name` |
+| `FR-crp-clear-session` | `ConfirmationDialog` component (clear session variant); store `clearSession` action (resets all files, comments, preamble); `Toolbar` Clear button |
+| `FR-crp-filename-display` | `FileHeader` component (single-file); `FileTabBar` component (multi-file); store `files[activeFileId].name` |
 | `FR-crp-line-range-comment` | `CodeViewer` range selection (mouse drag, Shift+click); `InlineCommentEditor` with range anchor |
 | `FR-crp-comment-navigation` | `Toolbar` prev/next buttons; store `navigateComment` action; `CodeViewer` `scrollToIndex` |
 | `FR-crp-done-action` | `Toolbar` Done button (conditional render, state display, keyboard shortcut); store `doneState` field, `sendPromptToAgent` action, `isSlashCommandMode` field; `useFileFromUrl` hook (sets slash command mode) |
 | `FR-crp-prompt-handoff` | Store `sendPromptToAgent` action (POST to `/api/prompt-output`); Vite plugin endpoint (see `../engineering/slash-command.md`) |
+| `FR-crp-multi-file-load` | `FileDropZone` (full + modal variants); global drop target on `App`; store `addFile` action |
+| `FR-crp-multi-file-nav` | `FileTabBar` component; store `setActiveFile` action; `scrollPositions` state |
+| `FR-crp-multi-file-remove` | `FileTabBar` close button; `ConfirmationDialog` (file removal variant); store `removeFile` action |
+| `FR-crp-multi-file-prompt` | `promptBuilder.ts` (multi-file mode); store auto-generation on any comment change across any file |
+| `FR-crp-multi-file-prompt-format` | `promptBuilder.ts` (multi-file format assembly with per-file sections) |
 
 ### Non-Functional Requirements
 
@@ -877,9 +994,9 @@ This section maps every requirement and acceptance criterion to the engineering 
 
 | Slug | Engineering Coverage |
 |---|---|
-| `AC-crp-load-paste` | `FileDropZone` paste-mode variant; store `loadFile` |
-| `AC-crp-load-upload` | `FileDropZone` file picker; `binaryDetect.ts`; store `loadFile` |
-| `AC-crp-load-drag-drop` | `FileDropZone` HTML5 drag-and-drop; `binaryDetect.ts`; store `loadFile` |
+| `AC-crp-load-paste` | `FileDropZone` paste-mode variant; store `addFile` |
+| `AC-crp-load-upload` | `FileDropZone` file picker; `binaryDetect.ts`; store `addFile` |
+| `AC-crp-load-drag-drop` | `FileDropZone` HTML5 drag-and-drop; `binaryDetect.ts`; store `addFile`; global drop target on `App` |
 | `AC-crp-syntax-highlight-detected` | `highlighter.ts` (Shiki); `languageDetect.ts`; `CodeViewer` token rendering |
 | `AC-crp-add-comment-single-line` | `CodeViewer` gutter click; `InlineCommentEditor` create variant; store `addComment` |
 | `AC-crp-add-comment-line-range` | `CodeViewer` range selection; `InlineCommentEditor` with range; store `addComment` |
@@ -902,3 +1019,13 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-done-disabled-no-comments` | `Toolbar` Done button disabled state (same `commentCount === 0` check as Copy) |
 | `AC-crp-done-auto-close` | Store `sendPromptToAgent` action calls `window.close()` after successful POST; 500ms `setTimeout` fallback detects if close was blocked and shows toast instead. App-mode windows (opened via Chrome `--app` flag) permit `window.close()`. Regular browser tabs fall back to toast notification. |
 | `AC-crp-done-standalone-hidden` | `Toolbar` conditional render (`isSlashCommandMode === false` hides Done); `useFileFromUrl` sets mode; `clearSession` resets mode |
+| `AC-crp-multi-file-load-adds` | Store `addFile` (preserves existing files and comments when adding a new file) |
+| `AC-crp-multi-file-drop-multiple` | `FileDropZone` multi-file drop handling; `App` global drop target; per-file binary detection with summary toast |
+| `AC-crp-multi-file-nav-preserves-state` | Store `setActiveFile` (preserves comments and scroll position per file); `FileTabBar` tab switching |
+| `AC-crp-multi-file-remove-with-comments` | `ConfirmationDialog` (file removal variant with comment count); store `removeFile` |
+| `AC-crp-multi-file-remove-no-comments` | Store `removeFile` (skips confirmation when 0 comments on file) |
+| `AC-crp-multi-file-prompt-structure` | `promptBuilder.ts` multi-file output (per-file sections with headings); unit tests |
+| `AC-crp-multi-file-prompt-omits-uncommented` | `promptBuilder.ts` filters files without comments from prompt output |
+| `AC-crp-multi-file-comment-count` | `Toolbar` reads global comment count from store (`Object.values(state.comments).length`) |
+| `AC-crp-multi-file-clear-all` | Store `clearSession` resets all files, all comments, preamble, and all derived state |
+| `AC-crp-multi-file-empty-after-remove-last` | Store `removeFile` returns to empty state (`activeFileId: null`, `fileOrder: []`, `files: {}`) when last file removed |

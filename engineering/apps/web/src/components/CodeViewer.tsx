@@ -18,6 +18,9 @@ const OVERSCAN = 20;
 
 export function CodeViewer() {
   const file = useAppStore((s) => s.file);
+  const activeFileId = useAppStore((s) => s.activeFileId);
+  const scrollPositions = useAppStore((s) => s.scrollPositions);
+  const saveScrollPosition = useAppStore((s) => s.saveScrollPosition);
   const comments = useAppStore((s) => s.comments);
   const commentOrder = useAppStore((s) => s.commentOrder);
   const editorState = useAppStore((s) => s.editorState);
@@ -52,6 +55,25 @@ export function CodeViewer() {
     });
     return () => { cancelled = true; };
   }, [file?.content, file?.language]);
+
+  // Save scroll position when switching away, restore when switching to
+  const prevFileIdRef = useRef(activeFileId);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (prevFileIdRef.current && prevFileIdRef.current !== activeFileId && container) {
+      saveScrollPosition(prevFileIdRef.current, container.scrollTop);
+    }
+    prevFileIdRef.current = activeFileId;
+
+    // Restore scroll position for the new file
+    if (activeFileId && container) {
+      const saved = scrollPositions[activeFileId];
+      // Use requestAnimationFrame to let the DOM settle before scrolling
+      requestAnimationFrame(() => {
+        container.scrollTop = saved ?? 0;
+      });
+    }
+  }, [activeFileId]); // intentionally minimal deps — save/restore on file switch only
 
   // Compute which lines have comments
   const commentsByLine = useMemo(() => {

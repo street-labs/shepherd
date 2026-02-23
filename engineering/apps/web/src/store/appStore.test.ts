@@ -579,4 +579,197 @@ describe('appStore', () => {
       expect(useAppStore.getState().generatedPrompt).toContain('Check this diff');
     });
   });
+
+  // ─── Multi-file: addFile ──────────────────────────────────────
+
+  describe('addFile', () => {
+    it('adds a second file and sets it as active', () => {
+      loadTestFile(useAppStore.getState());
+      const firstFileId = useAppStore.getState().activeFileId;
+      expect(firstFileId).not.toBeNull();
+
+      useAppStore.getState().addFile('new content', 'second.ts', 'typescript');
+      const state = useAppStore.getState();
+
+      expect(state.fileOrder.length).toBe(2);
+      expect(state.activeFileId).not.toBe(firstFileId);
+      expect(state.file?.name).toBe('second.ts');
+      expect(state.files[state.activeFileId!]?.name).toBe('second.ts');
+    });
+
+    it('preserves existing comments when adding a file', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'first file comment');
+      expect(Object.keys(useAppStore.getState().comments).length).toBe(1);
+
+      useAppStore.getState().addFile('new stuff', 'other.ts', 'typescript');
+      // Comment still exists in global comments
+      expect(Object.keys(useAppStore.getState().comments).length).toBe(1);
+      // But commentOrder for the new active file is empty
+      expect(useAppStore.getState().commentOrder.length).toBe(0);
+    });
+
+    it('closes the add-file modal', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().openAddFileModal();
+      expect(useAppStore.getState().isAddFileModalOpen).toBe(true);
+
+      useAppStore.getState().addFile('content', 'x.ts', 'typescript');
+      expect(useAppStore.getState().isAddFileModalOpen).toBe(false);
+    });
+  });
+
+  // ─── Multi-file: removeFile ───────────────────────────────────
+
+  describe('removeFile', () => {
+    it('removes a file and its comments', () => {
+      loadTestFile(useAppStore.getState());
+      const firstId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().addComment(1, 1, 'to be removed');
+
+      useAppStore.getState().addFile('second', 'b.ts', 'typescript');
+      const secondId = useAppStore.getState().activeFileId!;
+
+      // Remove first file
+      useAppStore.getState().removeFile(firstId);
+      expect(useAppStore.getState().fileOrder.length).toBe(1);
+      expect(useAppStore.getState().fileOrder[0]).toBe(secondId);
+      // Comments from first file should be gone
+      expect(Object.keys(useAppStore.getState().comments).length).toBe(0);
+    });
+
+    it('switches to adjacent file when active file is removed', () => {
+      loadTestFile(useAppStore.getState());
+      const firstId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().addFile('second', 'b.ts', 'typescript');
+      const secondId = useAppStore.getState().activeFileId!;
+
+      // Active is second. Remove second.
+      useAppStore.getState().removeFile(secondId);
+      expect(useAppStore.getState().activeFileId).toBe(firstId);
+      expect(useAppStore.getState().file?.name).toBe('test.ts');
+    });
+
+    it('resets to initial state when last file is removed', () => {
+      loadTestFile(useAppStore.getState());
+      const fileId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().removeFile(fileId);
+      expect(useAppStore.getState().file).toBeNull();
+      expect(useAppStore.getState().fileOrder.length).toBe(0);
+      expect(useAppStore.getState().activeFileId).toBeNull();
+    });
+  });
+
+  // ─── Multi-file: setActiveFile ────────────────────────────────
+
+  describe('setActiveFile', () => {
+    it('switches active file and recomputes commentOrder', () => {
+      loadTestFile(useAppStore.getState());
+      const firstId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().addComment(1, 1, 'file1 comment');
+      expect(useAppStore.getState().commentOrder.length).toBe(1);
+
+      useAppStore.getState().addFile('second', 'b.ts', 'typescript');
+      expect(useAppStore.getState().commentOrder.length).toBe(0);
+
+      // Switch back to first file
+      useAppStore.getState().setActiveFile(firstId);
+      expect(useAppStore.getState().activeFileId).toBe(firstId);
+      expect(useAppStore.getState().file?.name).toBe('test.ts');
+      expect(useAppStore.getState().commentOrder.length).toBe(1);
+    });
+
+    it('clears editor and selection state', () => {
+      loadTestFile(useAppStore.getState());
+      const firstId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().openEditor({ mode: 'create', anchorLine: 1, endLine: 1 });
+      useAppStore.getState().setSelectedRange({ start: 1, end: 3 });
+
+      useAppStore.getState().addFile('second', 'b.ts', 'typescript');
+      useAppStore.getState().setActiveFile(firstId);
+
+      expect(useAppStore.getState().editorState).toBeNull();
+      expect(useAppStore.getState().selectedRange).toBeNull();
+      expect(useAppStore.getState().focusedCommentId).toBeNull();
+    });
+
+    it('resets viewMode and renderMode', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addFile('second', 'b.ts', 'typescript');
+      useAppStore.setState({ viewMode: 'diff', renderMode: 'rendered' });
+
+      const firstId = useAppStore.getState().fileOrder[0]!;
+      useAppStore.getState().setActiveFile(firstId);
+      expect(useAppStore.getState().viewMode).toBe('file');
+      expect(useAppStore.getState().renderMode).toBe('raw');
+    });
+
+    it('no-ops when setting the already active file', () => {
+      loadTestFile(useAppStore.getState());
+      const id = useAppStore.getState().activeFileId!;
+      useAppStore.getState().openEditor({ mode: 'create', anchorLine: 1, endLine: 1 });
+
+      useAppStore.getState().setActiveFile(id);
+      // Editor should NOT be cleared since it's a no-op
+      expect(useAppStore.getState().editorState).not.toBeNull();
+    });
+  });
+
+  // ─── Multi-file: saveScrollPosition ───────────────────────────
+
+  describe('saveScrollPosition', () => {
+    it('saves and retrieves scroll positions', () => {
+      loadTestFile(useAppStore.getState());
+      const fileId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().saveScrollPosition(fileId, 250);
+      expect(useAppStore.getState().scrollPositions[fileId]).toBe(250);
+    });
+  });
+
+  // ─── Multi-file: clearSession ─────────────────────────────────
+
+  describe('clearSession with multi-file', () => {
+    it('resets all multi-file state', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addFile('second', 'b.ts', 'typescript');
+      useAppStore.getState().clearSession();
+
+      const state = useAppStore.getState();
+      expect(state.file).toBeNull();
+      expect(state.fileOrder.length).toBe(0);
+      expect(state.activeFileId).toBeNull();
+      expect(Object.keys(state.files).length).toBe(0);
+      expect(Object.keys(state.scrollPositions).length).toBe(0);
+    });
+  });
+
+  // ─── Multi-file: prompt generation ────────────────────────────
+
+  describe('multi-file prompt generation', () => {
+    it('generates multi-file prompt when comments span multiple files', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'file1 comment');
+
+      useAppStore.getState().addFile('line A\nline B', 'second.ts', 'typescript');
+      useAppStore.getState().addComment(1, 1, 'file2 comment');
+
+      const prompt = useAppStore.getState().generatedPrompt;
+      expect(prompt).not.toBeNull();
+      expect(prompt).toContain('file1 comment');
+      expect(prompt).toContain('file2 comment');
+      expect(prompt).toContain('test.ts');
+      expect(prompt).toContain('second.ts');
+    });
+
+    it('generates single-file format when only one file has comments', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addComment(1, 1, 'only comment');
+      useAppStore.getState().addFile('no comments here', 'other.ts', 'typescript');
+
+      const prompt = useAppStore.getState().generatedPrompt;
+      expect(prompt).not.toBeNull();
+      expect(prompt).toContain('## File: test.ts');
+      expect(prompt).not.toContain('### File:');
+    });
+  });
 });

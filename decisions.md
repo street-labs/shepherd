@@ -243,6 +243,32 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: Very large markdown files (>10K lines) may have slower initial render than the raw view. The 500ms budget for 5-10K lines should still be met with `content-visibility`. If it isn't, a Web Worker can offload parsing.
 **Slug references**: `NFR-mdr-render-scroll-perf`, `NFR-mdr-render-perf`, `AC-mdr-large-file-renders`
 
+## DEC-multi-file-tab-bar: Use tab bar for multi-file navigation
+**Date**: 2026-02-22
+**Context**: Adding multi-file support to the CRPG. The user was unsure about the UI pattern — options included a left sidebar file panel, tabs, or a scrolling view.
+**Decision**: Use a horizontal tab bar positioned between the toolbar and the code viewer panel. Tabs are ordered by load order. Each tab shows file name, comment count badge, and close button. A "+" button opens a file-loading modal.
+**Rationale**: The tab bar fits naturally into the existing two-column layout (code viewer + sidebar) without stealing horizontal space from either panel. It's a familiar metaphor (browser tabs, IDE tabs), scales well for typical use cases (2-10 files), and provides clear affordance for switching, adding, and removing files.
+**Alternatives considered**: Left sidebar panel (squeezes code viewer), scrolling file list (poor random access for many files), vertical tabs (uncommon pattern).
+**Impacts**: `design/code-review-prompt.md` (new FileTabBar component), `engineering/code-review-prompt.md` (new component + state), `qa/code-review-prompt.md` (new test cases).
+## DEC-multi-file-global-preamble: Single global preamble, not per-file
+**Date**: 2026-02-22
+**Context**: With multi-file support, the preamble could be global (one for the entire session) or per-file (one per loaded file).
+**Decision**: V1 uses a single global preamble shared across all files. The preamble appears once at the top of the generated prompt, not per-file.
+**Rationale**: Simpler UX — the preamble sets the overall intent for the entire review ("refactor for consistency across these files"). Per-file instructions can be captured as inline comments on specific files. Per-file preamble remains a candidate for v2 if users need it.
+**Impacts**: `product/code-review-prompt.md` (Open Question #9), `engineering/code-review-prompt.md` (prompt builder), `design/code-review-prompt.md` (sidebar preamble input unchanged).
+## DEC-multi-file-load-order: Files ordered by load order in prompt
+**Date**: 2026-02-22
+**Context**: Multi-file prompts need a file ordering strategy. Options: load order, alphabetical, user-reorderable.
+**Decision**: V1 uses load order. Files appear in the prompt in the same order they were loaded (which matches tab bar order).
+**Rationale**: Simple, predictable, and matches the visual order in the tab bar. Alphabetical sorting might not match the review narrative. Drag-to-reorder tabs is deferred to v2.
+**Impacts**: `product/code-review-prompt.md` (Open Question #8), `engineering/code-review-prompt.md` (`fileOrder` array).
+## DEC-multi-file-drop-all: Load all dropped files, not just the first
+**Date**: 2026-02-22
+**Context**: Previously, dropping multiple files loaded only the first. With multi-file support, this restriction no longer makes sense.
+**Decision**: When multiple files are dropped simultaneously, all files are loaded. Binary files are rejected per-file with individual error toasts. A summary toast shows how many files were loaded and how many were skipped.
+**Rationale**: The original single-file restriction existed because the app only supported one file. Now that it supports multiple files, the natural behavior is to load all of them.
+**Impacts**: `product/code-review-prompt.md` (updated `FR-crp-file-load`), `design/code-review-prompt.md` (updated FileDropZone), `engineering/code-review-prompt.md` (updated drop handler).
+
 <!--
 Entry template:
 

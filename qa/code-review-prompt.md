@@ -35,6 +35,21 @@
 | `AC-crp-done-standalone-hidden` | `TC-crp-done-hidden-standalone`, `TC-crp-done-hidden-after-clear` | Not started |
 | `FR-crp-done-action` | `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-reset-on-comment-add`, `TC-crp-done-reset-on-comment-edit`, `TC-crp-done-reset-on-comment-delete`, `TC-crp-done-reset-on-preamble-change`, `TC-crp-done-resend-after-failure`, `TC-crp-done-rapid-double-click`, `TC-crp-done-copy-still-works`, `TC-crp-done-auto-close-app-mode` | Not started |
 | `FR-crp-prompt-handoff` | `TC-crp-done-happy` | Not started |
+| `AC-crp-multi-file-load-adds` | `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds` | Not started |
+| `AC-crp-multi-file-drop-multiple` | `TC-crp-multi-file-drop-multiple-happy`, `TC-crp-multi-file-drop-mixed-binary` | Not started |
+| `AC-crp-multi-file-nav-preserves-state` | `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-switch-preserves-scroll` | Not started |
+| `AC-crp-multi-file-remove-with-comments` | `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-with-comments-cancel` | Not started |
+| `AC-crp-multi-file-remove-no-comments` | `TC-crp-multi-file-remove-no-comments-immediate` | Not started |
+| `AC-crp-multi-file-prompt-structure` | `TC-crp-multi-file-prompt-structure-happy`, `TC-crp-multi-file-prompt-order` | Not started |
+| `AC-crp-multi-file-prompt-omits-uncommented` | `TC-crp-multi-file-prompt-omits-uncommented` | Not started |
+| `AC-crp-multi-file-comment-count` | `TC-crp-multi-file-comment-count-global` | Not started |
+| `AC-crp-multi-file-clear-all` | `TC-crp-multi-file-clear-all-confirm`, `TC-crp-multi-file-clear-all-resets` | Not started |
+| `AC-crp-multi-file-empty-after-remove-last` | `TC-crp-multi-file-remove-last-empty-state` | Not started |
+| `FR-crp-multi-file-load` | `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`, `TC-crp-multi-file-drop-multiple-happy` | Not started |
+| `FR-crp-multi-file-nav` | `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-tab-shows-info` | Not started |
+| `FR-crp-multi-file-remove` | `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-no-comments-immediate`, `TC-crp-multi-file-remove-active-switches` | Not started |
+| `FR-crp-multi-file-prompt` | `TC-crp-multi-file-prompt-structure-happy` | Not started |
+| `FR-crp-multi-file-prompt-format` | `TC-crp-multi-file-prompt-structure-happy`, `TC-crp-multi-file-prompt-order` | Not started |
 
 ---
 
@@ -143,7 +158,7 @@
   2. Drop the file.
 - **Expected Result**: The code viewer displays the file content with line numbers. The FileHeader displays "app.go". The language badge shows "Go".
 - **Edge Cases**:
-  - Dropping multiple files simultaneously: only the first file should be loaded (or an appropriate message shown). Product spec does not specify multi-file behavior, so this should be handled gracefully.
+  - Dropping multiple files simultaneously: all files should be loaded as separate tabs per `AC-crp-multi-file-drop-multiple`.
   - Dragging a file but dropping outside the drop zone: nothing should happen, the empty state persists.
 
 ---
@@ -1030,6 +1045,235 @@
 
 ---
 
+### Multi-File Support
+
+---
+
+#### `TC-crp-multi-file-load-second`: Load a second file into an existing session
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-load-adds`, `FR-crp-multi-file-load`
+- **Preconditions**: A file "utils.ts" is loaded in the viewer with 2 comments.
+- **Steps**:
+  1. Click the "+" button in the File Tab Bar.
+  2. The FileDropZone modal appears.
+  3. Upload "helpers.ts".
+  4. The modal closes.
+- **Expected Result**: Two tabs appear in the File Tab Bar: "utils.ts" and "helpers.ts". "helpers.ts" is the active tab (its content is displayed). The 2 comments on "utils.ts" are preserved (switching back shows them). The total comment count still shows "2 comments".
+- **Edge Cases**: Loading a file with the same name as an existing file should still work (each has a unique ID).
+
+---
+
+#### `TC-crp-multi-file-load-paste-adds`: Load via paste adds to session
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-load-adds`, `FR-crp-multi-file-load`
+- **Preconditions**: A file is already loaded.
+- **Steps**:
+  1. Click "+" in the tab bar.
+  2. In the modal, click "Paste content".
+  3. Paste code and enter "config.json" as the file name.
+  4. Click "Load".
+- **Expected Result**: The modal closes. A new tab "config.json" appears and is active. The previous file's tab is still present.
+
+---
+
+#### `TC-crp-multi-file-drop-multiple-happy`: Drop multiple files at once
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-drop-multiple`, `FR-crp-multi-file-load`
+- **Preconditions**: Application has one file loaded.
+- **Steps**:
+  1. Drag 3 text files from the filesystem onto the application window.
+  2. Drop them.
+- **Expected Result**: All 3 files are loaded. The tab bar shows 4 tabs total (1 original + 3 new). The last dropped file is the active tab. An info toast shows "Loaded 3 files."
+
+---
+
+#### `TC-crp-multi-file-drop-mixed-binary`: Drop mix of text and binary files
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-drop-multiple`
+- **Preconditions**: Application is open (with or without existing files).
+- **Steps**:
+  1. Drag 3 files: 2 text files and 1 PNG image.
+  2. Drop them all.
+- **Expected Result**: The 2 text files are loaded as tabs. The PNG is rejected. A toast shows "Loaded 2 files. 1 file was skipped (binary)."
+
+---
+
+#### `TC-crp-multi-file-switch-preserves-comments`: Switching tabs preserves comments
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-nav-preserves-state`, `FR-crp-multi-file-nav`
+- **Preconditions**: Two files loaded. "utils.ts" has 3 comments on lines 5, 10, and 15. "helpers.ts" has 1 comment on line 3.
+- **Steps**:
+  1. Active file is "utils.ts" -- verify 3 comments visible.
+  2. Click "helpers.ts" tab.
+  3. Verify "helpers.ts" content shows with 1 comment on line 3.
+  4. Click "utils.ts" tab.
+  5. Verify "utils.ts" content shows with 3 comments on lines 5, 10, and 15.
+- **Expected Result**: All comments are preserved across switches. No data loss.
+
+---
+
+#### `TC-crp-multi-file-switch-preserves-scroll`: Switching tabs preserves scroll position
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-nav-preserves-state`
+- **Preconditions**: Two files loaded. "utils.ts" is a long file (500+ lines).
+- **Steps**:
+  1. Scroll "utils.ts" to line 200.
+  2. Switch to "helpers.ts".
+  3. Switch back to "utils.ts".
+- **Expected Result**: "utils.ts" is scrolled to approximately line 200 (the position saved when switching away).
+
+---
+
+#### `TC-crp-multi-file-tab-shows-info`: Tabs show file name and comment count
+
+- **Type**: Integration
+- **Covers**: `FR-crp-multi-file-nav`
+- **Preconditions**: Three files loaded. "utils.ts" has 3 comments, "helpers.ts" has 0 comments, "config.json" has 1 comment.
+- **Steps**:
+  1. Observe the tab bar.
+- **Expected Result**: "utils.ts" tab shows a badge "3". "helpers.ts" tab shows no badge. "config.json" tab shows a badge "1". The active tab has distinct styling (white background, blue bottom border).
+
+---
+
+#### `TC-crp-multi-file-remove-with-comments-confirm`: Remove file with comments shows confirmation
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-remove-with-comments`, `FR-crp-multi-file-remove`
+- **Preconditions**: Two files loaded. "utils.ts" has 2 comments. It is the active tab.
+- **Steps**:
+  1. Click the close (X) button on the "utils.ts" tab.
+  2. A confirmation dialog appears.
+  3. Click "Remove" (destructive button).
+- **Expected Result**: "utils.ts" and its 2 comments are removed. "helpers.ts" becomes the active tab. The tab bar shows only "helpers.ts". The total comment count decreases by 2.
+- **Edge Cases**: Clicking "Cancel" in the dialog preserves "utils.ts" and all its comments.
+
+---
+
+#### `TC-crp-multi-file-remove-with-comments-cancel`: Cancel removal preserves file
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-remove-with-comments`
+- **Preconditions**: File with comments, removal dialog open.
+- **Steps**:
+  1. Click "Cancel" in the confirmation dialog.
+- **Expected Result**: Dialog closes. File and all comments preserved. No changes.
+
+---
+
+#### `TC-crp-multi-file-remove-no-comments-immediate`: Remove file without comments, no confirmation
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-remove-no-comments`, `FR-crp-multi-file-remove`
+- **Preconditions**: Two files loaded. "helpers.ts" has 0 comments.
+- **Steps**:
+  1. Click the close (X) button on the "helpers.ts" tab.
+- **Expected Result**: "helpers.ts" is removed immediately. No confirmation dialog appears. The remaining file becomes active.
+
+---
+
+#### `TC-crp-multi-file-remove-active-switches`: Removing active file switches to adjacent tab
+
+- **Type**: E2E
+- **Covers**: `FR-crp-multi-file-remove`
+- **Preconditions**: Three files loaded in order: A.ts, B.ts, C.ts. B.ts is active and has no comments.
+- **Steps**:
+  1. Remove B.ts.
+- **Expected Result**: C.ts becomes the active tab (the next tab to the right). If the rightmost tab is removed, the tab to the left becomes active.
+
+---
+
+#### `TC-crp-multi-file-remove-last-empty-state`: Removing last file returns to empty state
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-empty-after-remove-last`
+- **Preconditions**: Only one file loaded, no comments.
+- **Steps**:
+  1. Remove the only file.
+- **Expected Result**: Application returns to the empty state. The tab bar disappears. The FileDropZone (full variant) is shown. Toolbar buttons are disabled.
+
+---
+
+#### `TC-crp-multi-file-prompt-structure-happy`: Combined prompt has correct multi-file structure
+
+- **Type**: Unit
+- **Covers**: `AC-crp-multi-file-prompt-structure`, `FR-crp-multi-file-prompt`, `FR-crp-multi-file-prompt-format`
+- **Preconditions**: `buildPrompt` function available. Input: preamble "Refactor for consistency", "utils.ts" (TypeScript) with comments on lines 3 and 10, "helpers.ts" (TypeScript) with a comment on line 5.
+- **Steps**:
+  1. Call `buildPrompt` with the multi-file input.
+  2. Parse the output structure.
+- **Expected Result**: The output contains:
+  1. `## Instructions` with "Refactor for consistency"
+  2. `## File: utils.ts (TypeScript)` with `### Requested Changes` listing 2 comments with code snippets
+  3. `## File: helpers.ts (TypeScript)` with `### Requested Changes` listing 1 comment with code snippet
+  4. Files in load order, comments in line order within each file
+- **Edge Cases**: Single file with comments among multiple loaded files should produce the same format as single-file mode.
+
+---
+
+#### `TC-crp-multi-file-prompt-order`: Files in prompt follow load order
+
+- **Type**: Unit
+- **Covers**: `FR-crp-multi-file-prompt-format`
+- **Preconditions**: `buildPrompt` function available. Files loaded in order: C.ts, A.ts, B.ts. All three have comments.
+- **Steps**:
+  1. Call `buildPrompt`.
+- **Expected Result**: The prompt sections appear in order: C.ts, A.ts, B.ts (load order, not alphabetical).
+
+---
+
+#### `TC-crp-multi-file-prompt-omits-uncommented`: Files without comments excluded from prompt
+
+- **Type**: Unit
+- **Covers**: `AC-crp-multi-file-prompt-omits-uncommented`
+- **Preconditions**: Three files loaded: A.ts (2 comments), B.ts (0 comments), C.ts (1 comment).
+- **Steps**:
+  1. Call `buildPrompt`.
+- **Expected Result**: The prompt includes `## File: A.ts` and `## File: C.ts` sections only. B.ts does not appear in the prompt.
+
+---
+
+#### `TC-crp-multi-file-comment-count-global`: Comment count spans all files
+
+- **Type**: Integration
+- **Covers**: `AC-crp-multi-file-comment-count`, `FR-crp-comment-count`
+- **Preconditions**: Two files loaded. "utils.ts" has 3 comments, "helpers.ts" has 2 comments.
+- **Steps**:
+  1. Observe the toolbar comment count.
+  2. Add a comment to "helpers.ts".
+  3. Observe the toolbar comment count.
+- **Expected Result**: Step 1: "5 comments". Step 3: "6 comments". The count is global across all files.
+
+---
+
+#### `TC-crp-multi-file-clear-all-confirm`: Clear session shows confirmation mentioning all files
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-clear-all`
+- **Preconditions**: 3 files loaded with a total of 7 comments.
+- **Steps**:
+  1. Click "Clear" in the toolbar.
+  2. Observe the confirmation dialog.
+- **Expected Result**: Dialog body says something like "This will remove all 3 loaded files, all 7 comments, and the preamble. This action cannot be undone."
+
+---
+
+#### `TC-crp-multi-file-clear-all-resets`: Confirming clear removes everything
+
+- **Type**: E2E
+- **Covers**: `AC-crp-multi-file-clear-all`
+- **Preconditions**: 3 files loaded with comments.
+- **Steps**:
+  1. Click "Clear" -> confirm.
+- **Expected Result**: All files, comments, and preamble removed. Application returns to empty state. Tab bar gone.
+
+---
+
 ## Edge Cases & Error Scenarios
 
 This section covers additional edge cases and error conditions not directly mapped to a single AC slug but important for comprehensive coverage.
@@ -1309,6 +1553,26 @@ This section covers additional edge cases and error conditions not directly mapp
 
 ---
 
+### `TC-crp-multi-file-edge-add-during-edit`: Adding file while editing a comment
+
+- **Type**: Integration
+- **Covers**: `FR-crp-multi-file-load`
+- **Preconditions**: A file is loaded. The InlineCommentEditor is open.
+- **Steps**: Drop a new file onto the application.
+- **Expected Result**: The new file is added. The editor closes (the active file switches). The in-progress comment is discarded.
+
+---
+
+### `TC-crp-multi-file-edge-comment-nav-active-file-only`: Comment navigation stays within active file
+
+- **Type**: Integration
+- **Covers**: `FR-crp-comment-navigation`, `FR-crp-multi-file-nav`
+- **Preconditions**: "utils.ts" has 2 comments, "helpers.ts" has 3 comments. "utils.ts" is active.
+- **Steps**: Click Next comment until it wraps.
+- **Expected Result**: Navigation cycles through only the 2 comments on "utils.ts". It does not jump to "helpers.ts".
+
+---
+
 ## Regression Considerations
 
 ### What existing functionality could changes to this feature break?
@@ -1329,6 +1593,12 @@ Since this is a greenfield single-page application with no existing features, tr
 
 7. **Done button and prompt handoff**: Changes to the prompt generation pipeline, clipboard logic, or toolbar layout could break the Done action flow. The Done button's visibility depends on slash command mode detection (`?file=` URL param), so changes to URL handling or the `useFileFromUrl` hook could hide/show the button incorrectly.
 
+8. **Multi-file state isolation**: Changes to multi-file state management could cause comment bleeding between files (comments from file A appearing on file B). Each comment's `fileId` must match the file it was created on.
+
+9. **Prompt builder refactor**: The prompt builder changes from single-file to multi-file. Existing single-file tests must still pass (the multi-file builder should produce identical output when only one file has comments).
+
+10. **Tab bar interaction with toolbar**: The tab bar introduces a new layer of navigation. Ensure toolbar actions (Copy, Clear, Done) still reference the correct aggregated state across all files, not just the active file.
+
 ### Recommended regression suite
 
 Run the following test cases as a minimum regression suite before any release:
@@ -1347,3 +1617,7 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-done-happy` (Done action sends prompt and confirms)
 - `TC-crp-done-hidden-standalone` (Done hidden in standalone mode)
 - `TC-crp-done-fallback-clipboard` (fallback works on server failure)
+- `TC-crp-multi-file-load-second` (multi-file loading works)
+- `TC-crp-multi-file-switch-preserves-comments` (state isolation works)
+- `TC-crp-multi-file-prompt-structure-happy` (combined prompt is correct)
+- `TC-crp-multi-file-remove-last-empty-state` (cleanup works)

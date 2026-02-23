@@ -2,11 +2,11 @@
 
 ## Overview
 
-A web application that lets developers view a source file with line numbers, add inline comments on specific lines (similar to a GitHub pull request review), and then generate a single structured prompt that aggregates the file content and all comments. The generated prompt is designed to be copied and fed to an AI coding assistant, giving the AI full context about what changes are needed and where.
+A web application that lets developers load one or more source files with line numbers, add inline comments on specific lines (similar to a GitHub pull request review), and then generate a single structured prompt that aggregates all files and their comments. The generated prompt is designed to be copied and fed to an AI coding assistant, giving the AI full context about what changes are needed and where across the entire changeset.
 
-The core workflow is: **load file --> annotate lines --> copy prompt --> paste into AI agent**. The prompt is automatically generated and kept current as comments are added, so there is no explicit "generate" step.
+The core workflow is: **load file(s) --> annotate lines --> copy prompt --> paste into AI agent**. Multiple files can be loaded into a single session, each maintaining its own comments independently. The prompt is automatically generated and kept current as comments are added to any file, so there is no explicit "generate" step.
 
-This bridges the gap between a developer's code review observations and an actionable AI prompt, eliminating the need to manually describe file context, line numbers, and desired changes.
+This bridges the gap between a developer's code review observations and an actionable AI prompt, eliminating the need to manually describe file context, line numbers, and desired changes — even when the review spans multiple files.
 
 ## User Stories
 
@@ -31,12 +31,21 @@ This bridges the gap between a developer's code review observations and an actio
 ### US-7: Send the prompt back to the AI agent automatically
 **As a** developer, **I want to** click "Done" when I've finished annotating, **so that** the generated prompt is automatically sent back to my AI agent without manual copy-paste.
 
+### US-8: Load multiple files for review
+**As a** developer, **I want to** load multiple files into the CRPG at the same time, **so that** I can annotate changes across several files and generate a single combined prompt.
+
+### US-9: Navigate between loaded files
+**As a** developer, **I want to** see which files are loaded and switch between them, **so that** I can review and comment on each file without losing my work on others.
+
+### US-10: Generate a combined multi-file prompt
+**As a** developer, **I want** the generated prompt to include all files and their comments in a single structured output, **so that** the AI agent has full context across the entire changeset.
+
 ## Requirements
 
 ### Functional Requirements
 
 #### `FR-crp-file-load` -- Load a file for review
-The user can load a file into the viewer by either pasting file content into a text area, uploading a file from their local filesystem via a file picker, or dragging and dropping a file onto the application. The application must accept any plain-text file regardless of extension. When multiple files are dropped simultaneously, only the first file is loaded and a brief notification informs the user that only one file can be loaded at a time. Binary files are detected by scanning the first 8,192 bytes (or the entire file if shorter) for null bytes (`0x00`); files containing null bytes are rejected with an error message. This is a deliberate trade-off that may reject rare text files containing legitimate null bytes, but it prevents garbled display of binary content.
+The user can load a file into the viewer by either pasting file content into a text area, uploading a file from their local filesystem via a file picker, or dragging and dropping a file onto the application. The application must accept any plain-text file regardless of extension. When the session already has one or more files loaded, loading a new file adds it to the session rather than replacing the existing file(s). When multiple files are dropped simultaneously, all files are loaded into the session. Binary files are detected by scanning the first 8,192 bytes (or the entire file if shorter) for null bytes (`0x00`); files containing null bytes are rejected with an error message. This is a deliberate trade-off that may reject rare text files containing legitimate null bytes, but it prevents garbled display of binary content.
 
 #### `FR-crp-file-display` -- Display file with line numbers
 The loaded file is displayed in a read-only viewer with sequential line numbers starting at 1. Each line is individually addressable (clickable). The viewer must use a monospace font and preserve the original indentation, whitespace, and line breaks of the source file.
@@ -57,18 +66,18 @@ The user can delete any existing comment. After deletion, the comment is removed
 Lines that have one or more comments attached display a distinct visual indicator in the gutter (such as a colored marker or icon) so the user can see at a glance which lines are annotated.
 
 #### `FR-crp-comment-count` -- Display total comment count
-The application displays the current total number of comments somewhere persistently visible (such as a toolbar or sidebar header), so the user knows how many annotations they have placed.
+The application displays the current total number of comments across all loaded files somewhere persistently visible (such as a toolbar or sidebar header), so the user knows how many annotations they have placed. This is a global count spanning every file in the session, not a per-file count (though per-file counts may also be shown via `FR-crp-multi-file-nav`).
 
 #### `FR-crp-prompt-preamble` -- Prompt preamble / high-level instructions
 Before generating the prompt, the user can write an optional preamble that provides high-level context or instructions (e.g., "Refactor this function to use async/await" or "Fix the security vulnerability in the authentication logic"). This preamble appears at the top of the generated prompt. A preamble consisting only of whitespace is treated as empty and will not appear in the generated prompt.
 
 #### `FR-crp-prompt-generate` -- Automatically generated aggregated prompt
-The prompt is automatically regenerated whenever the user adds, edits, or deletes a comment, or modifies the preamble. There is no manual "Generate" button. The prompt updates reactively and is always current as long as at least one comment exists. When all comments are removed, the prompt preview clears. The automatically generated prompt is a single structured text containing:
-1. The preamble (if provided)
-2. The file path and language
-3. Each comment paired with the actual code snippet it references, listed in source order
+The prompt is automatically regenerated whenever the user adds, edits, or deletes a comment on any loaded file, or modifies the preamble. There is no manual "Generate" button. The prompt updates reactively and is always current as long as at least one comment exists on any file. When all comments across all files are removed, the prompt preview clears. The automatically generated prompt is a single structured text that aggregates comments across all loaded files:
+1. The preamble (if provided) — shared across all files
+2. For each file that has comments: the file path and language, followed by each comment paired with the actual code snippet it references, listed in source order
+3. Files without comments are omitted from the prompt
 
-The prompt is formatted so an AI agent can understand the file context and the specific changes requested. Comments are paired with code snippets rather than line numbers, because line numbers change as the file is edited and would be stale by the time the AI processes the prompt. Generation must complete within 300ms (`NFR-crp-prompt-gen-time`) so the UI feels instant.
+The prompt is formatted so an AI agent can understand the file context and the specific changes requested. Comments are paired with code snippets rather than line numbers, because line numbers change as the file is edited and would be stale by the time the AI processes the prompt. Generation must complete within 300ms (`NFR-crp-prompt-gen-time`) so the UI feels instant. See `FR-crp-multi-file-prompt` and `FR-crp-multi-file-prompt-format` for multi-file prompt details.
 
 #### `FR-crp-prompt-preview` -- Live prompt preview
 The full automatically generated prompt is always visible in a read-only preview panel that updates in real-time as comments are added, edited, or deleted. The preview displays the exact text that will be copied, including all formatting. Because the prompt is automatically generated, the preview is always current and requires no user action to refresh.
@@ -77,7 +86,7 @@ The full automatically generated prompt is always visible in a read-only preview
 The user can copy the generated prompt to the system clipboard with a single button click. The application displays a confirmation message (e.g., "Copied to clipboard") after a successful copy.
 
 #### `FR-crp-prompt-format` -- Structured prompt format
-The generated prompt must follow a consistent, machine-readable structure. The format must include:
+The generated prompt must follow a consistent, machine-readable structure. For a single file with comments, the format must include:
 - An "Instructions" section containing the preamble text (if provided)
 - A "File" heading with the file name (if known) and language (e.g., `## File: utils.ts (typescript)`)
 - A "Requested Changes" section listing each comment paired with the code snippet it references
@@ -86,14 +95,16 @@ The generated prompt must follow a consistent, machine-readable structure. The f
 
 The prompt does not include the full file content or line numbers. Instead, each comment is paired directly with the code snippet it references. This ensures the prompt remains accurate even if line numbers shift during editing.
 
+When multiple files have comments, the format extends to include multiple file sections. See `FR-crp-multi-file-prompt-format` for the multi-file structure.
+
 #### `FR-crp-done-action` -- Done action that signals annotation is complete
-When the user clicks "Done", the generated prompt is sent to the local server for handoff back to the AI agent. The prompt is also copied to the system clipboard as a fallback. The Done button is only enabled when at least one inline comment exists (same condition as the Copy button per `FR-crp-prompt-copy`). After a successful send, the CRPG automatically closes its browser window (`window.close()`). If the window cannot be closed (browser security restrictions in non-app-mode windows), the CRPG shows a confirmation state indicating the prompt has been sent and instructs the user to switch back to the terminal. The Done button is only visible when the CRPG is running in slash command mode (served by the local server); when loaded standalone (paste/upload/drag-and-drop), the Done button is not shown and the Copy button remains the primary action.
+When the user clicks "Done", the combined multi-file prompt (same content as what Copy would produce) is sent to the local server for handoff back to the AI agent. The prompt is also copied to the system clipboard as a fallback. The Done button is only enabled when at least one inline comment exists on any file (same condition as the Copy button per `FR-crp-prompt-copy`). After a successful send, the CRPG automatically closes its browser window (`window.close()`). If the window cannot be closed (browser security restrictions in non-app-mode windows), the CRPG shows a confirmation state indicating the prompt has been sent and instructs the user to switch back to the terminal. The Done button is only visible when the CRPG is running in slash command mode (served by the local server); when loaded standalone (paste/upload/drag-and-drop), the Done button is not shown and the Copy button remains the primary action.
 
 #### `FR-crp-prompt-handoff` -- Prompt handoff to agent via server
 When the Done action is triggered, the CRPG sends the generated prompt text to the local server via `POST /api/prompt-output`. The request body is the prompt text (the same text that would be copied to the clipboard). The server writes this to a known file location (`~/.shepherd/prompt-output.md`). This endpoint is only available when the CRPG is served by the local server (slash command mode), not when loaded standalone. If the POST fails, the prompt is still copied to the clipboard and the user is informed to paste manually.
 
 #### `FR-crp-clear-session` -- Clear / reset session
-The user can clear the current session (file + all comments + preamble) and return to the initial empty state. The application must ask for confirmation before clearing if any comments exist.
+The user can clear the current session — removing ALL loaded files, all comments across all files, and the preamble — and return to the initial empty state. This is the "nuclear option" that resets everything. The application must ask for confirmation before clearing if any comments exist on any file. For removing an individual file without clearing the entire session, see `FR-crp-multi-file-remove`.
 
 #### `FR-crp-filename-display` -- Display file name
 When a file is loaded via upload or drag-and-drop, the application displays the file name above or near the viewer. When content is pasted, the user can optionally provide a file name.
@@ -103,6 +114,21 @@ The user can select a contiguous range of lines and attach a single comment to t
 
 #### `FR-crp-comment-navigation` -- Navigate between comments
 The user can step through comments sequentially (next/previous) to review them in line order. Navigating to a comment scrolls the viewer to the relevant line and highlights it. Navigation wraps around: pressing "next" on the last comment navigates to the first comment, and pressing "previous" on the first comment navigates to the last comment.
+
+#### `FR-crp-multi-file-load` -- Load multiple files for review
+The user can load additional files into an existing session. Each file is loaded independently (paste, upload, drag-and-drop, or via the slash command API). Files accumulate in the session — loading a new file does not replace the current one. Each loaded file maintains its own set of comments, line numbers, and syntax highlighting independently. There is no hard limit on the number of files, but performance may degrade past 20 files (consistent with `NFR-crp-large-file-perf`).
+
+#### `FR-crp-multi-file-nav` -- Navigate between loaded files
+The application provides a way to see all loaded files and switch between them. The currently active file is displayed in the main viewer. Switching files preserves all comments and state for the previously viewed file. The navigation mechanism must show: (a) the file name for each loaded file, (b) the number of comments on each file, and (c) which file is currently active.
+
+#### `FR-crp-multi-file-remove` -- Remove a file from the session
+The user can remove an individual file from the session without clearing the entire session. Removing a file also removes all comments associated with it. If the removed file was the active file, the application switches to another loaded file (or returns to the empty state if no files remain). If the file has comments, a confirmation is shown before removal.
+
+#### `FR-crp-multi-file-prompt` -- Combined multi-file prompt generation
+When multiple files are loaded with comments, the generated prompt includes all files and their comments in a single structured output. The format extends `FR-crp-prompt-format` with multiple file sections — one per file that has comments. Files without comments are omitted from the prompt. Files appear in the prompt in the order they were loaded. The prompt is automatically regenerated whenever any comment is added, edited, or deleted on any file.
+
+#### `FR-crp-multi-file-prompt-format` -- Multi-file prompt format
+The combined prompt follows this structure: (1) An "Instructions" section with the preamble (if provided) — shared across all files, not per-file; (2) For each file that has comments: a "File" heading with the file name and language, followed by a "Requested Changes" subsection listing each comment paired with its code snippet in source order; (3) Comments within each file are ordered by line number; files are ordered by their position in the file list. The preamble applies globally to the entire review, not per-file.
 
 ### Non-Functional Requirements
 
@@ -207,11 +233,41 @@ The application is not required to persist sessions across page reloads in this 
 #### `AC-crp-done-standalone-hidden` -- Done button hidden in standalone mode
 **Given** the CRPG is not running in slash command mode (e.g., loaded via paste/upload/drag-and-drop, no local server), **then** the Done button is not shown. The Copy button remains the primary action.
 
+#### `AC-crp-multi-file-load-adds` -- Loading a second file adds it to the session
+**Given** a file "utils.ts" is loaded, **when** the user uploads "helpers.ts", **then** both files are available in the session, and the user can switch between them.
+
+#### `AC-crp-multi-file-drop-multiple` -- Multiple files can be dropped at once
+**Given** the application is open, **when** the user drags and drops 3 files simultaneously, **then** all 3 files are loaded into the session.
+
+#### `AC-crp-multi-file-nav-preserves-state` -- Switching files preserves comments
+**Given** "utils.ts" has 3 comments and "helpers.ts" has 2 comments, **when** the user switches from "utils.ts" to "helpers.ts" and back, **then** all 3 comments on "utils.ts" are still present.
+
+#### `AC-crp-multi-file-remove-with-comments` -- Removing a file with comments asks confirmation
+**Given** "utils.ts" has 2 comments, **when** the user attempts to remove it, **then** a confirmation dialog appears. If confirmed, the file and its comments are removed.
+
+#### `AC-crp-multi-file-remove-no-comments` -- Removing a file without comments requires no confirmation
+**Given** "helpers.ts" has no comments, **when** the user removes it, **then** it is removed immediately without confirmation.
+
+#### `AC-crp-multi-file-prompt-structure` -- Combined prompt includes all files
+**Given** "utils.ts" has comments on lines 3 and 10, and "helpers.ts" has a comment on line 5, and preamble is "Refactor for consistency", **then** the generated prompt contains: an Instructions section with the preamble, then a File section for "utils.ts" with its 2 comments, then a File section for "helpers.ts" with its 1 comment.
+
+#### `AC-crp-multi-file-prompt-omits-uncommented` -- Files without comments are excluded from prompt
+**Given** 3 files are loaded but only 2 have comments, **then** the generated prompt only includes sections for the 2 files with comments.
+
+#### `AC-crp-multi-file-comment-count` -- Comment count spans all files
+**Given** "utils.ts" has 3 comments and "helpers.ts" has 2 comments, **then** the displayed total comment count is 5.
+
+#### `AC-crp-multi-file-clear-all` -- Clear session removes all files
+**Given** 3 files are loaded with various comments, **when** the user clicks clear, **then** a confirmation appears, and if confirmed, all files, comments, and preamble are removed.
+
+#### `AC-crp-multi-file-empty-after-remove-last` -- Removing the last file returns to empty state
+**Given** only one file is loaded, **when** the user removes it, **then** the application returns to the initial empty state.
+
 ## Open Questions
 
 1. **Prompt format customization**: Should the user be able to choose between different prompt formats (e.g., one optimized for ChatGPT, one for Claude, one for Copilot)? For v1, a single well-structured format is assumed sufficient.
 
-2. **Multi-file support**: Should the tool support loading and commenting on multiple files in a single session? This PRD scopes to single-file only. Multi-file could be a follow-up feature.
+2. **~~Multi-file support~~** (Resolved): Multi-file support is now included in this spec. See `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-multi-file-prompt`, and `FR-crp-multi-file-prompt-format`.
 
 3. **Session persistence**: Should sessions survive a page reload (e.g., via localStorage)? This PRD explicitly defers persistence (`NFR-crp-no-data-persistence`), but it is a natural v2 candidate.
 
@@ -222,6 +278,12 @@ The application is not required to persist sessions across page reloads in this 
 6. **File loading from URL or GitHub**: Should the tool support loading a file directly from a URL or GitHub repo? This PRD scopes to local-only loading (paste, upload, drag-and-drop).
 
 7. **Maximum file size**: `NFR-crp-large-file-perf` sets a 10,000-line target. Should we enforce a hard upper limit (e.g., 50,000 lines) beyond which the file is rejected?
+
+8. **File ordering in prompt**: Should files in the generated prompt be ordered by load order, alphabetically, or user-reorderable? V1 assumes load order.
+
+9. **Per-file preamble**: Should users be able to add per-file instructions in addition to the global preamble? V1 assumes a single global preamble only.
+
+10. **Maximum file count**: Should there be a hard limit on the number of files that can be loaded? V1 has no hard limit but acknowledges performance may degrade past 20 files.
 
 ## Dependencies
 

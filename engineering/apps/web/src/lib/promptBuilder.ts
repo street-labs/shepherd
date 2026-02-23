@@ -42,6 +42,72 @@ export function buildPrompt(
 }
 
 /**
+ * Builds a structured prompt from multiple files and their comments.
+ * Groups comments by file, omits files with no comments, orders by fileOrder.
+ * Falls back to single-file format when only one file has comments.
+ */
+export function buildMultiFilePrompt(
+  files: Record<string, FileInfo>,
+  fileOrder: string[],
+  comments: Record<string, Comment>,
+  preamble: string,
+): string | null {
+  // Group comments by fileId
+  const commentsByFile = new Map<string, Comment[]>();
+  for (const comment of Object.values(comments)) {
+    const existing = commentsByFile.get(comment.fileId) ?? [];
+    existing.push(comment);
+    commentsByFile.set(comment.fileId, existing);
+  }
+
+  // Filter to files that have comments, in fileOrder order
+  const filesWithComments = fileOrder.filter((fid) => commentsByFile.has(fid));
+  if (filesWithComments.length === 0) return null;
+
+  // Single file with comments — use the standard single-file format
+  if (filesWithComments.length === 1) {
+    const fid = filesWithComments[0]!;
+    const file = files[fid];
+    if (!file) return null;
+    const fileComments = commentsByFile.get(fid)!;
+    return buildPrompt(file, fileComments, preamble);
+  }
+
+  // Multi-file format
+  const sections: string[] = [];
+
+  const trimmedPreamble = preamble.trim();
+  if (trimmedPreamble) {
+    sections.push(`## Instructions\n\n${trimmedPreamble}`);
+  }
+
+  sections.push(`## Review Feedback\n\nThe following are comments from a code review across multiple files. Each file section includes the relevant code snippets along with the reviewer's comments.`);
+
+  for (const fid of filesWithComments) {
+    const file = files[fid];
+    if (!file) continue;
+    const fileComments = commentsByFile.get(fid)!;
+
+    sections.push(`### File: ${file.name} (${file.language})`);
+
+    const sorted = [...fileComments].sort((a, b) => {
+      if (a.startLine !== b.startLine) return a.startLine - b.startLine;
+      return a.createdAt.localeCompare(b.createdAt);
+    });
+
+    const changeEntries = sorted.map((c) => {
+      const codeLines = file.lines.slice(c.startLine - 1, c.endLine);
+      const codeSnippet = codeLines.join('\n');
+      return `- **Referenced code:**\n  \`\`\`\n  ${codeSnippet.split('\n').join('\n  ')}\n  \`\`\`\n  **Comment:** ${c.text}`;
+    });
+
+    sections.push(changeEntries.join('\n\n'));
+  }
+
+  return sections.join('\n\n');
+}
+
+/**
  * Builds a structured prompt for diff-mode reviews.
  * Only includes the diff lines relevant to each comment (with a few lines of context),
  * not the entire diff.

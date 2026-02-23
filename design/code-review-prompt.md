@@ -9,10 +9,11 @@ This is a single-page application with one primary view that transitions through
 | View State | Description |
 |---|---|
 | **Empty State** | No file loaded. Shows drop zone and file loading instructions. |
-| **File Loaded State** | File is displayed in the code viewer. User can add, edit, delete comments. The prompt auto-generates when comments exist. |
-| **Prompt Preview State** | The auto-generated prompt is displayed in a preview panel alongside the code viewer. Active whenever >= 1 comment exists. |
+| **File Loaded State (Single File)** | One file is loaded and displayed in the code viewer. User can add, edit, delete comments. The prompt auto-generates when comments exist. |
+| **File Loaded State (Multi-File)** | Two or more files are loaded. A File Tab Bar appears between the toolbar and the content area, showing all loaded files with comment counts. The active file is displayed in the code viewer. User can switch between files, add/remove files, and annotate each independently. Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`. |
+| **Prompt Preview State** | The auto-generated prompt is displayed in a preview panel alongside the code viewer. Active whenever >= 1 comment exists on any loaded file. When multiple files have comments, the prompt aggregates all files (`FR-crp-multi-file-prompt`). |
 
-Within the File Loaded State, the application has several sub-states depending on user activity (editing a comment, selecting a line range, etc.). These are described in detail below.
+Within the File Loaded State (both single and multi-file), the application has several sub-states depending on user activity (editing a comment, selecting a line range, etc.). These are described in detail below.
 
 ---
 
@@ -48,9 +49,9 @@ When no file is loaded, the entire main content area is a single drop zone / fil
 +------------------------------------------------------------------+
 ```
 
-### Main Content Area — File Loaded State
+### Main Content Area — File Loaded State (Single File)
 
-When a file is loaded, the main content area splits into a two-column layout:
+When a single file is loaded, the main content area splits into a two-column layout:
 
 ```
 +----------------------------------------------+-------------------+
@@ -61,8 +62,31 @@ When a file is loaded, the main content area splits into a two-column layout:
 +----------------------------------------------+-------------------+
 ```
 
-- **Code Viewer Panel**: Takes remaining width after the sidebar. Contains the code viewer with line numbers, gutter, and inline comments. Scrolls vertically independently.
+- **Code Viewer Panel**: Takes remaining width after the sidebar. Contains the FileHeader, code viewer with line numbers, gutter, and inline comments. Scrolls vertically independently.
 - **Sidebar Panel**: Fixed width of 360px on the right side. Contains the preamble input and the prompt preview (auto-populated when comments exist). Scrolls vertically independently.
+
+### Main Content Area — File Loaded State (Multi-File)
+
+When two or more files are loaded, a **File Tab Bar** appears between the toolbar and the two-column content area. Implements `FR-crp-multi-file-nav`.
+
+```
++------------------------------------------------------------------+
+|  Toolbar                                                          |
++------------------------------------------------------------------+
+|  File Tab Bar                                                     |
++----------------------------------------------+-------------------+
+|                                               |                   |
+|  Code Viewer Panel (flexible width)           |  Sidebar Panel    |
+|                                               |  (360px fixed)    |
+|                                               |                   |
++----------------------------------------------+-------------------+
+```
+
+- **File Tab Bar**: Full width, 40px height. Shows a tab for each loaded file plus an "Add file" button. See FileTabBar component spec for details. The tab bar replaces the FileHeader — file name and language info are shown in the active tab (with full details in a tooltip on hover).
+- **Code Viewer Panel**: Same as single-file layout, but the FileHeader is no longer rendered (its information is in the tab bar). The code viewer displays the content of the currently active file.
+- **Sidebar Panel**: Same as single-file layout. The prompt preview aggregates comments across all files.
+
+> **Note**: The File Tab Bar also appears when a single file is loaded if additional files were previously loaded and then removed — i.e., the tab bar appears as soon as the second file is loaded and remains visible until only one file remains, at which point it collapses back to the single-file layout with the FileHeader.
 
 ### Main Content Area — Prompt Preview Active
 
@@ -115,23 +139,26 @@ The entire main content area is a single centered drop zone.
 
 ### File Loaded Screen
 
-- **Purpose**: Display the loaded file with line numbers, allow the user to add/edit/delete inline comments, write a preamble, and view the auto-generated prompt.
-- **Entry points**: Successfully loading a file from the Empty State.
+- **Purpose**: Display the loaded file(s) with line numbers, allow the user to add/edit/delete inline comments, write a preamble, and view the auto-generated prompt. When multiple files are loaded, provide tab-based navigation between them (`FR-crp-multi-file-nav`).
+- **Entry points**: Successfully loading a file from the Empty State; loading an additional file via the "+" button in the File Tab Bar.
 
 #### Layout
 
-Two-column layout as described above: Code Viewer Panel (left, flexible) and Sidebar Panel (right, 360px fixed).
+**Single file**: Two-column layout as described above: Code Viewer Panel (left, flexible) and Sidebar Panel (right, 360px fixed).
+
+**Multiple files**: File Tab Bar above the two-column layout. See "Main Content Area -- File Loaded State (Multi-File)" in the Application Layout section.
 
 #### Code Viewer Panel
 
 Contains the following from top to bottom:
 
-1. **FileHeader**: A horizontal bar at the top of the code viewer showing the file name (`FR-crp-filename-display`) and detected language. Height: 40px. Background: `#F8FAFC`. Border-bottom: 1px solid `#E2E8F0`.
+1. **FileHeader** (single-file mode only): A horizontal bar at the top of the code viewer showing the file name (`FR-crp-filename-display`) and detected language. Height: 40px. Background: `#F8FAFC`. Border-bottom: 1px solid `#E2E8F0`.
    - File name displayed in a monospace font, truncated with ellipsis if too long.
    - Language badge: a small pill-shaped label (e.g., "TypeScript", "Python"). If language is unknown, shows "Plain Text".
-   - If the file was pasted and no name was provided, shows an inline editable text field with placeholder "Untitled — click to name". File names from upload/drag-and-drop are displayed as read-only text and cannot be renamed.
+   - If the file was pasted and no name was provided, shows an inline editable text field with placeholder "Untitled -- click to name". File names from upload/drag-and-drop are displayed as read-only text and cannot be renamed.
+   - **In multi-file mode**, the FileHeader is not rendered. File name, language badge, and rename affordance (for pasted files) move into the File Tab Bar. Hovering over a tab shows a tooltip with the full file name and language. Right-clicking a tab for a pasted file opens the rename input inline.
 
-2. **CodeViewer**: The main scrollable code display area. See Component Specs for full details. Implements `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`.
+2. **CodeViewer**: The main scrollable code display area. See Component Specs for full details. Implements `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`. In multi-file mode, the CodeViewer displays the content of the currently active file only. When the user switches tabs, the CodeViewer swaps to the new file's content, restoring that file's scroll position and rendering its comments.
 
 3. **InlineCommentEditor**: Appears inline within the CodeViewer when the user is creating or editing a comment. See Component Specs.
 
@@ -159,15 +186,19 @@ All toolbar items update to their active states:
 
 | State | Trigger | Appearance |
 |---|---|---|
-| **Populated, no comments** | File loaded, zero comments | Code viewer shows file. Sidebar shows empty preamble input and placeholder message in preview area. |
-| **Populated, with comments** | One or more comments exist | Code viewer shows file with comment indicators in the gutter. Prompt preview updates automatically. Comment navigation enabled. Copy button enabled. |
+| **Populated, no comments** | File(s) loaded, zero comments on any file | Code viewer shows the active file. Sidebar shows empty preamble input and placeholder message in preview area. |
+| **Populated, with comments** | One or more comments exist on any loaded file | Code viewer shows the active file with comment indicators in the gutter. Prompt preview updates automatically (aggregating all files with comments). Comment navigation enabled. Copy button enabled. In multi-file mode, the File Tab Bar shows per-file comment count badges. |
 | **Comment editing** | User opens the inline comment editor | InlineCommentEditor is inserted below the target line(s) in the code viewer. Rest of the code is pushed down. |
 | **Line range selection** | User is selecting a range of lines (`FR-crp-line-range-comment`) | Selected lines are highlighted with a blue background (`#DBEAFE`). Selection indicator shows "Lines N-M selected". |
 | **Prompt copied** | User clicks Copy | A toast notification appears: "Copied to clipboard" for 3 seconds. The Copy button briefly changes label to "Copied!" with a checkmark icon, then reverts after 2 seconds. `AC-crp-copy-clipboard` |
 | **Prompt sent (auto-close)** | User clicks Done in app-mode window (`AC-crp-done-auto-close`) | Done button transitions: "Done" -> "Sending..." (with spinner). On success, `window.close()` is called and the window closes. The user never sees the "Sent" state because the window is gone. |
 | **Prompt sent (fallback)** | User clicks Done but `window.close()` fails (not app-mode) (`AC-crp-done-confirmation`) | Done button transitions: "Done" -> "Sending..." (with spinner) -> "Sent" (green checkmark, disabled). A toast notification appears: "Prompt sent to agent! Switch back to your terminal." The "Sent" state persists until the user modifies comments or preamble, at which point the button resets to "Done". |
 | **Prompt send failed** | Done POST request fails (`AC-crp-done-fallback-clipboard`) | Done button reverts from "Sending..." to "Done". A toast notification appears: "Could not send to agent. Prompt copied to clipboard -- paste it manually." The prompt is still available on the clipboard. |
-| **Large file warning** | File exceeds 10,000 lines (`NFR-crp-large-file-perf`) | A dismissible yellow banner appears at the top of the code viewer: "This file has N lines. Performance may be affected for very large files." Dismissing sets a session-only flag (`largeFileWarningDismissed`). If the user clears and loads another large file, the banner appears again. |
+| **Large file warning** | File exceeds 10,000 lines (`NFR-crp-large-file-perf`) | A dismissible yellow banner appears at the top of the code viewer: "This file has N lines. Performance may be affected for very large files." Dismissing sets a per-file session flag. If a different large file is activated, its warning is independent. |
+| **Multi-file: file switching** | User clicks a different tab in the File Tab Bar (`FR-crp-multi-file-nav`) | The code viewer transitions to the newly active file. The previous file's state (comments, scroll position) is preserved in memory. The new file's scroll position is restored. The active tab indicator updates. `AC-crp-multi-file-nav-preserves-state` |
+| **Multi-file: file removal** | User closes a tab (`FR-crp-multi-file-remove`) | The tab disappears. If the removed file was active, the adjacent tab becomes active (see Flow 19). If no files remain, the application returns to the Empty State. `AC-crp-multi-file-empty-after-remove-last` |
+| **Multi-file: add file overlay** | User clicks "+" in the File Tab Bar | The FileDropZone appears as a centered modal overlay over the code viewer area. The existing file remains visible behind the backdrop. On successful load, the overlay closes and the new file's tab appears. See Flow 17. |
+| **Multi-file: drag-over add** | User drags file(s) over the application while files are loaded | A drop overlay appears over the code viewer: "Drop to add file(s)" with a highlighted dashed border (`#2563EB`). On drop, files are added to the session. See Flow 20. |
 
 ---
 
@@ -193,13 +224,17 @@ All toolbar items update to their active states:
 5. If the file is binary, the error state is shown (`AC-crp-binary-file-rejected`). Flow ends.
 6. If the file is text, application transitions to File Loaded state. The file name from the filesystem is displayed in the FileHeader.
 
-### Flow 3: Load File via Drag and Drop (`AC-crp-load-drag-drop`)
+### Flow 3: Load File via Drag and Drop (`AC-crp-load-drag-drop`, `AC-crp-multi-file-drop-multiple`)
 
-1. User drags a file from their filesystem over the application window.
+1. User drags one or more files from their filesystem over the application window.
 2. The drop zone highlights (drag hover state): border turns solid blue, background tints.
-3. User drops the file.
-4. Application reads the file. Brief loading spinner.
-5. Binary check: if binary, show error. If text, transition to File Loaded state with file name from the filesystem.
+3. User drops the file(s).
+4. Application reads each file. Brief loading spinner.
+5. Binary check per file: binary files are rejected with an error toast per file. Valid text files are loaded.
+6. **Single file dropped**: Transition to File Loaded state with file name from the filesystem.
+7. **Multiple files dropped** (`AC-crp-multi-file-drop-multiple`): All valid text files are loaded into the session. An info toast confirms: "Loaded N files." The last loaded file becomes the active file. If this is the first load (empty state), the File Tab Bar appears as soon as the second file is added.
+
+> **Note**: When files are already loaded and the user drags additional files over the application, see Flow 20 instead.
 
 ### Flow 4: Add a Single-Line Comment (`AC-crp-add-comment-single-line`, `FR-crp-line-comment-create`)
 
@@ -279,16 +314,17 @@ All toolbar items update to their active states:
 4. "Previous" (`[` key) works identically in reverse order.
 5. The currently focused comment is tracked in application state. When a comment is focused, the toolbar shows "Comment N of M" between the previous/next buttons. When no comment has been navigated to yet (`focusedCommentId` is null), the center section shows only the comment count (e.g., "3 comments"). The "Comment N of M" format only appears after the user navigates at least once.
 
-### Flow 12: Clear Session (`AC-crp-clear-confirmation`, `AC-crp-clear-no-confirm-empty`, `FR-crp-clear-session`)
+### Flow 12: Clear Session (`AC-crp-clear-confirmation`, `AC-crp-clear-no-confirm-empty`, `FR-crp-clear-session`, `AC-crp-multi-file-clear-all`)
 
 1. User clicks the "Clear" button in the toolbar.
-2. **If comments exist** (`AC-crp-clear-confirmation`): A confirmation dialog (modal) appears with:
+2. **If comments exist on any file** (`AC-crp-clear-confirmation`): A confirmation dialog (modal) appears with:
    - Title: "Clear session?"
-   - Body: "This will remove the loaded file, all N comments, and the preamble. This action cannot be undone."
+   - Body (single file): "This will remove the loaded file, all N comments, and the preamble. This action cannot be undone."
+   - Body (multi-file): "This will remove all M loaded files, all N comments, and the preamble. This action cannot be undone." (`AC-crp-multi-file-clear-all`)
    - Buttons: "Cancel" (secondary, left) and "Clear session" (destructive/red, right).
-   - If user clicks "Clear session", the application resets to the Empty State.
+   - If user clicks "Clear session", ALL loaded files, ALL comments across all files, and the preamble are removed. The application resets to the Empty State. The File Tab Bar disappears.
    - If user clicks "Cancel" or presses `Escape`, the dialog closes and nothing changes.
-3. **If no comments exist** (`AC-crp-clear-no-confirm-empty`): The session clears immediately without a dialog. The application returns to the Empty State.
+3. **If no comments exist on any file** (`AC-crp-clear-no-confirm-empty`): The session clears immediately without a dialog. All loaded files are removed. The application returns to the Empty State.
 
 ### Flow 13: Keyboard-Only Comment Creation (`AC-crp-keyboard-add-comment`, `NFR-crp-accessibility-keyboard`)
 
@@ -346,26 +382,80 @@ When not in slash command mode, the Done button is not rendered at all (`AC-crp-
 
 The mode is tracked as a boolean flag in application state (e.g., `isSlashCommandMode`), set to `true` when `useFileFromUrl` successfully loads a file, and `false` otherwise. Clearing the session (via the Clear button) resets this flag to `false`, returning the app to standalone mode.
 
+### Flow 17: Load Additional Files — Multi-File (`FR-crp-multi-file-load`, `AC-crp-multi-file-load-adds`)
+
+1. User has one or more files loaded and visible in the code viewer. The File Tab Bar is visible (if two or more files) or appears as the second file is added.
+2. User clicks the "+" button in the File Tab Bar.
+3. The FileDropZone appears as a centered modal overlay with a semi-transparent backdrop, overlaying the code viewer and sidebar. The existing file content is dimmed behind the overlay.
+4. User loads a file via paste, upload, or drag-and-drop (same mechanisms as Flows 1-3).
+5. On success, the modal closes. A new tab appears in the File Tab Bar (appended to the end, before the "+" button). The new file becomes the active tab and its content is displayed in the code viewer.
+6. The previous file's full state (comments, scroll position, line selections) is preserved in memory and will be restored when the user switches back to that tab.
+7. If this is the second file being loaded (first time going from one file to two), the File Tab Bar appears for the first time, and the FileHeader in the code viewer is replaced by the tab bar. The first file's tab is also present in the bar.
+
+### Flow 18: Switch Between Files (`FR-crp-multi-file-nav`, `AC-crp-multi-file-nav-preserves-state`)
+
+1. User sees multiple tabs in the File Tab Bar. One tab is active (highlighted with the bottom border).
+2. User clicks on an inactive tab (or focuses the tab bar with keyboard, uses `ArrowLeft`/`ArrowRight` to reach it, and presses `Enter` or `Space`).
+3. The code viewer transitions to display the selected file's content. The transition is instant (no loading spinner) since all file content is held in memory.
+4. All comments for the selected file are rendered in the code viewer. The scroll position is restored to where the user last was in that file.
+5. The previously active tab retains its full state (comments, scroll position, any in-progress line range selection is discarded). If the user had an InlineCommentEditor open on the previous file, it is closed without saving (same as pressing Escape).
+6. The prompt preview in the sidebar continues to reflect all comments across all files — it does not change when switching tabs (unless comments were modified).
+7. Comment navigation (`[` and `]` keys, toolbar next/prev) operates across all files. If the next comment is in a different file, switching to that comment automatically activates the corresponding file's tab.
+
+### Flow 19: Remove a File (`FR-crp-multi-file-remove`, `AC-crp-multi-file-remove-with-comments`, `AC-crp-multi-file-remove-no-comments`, `AC-crp-multi-file-empty-after-remove-last`)
+
+1. User hovers over a tab in the File Tab Bar, revealing the close (X) button on that tab.
+2. User clicks the X button.
+3. **If the file has comments** (`AC-crp-multi-file-remove-with-comments`): A confirmation dialog appears:
+   - Title: "Remove file?"
+   - Body: "Remove \"[filename]\"? This will remove the file and its N comments. This cannot be undone."
+   - Buttons: "Cancel" (secondary) / "Remove" (destructive/red).
+   - If user clicks "Remove", proceed to step 5. If "Cancel", the dialog closes and nothing changes.
+4. **If the file has no comments** (`AC-crp-multi-file-remove-no-comments`): The file is removed immediately without a confirmation dialog. Proceed to step 5.
+5. The tab disappears from the File Tab Bar. The file and all its comments are removed from the session.
+6. If the removed file was the active tab:
+   - If other files remain: The tab to the right becomes active (or the tab to the left if the rightmost tab was removed). The code viewer switches to the newly active file.
+   - If no files remain (`AC-crp-multi-file-empty-after-remove-last`): The application returns to the Empty State. The File Tab Bar disappears.
+7. If the removed file was not the active tab: The active tab remains unchanged. The tab bar adjusts to fill the gap.
+8. The toolbar comment count updates to reflect the new total across all remaining files. The prompt preview regenerates, omitting the removed file's section. If no comments remain on any file, the prompt preview reverts to the placeholder.
+9. If only one file remains after removal, the File Tab Bar collapses and the layout reverts to the single-file layout with the FileHeader restored.
+
+### Flow 20: Drag-and-Drop Additional Files (`FR-crp-multi-file-load`, `AC-crp-multi-file-drop-multiple`)
+
+1. While one or more files are already loaded, user drags one or more files from the filesystem over the application window.
+2. A drop overlay appears over the code viewer area: semi-transparent backdrop with a centered message "Drop to add file(s)" and a highlighted dashed border (`2px dashed #2563EB`, background tint `#EFF6FF`). The File Tab Bar and sidebar remain visible but are behind the overlay.
+3. User drops the files.
+4. Each dropped file undergoes binary detection independently:
+   - Valid text files are added as new tabs, appended in the order they appear in the drop event's file list.
+   - Binary files are rejected individually. An error toast appears per rejected file (e.g., "image.png is not a text file and was skipped.").
+5. An info toast confirms the result: "Loaded N files." (or "Loaded N files. M files were skipped." if some were binary).
+6. The last successfully loaded file becomes the active tab. Its content is displayed in the code viewer.
+7. If the user was previously in single-file mode, the File Tab Bar appears for the first time.
+
 ---
 
 ## Component Specs
 
 ### FileDropZone
 
-Handles all three file loading methods: paste, upload, and drag-and-drop. Implements `FR-crp-file-load`.
+Handles all three file loading methods: paste, upload, and drag-and-drop. Implements `FR-crp-file-load`, `FR-crp-multi-file-load`.
 
 - **Variants**:
-  - `default` — Resting state with instructions.
+  - `default` — Resting state with instructions. Used in the empty state (full content area).
   - `drag-hover` — File is being dragged over the zone.
   - `paste-mode` — User has selected the paste tab and a text area is visible.
   - `loading` — File is being read.
   - `error` — A file loading error occurred.
+  - `modal` — Used when adding a file to an existing session (triggered by the "+" button in the File Tab Bar). Same content as `default` but rendered as a centered modal overlay.
 
 - **Props/Inputs**:
-  - `onFileLoaded: (content: string, fileName?: string, language?: string) => void` — Callback when a file is successfully loaded.
+  - `onFileLoaded: (content: string, fileName?: string, language?: string) => void` — Callback when a file is successfully loaded. In multi-file mode, called once per file loaded.
+  - `onFilesLoaded: (files: Array<{ content: string; fileName: string; language?: string }>) => void` — Callback when multiple files are loaded simultaneously (multi-drop). Each file triggers independent binary detection and language inference.
   - `onError: (message: string) => void` — Callback for loading errors.
+  - `onClose: () => void` — Callback to close the modal variant. Only relevant in `modal` variant.
+  - `variant: 'full' | 'modal'` — Whether the drop zone fills the content area (empty state) or appears as a modal (add file to session).
 
-- **Visual Structure (default variant)**:
+- **Visual Structure (default variant — full)**:
   ```
   +-------------------------------------------------------+
   |                                                         |
@@ -379,8 +469,34 @@ Handles all three file loading methods: paste, upload, and drag-and-drop. Implem
   +-------------------------------------------------------+
   ```
   - Outer container: dashed border (`2px dashed #CBD5E1`), rounded corners (`8px`), centered in the content area, max-width 600px, padding 48px.
-  - "Choose file" is a secondary button that opens the native file picker.
+  - "Choose file" is a secondary button that opens the native file picker. In multi-file mode, the file picker allows multiple file selection (`multiple` attribute).
   - "Paste content" is a secondary button that switches the drop zone interior to paste-mode.
+
+- **Visual Structure (modal variant)**:
+  ```
+  +===========================================================+
+  |  [backdrop — semi-transparent black rgba(0,0,0,0.5)]       |
+  |                                                             |
+  |     +-----------------------------------------------+      |
+  |     |  Add File                                [X]  |      |
+  |     |                                                |      |
+  |     |       [Upload icon — 48x48, muted gray]        |      |
+  |     |                                                |      |
+  |     |    Drop a file here, or choose an option:      |      |
+  |     |                                                |      |
+  |     |    [Choose file]   [Paste content]              |      |
+  |     |                                                |      |
+  |     |      Accepts any plain-text file               |      |
+  |     +-----------------------------------------------+      |
+  |                                                             |
+  +===========================================================+
+  ```
+  - Overlay: semi-transparent black backdrop (`rgba(0,0,0,0.5)`).
+  - Dialog: white background, rounded corners (`8px`), max-width 600px, centered vertically and horizontally. Box shadow: `0 4px 24px rgba(0,0,0,0.2)`. Padding: 24px.
+  - Title: "Add File" in 18px semi-bold.
+  - Close button [X]: top-right, closes the modal without loading a file.
+  - Interior content is identical to the `default` variant (same paste-mode, same drag-hover behavior).
+  - `Escape` closes the modal.
 
 - **Visual Structure (paste-mode variant)**:
   ```
@@ -401,7 +517,8 @@ Handles all three file loading methods: paste, upload, and drag-and-drop. Implem
 - **Behavior**:
   - Drag-and-drop uses the HTML5 Drag and Drop API. The entire component is the drop target.
   - Binary file detection: After reading the file, check for null bytes (`\x00`) in the first 8,192 bytes (or the entire file if shorter than 8,192 bytes). If found, trigger the error state with the message "This file doesn't appear to contain text content. Only plain-text files are supported." (`AC-crp-binary-file-rejected`).
-  - Multiple files dropped: When multiple files are dropped simultaneously, load only the first file and show an info toast: "Loaded [filename]. Only one file can be loaded at a time."
+  - **Multiple files dropped** (`AC-crp-multi-file-drop-multiple`): When multiple files are dropped simultaneously, ALL files are loaded into the session. Each file undergoes independent binary detection. Binary files are rejected individually with an error toast per file (e.g., "image.png is not a text file and was skipped."). Valid text files are all loaded. An info toast confirms: "Loaded N files." (or "Loaded N files. M files were skipped." if some were binary).
+  - **Dropping files while files are already loaded**: The entire application window acts as a drop target when files are loaded. Dropping files anywhere on the window (not just the FileDropZone) adds them to the session. See Flow 20.
   - Language detection: Infer from file extension (`.ts` = TypeScript, `.py` = Python, etc.). If pasted content has no file name or an unrecognized extension, default to "Plain Text" (`FR-crp-syntax-highlight`).
   - Shiki grammar load failure: If the syntax highlighting grammar fails to load for the detected language, the file renders as plain text and an info toast appears: "Syntax highlighting unavailable for this file. Displaying as plain text."
 
@@ -410,6 +527,63 @@ Handles all three file loading methods: paste, upload, and drag-and-drop. Implem
   - `Enter` or `Space` activates the focused button.
   - In paste-mode, `Tab` moves between the file name input, text area, "Load" button, and "Back" button.
   - The drop zone itself is not keyboard-operable (drag-and-drop is inherently a pointer interaction), but the "Choose file" button provides the same functionality via keyboard.
+  - In modal variant, focus is trapped inside the modal. `Escape` closes the modal.
+
+---
+
+### FileTabBar
+
+Horizontal tab bar showing all loaded files in the session. Implements `FR-crp-multi-file-nav`. Only rendered when two or more files are loaded (see layout section for transition rules).
+
+- **Position**: Below the toolbar, above the code viewer and sidebar. Full width of the viewport. Height: 40px. Background: `#F8FAFC`. Border-bottom: 1px solid `#E2E8F0`.
+
+- **Props/Inputs**:
+  - `files: FileTab[]` where `FileTab = { id: string; name: string; language: string; commentCount: number }`
+  - `activeFileId: string`
+  - `onSelectFile: (fileId: string) => void`
+  - `onRemoveFile: (fileId: string) => void`
+  - `onAddFile: () => void`
+
+- **Visual Structure**:
+  ```
+  +---[utils.ts (3)]---[helpers.ts]---[config.json (1)]---[+]-------------+
+  ```
+  - Each loaded file gets a tab showing:
+    - **File name**: Truncated with ellipsis if > 20 characters. Monospace font, 13px.
+    - **Comment count badge**: Small pill shown only when `commentCount > 0`. Style: background `#3B82F6`, text white, font-size 10px, border-radius 8px, min-width 16px, height 16px, padding 0 4px. Positioned inline after the file name with 6px left margin.
+    - **Close button (X icon)**: 14px icon. Visible on hover or when the tab is active. Clicking removes the file (`FR-crp-multi-file-remove`). Hidden for the last remaining file (use Clear session instead).
+  - **Tooltip on hover**: Shows the full file name and detected language (e.g., "helpers.ts -- TypeScript"). For pasted files, shows "Untitled -- Plain Text" or the user-given name.
+
+- **Tab States**:
+
+  | State | Background | Text Color | Border | Font Weight |
+  |---|---|---|---|---|
+  | **Active** | `#FFFFFF` (white) | `#1E293B` (dark slate) | border-bottom: 2px solid `#2563EB` | 600 (semi-bold) |
+  | **Inactive** | transparent | `#64748B` (slate) | none | 400 (regular) |
+  | **Inactive (hover)** | `#E2E8F0` | `#475569` | none | 400 |
+
+- **Tab Sizing**: Each tab has min-width 120px, max-width 200px, padding 0 12px. Height: 40px (matching the bar). Tabs are left-aligned, laid out horizontally.
+
+- **Overflow / Scrolling**: When total tab widths exceed the available bar width, the bar scrolls horizontally. Subtle fade indicators (8px wide, gradient from `#F8FAFC` to transparent) appear on the left/right edges when content is scrolled. The scroll position persists as tabs are added/removed. Scrolling can be done via horizontal mouse scroll, trackpad gesture, or grabbing and dragging the tab bar.
+
+- **Add File Button**: Always the last element in the tab bar (after all file tabs). Rendered as a "+" icon button: 28x28px, border-radius 6px, background transparent, hover background `#E2E8F0`, icon color `#64748B`, icon size 16px. Clicking opens the FileDropZone as a modal overlay (see Flow 17).
+
+- **Drag-and-Drop Reordering**: Not in v1. Tabs are ordered by load order (the order in which files were added to the session).
+
+- **Keyboard Accessibility** (`NFR-crp-accessibility-keyboard`):
+  - The tab bar is focusable as a group. `Tab` key moves focus into the tab bar from the toolbar.
+  - `ArrowLeft` / `ArrowRight` moves focus between tabs within the bar.
+  - `Enter` or `Space` activates (selects) the focused tab.
+  - `Delete` or `Backspace` on a focused tab removes that file (with confirmation if it has comments, per `FR-crp-multi-file-remove`).
+  - `Tab` from the last tab moves focus to the "+" button. `Enter` or `Space` on the "+" button opens the add-file modal.
+  - `Shift+Tab` from the tab bar moves focus back to the toolbar.
+
+- **ARIA Attributes**:
+  - Container: `role="tablist"`, `aria-label="Loaded files"`
+  - Each tab: `role="tab"`, `aria-selected="true|false"`, `aria-controls` pointing to the code viewer panel ID
+  - Active tab's associated code viewer panel: `role="tabpanel"`, `aria-labelledby` pointing to the active tab's ID
+  - Close button within each tab: `aria-label="Remove [filename]"`
+  - Add file button: `aria-label="Add another file"`
 
 ---
 
@@ -420,9 +594,10 @@ The persistent toolbar at the top of the application. Always visible.
 - **Variants**: None (single variant; individual items have enabled/disabled states).
 
 - **Props/Inputs**:
-  - `commentCount: number` — Total number of comments.
-  - `currentCommentIndex: number | null` — Index of the currently focused comment (for navigation display).
-  - `hasFile: boolean` — Whether a file is loaded.
+  - `commentCount: number` — Total number of comments **across all loaded files** (`FR-crp-comment-count`, `AC-crp-multi-file-comment-count`). This is a global aggregate, not per-file.
+  - `currentCommentIndex: number | null` — Index of the currently focused comment (for navigation display). When navigating comments across multiple files, the index spans all files in tab order.
+  - `hasFile: boolean` — Whether **at least one** file is loaded. True when one or more files exist in the session.
+  - `fileCount: number` — Number of loaded files. Used to adjust the clear confirmation message (e.g., "This will remove all 3 loaded files, all 5 comments, and the preamble.").
   - `isSlashCommandMode: boolean` — Whether the CRPG was launched via the slash command. Controls Done button visibility.
   - `doneState: 'idle' | 'sending' | 'sent'` — Current state of the Done button.
   - `onDone: () => void` — Callback when Done is clicked.
@@ -670,14 +845,14 @@ Text area for the optional prompt preamble. Implements `FR-crp-prompt-preamble`.
 
 ### PromptPreview
 
-Read-only display of the generated prompt. Implements `FR-crp-prompt-preview`, `FR-crp-prompt-format`.
+Read-only display of the generated prompt. Implements `FR-crp-prompt-preview`, `FR-crp-prompt-format`, `FR-crp-multi-file-prompt`.
 
 - **Variants**:
-  - `empty` — No comments exist yet. Shows placeholder message.
-  - `populated` — Displays the auto-generated prompt. Appears automatically as soon as comments exist.
+  - `empty` — No comments exist on any loaded file. Shows placeholder message.
+  - `populated` — Displays the auto-generated prompt. Appears automatically as soon as comments exist on any file. When multiple files have comments, the prompt aggregates all files per `FR-crp-multi-file-prompt-format`.
 
 - **Props/Inputs**:
-  - `promptText: string | null` — The generated prompt text. Null when no comments exist.
+  - `promptText: string | null` — The generated prompt text. Null when no comments exist on any file. When multiple files have comments, this contains the full multi-file prompt.
   - `onCopy: () => void`
 
 - **Visual Structure (empty variant)**:
@@ -692,7 +867,7 @@ Read-only display of the generated prompt. Implements `FR-crp-prompt-preview`, `
   ```
   - Centered muted text. Border: 1px dashed `#CBD5E1`.
 
-- **Visual Structure (populated variant)**:
+- **Visual Structure (populated variant — single file)**:
   ```
   Prompt Preview                                [Copy]
   +----------------------------------------------------------+
@@ -701,27 +876,64 @@ Read-only display of the generated prompt. Implements `FR-crp-prompt-preview`, `
   |                                                           |
   |  ## File: utils.ts (TypeScript)                           |
   |                                                           |
-  |  ```                                                      |
-  |  1 | import React from 'react';                           |
-  |  2 | import { useState } from 'react';                    |
-  |  ...                                                      |
-  |  ```                                                      |
+  |  ### Requested Changes                                    |
   |                                                           |
-  |  ## Requested Changes                                     |
-  |  - **Line 3**: Rename this variable                       |
-  |  - **Lines 10-15**: Extract this to a helper function     |
-  |  - **Line 25**: Add error handling here                   |
+  |  ```                                                      |
+  |  const App = () => {                                      |
+  |  ```                                                      |
+  |  Rename this variable                                     |
+  |                                                           |
+  |  ```                                                      |
+  |  function processData(input: any) {                       |
+  |    // ...complex logic...                                 |
+  |  }                                                        |
+  |  ```                                                      |
+  |  Extract this to a helper function                        |
   +----------------------------------------------------------+
   ```
+
+- **Visual Structure (populated variant — multi-file)**:
+  ```
+  Prompt Preview                                [Copy]
+  +----------------------------------------------------------+
+  |  ## Instructions                                          |
+  |  Refactor for consistency                                 |
+  |                                                           |
+  |  ## File: utils.ts (TypeScript)                           |
+  |                                                           |
+  |  ### Requested Changes                                    |
+  |                                                           |
+  |  ```                                                      |
+  |  const App = () => {                                      |
+  |  ```                                                      |
+  |  Rename this variable                                     |
+  |                                                           |
+  |  ## File: helpers.ts (TypeScript)                         |
+  |                                                           |
+  |  ### Requested Changes                                    |
+  |                                                           |
+  |  ```                                                      |
+  |  export function formatDate(d: Date) {                    |
+  |  ```                                                      |
+  |  Add error handling here                                  |
+  +----------------------------------------------------------+
+  ```
+
   - Header row: "Prompt Preview" label (13px semi-bold) with a "Copy" button (small, secondary style) right-aligned.
   - Content area: monospace font, 12px. Background: `#1E293B` (dark). Text: `#E2E8F0` (light). Padding: 16px. Scrollable vertically. This uses a "dark terminal" theme to visually distinguish the output from the editing areas.
-  - The content is rendered inside a `<pre>` element as a text node — no markdown processing is applied. The user sees the literal markdown syntax markers (e.g., `## Instructions`, `**Line 3**`) as plain text. This is intentional: these markers are part of the prompt structure and will be interpreted by the AI agent, not by the application's preview.
+  - The content is rendered inside a `<pre>` element as a text node — no markdown processing is applied. The user sees the literal markdown syntax markers (e.g., `## Instructions`, `## File:`) as plain text. This is intentional: these markers are part of the prompt structure and will be interpreted by the AI agent, not by the application's preview.
+  - The preview always shows the full aggregated prompt across all files — it does not filter to the currently active file. This ensures what the user sees is exactly what will be copied.
 
 ---
 
 ### ConfirmationDialog
 
-Modal dialog used for the clear session confirmation. Implements `AC-crp-clear-confirmation`.
+Modal dialog used for destructive confirmations. Implements `AC-crp-clear-confirmation`, `AC-crp-multi-file-remove-with-comments`.
+
+The dialog now handles two use cases:
+
+1. **Clear session** (`FR-crp-clear-session`): Removes all loaded files, all comments, and the preamble.
+2. **Remove single file** (`FR-crp-multi-file-remove`): Removes one file and its comments from the session.
 
 - **Props/Inputs**:
   - `title: string`
@@ -731,24 +943,48 @@ Modal dialog used for the clear session confirmation. Implements `AC-crp-clear-c
   - `onConfirm: () => void`
   - `onCancel: () => void`
 
-- **Visual Structure**:
+- **Visual Structure (Clear Session)**:
   ```
   +-----------------------------------------------+
   |  Clear session?                          [X]   |
   |                                                 |
-  |  This will remove the loaded file, all 5        |
+  |  This will remove all 3 loaded files, all 5    |
   |  comments, and the preamble. This action        |
   |  cannot be undone.                              |
   |                                                 |
   |                        [Cancel] [Clear session] |
   +-----------------------------------------------+
   ```
+
+- **Visual Structure (Remove Single File)**:
+  ```
+  +-----------------------------------------------+
+  |  Remove file?                            [X]   |
+  |                                                 |
+  |  Remove "utils.ts"? This will remove the file  |
+  |  and its 3 comments. This cannot be undone.     |
+  |                                                 |
+  |                            [Cancel]  [Remove]   |
+  +-----------------------------------------------+
+  ```
+
+- **Content by use case**:
+
+  | Use Case | Title | Body | Confirm Label |
+  |---|---|---|---|
+  | Clear session (1 file) | "Clear session?" | "This will remove the loaded file, all N comments, and the preamble. This action cannot be undone." | "Clear session" |
+  | Clear session (multi-file) | "Clear session?" | "This will remove all N loaded files, all M comments, and the preamble. This action cannot be undone." | "Clear session" |
+  | Remove file (with comments) | "Remove file?" | "Remove \"[filename]\"? This will remove the file and its N comments. This cannot be undone." | "Remove" |
+
+  Note: Remove file without comments does not trigger a dialog (`AC-crp-multi-file-remove-no-comments`).
+
+- **Styling**:
   - Overlay: semi-transparent black (`rgba(0,0,0,0.5)`).
   - Dialog: white background, rounded corners (8px), max-width 440px, centered vertically and horizontally. Box shadow: `0 4px 24px rgba(0,0,0,0.2)`. Padding: 24px.
   - Title: 18px semi-bold.
   - Body: 14px, color `#475569`.
   - "Cancel": secondary button.
-  - "Clear session": destructive button (red background `#DC2626`, white text).
+  - Confirm button: destructive style (red background `#DC2626`, white text).
   - Close button [X]: top-right, same as Cancel behavior.
 
 - **Keyboard Accessibility**:
@@ -779,15 +1015,17 @@ Ephemeral notification for the clipboard copy confirmation. Implements `AC-crp-c
 
 - **Variants**:
   - `success` — Green checkmark icon. Background: `#1E293B` (dark). Used for "Copied to clipboard" and "Prompt sent to agent! Switch back to your terminal." (`AC-crp-done-confirmation`).
-  - `error` — Warning triangle icon. Background: `#991B1B` (dark red). Text: `#FFFFFF`. Used for error messages such as "Failed to copy. Try selecting the text manually." or "Syntax highlighting unavailable for this file. Displaying as plain text."
+  - `error` — Warning triangle icon. Background: `#991B1B` (dark red). Text: `#FFFFFF`. Used for error messages such as "Failed to copy. Try selecting the text manually.", "[filename] is not a text file and was skipped." (per-file binary rejection in multi-drop), or general file loading failures.
   - `warning` — Warning triangle icon. Background: `#92400E` (dark amber). Text: `#FFFFFF`. Used for fallback messages such as "Could not send to agent. Prompt copied to clipboard -- paste it manually." (`AC-crp-done-fallback-clipboard`).
-  - `info` — Info icon. Background: `#1E293B`. Used for informational messages such as "Loaded [filename]. Only one file can be loaded at a time." (when multiple files are dropped).
+  - `info` — Info icon. Background: `#1E293B`. Used for informational messages such as "Loaded N files." (multi-file drop confirmation), "Loaded N files. M files were skipped." (when some dropped files were binary), and "Syntax highlighting unavailable for this file. Displaying as plain text." (grammar load failure).
 
 ---
 
 ## Prompt Output Format
 
-The generated prompt follows this exact structure (`FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`):
+### Single-File Format
+
+The generated prompt follows this exact structure when a single file has comments (`FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`):
 
 ```
 ## Instructions
@@ -796,27 +1034,70 @@ The generated prompt follows this exact structure (`FR-crp-prompt-format`, `AC-c
 
 ## File: [filename] ([language])
 
+### Requested Changes
+
 ```
-  1 | [first line of code]
-  2 | [second line of code]
-  ...
-  N | [last line of code]
+const App = () => {
+```
+Rename this variable
+
+```
+function processData(input: any) {
+  // ...complex logic...
+}
+```
+Extract this to a helper function
 ```
 
-## Requested Changes
+### Multi-File Format
 
-- **Line 3**: [comment text]
-- **Lines 10-15**: [comment text]
-- **Line 25**: [comment text]
+When multiple files have comments, the format extends to include multiple file sections (`FR-crp-multi-file-prompt`, `FR-crp-multi-file-prompt-format`, `AC-crp-multi-file-prompt-structure`):
+
+```
+## Instructions
+
+[Preamble text, if provided. This entire section is omitted if no preamble was entered.]
+
+## File: utils.ts (TypeScript)
+
+### Requested Changes
+
+```
+const App = () => {
+```
+Rename this variable
+
+```
+function processData(input: any) {
+  // ...complex logic...
+}
+```
+Extract this to a helper function
+
+## File: helpers.ts (TypeScript)
+
+### Requested Changes
+
+```
+export function formatDate(d: Date) {
+```
+Add error handling here
 ```
 
-Rules:
-- Line numbers in the code block are left-padded (right-aligned) to align (e.g., `  1 |`, ` 10 |`, `100 |`).
-- Comments are listed in ascending line order.
-- For line-range comments, the format is "Lines N-M" (not "Line N to M" or other variations). When a range comment has `startLine == endLine` (single-line range), the format is "Line N" (singular), not "Lines N-N".
+### Format Rules
+
+- Comments are paired with code snippets (the actual source code the comment references), not line numbers. This ensures the prompt remains accurate even if line numbers shift during editing.
+- Each comment is formatted as a fenced code block containing the relevant source lines, followed by the comment text on the next line.
+- Comments within each file are listed in ascending source order.
 - If no preamble is provided, the "Instructions" section is omitted entirely (not left empty). A preamble consisting only of whitespace is treated as empty.
 - If the file name is unknown, use "Untitled" as the filename.
 - If the language is unknown, use "Plain Text".
+- For multi-file prompts:
+  - The "Instructions" section appears once at the top (global preamble), not per-file.
+  - Each file with comments gets its own `## File` heading with a `### Requested Changes` subsection.
+  - Files appear in the order they are listed in the File Tab Bar (load order).
+  - Files without comments are omitted entirely (`AC-crp-multi-file-prompt-omits-uncommented`).
+  - When only one file has comments (even if multiple are loaded), the format is identical to the single-file format.
 
 ---
 
@@ -852,12 +1133,15 @@ All core workflows are achievable via keyboard:
 |---|---|
 | **Load file (upload)** | `Tab` to "Choose file" button, `Enter` to open picker |
 | **Load file (paste)** | `Tab` to "Paste content" button, `Enter`, then `Tab` to text area, type/paste, `Tab` to "Load", `Enter` |
+| **Switch between files** | `Tab` to File Tab Bar, `ArrowLeft`/`ArrowRight` to navigate tabs, `Enter` or `Space` to activate |
+| **Add another file** | `Tab` to File Tab Bar, `Tab` to "+" button, `Enter` to open add-file modal |
+| **Remove a file** | Focus a tab in the File Tab Bar, press `Delete` or `Backspace` |
 | **Navigate to a line** | `Tab` to code viewer, `ArrowUp`/`ArrowDown` |
 | **Add comment on a line** | Focus line, press `Enter` or `c`, type comment, `Cmd+Enter` to submit |
 | **Add comment on a range** | Focus start line, `Shift+ArrowDown` to select range, `Enter` to open editor |
 | **Edit a comment** | `Tab` to comment bubble, `Enter` to focus Edit button, `Enter` |
 | **Delete a comment** | `Tab` to comment bubble, `Tab` to Delete button, `Enter` |
-| **Navigate comments** | `[` for previous, `]` for next |
+| **Navigate comments** | `[` for previous, `]` for next (navigates across all files) |
 | **Copy prompt** | `Cmd+Shift+C` / `Ctrl+Shift+C` |
 | **Send prompt (Done)** | `Cmd+Shift+D` / `Ctrl+Shift+D` (slash command mode only) |
 | **Clear session** | `Tab` to Clear button, `Enter` |
@@ -866,14 +1150,19 @@ All core workflows are achievable via keyboard:
 
 - When the InlineCommentEditor opens, focus moves to the text area.
 - When the InlineCommentEditor closes (submit or cancel), focus returns to the line in the code viewer.
-- When a modal dialog opens, focus is trapped inside it. On close, focus returns to the triggering button.
-- Comment navigation (`[` and `]`) moves focus to the navigated CommentBubble.
+- When a modal dialog opens (including the add-file modal), focus is trapped inside it. On close, focus returns to the triggering button.
+- Comment navigation (`[` and `]`) moves focus to the navigated CommentBubble. If the next/previous comment is in a different file, the corresponding tab is activated first, then the comment is focused.
+- When a tab is removed from the File Tab Bar, focus moves to the adjacent tab (right, or left if rightmost was removed). If no tabs remain, focus moves to the drop zone.
 
 ### ARIA Attributes
 
 | Element | ARIA |
 |---|---|
-| Code viewer | `role="grid"`, `aria-label="Code viewer"` |
+| File Tab Bar container | `role="tablist"`, `aria-label="Loaded files"` |
+| File tab | `role="tab"`, `aria-selected="true\|false"`, `aria-controls="[panel-id]"` |
+| File tab close button | `aria-label="Remove [filename]"` |
+| Add file button (in tab bar) | `aria-label="Add another file"` |
+| Code viewer | `role="grid"`, `aria-label="Code viewer"` (also serves as `role="tabpanel"` with `aria-labelledby` pointing to the active tab) |
 | Each line row | `role="row"` |
 | Line number cell | `role="rowheader"` |
 | Code content cell | `role="gridcell"` |
@@ -884,6 +1173,7 @@ All core workflows are achievable via keyboard:
 | Toast | `role="status"`, `aria-live="polite"` |
 | Prompt preview | `role="region"`, `aria-label="Generated prompt preview"` |
 | Drop zone | `role="region"`, `aria-label="File loading area"` |
+| Add file modal | `role="dialog"`, `aria-label="Add file"`, `aria-modal="true"` |
 
 ### Color and Contrast
 
@@ -958,25 +1248,30 @@ This section maps every product requirement and acceptance criterion to where it
 
 | Slug | Design Coverage |
 |---|---|
-| `FR-crp-file-load` | FileDropZone component; Flows 1, 2, 3 |
+| `FR-crp-file-load` | FileDropZone component; Flows 1, 2, 3; Flow 17 (add file to session); Flow 20 (drag-drop additional files) |
 | `FR-crp-file-display` | CodeViewer component; File Loaded Screen layout |
 | `FR-crp-syntax-highlight` | CodeViewer component (language prop, progressive highlighting); FileDropZone (language detection) |
 | `FR-crp-line-comment-create` | InlineCommentEditor component (create variant); Flow 4; CommentBubble |
 | `FR-crp-line-comment-edit` | InlineCommentEditor component (edit variant); Flow 6; CommentBubble (Edit action) |
 | `FR-crp-line-comment-delete` | CommentBubble component (Delete action); Flow 7 |
 | `FR-crp-comment-indicator` | CodeViewer gutter (blue dot indicator); CommentBubble |
-| `FR-crp-comment-count` | Toolbar component (comment count display) |
+| `FR-crp-comment-count` | Toolbar component (global comment count across all files); FileTabBar (per-file comment count badges) |
 | `FR-crp-prompt-preamble` | PreambleInput component; Flow 8 |
 | `FR-crp-prompt-generate` | Automatic prompt generation on comment/preamble change; Flow 9; Prompt Output Format section |
-| `FR-crp-prompt-preview` | PromptPreview component (populated variant) |
+| `FR-crp-prompt-preview` | PromptPreview component (populated variant — single and multi-file) |
 | `FR-crp-prompt-copy` | Toolbar Copy button; PromptPreview Copy button; Flow 10; ToastNotification |
-| `FR-crp-prompt-format` | Prompt Output Format section; PromptPreview component |
-| `FR-crp-clear-session` | Toolbar Clear button; ConfirmationDialog component; Flow 12 |
-| `FR-crp-filename-display` | FileHeader within Code Viewer Panel; FileDropZone (paste-mode file name input) |
+| `FR-crp-prompt-format` | Prompt Output Format section (single-file format); PromptPreview component |
+| `FR-crp-clear-session` | Toolbar Clear button; ConfirmationDialog component (clear session variant); Flow 12 |
+| `FR-crp-filename-display` | FileHeader (single-file mode); FileTabBar tabs and tooltips (multi-file mode); FileDropZone (paste-mode file name input) |
 | `FR-crp-line-range-comment` | CodeViewer (range selection); Flow 5; Flow 14 |
-| `FR-crp-comment-navigation` | Toolbar (previous/next buttons); Flow 11 |
+| `FR-crp-comment-navigation` | Toolbar (previous/next buttons); Flow 11; Flow 18 (cross-file comment navigation) |
 | `FR-crp-done-action` | Toolbar Done button; Done Button States table; Flow 15; Slash Command Mode Detection |
 | `FR-crp-prompt-handoff` | Flow 15 (POST to `/api/prompt-output`); Flow 16 (error fallback) |
+| `FR-crp-multi-file-load` | FileDropZone component (modal variant, multi-drop); FileTabBar (add file button); Flow 17; Flow 20 |
+| `FR-crp-multi-file-nav` | FileTabBar component; File Loaded State (Multi-File) layout; Flow 18; Screen Inventory table |
+| `FR-crp-multi-file-remove` | FileTabBar (close button on tabs); ConfirmationDialog (remove file variant); Flow 19 |
+| `FR-crp-multi-file-prompt` | PromptPreview component (multi-file populated variant); Prompt Output Format section (multi-file format); Flow 9 |
+| `FR-crp-multi-file-prompt-format` | Prompt Output Format section (multi-file format rules) |
 
 ### Non-Functional Requirements
 
@@ -1003,20 +1298,30 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-add-comment-line-range` | Flow 5; CodeViewer range selection; InlineCommentEditor; CommentBubble line range label |
 | `AC-crp-edit-comment` | Flow 6; InlineCommentEditor edit variant |
 | `AC-crp-delete-comment` | Flow 7; CommentBubble Delete action |
-| `AC-crp-generate-prompt-structure` | Flow 9; Prompt Output Format section |
-| `AC-crp-generate-prompt-no-comments` | Toolbar states table (Copy disabled when 0 comments; prompt only auto-generates when comments exist) |
+| `AC-crp-generate-prompt-structure` | Flow 9; Prompt Output Format section (single-file and multi-file formats) |
+| `AC-crp-generate-prompt-no-comments` | Toolbar states table (Copy disabled when 0 comments across all files; prompt only auto-generates when comments exist) |
 | `AC-crp-copy-clipboard` | Flow 10; ToastNotification component |
 | `AC-crp-preview-matches-copy` | Flow 10 (byte-for-byte match note); PromptPreview renders exact text |
-| `AC-crp-clear-confirmation` | Flow 12; ConfirmationDialog component |
+| `AC-crp-clear-confirmation` | Flow 12; ConfirmationDialog component (clear session variant with multi-file message) |
 | `AC-crp-clear-no-confirm-empty` | Flow 12 (immediate clear when no comments) |
 | `AC-crp-empty-state` | Empty State Screen definition; FileDropZone; Toolbar disabled states |
 | `AC-crp-large-file-scroll` | CodeViewer performance note (virtualized rendering) |
-| `AC-crp-comment-navigation-next` | Flow 11; Toolbar navigation buttons |
+| `AC-crp-comment-navigation-next` | Flow 11; Toolbar navigation buttons; Flow 18 (cross-file navigation) |
 | `AC-crp-keyboard-add-comment` | Flow 13; CodeViewer keyboard accessibility |
-| `AC-crp-binary-file-rejected` | FileDropZone error state; Flows 2, 3 (binary check) |
+| `AC-crp-binary-file-rejected` | FileDropZone error state; Flows 2, 3 (binary check); Flow 20 (per-file rejection for multi-drop) |
 | `AC-crp-done-sends-prompt` | Flow 15 (POST + clipboard copy in parallel) |
 | `AC-crp-done-auto-close` | Flow 15 step 5b-c (`window.close()` as primary success path); File Loaded Screen "Prompt sent (auto-close)" state |
 | `AC-crp-done-confirmation` | Flow 15 step 5d (fallback when auto-close fails); File Loaded Screen "Prompt sent (fallback)" state |
 | `AC-crp-done-fallback-clipboard` | Flow 16 (error fallback, prompt on clipboard); File Loaded Screen "Prompt send failed" state; ToastNotification warning variant |
 | `AC-crp-done-disabled-no-comments` | Toolbar States table (Done disabled when 0 comments); Done Button States table (disabled state) |
 | `AC-crp-done-standalone-hidden` | Toolbar States table (Done not rendered outside slash command mode); Slash Command Mode Detection |
+| `AC-crp-multi-file-load-adds` | Flow 17 (loading a second file adds to session); FileTabBar component |
+| `AC-crp-multi-file-drop-multiple` | Flow 20 (multiple files dropped simultaneously); FileDropZone multi-drop behavior |
+| `AC-crp-multi-file-nav-preserves-state` | Flow 18 (switching files preserves comments and scroll position); File Loaded Screen multi-file states |
+| `AC-crp-multi-file-remove-with-comments` | Flow 19 step 3 (confirmation dialog for files with comments); ConfirmationDialog (remove file variant) |
+| `AC-crp-multi-file-remove-no-comments` | Flow 19 step 4 (immediate removal without confirmation) |
+| `AC-crp-multi-file-prompt-structure` | Prompt Output Format section (multi-file format); PromptPreview (multi-file populated variant) |
+| `AC-crp-multi-file-prompt-omits-uncommented` | Prompt Output Format format rules (files without comments omitted) |
+| `AC-crp-multi-file-comment-count` | Toolbar component (`commentCount` prop — global across all files); FileTabBar (per-file badge) |
+| `AC-crp-multi-file-clear-all` | Flow 12; ConfirmationDialog (clear session variant with multi-file count); File Loaded Screen states |
+| `AC-crp-multi-file-empty-after-remove-last` | Flow 19 step 6 (returns to Empty State when last file removed) |

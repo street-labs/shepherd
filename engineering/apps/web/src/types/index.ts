@@ -4,6 +4,8 @@
 export interface Comment {
   /** Unique identifier. Generated via crypto.randomUUID(). */
   id: string;
+  /** The file this comment belongs to. Links to FileInfo.id. */
+  fileId: string;
   /** First line of the commented range (1-indexed). */
   startLine: number;
   /** Last line of the commented range (1-indexed). Same as startLine for single-line comments. */
@@ -18,6 +20,8 @@ export interface Comment {
 
 /** Metadata about the loaded file. */
 export interface FileInfo {
+  /** Unique identifier. Generated via crypto.randomUUID(). */
+  id: string;
   /** File name, or "Untitled" if pasted without a name. */
   name: string;
   /** Detected or inferred programming language identifier (e.g., "typescript", "python"). */
@@ -35,11 +39,21 @@ export type EditorState =
 
 /** The full application state. */
 export interface AppState {
-  /** The currently loaded file, or null if no file is loaded. */
+  /** The currently active file, or null if no file is loaded. Alias for files[activeFileId]. */
   file: FileInfo | null;
+  /** All loaded files, keyed by file ID. */
+  files: Record<string, FileInfo>;
+  /** Ordered array of file IDs representing tab order. */
+  fileOrder: string[];
+  /** The ID of the currently active file, or null. */
+  activeFileId: string | null;
+  /** Saved scroll positions per file ID. */
+  scrollPositions: Record<string, number>;
+  /** Whether the add-file modal is open. */
+  isAddFileModalOpen: boolean;
   /** All comments, keyed by comment ID for O(1) lookup. */
   comments: Record<string, Comment>;
-  /** Ordered array of comment IDs sorted by startLine then createdAt. */
+  /** Ordered array of comment IDs for the active file, sorted by startLine then createdAt. */
   commentOrder: string[];
   /** The user's preamble text. */
   preamble: string;

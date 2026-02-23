@@ -24,8 +24,8 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
   const renderMode = useAppStore((s) => s.renderMode);
   const isMarkdown = useAppStore((s) => s.isMarkdownFile);
 
-  // Mode-aware comment count
-  const fileCommentCount = useAppStore((s) => Object.keys(s.comments).length);
+  // Mode-aware comment count (file-mode uses commentOrder which is scoped to active file)
+  const fileCommentCount = useAppStore((s) => s.commentOrder.length);
   const diffCommentCount = useAppStore((s) => Object.keys(s.diffComments).length);
   const renderedCommentCount = useAppStore((s) => Object.keys(s.renderedComments).length);
   const renderedDiffCommentCount = useAppStore((s) => Object.keys(s.renderedDiffComments).length);

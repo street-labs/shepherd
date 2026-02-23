@@ -5,7 +5,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Every agent must check this glossary before introducing a new term.** If a concept already has a name here, use it. If you need a new term, add it here first.
 
 ## Code Review Prompt Generator (CRPG)
-**Definition**: The core application of the Shepherd project. A client-side web app that lets developers load a source file, annotate it with inline comments, and generate a structured prompt for AI coding assistants. Available as a local web app and (planned) as a standalone CLI.
+**Definition**: The core application of the Shepherd project. A client-side web app that lets developers load one or more source files, annotate them with inline comments, and generate a single structured prompt for AI coding assistants. Supports multiple files simultaneously in a tabbed interface. Available as a local web app and (planned) as a standalone CLI.
 **Also known as**: CRPG, the app
 **Not to be confused with**: The slash command (which is a launcher for the CRPG, not the CRPG itself)
 
@@ -30,12 +30,12 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Inline comments (which are line-specific)
 
 ## Generated Prompt
-**Definition**: The structured text output automatically produced by the application whenever comments or the preamble change. Aggregates the preamble, full file content with line numbers, and all inline comments in line order. Designed to be copied and pasted into an AI coding assistant. There is no manual generation step — the prompt is always current when comments exist.
-**Also known as**: Aggregated prompt, output prompt
+**Definition**: The structured text output automatically produced by the application whenever comments or the preamble change. Aggregates the preamble and, for each file that has comments, the file content with code snippets paired with their inline comments. When multiple files have comments, the prompt includes a section per file. Designed to be copied and pasted into an AI coding assistant. There is no manual generation step — the prompt is always current when comments exist.
+**Also known as**: Aggregated prompt, output prompt, combined prompt
 **Not to be confused with**: Preamble (which is only one section of the generated prompt)
 
 ## Session
-**Definition**: The current working state of the application: the loaded file, all inline comments, and the preamble. A session exists only in browser memory and is lost on page reload (v1).
+**Definition**: The current working state of the application: all loaded files, all inline comments across those files, and the preamble. A session exists only in browser memory and is lost on page reload (v1). A session can contain multiple files simultaneously.
 **Also known as**: Review session
 **Not to be confused with**: Browser session or authentication session
 
@@ -273,6 +273,16 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Definition**: A spec file with a platform suffix (e.g., `code-review-prompt.macos.md`) that documents how a feature diverges from its base spec on a particular platform. Only covers differences — shared behavior stays in the base spec.
 **Also known as**: Platform variant, suffixed spec
 **Not to be confused with**: Base spec (which covers shared or web-specific behavior)
+## File Tab Bar
+**Definition**: A horizontal tab bar displayed between the toolbar and the main content area when multiple files are loaded. Each tab shows a file name, an optional comment count badge, and a close (X) button. The "+" button at the end opens the file loading modal to add more files. Tabs are ordered by load order.
+**Also known as**: FileTabBar (component name), tab strip
+**Not to be confused with**: Browser tabs (which navigate between pages)
+
+## Active File
+**Definition**: The currently visible file in the code viewer. In a multi-file session, only one file is active at a time. Switching the active file preserves all comments and scroll position for the previously active file. Comments can only be added to the active file.
+**Also known as**: Current file, selected file
+**Not to be confused with**: Loaded files (all files in the session, most of which may be inactive)
+
 <!--
 Entry template:
 
