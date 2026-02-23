@@ -150,8 +150,8 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Line number (used in file view for comment anchoring)
 
 ## Shepherd Review
-**Definition**: A slash command (`/shepherd-review`) that orchestrates a multi-file code review workflow within an AI coding agent conversation. Discovers the changeset of the current branch vs main, filters out uninteresting files, and iterates through the remaining files one by one, invoking the `/shepherd` command for each.
-**Also known as**: Review command, review loop
+**Definition**: A slash command (`/shepherd-review`) that orchestrates a multi-file code review workflow within an AI coding agent conversation. Discovers the changeset of the current branch vs main, filters out uninteresting files, and batch-opens all reviewable files in a single CRPG session via the launcher script's multi-file support.
+**Also known as**: Review command, batch review
 **Not to be confused with**: The `/shepherd` command (which opens a single file), or the CRPG itself (the web app used to annotate files)
 
 ## Changeset
@@ -170,8 +170,8 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: The tip of the base branch (which may have moved forward since the branch was created)
 
 ## Review Iteration Loop
-**Definition**: The interactive cycle in `/shepherd-review` where the agent announces a file, opens it in the CRPG via `/shepherd`, waits for the user to finish, and then moves to the next file. The user controls pace with commands: next, skip, list, quit.
-**Also known as**: Review loop, iteration loop
+**Definition**: The workflow in `/shepherd-review` where the agent discovers the changeset, filters files, prints a changeset overview with per-file context, and batch-opens all reviewable files in the CRPG. The user reviews files at their own pace using the CRPG's tab interface, then clicks Done to return a unified prompt. The agent processes the feedback and presents a completion summary.
+**Also known as**: Review loop, batch-open loop
 **Not to be confused with**: The engineering-QA iteration loop (which is a development process, not a user-facing feature)
 
 ## Slash Command Mode

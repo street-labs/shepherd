@@ -69,6 +69,8 @@ export interface AppState {
   largeFileWarningDismissed: boolean;
   /** Whether a large file warning should be shown. */
   showLargeFileWarning: boolean;
+  /** Maps fileId → absolute file path for server-loaded files. Used to restore filePath on tab switch. */
+  serverFilePaths: Record<string, string>;
 }
 
 /** Display items for the virtualized code viewer. */

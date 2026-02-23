@@ -5,21 +5,22 @@
 
 ## Technical Approach
 
-The `/shepherd-review` command is a Claude Code custom command file -- a markdown prompt that instructs the AI agent to orchestrate a multi-file code review workflow. There is no compiled code, no new npm packages, no server-side logic, and no binaries. The entire implementation is a single prompt file at `.claude/commands/shepherd-review.md`, plus a minor update to `scripts/install-command.sh` for global installation.
+The `/shepherd-review` command is a Claude Code custom command file -- a markdown prompt that instructs the AI agent to orchestrate a multi-file code review workflow. There is no compiled code, no new npm packages, no server-side logic, and no binaries. The core implementation is the prompt file at `.claude/commands/shepherd-review.md`, plus targeted updates to `scripts/shepherd-launch.sh` (multi-file support), `engineering/apps/web/src/hooks/useFileFromUrl.ts` (multi-file URL loading), and `scripts/install-command.sh` (global installation).
 
-The agent executes the prompt by running git commands via `Bash` tool calls, applying filtering logic described in the prompt, presenting results as plain text, and invoking the existing `/shepherd` command for each file. All state (file list, current position, review/skip counts) is tracked in the agent's conversation context -- there is no persistent state.
+The agent executes the prompt by running git commands via `Bash` tool calls, applying filtering logic described in the prompt, reading diffs for context, presenting a changeset overview with per-file summaries, and invoking `shepherd-launch.sh` with all file paths to open a single CRPG session with one tab per file. The iteration loop is replaced with a batch-open + wait-for-done model: all files open at once, the user reviews freely in the CRPG, clicks "Done" to generate a unified multi-file prompt, and the prompt output is returned to the agent via the existing `~/.shepherd/prompt-output.md` file-watcher mechanism. Session state is minimal -- just the file list, counts, and the prompt output.
 
-> Implements: `FR-sr-command-file`, `NFR-sr-no-dependencies`, `NFR-sr-agent-native`
+> Implements: `FR-sr-command-file`, `FR-sr-multi-file-launch`, `NFR-sr-no-dependencies`, `NFR-sr-agent-native`
 
 ### Key Technical Decisions
 
 | Decision | Choice | Rationale |
 |---|---|---|
 | Implementation mechanism | Claude Code custom command (`.claude/commands/shepherd-review.md`) | Same pattern as the existing `/shepherd` command. Zero code, zero dependencies. The agent interprets the prompt and executes shell commands. |
-| State management | Agent conversation context | The iteration loop (current position, counts) lives in the agent's working memory. No files, no dotfiles, no database. Each invocation starts fresh (`FR-sr-no-args`). |
+| State management | Agent conversation context (minimal) | The session state is the file list, changeset/excluded/reviewable counts, and the prompt output from the CRPG. No iteration index, no reviewed/skipped counters. Each invocation starts fresh. |
 | File filtering | Prompt-embedded pattern lists | The exclusion rules are written directly in the command file as lists of patterns. The agent applies them by evaluating file paths -- no regex engine or external tool needed. |
 | Git operations | `git rev-parse`, `git merge-base`, `git diff --name-status` | Standard cross-platform git commands. No git libraries, no wrappers. The agent runs them via `Bash` and parses the output. |
-| Per-file review | Invokes existing `/shepherd` command | The agent calls `/shepherd <absolute-path>` for each file, reusing all existing CRPG infrastructure. No duplication of functionality. |
+| Batch file open | Invokes `shepherd-launch.sh` with all file paths | The agent calls `shepherd-launch.sh` with multiple absolute paths. The script constructs a URL with multiple `file` query parameters and opens a single CRPG session with one tab per file. Reuses all existing CRPG infrastructure. |
+| Prompt return | File-watcher on `~/.shepherd/prompt-output.md` | After opening the browser, the agent cleans up stale prompt output and polls for `~/.shepherd/prompt-output.md` to appear. Same mechanism as `/shepherd`. |
 
 ---
 
@@ -51,19 +52,18 @@ The command file is organized into these sections:
 
 1. **Header** -- Command name, allowed tools, argument handling.
 2. **Step 1: Git repository check** -- Instructions to verify the working directory is a git repo.
-3. **Step 2: Parse scope argument** -- Determine which git commands to run.
-4. **Step 3: Changeset detection** -- Find the merge base and run the appropriate `git diff`.
+3. **Step 2: Get repository root** -- Run `git rev-parse --show-toplevel`.
+4. **Step 3: Parse scope argument and changeset detection** -- Determine which git commands to run based on `$ARGUMENTS`, find the merge base, run the appropriate `git diff`.
 5. **Step 4: Filtering** -- The complete exclusion pattern list and instructions to apply them.
-6. **Step 5: File list display** -- Exact output format with sorting rules.
-7. **Step 6: Pre-iteration prompt** -- Wait for "go" or "quit".
-8. **Step 7: Iteration loop** -- Per-file announcement, `/shepherd` invocation, user prompt, input handling.
-9. **Step 8: Completion summary** -- Exact output format with counters.
+6. **Step 5: Read diffs for context** -- Read the diffs for all reviewable files to generate per-file summaries.
+7. **Step 6: Changeset overview and file list** -- Present the changeset overview with per-file summaries, the prioritized file list, and ask to proceed ("go" or "quit").
+8. **Step 7: Batch-open all files** -- Invoke `shepherd-launch.sh` with all file paths, clean up stale `~/.shepherd/prompt-output.md`, wait for the prompt-output file to appear (file-watcher pattern).
+9. **Step 8: Completion summary and feedback handoff** -- Display summary (total opened, filtered, files with comments) and present the feedback action options (apply, discuss, save, nothing).
 10. **Error messages** -- Exact wording for each error case.
-11. **User input recognition** -- Table of canonical commands and synonyms.
 
 ### Allowed Tools
 
-The command file declares `Allowed tools: Bash` at the top. The agent needs `Bash` to run git commands. It does not need `Read`, `Write`, `Edit`, or any other tools. The `/shepherd` invocation happens via the agent's ability to invoke other slash commands (which is a built-in capability, not a tool).
+The command file declares `Allowed tools: Bash, Read` at the top. The agent needs `Bash` to run git commands and invoke `shepherd-launch.sh`. It needs `Read` to read file diffs for generating per-file context summaries in the changeset overview. It does not need `Write`, `Edit`, or any other tools.
 
 ---
 
@@ -142,13 +142,13 @@ This lists files that are new (not yet `git add`ed) but not gitignored. Each fil
 
 ### Getting the repository root
 
-The agent also needs the repository root to construct absolute paths for `/shepherd` invocations:
+The agent also needs the repository root to construct absolute paths for `shepherd-launch.sh` invocations:
 
 ```bash
 git rev-parse --show-toplevel
 ```
 
-This returns the absolute path to the repository root (e.g., `/Users/dev/my-project`). The agent stores this and uses it later to construct `<repo-root>/<relative-path>` for each file.
+This returns the absolute path to the repository root (e.g., `/Users/dev/my-project`). The agent stores this and uses it later to construct `<repo-root>/<relative-path>` for each file when invoking `shepherd-launch.sh`.
 
 > Implements: `AC-sr-invokes-shepherd`
 
@@ -250,62 +250,59 @@ These counts are used in the file list display and the completion summary.
 
 ## Sorting
 
-> Implements: `AC-sr-sorted-file-list`
+> Implements: `AC-sr-sorted-file-list`, `FR-sr-priority-ordering`
 
-After filtering, the agent sorts the file list for display. The sorting order is:
+After filtering, the agent sorts the file list by review importance rather than alphabetically. The priority ordering determines both the displayed list order and the CRPG tab order. The ordering uses a tiered heuristic:
 
-1. Split each file path into directory components and a filename.
-2. Root-level files (no directory prefix) sort before any files inside directories.
-3. Directories sort alphabetically among themselves (case-insensitive).
-4. Files within the same directory sort alphabetically by filename (case-insensitive).
-5. Files in a parent directory sort before files in its subdirectories.
+1. **Core source code** (application logic, components, business logic) -- most important
+2. **Configuration that affects behavior** (build config, CI, command definitions)
+3. **Specs and documentation** (markdown specs, design docs)
+4. **Supporting files** (indexes, glossaries, changelogs)
+5. **Test files** -- least urgent for manual review
 
-The prompt includes an explicit example so the agent applies the sorting correctly:
+Within each tier, files are sorted alphabetically by path (case-insensitive) as a tiebreaker.
 
-Given: `src/utils.ts`, `src/app.tsx`, `lib/helpers.ts`, `README.md`, `src/components/Button.tsx`
+The prompt includes guidance and examples so the agent applies the priority sorting correctly. The agent uses its understanding of file paths, extensions, and directory names to classify files into tiers (e.g., files in `src/` are core source, files ending in `.test.ts` or in `tests/` are test files, `.md` files are documentation, etc.).
 
-Sorted: `README.md`, `lib/helpers.ts`, `src/app.tsx`, `src/components/Button.tsx`, `src/utils.ts`
+Given: `src/utils.ts`, `src/app.tsx`, `README.md`, `tests/utils.test.ts`, `vite.config.ts`
+
+Sorted: `src/app.tsx`, `src/utils.ts`, `vite.config.ts`, `README.md`, `tests/utils.test.ts`
 
 ---
 
-## Iteration State
+## Session State
 
 > Implements: `FR-sr-iteration-loop`, `FR-sr-completion-summary`
 
-The agent tracks the following state during the iteration loop. All state lives in the agent's conversation context (working memory). There is no persistent storage.
+The agent tracks minimal state during the review session. All state lives in the agent's conversation context (working memory). There is no persistent storage and no iteration index.
 
 | State Variable | Type | Description |
 |---|---|---|
-| `file_list` | array of `{path, change_type}` | The sorted, filtered list of files to review |
-| `current_index` | integer | 0-based index of the current file in the iteration |
-| `reviewed_count` | integer | Files the user advanced past with "next"/"done" (where `/shepherd` was invoked) |
-| `skipped_count` | integer | Files the user explicitly skipped |
-| `total_reviewable` | integer | Length of `file_list` |
+| `file_list` | array of `{path, change_type}` | The sorted (priority-ordered), filtered list of files to review |
 | `total_changeset` | integer | Total files from git diff (excluding deletes) |
 | `excluded_count` | integer | Files removed by filtering |
+| `total_reviewable` | integer | Length of `file_list` |
+| `prompt_output` | string | The content of `~/.shepherd/prompt-output.md` returned by the CRPG when the user clicks "Done" |
 
-### State Transitions
+### Session Flow
 
-At each file in the iteration:
+There is no per-file iteration loop. The flow is:
 
-1. Agent announces the file (`[position/total] path [change-type]`).
-2. Agent invokes `/shepherd <absolute-path>`.
-3. Agent displays the user prompt with options.
-4. User responds:
-   - **"next"/"done"/"continue"/"n"**: `reviewed_count += 1`, `current_index += 1`
-   - **"skip"/"pass"**: `skipped_count += 1`, `current_index += 1`
-   - **"list"**: Re-display the file list with current position; do not change any counters or index.
-   - **"quit"/"stop"/"exit"/"q"**: Exit the loop. Compute `remaining = total_reviewable - current_index`. The current file counts as reviewed (since `/shepherd` was already invoked), so `reviewed_count += 1`.
+1. Agent presents the changeset overview with per-file summaries and the prioritized file list.
+2. User confirms they want to proceed.
+3. Agent invokes `shepherd-launch.sh` with all file paths (as absolute paths).
+4. Agent cleans up stale `~/.shepherd/prompt-output.md` (deletes if exists).
+5. Agent waits (polls) for `~/.shepherd/prompt-output.md` to appear.
+6. When the file appears, agent reads it and stores the content as `prompt_output`.
+7. Agent displays the completion summary and feedback handoff.
 
-When `current_index >= total_reviewable`, the loop ends naturally.
+The user controls the review entirely within the CRPG UI -- navigating tabs freely, adding comments on whichever files they choose, and clicking "Done" once when finished.
 
-### Skip Behavior
+### Skip and Quit Behavior
 
-Per the design spec, `/shepherd` is invoked **before** the user prompt. So when the user says "skip," the file has already been opened in the CRPG. The "skip" action is a bookkeeping distinction -- it counts differently in the summary. The prompt must make this clear to the agent.
+There are no explicit "skip" or "quit" commands during the review. The user simply reviews whichever files they want in the CRPG and clicks "Done" at any point. Files without comments are implicitly skipped. The user can end the session at any time by clicking "Done" -- there is no concept of "remaining" files.
 
-However, the agent should still advance to the file announcement and invoke `/shepherd` before presenting the prompt. The "skip" response tells the agent to record the file as "skipped" rather than "reviewed" for the summary.
-
-> Implements: `AC-sr-skip-file`, `AC-sr-quit-early`
+> Implements: `AC-sr-skip-file`, `AC-sr-quit-early`, `AC-sr-batch-open`, `AC-sr-unified-prompt`
 
 ---
 
@@ -366,10 +363,10 @@ The `--force` flag applies to all commands (if set, it overwrites all existing f
 | No merge base found | `git merge-base HEAD main` returns non-zero | `No changes found relative to main.` | Yes |
 | Empty diff (no changes) | `git diff --name-status` produces no output | `No changes found relative to main.` | Yes |
 | All files filtered | Filter step produces zero reviewable files | `No reviewable files found. All <N> changed files were filtered out (lockfiles, generated, binary).` | Yes |
-| User cancels before starting | User says "quit"/"cancel" at the pre-iteration prompt | `Review cancelled.` | Yes |
-| `/shepherd` fails for a file | `/shepherd` reports an error (e.g., file deleted between detection and iteration) | Agent displays the error from `/shepherd` as-is, then shows the user prompt. File counts as "reviewed" in the summary. | No -- continues |
-| Unrecognized user input (during iteration) | User input does not match any recognized command | `I did not understand that. Your options are: next, skip, list, quit` (with full menu) | No -- re-prompt |
-| Unrecognized user input (pre-iteration) | User input does not match "go" or "quit" synonyms | `I did not understand that. Say "go" to begin the review, or "quit" to cancel.` | No -- re-prompt |
+| User cancels before starting | User says "quit"/"cancel" at the pre-launch prompt | `Review cancelled.` | Yes |
+| Launch script fails | `shepherd-launch.sh` exits with non-zero status | Agent displays the error output from the launch script and stops. | Yes |
+| Unrecognized argument | `$ARGUMENTS` is not empty and does not match `--staged` or `--unstaged` | Agent displays a usage message: `Usage: /shepherd-review [--staged | --unstaged]` | Yes |
+| Unrecognized user input (pre-launch) | User input does not match "go" or "quit" synonyms | `I did not understand that. Say "go" to begin the review, or "quit" to cancel.` | No -- re-prompt |
 
 ### Git Command Failures
 
@@ -377,21 +374,54 @@ If any git command fails unexpectedly (e.g., git is not installed, or the reposi
 
 ---
 
-## Interaction with `/shepherd`
+## Multi-File Launch
 
-> Implements: `AC-sr-invokes-shepherd`
+> Implements: `FR-sr-multi-file-launch`, `AC-sr-invokes-shepherd`, `AC-sr-batch-open`
 
-For each file in the iteration, the agent invokes the existing `/shepherd` slash command. The invocation pattern is:
+Instead of invoking `/shepherd` per file, the command opens all reviewable files in a single CRPG session by calling `shepherd-launch.sh` with multiple file path arguments.
 
+### Invocation Pattern
+
+The agent invokes `shepherd-launch.sh` via the `Bash` tool:
+
+```bash
+<repo-root>/scripts/shepherd-launch.sh <abs-path-1> <abs-path-2> ... <abs-path-N>
 ```
-/shepherd <absolute-path>
-```
 
-Where `<absolute-path>` is constructed as `<repo-root>/<relative-path>` using the repository root obtained from `git rev-parse --show-toplevel`.
+Where each `<abs-path>` is constructed as `<repo-root>/<relative-path>` using the repository root obtained from `git rev-parse --show-toplevel`. The paths are passed in priority order (matching `FR-sr-priority-ordering`), which determines the CRPG tab order.
 
-The agent does not use the `Bash` tool to invoke `/shepherd`. Instead, it invokes the slash command directly as part of its conversation -- the same way a user would type `/shepherd path/to/file`. The `/shepherd` command handles server management, browser opening, and error reporting independently.
+### Changes to `shepherd-launch.sh`
 
-After `/shepherd` completes (its output appears in the conversation), the agent displays the iteration prompt with `next`, `skip`, `list`, and `quit` options.
+The launch script currently accepts a single file path. It needs to be updated to accept multiple file path arguments:
+
+1. **Argument parsing**: Accept one or more positional arguments after the `--fresh` flag. Validate each file (existence, readability, non-binary) the same way the current single-file path is validated. If any file fails validation, report the error for that file and skip it (do not abort the entire launch).
+2. **URL construction**: Construct a URL with multiple `file` query parameters, one per file. Each path is URL-encoded independently. Example: `http://localhost:5173?file=%2Fpath%2Fto%2Ffile1.ts&file=%2Fpath%2Fto%2Ffile2.ts&file=%2Fpath%2Fto%2Ffile3.ts`
+3. **Server management**: Unchanged -- check/start the dev server the same way as today.
+4. **Browser open**: Unchanged -- open the constructed URL in the default browser.
+5. **Summary output**: Updated to report the number of files opened (e.g., `Opened CRPG at http://localhost:5173 — loaded 5 files (reusing server)`).
+
+### Changes to `useFileFromUrl.ts`
+
+The web app's `useFileFromUrl` hook currently reads a single `?file=<path>` query parameter. It needs to be updated to read multiple `file` parameters:
+
+1. **Read all `file` params**: Use `params.getAll('file')` instead of `params.get('file')` to retrieve all file paths from the URL.
+2. **Load first file**: Call `loadFile(content, fileName, language)` for the first file (this clears any existing session and sets up the initial file).
+3. **Add remaining files**: Call `addFile(content, fileName, language)` for each subsequent file (this adds them as additional tabs without clearing the session).
+4. **Tab order**: Files are loaded in URL parameter order, which matches the priority ordering from `FR-sr-priority-ordering`. The first `file` param becomes the active tab.
+5. **URL cleanup**: After all files are loaded, clean all `file` params from the URL (same `replaceState` pattern as today).
+6. **Error handling**: If any individual file fails to load (e.g., file not found), log the error and continue loading the remaining files. The CRPG should open with whatever files loaded successfully.
+
+### Prompt Output Mechanism
+
+After opening the browser, the agent:
+
+1. **Cleans up stale output**: Deletes `~/.shepherd/prompt-output.md` if it exists from a previous session.
+2. **Waits for output**: Polls for `~/.shepherd/prompt-output.md` to appear. This is the same file-watcher pattern used by the `/shepherd` command. The CRPG writes this file when the user clicks "Done" -- it already handles multi-file prompts.
+3. **Reads the output**: When the file appears, the agent reads its content. This is the unified multi-file prompt covering all files that received comments.
+
+The prompt-output mechanism is unchanged from `/shepherd` -- the CRPG already generates multi-file prompts and writes them to `~/.shepherd/prompt-output.md`.
+
+> Implements: `FR-sr-feedback-collection`, `AC-sr-unified-prompt`
 
 ---
 
@@ -402,38 +432,45 @@ The actual `.claude/commands/shepherd-review.md` file will contain the following
 ```
 Orchestrate a multi-file code review using the CRPG.
 
-Allowed tools: Bash
+Allowed tools: Bash, Read
 
 ## Instructions
 
 You are orchestrating a multi-file code review. Follow these steps exactly.
 
 ### Step 1: Verify git repository
-[Run git rev-parse, handle failure]
+[Run git rev-parse --is-inside-work-tree, handle failure]
 
 ### Step 2: Get repository root
 [Run git rev-parse --show-toplevel]
 
-### Step 3: Find merge base and changeset
-[Run git merge-base, run git diff --name-status, parse output]
+### Step 3: Parse scope argument and detect changeset
+[Parse $ARGUMENTS for --staged/--unstaged, run git merge-base, run
+ appropriate git diff --name-status, parse output, merge untracked files]
 
 ### Step 4: Filter files
 [Complete exclusion pattern list, filtering instructions]
 
-### Step 5: Sort and display file list
-[Sorting rules, exact output format, wait for go/quit]
+### Step 5: Read diffs for context
+[Read diffs for all reviewable files to generate per-file summaries]
 
-### Step 6: Iteration loop
-[Per-file: announce, invoke /shepherd, display prompt, handle input]
+### Step 6: Changeset overview and file list
+[Present changeset overview paragraph, per-file context summaries,
+ prioritized file list, exclusion count, wait for go/quit]
 
-### Step 7: Completion summary
-[Exact output format with counters]
+### Step 7: Batch-open all files
+[Invoke shepherd-launch.sh with all absolute file paths,
+ delete stale ~/.shepherd/prompt-output.md,
+ poll for ~/.shepherd/prompt-output.md to appear,
+ read the prompt output]
+
+### Step 8: Completion summary and feedback handoff
+[Display summary: total opened, filtered, files with comments.
+ If prompt has feedback, present action options: apply, discuss, save, nothing.
+ If no feedback, note and end session.]
 
 ### Error messages
 [Exact wording for each error case]
-
-### User input recognition
-[Table of commands and synonyms]
 ```
 
 The prompt must be self-contained -- the agent should not need to read any other files to execute the command. All rules, patterns, and formats are embedded in the command file.
@@ -452,7 +489,7 @@ The prompt must be self-contained -- the agent should not need to read any other
 | Agent filtering + sorting | ~0ms (agent reasoning) | No shell commands; the agent applies rules in its reasoning |
 | **Total to file list display** | **< 1 second** | Well within the 3-second budget |
 
-The per-file iteration speed depends on the `/shepherd` command's own performance (server startup, browser opening), which is outside this command's control.
+The batch-open speed depends on the launch script's server startup and browser opening, which are outside this command's control. Once the CRPG is open, the review pace is entirely user-driven.
 
 ---
 
@@ -461,60 +498,79 @@ The per-file iteration speed depends on the `/shepherd` command's own performanc
 New and modified files:
 
 ```
-shepherd-2/                                  (project root)
+shepherd/                                    (project root)
   .claude/
     commands/
       shepherd.md                            EXISTING -- no changes
       shepherd-review.md                     NEW -- the review orchestration command
 
   scripts/
+    shepherd-launch.sh                       MODIFIED -- accept multiple file paths, construct multi-file URL
     install-command.sh                       MODIFIED -- add shepherd-review.md symlink
 
   engineering/
+    apps/web/src/hooks/
+      useFileFromUrl.ts                      MODIFIED -- read multiple ?file= params, load via loadFile + addFile
     shepherd-review.md                       NEW -- this spec
 ```
 
-No new source code files. No modifications to the CRPG web app. No new dependencies.
+The changes touch the launch script, the web app's URL-loading hook, the command file, and the install script. No new npm packages or binaries.
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Create the command file (primary artifact)
+### Step 1: Update `shepherd-launch.sh` to accept multiple file paths
+
+Modify `scripts/shepherd-launch.sh` to accept multiple positional arguments (file paths). Each path is validated independently. The URL is constructed with multiple `file` query parameters. The summary message reports the total file count.
+
+**Slug coverage**: `FR-sr-multi-file-launch`
+
+### Step 2: Update `useFileFromUrl.ts` to load multiple `?file=` params
+
+Modify `engineering/apps/web/src/hooks/useFileFromUrl.ts` to read all `file` parameters from the URL using `getAll('file')`. Load the first file via `loadFile()` (clears session) and subsequent files via `addFile()` (adds tabs). Handle per-file errors gracefully.
+
+**Slug coverage**: `FR-sr-multi-file-launch`, `AC-sr-batch-open`
+
+### Step 3: Create the command file (primary artifact)
 
 Create `.claude/commands/shepherd-review.md` with the complete prompt instructions. This is the core implementation. The file must:
 
-- Declare `Allowed tools: Bash` at the top.
+- Declare `Allowed tools: Bash, Read` at the top.
 - Contain all git commands to run, with exact command strings.
+- Handle `$ARGUMENTS` for `--staged` / `--unstaged` scope (`FR-sr-scope-argument`).
 - Contain the complete exclusion pattern list from `FR-sr-file-filtering`.
-- Specify the exact output formats from the design spec (file list, file announcement, user prompt, completion summary, error messages).
-- Specify the user input recognition table (commands and synonyms).
-- Handle all error cases (not a git repo, no changes, all filtered, user cancel).
-- Instruct the agent to invoke `/shepherd <absolute-path>` for each file.
-- Track iteration state (position, reviewed/skipped counts) in the conversation context.
+- Specify the priority sorting heuristic from `FR-sr-priority-ordering`.
+- Instruct the agent to read diffs and generate per-file context summaries (`FR-sr-per-file-context`).
+- Present the changeset overview with per-file summaries and file list (`FR-sr-changeset-overview`, `FR-sr-file-list-display`).
+- Invoke `shepherd-launch.sh` with all file paths (`FR-sr-multi-file-launch`).
+- Clean up stale prompt output, wait for `~/.shepherd/prompt-output.md`, read it.
+- Display the completion summary and feedback handoff (`FR-sr-completion-summary`).
+- Handle all error cases (not a git repo, no changes, all filtered, user cancel, launch failure, unrecognized argument).
 
-**Slug coverage**: `FR-sr-command-file`, `FR-sr-changeset-detection`, `FR-sr-file-filtering`, `FR-sr-file-list-display`, `FR-sr-iteration-loop`, `FR-sr-completion-summary`, `FR-sr-no-args`, `FR-sr-git-required`, `NFR-sr-agent-native`, `NFR-sr-no-dependencies`, `NFR-sr-cross-platform`, `NFR-sr-startup-speed`, `AC-sr-happy-path`, `AC-sr-filters-lockfiles`, `AC-sr-filters-generated`, `AC-sr-filters-binary`, `AC-sr-includes-config`, `AC-sr-excludes-deleted`, `AC-sr-skip-file`, `AC-sr-quit-early`, `AC-sr-no-changes`, `AC-sr-all-filtered`, `AC-sr-not-git-repo`, `AC-sr-invokes-shepherd`, `AC-sr-list-command`, `AC-sr-completion-summary`, `AC-sr-sorted-file-list`
+**Slug coverage**: `FR-sr-command-file`, `FR-sr-changeset-detection`, `FR-sr-file-filtering`, `FR-sr-file-list-display`, `FR-sr-iteration-loop`, `FR-sr-completion-summary`, `FR-sr-scope-argument`, `FR-sr-git-required`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`, `FR-sr-priority-ordering`, `FR-sr-feedback-collection`, `NFR-sr-agent-native`, `NFR-sr-no-dependencies`, `NFR-sr-cross-platform`, `NFR-sr-startup-speed`, `AC-sr-happy-path`, `AC-sr-filters-lockfiles`, `AC-sr-filters-generated`, `AC-sr-filters-binary`, `AC-sr-includes-config`, `AC-sr-excludes-deleted`, `AC-sr-skip-file`, `AC-sr-quit-early`, `AC-sr-no-changes`, `AC-sr-all-filtered`, `AC-sr-not-git-repo`, `AC-sr-invokes-shepherd`, `AC-sr-list-command`, `AC-sr-completion-summary`, `AC-sr-sorted-file-list`, `AC-sr-batch-open`, `AC-sr-unified-prompt`
 
-### Step 2: Update the install script
+### Step 4: Update the install script
 
 Modify `scripts/install-command.sh` to loop over both `shepherd.md` and `shepherd-review.md`. Use the same check-and-symlink logic for each file. Update help text and success messages.
 
 **Slug coverage**: `FR-sr-install`, `AC-sr-install-global`
 
-### Step 3: Manual testing
+### Step 5: Manual testing
 
 Test the command by running `/shepherd-review` in a Claude Code session on a branch with changes. Verify:
 
 1. Git repository detection works (run from a git repo and from a non-git directory).
 2. Changeset detection finds the correct files (compare against manual `git diff --name-only`).
 3. Filtering excludes lockfiles, generated files, and binaries.
-4. File list displays in the correct sorted order.
-5. Iteration loop invokes `/shepherd` for each file and waits for user input.
-6. "skip", "quit", "list" commands work correctly.
-7. Completion summary shows correct counts.
-8. Edge cases: no changes, all files filtered, user cancel before starting.
+4. File list displays in the correct priority-sorted order.
+5. `--staged` and `--unstaged` scope arguments work correctly.
+6. All files open in a single CRPG session with one tab per file in priority order.
+7. The prompt output is returned via `~/.shepherd/prompt-output.md`.
+8. Completion summary shows correct counts and feedback handoff works.
+9. Edge cases: no changes, all files filtered, user cancel before start, launch script failure.
 
-### Step 4: Iterate on prompt wording
+### Step 6: Iterate on prompt wording
 
 After initial testing, refine the prompt instructions in the command file based on observed agent behavior. Prompt engineering is iterative -- the first version may need adjustments to produce the exact output formats or handle edge cases reliably.
 
@@ -528,12 +584,17 @@ After initial testing, refine the prompt instructions in the command file based 
 |---|---|
 | `FR-sr-changeset-detection` | Git Commands section (merge-base + diff --name-status); Command file Step 3 |
 | `FR-sr-file-filtering` | Filtering Logic section (complete exclusion/inclusion pattern lists); Command file Step 4 |
-| `FR-sr-file-list-display` | Sorting section; Command file Step 5; output format from design spec embedded in prompt |
-| `FR-sr-iteration-loop` | Iteration State section; Command file Step 6; per-file `/shepherd` invocation |
-| `FR-sr-completion-summary` | Iteration State section (counters); Command file Step 7 |
+| `FR-sr-priority-ordering` | Sorting section (tiered priority heuristic); determines file list order and CRPG tab order |
+| `FR-sr-changeset-overview` | Command file Step 5-6; agent reads diffs and generates changeset overview paragraph |
+| `FR-sr-file-list-display` | Sorting section; Command file Step 6; output format from design spec embedded in prompt |
+| `FR-sr-per-file-context` | Command file Step 5-6; per-file summaries presented in changeset overview |
+| `FR-sr-iteration-loop` | Session State section; Command file Step 7; batch-open via `shepherd-launch.sh` |
+| `FR-sr-feedback-collection` | Multi-File Launch section (prompt output mechanism); Command file Step 7-8 |
+| `FR-sr-completion-summary` | Session State section; Command file Step 8; summary + feedback handoff |
 | `FR-sr-command-file` | Command File Design section; `.claude/commands/shepherd-review.md` |
+| `FR-sr-multi-file-launch` | Multi-File Launch section; changes to `shepherd-launch.sh` and `useFileFromUrl.ts` |
 | `FR-sr-install` | Install Script Update section; `scripts/install-command.sh` modification |
-| `FR-sr-no-args` | Command File Design section (no `$ARGUMENTS`); prompt header |
+| `FR-sr-scope-argument` | Scope Argument section; `$ARGUMENTS` parsing for `--staged`/`--unstaged` |
 | `FR-sr-git-required` | Git Commands section (Command 1: verify git repo); Error Handling table |
 
 ### Non-Functional Requirements
@@ -549,19 +610,21 @@ After initial testing, refine the prompt instructions in the command file based 
 
 | Slug | Engineering Coverage |
 |---|---|
-| `AC-sr-happy-path` | Full flow: Git Commands -> Filtering -> Sorting -> Iteration -> Summary |
+| `AC-sr-happy-path` | Full flow: Git Commands -> Filtering -> Sorting -> Changeset Overview -> Batch Open -> Wait -> Summary |
 | `AC-sr-filters-lockfiles` | Filtering Logic -- Lockfiles exclusion list |
 | `AC-sr-filters-generated` | Filtering Logic -- Generated files exclusion list |
 | `AC-sr-filters-binary` | Filtering Logic -- Binary files exclusion list |
 | `AC-sr-includes-config` | Filtering Logic -- Inclusion Rules override list |
 | `AC-sr-excludes-deleted` | Git Commands -- status code `D` excluded from file list |
-| `AC-sr-skip-file` | Iteration State -- skip behavior and counting |
-| `AC-sr-quit-early` | Iteration State -- quit transitions and remaining count |
+| `AC-sr-skip-file` | Session State -- implicit skip (files without comments in CRPG) |
+| `AC-sr-quit-early` | Session State -- user clicks "Done" at any point; no concept of "remaining" |
 | `AC-sr-no-changes` | Git Commands -- empty diff detection; Error Handling |
 | `AC-sr-all-filtered` | Filtering Logic -- zero-files-remaining case; Error Handling |
 | `AC-sr-not-git-repo` | Git Commands -- Command 1 failure; Error Handling |
-| `AC-sr-invokes-shepherd` | Interaction with /shepherd section; absolute path construction |
-| `AC-sr-list-command` | Iteration State -- "list" re-displays file list without changing position |
-| `AC-sr-completion-summary` | Iteration State -- counter definitions; output format from design spec |
-| `AC-sr-sorted-file-list` | Sorting section -- directory-first alphabetical sort rules |
+| `AC-sr-invokes-shepherd` | Multi-File Launch section; `shepherd-launch.sh` invocation with all file paths |
+| `AC-sr-list-command` | Changeset overview with per-file summaries visible in conversation history |
+| `AC-sr-completion-summary` | Session State -- summary with total opened, filtered, files with comments |
+| `AC-sr-sorted-file-list` | Sorting section -- priority-based sort; tab order matches displayed list |
+| `AC-sr-batch-open` | Multi-File Launch section -- all files open as tabs in a single CRPG session |
+| `AC-sr-unified-prompt` | Multi-File Launch section -- CRPG generates one multi-file prompt via prompt-output.md |
 | `AC-sr-install-global` | Install Script Update section -- symlink for `shepherd-review.md` |

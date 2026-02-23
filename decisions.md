@@ -148,7 +148,7 @@ This log provides **historical context for how the project evolved** — why cho
 **Alternatives considered**: Shell script wrapper (would need to handle interactive I/O with the agent, awkward), Node.js CLI (unnecessary complexity — the agent can run git commands directly), compiled binary (massive overkill for a conversational workflow).
 **Rationale**: The agent is already the execution environment. It can run `git diff`, parse output, apply filtering rules, track state in conversation context, and invoke `/shepherd` for each file. A prompt file achieves all of this with zero dependencies, zero compilation, and zero additional infrastructure. The existing `/shepherd` command proves this pattern works.
 **Consequences**: The command's behavior depends on how well the agent interprets the prompt instructions. Exact formatting may vary slightly between invocations. This is acceptable for v1 — the command orchestrates a human-in-the-loop review, so minor output variations are tolerable.
-**Slug references**: `FR-sr-command-file`, `FR-sr-no-args`, `NFR-sr-no-dependencies`, `NFR-sr-agent-native`
+**Slug references**: `FR-sr-command-file`, `FR-sr-scope-argument`, `NFR-sr-no-dependencies`, `NFR-sr-agent-native`
 
 ## 2026-02-21 -- Path-based file filtering only (no content reading)
 **Context**: The review command needs to filter out "uninteresting" files from the changeset. Could inspect file contents (e.g., read bytes to detect binary) or use path patterns.
@@ -268,6 +268,14 @@ This log provides **historical context for how the project evolved** — why cho
 **Decision**: When multiple files are dropped simultaneously, all files are loaded. Binary files are rejected per-file with individual error toasts. A summary toast shows how many files were loaded and how many were skipped.
 **Rationale**: The original single-file restriction existed because the app only supported one file. Now that it supports multiple files, the natural behavior is to load all of them.
 **Impacts**: `product/code-review-prompt.md` (updated `FR-crp-file-load`), `design/code-review-prompt.md` (updated FileDropZone), `engineering/code-review-prompt.md` (updated drop handler).
+
+## D-sr-batch-open -- Switch from sequential iteration to batch-open model
+- **Date**: 2026-02-22
+- **Context**: The `/shepherd-review` command originally iterated through files one-by-one, calling `/shepherd` for each file and waiting for the user to respond before opening the next. With the CRPG now supporting multi-file tabs, this sequential approach was unnecessarily slow.
+- **Decision**: Replace the sequential one-file-at-a-time iteration with a batch-open model that opens all reviewable files at once in a single CRPG session.
+- **Rationale**: The CRPG already has full multi-file support (tabs, per-file comments, multi-file prompt generation). Batch-opening eliminates the awkward agent-mediated iteration and lets the user control their review entirely within the CRPG UI. This is simpler for the user, faster, and produces a single unified prompt.
+- **Alternatives considered**: (1) Keep sequential iteration but add a "batch mode" flag. Rejected: two modes adds complexity and the sequential mode has no clear advantage. (2) Open files via a file list API endpoint. Rejected: URL parameters are simpler and don't require new server infrastructure.
+- **Affects**: `product/shepherd-review.md`, `design/shepherd-review.md`, `engineering/shepherd-review.md`, `qa/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `scripts/shepherd-launch.sh`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
 
 <!--
 Entry template:

@@ -8,9 +8,9 @@ Suggested arguments: [--staged | --unstaged]
 
 ## Instructions
 
-You are orchestrating a guided code review. The user has invoked `/shepherd-review` to walk through all interesting changed files, one at a time, opening each in the Code Review Prompt Generator (CRPG) via the `/shepherd` command.
+You are orchestrating a guided code review. The user has invoked `/shepherd-review` to open all interesting changed files at once in the Code Review Prompt Generator (CRPG), using the batch-open feature of `shepherd-launch.sh`.
 
-You provide context at every step: a changeset overview up front, per-file summaries before opening each file, and feedback collection throughout. At the end, all accumulated feedback is presented together.
+You provide context up front: a changeset overview with per-file summaries, then open all files in one go. After the user finishes reviewing in the CRPG, you collect the prompt output and present feedback options.
 
 Follow these steps in order.
 
@@ -132,12 +132,12 @@ git diff $MERGE_BASE -- <path>
 
 Read each diff output. You will use this to:
 1. Write the changeset overview (Step 6).
-2. Write per-file context summaries (Step 7).
+2. Write per-file context summaries (Step 6).
 3. Rank files by importance (Step 6).
 
 ---
 
-### Step 6: Changeset overview and prioritized file list
+### Step 6: Changeset overview and batch open
 
 **6a. Prioritize files by review importance.**
 
@@ -150,146 +150,127 @@ Rank files using these heuristics (highest priority first):
 
 Within each tier, rank by the size/significance of the change (larger diffs first). Use your judgment — the goal is that the reviewer sees the most important files first.
 
-**6b. Display the changeset overview and file list.**
+**6b. Display the changeset overview with per-file summaries.**
 
 First, write a brief (2-4 sentence) summary of the overall changeset: what is being changed, what's the theme or purpose of these changes as a whole. This helps the reviewer orient before diving into individual files.
 
-Then display the file list:
+Then display the file list with a per-file context summary for each file (1-2 sentences describing what changed). Be specific — mention function names, sections, or structural changes:
 
 ```
 Reviewing: <scope-label>
 
 <changeset overview paragraph>
 
-Found <N> files to review.
+Found <N> files to review (<M> filtered out):
 
   1. <relative-path>  [<change-type>]
+     <per-file context summary>
+
   2. <relative-path>  [<change-type>]
+     <per-file context summary>
+
   ...
 
-<M> files excluded (lockfiles, generated, binary).
-
-Ready to start? Say "go" to begin, or "quit" to cancel.
+Ready to open all files in the CRPG.
 ```
 
 Where `<scope-label>` is: `all changes vs main`, `staged changes only`, or `unstaged changes only`.
 
-Files are listed in priority order (not alphabetical). Position numbers are right-aligned for 10+ files. The exclusion line is omitted if zero.
+Files are listed in priority order (not alphabetical). Position numbers are right-aligned for 10+ files. The "filtered out" parenthetical is omitted if zero.
 
 Use the `AskUserQuestion` tool to let the user choose:
 
-- **"Start review"** (description: "Begin reviewing files one by one in the CRPG") → proceed to Step 7
-- **"Cancel"** (description: "Skip the review for now") → output `Review cancelled.` and stop
+- **"Go"** (description: "Open all files in the CRPG for review") → proceed to Step 7
+- **"Quit"** (description: "Cancel the review") → output `Review cancelled.` and stop
 
 ---
 
-### Step 7: Iteration loop
+### Step 7: Open all files in CRPG and wait for review
 
-Initialize an empty feedback collection. This will accumulate comments from across all files.
+**7a. Clean stale prompt output.**
 
-For each file in the prioritized list:
+Remove any previous prompt output file so we can detect a fresh one:
 
-**7a. Announce the file with context:**
-
-```
-[<position>/<total>] <relative-path>  [<change-type>]
-
-<per-file context summary>
-
-Opening in the Code Review Prompt Generator...
+```bash
+rm -f ~/.shepherd/prompt-output.md
 ```
 
-The `<per-file context summary>` is 2-4 sentences describing what changed in this specific file: what was added, modified, or removed, and why it matters. Derived from the diff you read in Step 5. Be specific — mention function names, sections, or structural changes. Do not just say "this file was modified."
+**7b. Launch all files in the CRPG.**
 
-**7b. Invoke /shepherd:**
+Build the command with all absolute file paths and invoke the launch script:
 
-`/shepherd <REPO_ROOT>/<relative-path>`
-
-**7c. Prompt the user with interactive options:**
-
-Use the `AskUserQuestion` tool to let the user choose what to do with this file:
-
-- **"Looks good, next"** (description: "No comments, move to the next file") → Record as **reviewed**. Move to next file.
-- **"I have feedback"** (description: "Paste comments from the CRPG for this file") → Prompt: `Paste your feedback for this file:` Wait for the user to paste. Store the pasted content tagged with the file path. Then say: `Feedback saved for <filename>. (<total> files with feedback so far)` Then use AskUserQuestion again for the same file (the user may want to also move on or add more).
-- **"Skip"** (description: "Skip this file without reviewing") → Record as **skipped**. Move to next file.
-- **"End review"** (description: "Stop reviewing and see the summary") → Record current file as **reviewed**. Go to Step 8.
-
-The user may also respond with free text instead of clicking an option. Recognize these synonyms (case-insensitive):
-
-| Input | Action |
-|---|---|
-| "next", "done", "continue", "n", "lgtm", "good" | Same as "Looks good, next" |
-| "feedback", "comments", "paste", "f" | Same as "I have feedback" |
-| "skip", "pass" | Same as "Skip" |
-| "quit", "stop", "exit", "q" | Same as "End review" |
-| "list", "show files", "files" | Re-display the file list with `>` on current file and `Currently reviewing file X of Y.` Then re-prompt with AskUserQuestion. Do NOT re-invoke /shepherd. |
-
-**Important**: When the user says "feedback" and pastes content, store it in a running collection like:
-
-```
-## <relative-path>
-<pasted content>
+```bash
+bash <REPO_ROOT>/scripts/shepherd-launch.sh <absolute-path-1> <absolute-path-2> ... <absolute-path-N>
 ```
 
-The user may provide feedback on multiple files. Accumulate all of it. Do NOT act on the feedback yet — just store it.
+Use the absolute paths (`REPO_ROOT/<relative-path>`) for each file in the prioritized list, space-separated. Quote each path properly.
 
-After the last file is processed, proceed to Step 8.
+After launching, output:
+
+```
+Opened <N> files in the CRPG. Review them in your browser.
+
+When you're done, click "Done" in the CRPG to send back your review prompt, or say "done" here to continue.
+```
+
+**7c. Wait for the prompt output.**
+
+Poll for the prompt output file. The CRPG writes to `~/.shepherd/prompt-output.md` when the user clicks "Done":
+
+```bash
+test -f ~/.shepherd/prompt-output.md && echo "EXISTS" || echo "WAITING"
+```
+
+Poll every 3 seconds, up to a maximum of 10 minutes (200 attempts). If the user says "done" or similar in chat before the file appears, stop polling and proceed.
+
+When the file exists, read it with the Read tool and store the contents as PROMPT_OUTPUT.
+
+If the poll times out without the file appearing, output: `Timed out waiting for CRPG output. You can still use the review in your browser.` and proceed to Step 8 without prompt output.
 
 ---
 
-### Step 8: Completion summary and feedback handoff
+### Step 8: Summary and feedback actions
 
-Display the summary:
+**8a. Display the review summary.**
 
 ```
 Review complete.
-  <T> files in changeset
-  <E> filtered out (lockfiles, generated, binary)
-  <R> files to review
-  <V> reviewed
-  <S> skipped
-  <F> files with feedback
+  <N> files opened in CRPG
+  <M> files filtered out (lockfiles, generated, binary)
 ```
 
-If the user quit early, add: `  <Q> remaining (quit early)`
+Right-align numbers. The "filtered out" line is omitted if zero.
 
-Right-align numbers.
+**8b. Display prompt output (if available).**
 
-**If there is accumulated feedback**, display it:
+If PROMPT_OUTPUT was collected, display it:
 
 ```
 ---
 
-Collected feedback from this review:
+Prompt output from CRPG:
 
-## <relative-path-1>
-<pasted feedback for file 1>
-
-## <relative-path-2>
-<pasted feedback for file 2>
-
-...
+<PROMPT_OUTPUT contents>
 
 ---
-
 ```
 
-If there is no feedback, just show the summary and say: `No feedback was collected during this review.` Then stop.
+**8c. Ask what to do with the feedback.**
 
-**If there is feedback**, use `AskUserQuestion` to ask what to do with it:
+Use `AskUserQuestion` to let the user choose:
 
-- **"Apply changes"** (description: "Implement the changes described in the feedback") → Begin implementing, file by file. Follow the project's cardinal rule (update specs first if behavior changes, then code).
+- **"Apply changes"** (description: "Implement the changes described in the review feedback") → Begin implementing, file by file. Follow the project's cardinal rule (update specs first if behavior changes, then code).
 - **"Discuss first"** (description: "Let's talk through the feedback before acting") → Engage in conversation about the feedback. Ask clarifying questions if needed.
-- **"Save for later"** (description: "Write feedback to a file I can come back to") → Write to `review-feedback-<date>.md` in the repo root. Tell the user where it was saved.
+- **"Save for later"** (description: "Write the review output to a file I can come back to") → Write to `review-feedback-<date>.md` in the repo root. Tell the user where it was saved.
 - **"Done"** (description: "I'll handle it myself") → End the session.
+
+If no prompt output was collected (timeout or user skipped), skip the prompt output display and the feedback action question. Just show the summary and end.
 
 ---
 
 ### Important notes
 
-- Emoji are welcome! Use them to make the review experience friendly and scannable (e.g., checkmarks for reviewed files, arrows for navigation cues).
 - Provide helpful context but keep it concise. The per-file summaries should orient the reviewer, not overwhelm them.
-- Track reviewed/skipped/remaining/feedback counts accurately.
-- The `/shepherd` command handles server management and browser opening.
-- Each invocation starts fresh. Feedback is accumulated in the conversation only.
+- The `/shepherd` launch script handles server management and browser opening.
+- Each invocation starts fresh.
 - When reading diffs for context, use the Read tool or Bash — whichever is more practical.

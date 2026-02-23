@@ -692,7 +692,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files`
 
 ### `FR-sr-file-filtering`
 - **Defined in**: `product/shepherd-review.md`
@@ -710,13 +710,13 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`, `TC-sr-skip-file`, `TC-sr-quit-early`, `TC-sr-list-command-mid-review`, `TC-sr-user-input-synonyms`, `TC-sr-unrecognized-input`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-tab-order-matches-priority`, `TC-sr-implicit-skip`, `TC-sr-done-at-any-point`, `TC-sr-unified-prompt-return`, `TC-sr-no-comments-done`
 
 ### `FR-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-quit-early`, `TC-sr-completion-summary-all-skipped`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`
 
 ### `FR-sr-command-file`
 - **Defined in**: `product/shepherd-review.md`
@@ -730,11 +730,41 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/shepherd-review.md` -> `scripts/install-command.sh`
 - **QA**: `qa/shepherd-review.md` -> `TC-sr-install-global-symlink`
 
-### `FR-sr-no-args`
+### `FR-sr-scope-argument`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-scope-staged`, `TC-sr-scope-unstaged`, `TC-sr-scope-invalid`
+
+### `FR-sr-multi-file-launch`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `scripts/shepherd-launch.sh`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-batch-launch-all-files`, `TC-sr-batch-open-all-tabs`, `TC-sr-multi-file-url-params`
+
+### `FR-sr-per-file-context`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
+
+### `FR-sr-changeset-overview`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
+
+### `FR-sr-priority-ordering`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`
+
+### `FR-sr-feedback-collection`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-unified-prompt-return`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`
 
 ### `FR-sr-git-required`
 - **Defined in**: `product/shepherd-review.md`
@@ -758,7 +788,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`
 
 ### `NFR-sr-cross-platform`
 - **Defined in**: `product/shepherd-review.md`
@@ -770,7 +800,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-full-loop`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`
 
 ### `AC-sr-filters-lockfiles`
 - **Defined in**: `product/shepherd-review.md`
@@ -806,13 +836,13 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-skip-file`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-implicit-skip`
 
 ### `AC-sr-quit-early`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-quit-early`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-done-at-any-point`
 
 ### `AC-sr-no-changes`
 - **Defined in**: `product/shepherd-review.md`
@@ -836,25 +866,37 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-invokes-shepherd-per-file`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-batch-launch-all-files`
 
 ### `AC-sr-list-command`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-list-command-mid-review`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
 
 ### `AC-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-quit-early`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`
 
 ### `AC-sr-sorted-file-list`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-sorted-file-list`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`
+
+### `AC-sr-batch-open`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-batch-open-all-tabs`, `TC-sr-batch-launch-all-files`
+
+### `AC-sr-unified-prompt`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-unified-prompt-return`
 
 ### `AC-sr-install-global`
 - **Defined in**: `product/shepherd-review.md`

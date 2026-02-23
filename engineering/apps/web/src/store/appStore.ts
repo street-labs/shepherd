@@ -75,6 +75,7 @@ const initialState: AppState & DiffState & RenderedState = {
   activeFileId: null,
   scrollPositions: {},
   isAddFileModalOpen: false,
+  serverFilePaths: {},
   comments: {},
   commentOrder: [],
   preamble: '',
@@ -204,6 +205,9 @@ interface AppActions {
   toast: { message: string; type: 'success' | 'error' } | null;
   showToast: (message: string, type: 'success' | 'error') => void;
   dismissToast: () => void;
+
+  // Server file path tracking
+  setServerFilePath: (fileId: string, path: string) => void;
 
   // Diff: View mode
   setViewMode: (mode: 'file' | 'diff') => void;
@@ -387,12 +391,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setActiveFile: (fileId) => {
-    const { files, activeFileId } = get();
+    const { files, activeFileId, serverFilePaths, isSlashCommandMode } = get();
     if (fileId === activeFileId) return;
     const targetFile = files[fileId];
     if (!targetFile) return;
 
     const commentOrder = computeCommentOrder(get().comments, fileId);
+    const serverPath = serverFilePaths[fileId] || null;
+    const isMd = isMarkdownFile(targetFile.name);
 
     set({
       ...initialDiffState,
@@ -403,12 +409,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
       focusedCommentId: null,
       selectedRange: null,
       editorState: null,
-      viewMode: 'file',
-      renderMode: 'raw',
-      isMarkdownFile: isMarkdownFile(targetFile.name),
+      // Restore server state for server-loaded files
+      fileSource: serverPath ? 'server' : null,
+      filePath: serverPath,
+      isSlashCommandMode: serverPath ? isSlashCommandMode : false,
+      viewMode: serverPath ? 'diff' : 'file',
+      renderMode: (serverPath && isMd) ? 'rendered' : 'raw',
+      isMarkdownFile: isMd,
       showLargeFileWarning: targetFile.lines.length > LARGE_FILE_THRESHOLD,
       largeFileWarningDismissed: false,
     });
+
+    // Trigger async work after state is set
+    if (serverPath) {
+      void get().fetchBaseline();
+    }
+    if (serverPath && isMd) {
+      get().parseMarkdownAst();
+    }
   },
 
   saveScrollPosition: (fileId, offset) => {
@@ -577,6 +595,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (mode === 'diff' && get().baselineContent === null) {
       void get().fetchBaseline();
     }
+  },
+
+  setServerFilePath: (fileId, path) => {
+    const { serverFilePaths } = get();
+    set({ serverFilePaths: { ...serverFilePaths, [fileId]: path } });
   },
 
   setFileSource: (source) => {

@@ -8,34 +8,41 @@
 
 | Requirement | Test Cases | Status |
 |---|---|---|
-| `AC-sr-happy-path` | `TC-sr-happy-path-full-loop` | Not started |
+| `AC-sr-happy-path` | `TC-sr-happy-path-batch-open` | Not started |
 | `AC-sr-filters-lockfiles` | `TC-sr-filters-lockfiles` | Not started |
 | `AC-sr-filters-generated` | `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions` | Not started |
 | `AC-sr-filters-binary` | `TC-sr-filters-binary` | Not started |
 | `AC-sr-includes-config` | `TC-sr-includes-config-files` | Not started |
 | `AC-sr-excludes-deleted` | `TC-sr-excludes-deleted-files` | Not started |
-| `AC-sr-skip-file` | `TC-sr-skip-file` | Not started |
-| `AC-sr-quit-early` | `TC-sr-quit-early` | Not started |
+| `AC-sr-skip-file` | `TC-sr-implicit-skip` | Not started |
+| `AC-sr-quit-early` | `TC-sr-done-at-any-point` | Not started |
 | `AC-sr-no-changes` | `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence` | Not started |
 | `AC-sr-all-filtered` | `TC-sr-all-filtered` | Not started |
 | `AC-sr-not-git-repo` | `TC-sr-not-git-repo` | Not started |
-| `AC-sr-invokes-shepherd` | `TC-sr-invokes-shepherd-per-file` | Not started |
-| `AC-sr-list-command` | `TC-sr-list-command-mid-review` | Not started |
-| `AC-sr-completion-summary` | `TC-sr-completion-summary-full`, `TC-sr-completion-summary-quit-early` | Not started |
-| `AC-sr-sorted-file-list` | `TC-sr-sorted-file-list` | Not started |
+| `AC-sr-invokes-shepherd` | `TC-sr-batch-launch-all-files` | Not started |
+| `AC-sr-list-command` | `TC-sr-changeset-overview-with-context` | Not started |
+| `AC-sr-completion-summary` | `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback` | Not started |
+| `AC-sr-sorted-file-list` | `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority` | Not started |
+| `AC-sr-batch-open` | `TC-sr-batch-open-all-tabs`, `TC-sr-happy-path-batch-open` | Not started |
+| `AC-sr-unified-prompt` | `TC-sr-unified-prompt-return`, `TC-sr-implicit-skip` | Not started |
 | `AC-sr-install-global` | `TC-sr-install-global-symlink` | Not started |
-| `FR-sr-changeset-detection` | `TC-sr-happy-path-full-loop`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files` | Not started |
+| `FR-sr-changeset-detection` | `TC-sr-happy-path-batch-open`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files` | Not started |
 | `FR-sr-file-filtering` | `TC-sr-filters-lockfiles`, `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`, `TC-sr-filters-binary`, `TC-sr-filters-ide-files`, `TC-sr-filters-snapshot-files`, `TC-sr-includes-config-files`, `TC-sr-unknown-file-included` | Not started |
 | `FR-sr-file-list-display` | `TC-sr-file-list-format`, `TC-sr-sorted-file-list`, `TC-sr-file-list-exclusion-count` | Not started |
-| `FR-sr-iteration-loop` | `TC-sr-happy-path-full-loop`, `TC-sr-skip-file`, `TC-sr-quit-early`, `TC-sr-list-command-mid-review`, `TC-sr-user-input-synonyms`, `TC-sr-unrecognized-input` | Not started |
-| `FR-sr-completion-summary` | `TC-sr-completion-summary-full`, `TC-sr-completion-summary-quit-early`, `TC-sr-completion-summary-all-skipped` | Not started |
+| `FR-sr-multi-file-launch` | `TC-sr-batch-launch-all-files`, `TC-sr-multi-file-url-params` | Not started |
+| `FR-sr-per-file-context` | `TC-sr-changeset-overview-with-context`, `TC-sr-file-list-format` | Not started |
+| `FR-sr-changeset-overview` | `TC-sr-changeset-overview-with-context` | Not started |
+| `FR-sr-priority-ordering` | `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority` | Not started |
+| `FR-sr-iteration-loop` | `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-done-at-any-point`, `TC-sr-implicit-skip` | Not started |
+| `FR-sr-feedback-collection` | `TC-sr-unified-prompt-return`, `TC-sr-implicit-skip`, `TC-sr-no-comments-done` | Not started |
+| `FR-sr-completion-summary` | `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save` | Not started |
 | `FR-sr-command-file` | `TC-sr-command-file-exists` | Not started |
 | `FR-sr-install` | `TC-sr-install-global-symlink` | Not started |
-| `FR-sr-no-args` | `TC-sr-happy-path-full-loop` | Not started |
+| `FR-sr-scope-argument` | `TC-sr-scope-staged`, `TC-sr-scope-unstaged`, `TC-sr-scope-invalid` | Not started |
 | `FR-sr-git-required` | `TC-sr-not-git-repo` | Not started |
 | `NFR-sr-startup-speed` | `TC-sr-startup-speed` | Not started |
 | `NFR-sr-no-dependencies` | `TC-sr-no-external-dependencies` | Not started |
-| `NFR-sr-agent-native` | `TC-sr-happy-path-full-loop` | Not started |
+| `NFR-sr-agent-native` | `TC-sr-happy-path-batch-open` | Not started |
 | `NFR-sr-cross-platform` | `TC-sr-cross-platform-git-commands` | Not started |
 
 ---
@@ -48,51 +55,50 @@
 
 ---
 
-#### `TC-sr-happy-path-full-loop`: Full review loop from start to finish
+#### `TC-sr-happy-path-batch-open`: Full review session from start to finish
 
 - **Type**: Manual
-- **Covers**: `AC-sr-happy-path`, `FR-sr-changeset-detection`, `FR-sr-iteration-loop`, `FR-sr-no-args`, `NFR-sr-agent-native`
-- **Preconditions**: The user is on a feature branch that has 5 modified source files (e.g., `.ts`, `.tsx`, `.py`) and 3 excluded files (e.g., `package-lock.json`, `dist/bundle.js`, `logo.png`) relative to `main`. The `/shepherd` command is installed and functional. The CRPG dev server is running or will be started by `/shepherd`.
+- **Covers**: `AC-sr-happy-path`, `AC-sr-batch-open`, `FR-sr-changeset-detection`, `FR-sr-iteration-loop`, `NFR-sr-agent-native`
+- **Preconditions**: The user is on a feature branch that has 5 modified source files (e.g., `.ts`, `.tsx`, `.py`) and 3 excluded files (e.g., `package-lock.json`, `dist/bundle.js`, `logo.png`) relative to `main`. The `shepherd-launch.sh` script is functional. The CRPG dev server is running or will be started by the launch script.
 - **Steps**:
   1. Open a Claude Code session inside the repository.
   2. Type `/shepherd-review`.
-  3. Observe the agent output. Verify the file list shows "Found 5 files to review" with a numbered list of the 5 source files, a note "3 files excluded (lockfiles, generated, binary)", and the prompt "Ready to start? Say "go" to begin, or "quit" to cancel."
-  4. Type "go".
-  5. Observe the agent announces file 1 with the format `[1/5] <path>  [<change-type>]` followed by "Opening in the Code Review Prompt Generator..." and then invokes `/shepherd` with the absolute path.
-  6. After the file loads in the browser, observe the user prompt with the menu (next, skip, list, quit).
-  7. Type "next".
-  8. Repeat steps 5-7 for files 2 through 4.
-  9. For file 5, type "next" after reviewing.
-  10. Observe the completion summary.
-- **Expected Result**: All 5 files are iterated in order. For each file, `/shepherd` is invoked and the CRPG opens in the browser. The completion summary shows:
+  3. Observe the agent output. Verify the changeset overview paragraph is displayed (2-4 sentence summary of changes), followed by "Found 5 files to review" with a numbered list of the 5 source files in priority order, a note about excluded files, and the prompt asking if the user wants to proceed.
+  4. Confirm to proceed.
+  5. Observe that the agent invokes `shepherd-launch.sh` once with all 5 file paths.
+  6. Verify the browser opens a single CRPG session with 5 tabs (one per file) in priority order.
+  7. Review files freely in the CRPG: navigate between tabs, add comments on 3 of the 5 files.
+  8. Click "Done" in the CRPG.
+  9. The unified multi-file prompt is returned (via `~/.shepherd/prompt-output.md`).
+  10. Observe the completion summary and action options.
+- **Expected Result**: All 5 files appear as tabs in a single CRPG session in priority order. The user reviews files in any order they choose. Clicking "Done" generates a single multi-file prompt containing comments from the 3 files that received feedback. The completion summary shows:
   ```
   Review complete.
     8 files in changeset
     3 filtered out (lockfiles, generated, binary)
-    5 files to review
-    5 reviewed
-    0 skipped
+    5 files opened
+    3 files with comments
   ```
-  No "remaining" line appears because the review completed fully.
+  The agent presents the prompt content and asks the user what to do: apply, discuss, save, or nothing.
 - **Edge Cases**:
-  - User types "done" or "continue" instead of "next": should be recognized as synonyms and advance to the next file.
-  - User types "n" (single character): should be recognized as "next".
+  - User adds comments to all 5 files: all 5 appear in the unified prompt.
+  - User switches between tabs multiple times before clicking Done: no issues; the CRPG tracks per-file comments regardless of navigation order.
 
 ---
 
-#### `TC-sr-invokes-shepherd-per-file`: Each file is opened via the /shepherd command
+#### `TC-sr-batch-launch-all-files`: All files are opened via a single launch script invocation
 
 - **Type**: Manual
-- **Covers**: `AC-sr-invokes-shepherd`, `FR-sr-iteration-loop`
-- **Preconditions**: A feature branch with at least 2 reviewable files. The file `src/utils.ts` is one of them. `/shepherd` is installed.
+- **Covers**: `AC-sr-invokes-shepherd`, `FR-sr-multi-file-launch`, `FR-sr-iteration-loop`
+- **Preconditions**: A feature branch with 3 reviewable files: `src/utils.ts`, `src/app.tsx`, and `lib/helpers.ts`. The `shepherd-launch.sh` script is functional.
 - **Steps**:
-  1. Run `/shepherd-review` and type "go" to start.
-  2. When the iteration reaches `src/utils.ts`, observe the agent output.
-  3. Verify the browser opens with the CRPG showing `src/utils.ts`.
-- **Expected Result**: The agent invokes `/shepherd <absolute-path-to-src/utils.ts>`. The absolute path is constructed by combining the repo root (from `git rev-parse --show-toplevel`) with the relative path `src/utils.ts`. The CRPG opens in the browser with `src/utils.ts` loaded. The file announcement shows `[<position>/<total>] src/utils.ts  [modified]` (or `[added]` etc. depending on change type).
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. Observe the agent output for the launch invocation.
+  3. Verify the browser opens a single CRPG session.
+- **Expected Result**: The agent invokes `shepherd-launch.sh` once with all 3 file paths as arguments. The absolute paths are constructed by combining the repo root (from `git rev-parse --show-toplevel`) with each relative path. The CRPG opens in the browser with 3 tabs in priority order (core source files first). All tabs are available immediately without sequential prompts.
 - **Edge Cases**:
-  - If `/shepherd` reports an error for one file (e.g., the file was deleted between detection and iteration), the error is displayed and the user prompt still appears, allowing the user to say "next" to continue.
-  - The file path uses forward slashes on all platforms in the display, but the absolute path passed to `/shepherd` uses the OS-native separator.
+  - The file paths use forward slashes on all platforms in the display, but the absolute paths passed to the launch script use the OS-native separator.
+  - If the launch script fails (e.g., CRPG server not running), the error is displayed and the command stops with a clear message.
 
 ---
 
@@ -246,55 +252,60 @@
 
 ---
 
-#### `TC-sr-file-list-format`: File list matches the specified format
+#### `TC-sr-file-list-format`: File list with changeset overview matches the specified format
 
 - **Type**: Manual
-- **Covers**: `FR-sr-file-list-display`
+- **Covers**: `FR-sr-file-list-display`, `FR-sr-per-file-context`
 - **Preconditions**: A branch with at least 3 reviewable files and at least 1 excluded file.
 - **Steps**:
   1. Run `/shepherd-review`.
   2. Inspect the output format.
-- **Expected Result**: The output matches this structure exactly:
-  ```
-  Found <N> files to review.
+- **Expected Result**: The output includes:
+  1. A scope label indicating what changes are being reviewed (e.g., "all changes vs main", "staged only", "unstaged only").
+  2. A changeset overview paragraph (2-4 sentences summarizing the overall theme of the changes).
+  3. The file count: "Found <N> files to review."
+  4. A numbered list of files in priority order, each showing the relative path and change type.
+  5. Per-file context summaries (1-2 sentences per file describing what changed) integrated into the overview.
+  6. If any files were excluded, a note indicating how many.
+  7. A prompt asking the user if they want to proceed.
 
-    1. <relative-path>  [<change-type>]
-    2. <relative-path>  [<change-type>]
-    ...
-
-  <M> files excluded (lockfiles, generated, binary).
-
-  Ready to start? Say "go" to begin, or "quit" to cancel.
-  ```
-  Blank lines separate the count, list, exclusion note, and prompt. Change types are one of `modified`, `added`, or `renamed from <old-path>`. Position numbers are right-aligned when there are 10 or more files.
+  Change types are one of `modified`, `added`, or `renamed from <old-path>`. Position numbers are right-aligned when there are 10 or more files.
 - **Edge Cases**:
   - Zero excluded files: the exclusion line is omitted entirely.
-  - Exactly 1 excluded file: the line reads "1 files excluded (lockfiles, generated, binary)." (uses "files" not "file" -- or verify against the design spec's exact wording).
+  - Exactly 1 excluded file: verify wording matches the design spec.
   - 10+ files: position numbers are padded (e.g., ` 1.` through `12.`).
+  - Per-file context summaries mention specific function names or structural changes derived from the diff.
 
 ---
 
-#### `TC-sr-sorted-file-list`: Files are sorted by directory then by name alphabetically
+#### `TC-sr-sorted-file-list`: Files are sorted by review priority
 
 - **Type**: Manual
-- **Covers**: `AC-sr-sorted-file-list`, `FR-sr-file-list-display`
-- **Preconditions**: The changeset includes `src/utils.ts`, `src/app.tsx`, `lib/helpers.ts`, `README.md`, and `src/components/Button.tsx`.
+- **Covers**: `AC-sr-sorted-file-list`, `FR-sr-file-list-display`, `FR-sr-priority-ordering`
+- **Preconditions**: The changeset includes `src/utils.ts`, `src/app.tsx`, `vite.config.ts`, `README.md`, and `tests/utils.test.ts`.
 - **Steps**:
   1. Run `/shepherd-review`.
   2. Examine the ordering of files in the numbered list.
-- **Expected Result**: The files are sorted as:
+- **Expected Result**: The files are sorted by review importance, not alphabetically:
   ```
-    1. README.md                          [modified]
-    2. lib/helpers.ts                     [added]
-    3. src/app.tsx                        [modified]
-    4. src/components/Button.tsx           [added]
-    5. src/utils.ts                       [modified]
+    1. src/app.tsx                        [modified]
+    2. src/utils.ts                       [modified]
+    3. vite.config.ts                     [modified]
+    4. README.md                          [modified]
+    5. tests/utils.test.ts                [added]
   ```
-  Root-level files come first, then directories sorted alphabetically, then files within each directory sorted alphabetically. Files in a parent directory sort before files in its subdirectories.
+  The ordering follows the priority tiers:
+  1. Core source code (application logic, components, business logic) -- most important
+  2. Configuration that affects behavior (build config, CI, command definitions)
+  3. Specs and documentation (markdown specs, design docs)
+  4. Supporting files (indexes, glossaries, changelogs)
+  5. Test files -- least urgent for manual review
+
+  Within each tier, larger/more significant changes rank higher.
 - **Edge Cases**:
-  - Case sensitivity: sorting should be case-insensitive (e.g., `README.md` sorts near `readme.md`, not in a separate block).
-  - Deeply nested files: `src/components/forms/Input.tsx` sorts after `src/components/Button.tsx`.
-  - Files at the same directory depth but different directories: `api/routes.ts` sorts before `src/app.ts`.
+  - Multiple files in the same priority tier: their relative ordering should be consistent and based on significance of changes.
+  - A config file that is also core source (e.g., a `Makefile` with build logic): should be categorized by its primary role.
+  - Files with ambiguous priority (e.g., `src/test-utils.ts` -- source code that supports tests): should be in the source tier, not the test tier.
 
 ---
 
@@ -326,175 +337,156 @@
   ```
     3. src/utils/helpers.ts               [renamed from src/helpers.ts]
   ```
-  When the file is opened for review, `/shepherd` is invoked with the absolute path to `src/utils/helpers.ts` (the new path, which exists on disk).
+  When files are opened in the CRPG, the renamed file's tab shows the new path `src/utils/helpers.ts`. The launch script receives the new path (which exists on disk).
 - **Edge Cases**:
   - A file renamed with content changes (git reports as rename with a similarity index): should still show as renamed.
-  - A file renamed to a different directory: the new path is used for display and for invoking `/shepherd`.
+  - A file renamed to a different directory: the new path is used for display and for the launch script invocation.
 
 ---
 
-### Iteration Control
+### Batch Open and Review Control
 
 ---
 
-#### `TC-sr-skip-file`: User can skip a file during iteration
+#### `TC-sr-batch-open-all-tabs`: All files appear as CRPG tabs in a single session
 
 - **Type**: Manual
-- **Covers**: `AC-sr-skip-file`, `FR-sr-iteration-loop`
-- **Preconditions**: A branch with at least 5 reviewable files.
+- **Covers**: `AC-sr-batch-open`, `FR-sr-iteration-loop`
+- **Preconditions**: A branch with 5 reviewable files. The `shepherd-launch.sh` script is functional and the CRPG supports multi-file URL loading.
 - **Steps**:
-  1. Run `/shepherd-review` and type "go".
-  2. For file 1, type "next" (review normally).
-  3. For file 2, type "skip".
-  4. Observe the agent advances to file 3.
-  5. Complete the remaining files with "next".
-  6. Observe the completion summary.
-- **Expected Result**: After typing "skip" for file 2, the agent immediately moves to file 3 with the announcement `[3/5] <path>  [<change-type>]`. Note: per the design spec, `/shepherd` has already been invoked for file 2 before the prompt appears, so the file was opened in the browser. The "skip" is a bookkeeping distinction. The completion summary shows:
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. Wait for the browser to open.
+  3. Inspect the CRPG session in the browser.
+- **Expected Result**: A single browser tab opens with the CRPG. Within the CRPG, 5 file tabs are visible (one per reviewable file). All 5 tabs are immediately accessible. The user can click any tab to view that file's diff. No sequential prompts or per-file invocations occur in the agent conversation.
+- **Edge Cases**:
+  - If the browser was already open with a previous CRPG session, the new session should replace or open in a new tab (depending on the launch script behavior).
+  - If the CRPG takes time to load all files, a loading state should be visible in the UI.
+
+---
+
+#### `TC-sr-tab-order-matches-priority`: CRPG tab order matches priority ordering from file list
+
+- **Type**: Manual
+- **Covers**: `AC-sr-sorted-file-list`, `FR-sr-priority-ordering`
+- **Preconditions**: A branch with files spanning multiple priority tiers: `src/app.tsx` (core source), `vite.config.ts` (config), `README.md` (docs), `tests/app.test.tsx` (test).
+- **Steps**:
+  1. Run `/shepherd-review` and note the priority order displayed in the file list.
+  2. Confirm to proceed and observe the CRPG tabs.
+  3. Compare the tab order in the CRPG to the numbered file list order.
+- **Expected Result**: The CRPG tab order exactly matches the priority ordering from the displayed file list. Core source files appear as the leftmost tabs, followed by config, docs, and tests as the rightmost tabs:
+  ```
+  Tab order: src/app.tsx | vite.config.ts | README.md | tests/app.test.tsx
+  ```
+  This matches the numbered list shown in the agent conversation.
+- **Edge Cases**:
+  - If two files are in the same priority tier, their relative order within that tier should be consistent between the list and the tabs.
+
+---
+
+#### `TC-sr-implicit-skip`: Files without comments are implicitly skipped
+
+- **Type**: Manual
+- **Covers**: `AC-sr-skip-file`, `AC-sr-unified-prompt`, `FR-sr-iteration-loop`, `FR-sr-feedback-collection`
+- **Preconditions**: A branch with 5 reviewable files.
+- **Steps**:
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. In the CRPG, add comments on files 1, 3, and 5 only. Leave files 2 and 4 without comments.
+  3. Click "Done" in the CRPG.
+  4. Observe the returned prompt and the completion summary.
+- **Expected Result**: The unified multi-file prompt includes only files 1, 3, and 5 (the files that received comments). Files 2 and 4 are not mentioned in the prompt. The completion summary shows:
   ```
   Review complete.
     ...
-    5 files to review
-    4 reviewed
-    1 skipped
+    5 files opened
+    3 files with comments
   ```
+  No explicit "skip" action was required. Not commenting on a file is equivalent to skipping it.
 - **Edge Cases**:
-  - "skip this" and "pass" should be recognized as synonyms for "skip".
-  - Skipping the last file: the summary appears immediately after the skip, with the file counted as skipped.
-  - Skipping all files: see `TC-sr-completion-summary-all-skipped`.
+  - Adding a comment then deleting it before clicking Done: the file should not appear in the prompt (zero net comments).
+  - Adding comments to all 5 files: all 5 appear in the prompt; "files with comments" shows 5.
 
 ---
 
-#### `TC-sr-quit-early`: User can quit the review before completing all files
+#### `TC-sr-done-at-any-point`: User can click Done after reviewing any subset of files
 
 - **Type**: Manual
 - **Covers**: `AC-sr-quit-early`, `FR-sr-iteration-loop`
-- **Preconditions**: A branch with at least 5 reviewable files.
+- **Preconditions**: A branch with 5 reviewable files.
 - **Steps**:
-  1. Run `/shepherd-review` and type "go".
-  2. For file 1, type "next".
-  3. For file 2, type "next".
-  4. For file 3, type "quit".
-  5. Observe the completion summary.
-- **Expected Result**: The review ends immediately after "quit" is typed on file 3. File 3 counts as "reviewed" (since `/shepherd` was already invoked for it). The summary shows:
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. In the CRPG, view only the first tab and add a comment on it.
+  3. Click "Done" without visiting the other 4 tabs.
+  4. Observe the returned prompt and the completion summary.
+- **Expected Result**: The session ends cleanly. The unified prompt contains the comment from the one file that received feedback. The completion summary shows:
   ```
   Review complete.
-    <T> files in changeset
-    <E> filtered out (lockfiles, generated, binary)
-    5 files to review
-    3 reviewed
-    0 skipped
-    2 remaining (quit early)
+    ...
+    5 files opened
+    1 files with comments
   ```
+  There is no concept of "remaining" files or "quit early." The user simply finishes whenever they are ready. The command does not warn or ask for confirmation before ending.
 - **Edge Cases**:
-  - "stop", "exit", "q", "quit review" should all be recognized as synonyms for "quit".
-  - Quitting on the very first file: 1 reviewed, 0 skipped, N-1 remaining.
-  - Quitting on the last file: 0 remaining, same as completing normally (file is counted as reviewed).
+  - Clicking Done immediately after the CRPG opens, without viewing any file in detail: session ends cleanly with zero comments (see `TC-sr-no-comments-done`).
+  - Clicking Done after visiting all tabs but only commenting on some: session ends normally.
 
 ---
 
-#### `TC-sr-list-command-mid-review`: User can re-display the file list during iteration
+#### `TC-sr-unified-prompt-return`: Multi-file prompt is returned via prompt-output.md
 
 - **Type**: Manual
-- **Covers**: `AC-sr-list-command`, `FR-sr-iteration-loop`
-- **Preconditions**: A branch with 7 reviewable files.
+- **Covers**: `AC-sr-unified-prompt`, `FR-sr-feedback-collection`
+- **Preconditions**: A branch with 3 reviewable files. The `~/.shepherd/prompt-output.md` file-watcher mechanism is functional.
 - **Steps**:
-  1. Run `/shepherd-review` and type "go".
-  2. Advance to file 3 by typing "next" for files 1 and 2.
-  3. On file 3, type "list".
-  4. Observe the re-displayed file list.
-  5. Type "next" to continue with file 3.
-- **Expected Result**: After typing "list", the agent re-displays the full numbered file list with file 3 indicated by a `>` character:
-  ```
-    1. README.md                          [modified]
-    2. lib/helpers.ts                     [added]
-  > 3. src/app.tsx                        [modified]
-    4. src/components/Button.tsx           [added]
-    5. src/index.ts                       [modified]
-    6. src/styles.css                     [modified]
-    7. tests/app.test.tsx                 [added]
-
-  Currently reviewing file 3 of 7.
-  ```
-  After the list display, the user prompt (with next/skip/list/quit options) appears again for file 3. The `/shepherd` command is NOT re-invoked. Typing "next" advances to file 4.
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. In the CRPG, add comments on 2 of the 3 files.
+  3. Click "Done" in the CRPG.
+  4. Verify the prompt is returned to the agent conversation.
+- **Expected Result**: The CRPG writes the unified multi-file prompt to `~/.shepherd/prompt-output.md`. The agent detects this via the file-watcher mechanism and reads the content. The prompt is organized by file, with each file's comments grouped together. The agent displays the prompt content in the conversation and presents the action options (apply, discuss, save, nothing).
 - **Edge Cases**:
-  - "show files", "show list", and "files" should be recognized as synonyms for "list".
-  - Typing "list" on the first file: file 1 is indicated.
-  - Typing "list" on the last file: the last file is indicated.
-  - Typing "list" multiple times in a row: the list is displayed each time, no state change.
+  - If `~/.shepherd/prompt-output.md` already existed from a previous session, it should be overwritten or the agent should handle staleness (e.g., by checking a timestamp or clearing the file before launch).
+  - Very large prompt (many comments across many files): the agent should still read and display the full content.
 
 ---
 
-#### `TC-sr-user-input-synonyms`: All documented synonyms are recognized
+#### `TC-sr-no-comments-done`: Clicking Done with zero comments ends the session cleanly
 
 - **Type**: Manual
-- **Covers**: `FR-sr-iteration-loop`
-- **Preconditions**: A branch with at least 3 reviewable files.
+- **Covers**: `FR-sr-feedback-collection`, `FR-sr-completion-summary`
+- **Preconditions**: A branch with at least 2 reviewable files.
 - **Steps**:
-  1. Run `/shepherd-review`.
-  2. At the pre-iteration prompt, test each synonym for "go": type "yes", "start", "y", "ok", "begin", "ready" (one per test run or by restarting). Verify each starts the iteration.
-  3. During iteration, test each synonym for "next": "done", "continue", "n", "next file". Verify each advances to the next file.
-  4. During iteration, test each synonym for "skip": "skip this", "pass". Verify each skips the file.
-  5. During iteration, test each synonym for "list": "show files", "show list", "files". Verify each shows the file list.
-  6. During iteration, test each synonym for "quit": "stop", "exit", "q", "quit review", "cancel", "no". Verify each ends the review.
-- **Expected Result**: All synonyms listed in the design spec's User Input Recognition table are recognized. Input matching is case-insensitive (e.g., "Go", "GO", "gO" all work).
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. In the CRPG, view the files but do not add any comments.
+  3. Click "Done" in the CRPG.
+  4. Observe the agent output.
+- **Expected Result**: The agent detects that no comments were made (empty prompt or explicit "no feedback" signal from the CRPG). The completion summary shows:
+  ```
+  Review complete.
+    ...
+    <N> files opened
+    0 files with comments
+  ```
+  The agent displays a message indicating no feedback was collected (e.g., "No comments were added during the review.") and the session ends. No action options (apply, discuss, save) are presented since there is nothing to act on.
 - **Edge Cases**:
-  - Leading/trailing whitespace in user input (e.g., " next "): should be trimmed and recognized.
-  - Input with extra words (e.g., "please next"): may or may not be recognized. Document observed behavior.
+  - User opened all tabs and scrolled through diffs but added zero comments: same behavior as not viewing any tabs.
 
 ---
 
-#### `TC-sr-unrecognized-input`: Unrecognized input produces a help message
+#### `TC-sr-cancel-before-start`: User cancels at the pre-launch prompt
 
 - **Type**: Manual
 - **Covers**: `FR-sr-iteration-loop`
 - **Preconditions**: A branch with at least 1 reviewable file.
 - **Steps**:
   1. Run `/shepherd-review`.
-  2. At the pre-iteration prompt, type "banana".
-  3. Observe the agent response.
-  4. Start the review by typing "go".
-  5. During iteration, type "banana".
-  6. Observe the agent response.
-- **Expected Result**: At the pre-iteration prompt, the agent responds:
-  ```
-  I did not understand that. Say "go" to begin the review, or "quit" to cancel.
-
-  >
-  ```
-  During iteration, the agent responds:
-  ```
-  I did not understand that. Your options are:
-
-    next     Move to the next file
-    skip     Skip this file
-    list     Show the file list
-    quit     End the review
-
-  >
-  ```
-  The agent remains on the same file and waits for valid input. No state change occurs.
-- **Edge Cases**:
-  - Empty input (user presses enter with no text): should produce the unrecognized input message.
-  - Very long input (100+ characters of gibberish): should produce the same message without error.
-
----
-
-#### `TC-sr-cancel-before-start`: User cancels at the pre-iteration prompt
-
-- **Type**: Manual
-- **Covers**: `FR-sr-iteration-loop`
-- **Preconditions**: A branch with at least 1 reviewable file.
-- **Steps**:
-  1. Run `/shepherd-review`.
-  2. The file list is displayed with the "Ready to start?" prompt.
-  3. Type "quit" (or "no", "cancel", "stop", "exit", "q").
+  2. The changeset overview and file list are displayed with the confirmation prompt.
+  3. Decline to proceed (e.g., type "quit", "no", "cancel").
 - **Expected Result**: The agent outputs:
   ```
   Review cancelled.
   ```
-  No summary is displayed. No files are iterated. The command ends.
+  No summary is displayed. No files are opened in the CRPG. The launch script is not invoked. The command ends.
 - **Edge Cases**:
-  - Typing "quit" vs "no" vs "cancel" at the pre-iteration prompt: all should cancel.
+  - Various cancel synonyms at the pre-launch prompt should all be recognized.
 
 ---
 
@@ -535,8 +527,8 @@
   ```
   No file list is displayed. No iteration occurs.
 - **Edge Cases**:
-  - Branch named `main` with uncommitted changes (not yet committed): the changeset detection uses committed differences, so uncommitted changes are not included. The command should report no changes.
-  - Freshly created branch off main with zero commits: should report no changes.
+  - Branch named `main` with uncommitted changes (not yet committed): per the product spec, the changeset detection compares the working tree to the merge base, so uncommitted changes ARE included. If there are uncommitted changes on `main`, those files should appear in the review list.
+  - Freshly created branch off main with zero commits and no working tree changes: should report no changes.
 
 ---
 
@@ -594,81 +586,53 @@
 
 ---
 
-#### `TC-sr-completion-summary-full`: Summary after completing all files
+#### `TC-sr-completion-summary-full`: Summary after completing a review with feedback
 
 - **Type**: Manual
 - **Covers**: `AC-sr-completion-summary`, `FR-sr-completion-summary`
-- **Preconditions**: A branch with 10 total files, 3 excluded, 7 reviewable. User reviews 6 and skips 1.
+- **Preconditions**: A branch with 10 total files, 3 excluded, 7 reviewable. User opens all 7 in the CRPG and adds comments on 5 of them.
 - **Steps**:
-  1. Run `/shepherd-review` and type "go".
-  2. Type "next" for files 1-3.
-  3. Type "skip" for file 4.
-  4. Type "next" for files 5-7.
-  5. Observe the completion summary.
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. In the CRPG, add comments on 5 of the 7 files.
+  3. Click "Done" in the CRPG.
+  4. Observe the completion summary.
 - **Expected Result**: The summary displays:
   ```
   Review complete.
     10 files in changeset
      3 filtered out (lockfiles, generated, binary)
-     7 files to review
-     6 reviewed
-     1 skipped
+     7 files opened
+     5 files with comments
   ```
-  No "remaining" line appears. Numbers are right-aligned.
+  Numbers are right-aligned. The agent then presents the full prompt content and asks what the user wants to do: apply, discuss, save, or nothing.
 - **Edge Cases**:
-  - All 7 files reviewed with zero skips: the "skipped" line shows 0 (or is omitted -- verify against the design spec).
+  - All 7 files receive comments: "7 files with comments" is shown.
   - Zero excluded files: the "filtered out" line is omitted.
+  - The summary is displayed after the prompt is returned, not before.
 
 ---
 
-#### `TC-sr-completion-summary-quit-early`: Summary after quitting early
+#### `TC-sr-completion-summary-no-feedback`: Summary when no comments are made
 
 - **Type**: Manual
-- **Covers**: `AC-sr-completion-summary`, `FR-sr-completion-summary`, `AC-sr-quit-early`
-- **Preconditions**: A branch with 12 total files, 5 excluded, 7 reviewable.
-- **Steps**:
-  1. Run `/shepherd-review` and type "go".
-  2. Type "next" for files 1-3.
-  3. Type "skip" for file 4.
-  4. Type "quit" on file 5.
-  5. Observe the completion summary.
-- **Expected Result**: The summary displays:
-  ```
-  Review complete.
-    12 files in changeset
-     5 filtered out (lockfiles, generated, binary)
-     7 files to review
-     4 reviewed
-     1 skipped
-     2 remaining (quit early)
-  ```
-  File 5 counts as "reviewed" (since `/shepherd` was invoked before the quit). Files 6 and 7 are "remaining".
-- **Edge Cases**:
-  - Quitting on the first file: 1 reviewed, 0 skipped, N-1 remaining.
-  - Quitting after skipping every file: 0 reviewed, N-1 skipped (for files before quit), 1 remaining (or 0 if quit is on the last file).
-
----
-
-#### `TC-sr-completion-summary-all-skipped`: Summary when every file is skipped
-
-- **Type**: Manual
-- **Covers**: `FR-sr-completion-summary`
+- **Covers**: `FR-sr-completion-summary`, `FR-sr-feedback-collection`
 - **Preconditions**: A branch with 3 reviewable files.
 - **Steps**:
-  1. Run `/shepherd-review` and type "go".
-  2. Type "skip" for every file.
-  3. Observe the completion summary.
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. In the CRPG, view files but do not add any comments.
+  3. Click "Done" in the CRPG.
+  4. Observe the completion summary.
 - **Expected Result**: The summary displays:
   ```
   Review complete.
     ...
-    3 files to review
-    0 reviewed
-    3 skipped
+    3 files opened
+    0 files with comments
   ```
-  The review completes normally (no "remaining" line) since all files were processed, just skipped.
+  The agent notes that no feedback was collected and ends the session. No action options (apply, discuss, save) are presented since there is nothing to act on.
 - **Edge Cases**:
   - This is an unusual but valid workflow. The command should not warn or behave differently.
+  - The user may have thoroughly reviewed files and decided everything looks good -- zero comments is a valid outcome.
 
 ---
 
@@ -708,6 +672,139 @@
 
 ---
 
+### Changeset Overview
+
+---
+
+#### `TC-sr-changeset-overview-with-context`: Changeset overview includes per-file summaries
+
+- **Type**: Manual
+- **Covers**: `AC-sr-list-command`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`
+- **Preconditions**: A branch with 4 reviewable files that have meaningful diffs: `src/app.tsx` (added a new route), `src/utils.ts` (refactored a helper function), `vite.config.ts` (added a new alias), `tests/app.test.tsx` (added tests for the new route).
+- **Steps**:
+  1. Run `/shepherd-review`.
+  2. Examine the changeset overview paragraph and per-file context summaries.
+- **Expected Result**: Before the numbered file list, the agent displays:
+  1. A brief (2-4 sentence) changeset overview summarizing the overall theme of the changes (e.g., "This changeset adds a new route to the application with supporting utility refactoring and test coverage.").
+  2. Per-file context summaries (1-2 sentences each) describing what changed in each file, mentioning specific function names, sections, or structural changes derived from the diff.
+
+  The per-file summaries provide enough context that the reviewer understands what to look for in each file before opening the CRPG. The summaries are visible in the conversation history for reference while reviewing in the CRPG.
+- **Edge Cases**:
+  - A file with a very large diff (hundreds of lines): the summary should still be concise (1-2 sentences), not enumerate every change.
+  - A file with only whitespace or formatting changes: the summary should note this so the reviewer can deprioritize it.
+  - A new file (added): the summary should describe what the file does, not just say "new file."
+
+---
+
+### Scope Argument
+
+---
+
+#### `TC-sr-scope-staged`: Reviewing only staged changes with --staged
+
+- **Type**: Manual
+- **Covers**: `FR-sr-scope-argument`
+- **Preconditions**: A branch with 3 staged files and 2 unstaged files relative to main.
+- **Steps**:
+  1. Stage 3 files with `git add`.
+  2. Run `/shepherd-review --staged`.
+  3. Examine the file list.
+- **Expected Result**: Only the 3 staged files appear in the review list. The 2 unstaged files are not shown. The scope label indicates "staged only" or equivalent. The changeset overview and per-file context summaries reflect only the staged changes.
+- **Edge Cases**:
+  - No staged files: the command reports "No changes found" and stops.
+  - A file that is both staged and has unstaged modifications: only the staged version of the changes is included.
+
+---
+
+#### `TC-sr-scope-unstaged`: Reviewing only unstaged changes with --unstaged
+
+- **Type**: Manual
+- **Covers**: `FR-sr-scope-argument`
+- **Preconditions**: A branch with 2 staged files and 3 unstaged files (including 1 untracked new file) relative to HEAD.
+- **Steps**:
+  1. Stage 2 files with `git add`.
+  2. Modify 2 other files without staging them.
+  3. Create a new file without staging it.
+  4. Run `/shepherd-review --unstaged`.
+  5. Examine the file list.
+- **Expected Result**: Only the 3 unstaged/untracked files appear in the review list. The 2 staged files are not shown. The untracked new file appears with change type `added`. The scope label indicates "unstaged only" or equivalent.
+- **Edge Cases**:
+  - No unstaged changes and no untracked files: the command reports "No changes found" and stops.
+  - A file that is staged but also has additional unstaged modifications: only the unstaged modifications appear.
+
+---
+
+#### `TC-sr-scope-invalid`: Invalid argument shows usage message
+
+- **Type**: Manual
+- **Covers**: `FR-sr-scope-argument`
+- **Preconditions**: A branch with at least 1 changed file.
+- **Steps**:
+  1. Run `/shepherd-review --invalid-flag`.
+  2. Observe the agent output.
+- **Expected Result**: The agent displays a usage message indicating the valid options (no argument, `--staged`, `--unstaged`) and stops. No file list is displayed and no files are opened.
+- **Edge Cases**:
+  - Multiple arguments (e.g., `/shepherd-review --staged --unstaged`): should show usage message.
+  - A valid-looking but unsupported argument (e.g., `/shepherd-review --all`): should show usage message.
+
+---
+
+### Multi-File URL and Launch
+
+---
+
+#### `TC-sr-multi-file-url-params`: Launch script constructs correct URL with multiple file params
+
+- **Type**: Manual
+- **Covers**: `FR-sr-multi-file-launch`
+- **Preconditions**: A branch with 3 reviewable files. The `shepherd-launch.sh` script is functional.
+- **Steps**:
+  1. Run `/shepherd-review` and confirm to proceed.
+  2. Observe or inspect the URL opened by `shepherd-launch.sh` (e.g., via browser address bar or by adding debug output to the script).
+- **Expected Result**: The launch script constructs a URL that includes all 3 file paths as parameters. The CRPG web app receives these parameters and loads each file as a separate tab. The exact URL format is determined by the engineering spec (e.g., repeated `file` query parameters, comma-separated paths, or another mechanism). All 3 files load successfully as tabs.
+- **Edge Cases**:
+  - File paths with spaces or special characters: must be properly URL-encoded.
+  - Very long URL (many files): verify the URL does not exceed browser limits (typically ~2000 characters for GET URLs). If it does, verify the launch script uses an alternative mechanism (e.g., a temp file or POST).
+  - File paths with non-ASCII characters: must be handled correctly.
+
+---
+
+### Feedback Actions
+
+---
+
+#### `TC-sr-feedback-action-apply`: User selects "apply" after prompt return
+
+- **Type**: Manual
+- **Covers**: `FR-sr-completion-summary`
+- **Preconditions**: A completed review session with at least 1 file that received comments. The unified prompt has been returned.
+- **Steps**:
+  1. Complete a review session (run `/shepherd-review`, add comments, click Done).
+  2. After the summary and prompt are displayed, select "apply".
+  3. Observe the agent behavior.
+- **Expected Result**: The agent begins implementing the changes described in the feedback prompt. It reads the prompt content (which contains per-file review comments) and starts making code changes based on the feedback. This is equivalent to the user having pasted the prompt manually.
+- **Edge Cases**:
+  - Very large prompt with many files and comments: the agent should process all feedback, not truncate.
+  - Feedback that contradicts itself (e.g., "add this function" in one file, "remove this function" in another): the agent should follow the instructions as stated and flag any confusion.
+
+---
+
+#### `TC-sr-feedback-action-save`: User selects "save for later" after prompt return
+
+- **Type**: Manual
+- **Covers**: `FR-sr-completion-summary`
+- **Preconditions**: A completed review session with at least 1 file that received comments. The unified prompt has been returned.
+- **Steps**:
+  1. Complete a review session (run `/shepherd-review`, add comments, click Done).
+  2. After the summary and prompt are displayed, select "save".
+  3. Observe the agent behavior.
+- **Expected Result**: The agent writes the feedback prompt content to a file for later use. The file location should be communicated to the user (e.g., "Saved review feedback to `<path>`"). The session ends after saving.
+- **Edge Cases**:
+  - The save path should be deterministic and not conflict with other files.
+  - Saving when a previous save file exists: should overwrite or use a timestamped name.
+
+---
+
 ### Non-Functional Requirements
 
 ---
@@ -728,16 +825,16 @@
 
 ---
 
-#### `TC-sr-no-external-dependencies`: No additional dependencies beyond git and /shepherd
+#### `TC-sr-no-external-dependencies`: No additional dependencies beyond git and shepherd-launch.sh
 
 - **Type**: Manual
 - **Covers**: `NFR-sr-no-dependencies`
 - **Preconditions**: The command file exists.
 - **Steps**:
   1. Read the `.claude/commands/shepherd-review.md` file.
-  2. Verify it only references git commands, standard shell utilities, and the `/shepherd` command.
+  2. Verify it only references git commands, standard shell utilities, and the `shepherd-launch.sh` script.
   3. Verify no npm packages, binaries, or external tools are required.
-- **Expected Result**: The command file is pure prompt engineering. It instructs the agent to use `git` (for changeset detection), standard shell (for path manipulation), and `/shepherd` (for per-file review). No additional dependencies are introduced.
+- **Expected Result**: The command file is pure prompt engineering. It instructs the agent to use `git` (for changeset detection), standard shell (for path manipulation), and `shepherd-launch.sh` (for launching the CRPG with multiple files). No additional dependencies are introduced.
 - **Edge Cases**:
   - If the prompt instructs the agent to run `jq`, `python`, `node`, or any non-standard utility: this would be a failure.
 
@@ -801,30 +898,40 @@
 
 ---
 
-### Iteration Edge Cases
+### Batch Open Edge Cases
 
 #### Single file in the review list
 - **Trigger**: The changeset has only 1 reviewable file.
-- **Expected behavior**: The file list shows "Found 1 files to review." with a single entry. The iteration processes the one file and then shows the completion summary. The `[1/1]` position indicator is displayed.
+- **Expected behavior**: The file list shows "Found 1 files to review." with a single entry. After confirmation, the CRPG opens with a single tab. The user reviews and clicks Done. The completion summary is displayed.
 - **Test case**: `TC-sr-single-file`
 
-#### Large number of files (100+)
-- **Trigger**: The changeset has 100+ reviewable files.
-- **Expected behavior**: All files are listed (with right-aligned position numbers, e.g., `  1.` through `127.`). The iteration loop works for all files. The completion summary is accurate. There is no truncation of the file list.
-- **Test case**: `TC-sr-many-files`
+#### Large batch size (30+ files)
+- **Trigger**: The changeset has 30+ reviewable files, all opened as tabs in a single CRPG session.
+- **Expected behavior**: All files are listed in the file list (with right-aligned position numbers). The launch script constructs a URL with all file paths. The CRPG opens with all files as tabs. The tab bar may become crowded but should remain navigable (scrollable tab bar or similar). The completion summary is accurate. There is no truncation of the file list or the tab set. If the URL exceeds browser limits, the launch script should use an alternative mechanism.
+- **Test case**: `TC-sr-many-files-batch`
 
-#### File deleted between detection and iteration
-- **Trigger**: Between the initial `git diff` and the iteration reaching a specific file, the file is deleted from disk (e.g., by another process or a git operation).
-- **Expected behavior**: When `/shepherd` is invoked for the now-missing file, `/shepherd` reports its own error ("File not found"). The error is displayed. The user can say "next" to continue. The file is counted as "reviewed" (the attempt was made).
-- **Test case**: `TC-sr-file-deleted-during-review`
+#### CRPG timeout
+- **Trigger**: The user opens all files in the CRPG but never clicks Done. The session remains idle for an extended period.
+- **Expected behavior**: The CRPG or the agent's file-watcher mechanism has a timeout (30 minutes, matching the `/shepherd` command's timeout). If the timeout is reached, the agent reports that the session timed out and displays a summary with zero comments. The user can re-run `/shepherd-review` to start a fresh session.
+- **Test case**: `TC-sr-crpg-timeout`
 
 ---
 
 ## Regression Considerations
 
-### Existing `/shepherd` command
-- The `/shepherd-review` command depends on `/shepherd` for per-file review. Changes to `/shepherd`'s behavior (e.g., different error messages, different URL format, different server management) could affect the review workflow.
-- Verify that `/shepherd` still works correctly when invoked programmatically by the review command (not just when the user types it manually).
+### `shepherd-launch.sh` script dependency
+- The `/shepherd-review` command depends on `shepherd-launch.sh` for opening files in the CRPG. Changes to the launch script's behavior (e.g., different URL format, different server management, different argument handling) could affect the review workflow.
+- Verify that `shepherd-launch.sh` works correctly when invoked with multiple file path arguments (the new multi-file interface) and that single-file invocation (used by `/shepherd` directly) is not broken.
+
+### CRPG multi-file URL loading regression
+- The CRPG web app is updated to support loading multiple files from URL parameters (new `useFileFromUrl` behavior). Changes to the URL parameter format or the file-loading logic could break the batch-open workflow.
+- Verify that the CRPG correctly loads all files passed via URL parameters and creates one tab per file in the correct order.
+- Verify that the existing single-file URL loading (used by `/shepherd` for individual files) still works correctly.
+
+### `prompt-output.md` multi-file content regression
+- The CRPG generates a unified multi-file prompt and writes it to `~/.shepherd/prompt-output.md`. Changes to the prompt format, the file-write mechanism, or the agent's file-watcher could break the feedback return workflow.
+- Verify that the prompt-output file contains all comments from all files, organized by file.
+- Verify that the agent correctly detects and reads the prompt-output file after the user clicks Done.
 
 ### Install script
 - The `scripts/install-command.sh` script is modified to also install `shepherd-review.md`. Verify that the existing `/shepherd` symlink is still created correctly and that the script is idempotent (running it multiple times does not cause issues).
@@ -833,4 +940,4 @@
 - The changeset detection uses `git diff --name-status` and `git merge-base`. If the repository's git configuration changes (e.g., different rename detection settings, different merge strategies), the changeset output could change. Verify that the command produces consistent results across standard git configurations.
 
 ### Agent conversation context
-- The `/shepherd-review` command runs as a multi-turn interaction within the agent conversation. If the agent's conversation context is limited or the conversation becomes very long (e.g., after reviewing 50+ files), the agent may lose track of the iteration state. This is an inherent limitation of prompt-based commands. Verify that the command remains coherent for at least 20 files in a single session.
+- The `/shepherd-review` command runs as a multi-turn interaction within the agent conversation. With the batch-open model, the agent's context requirements are simpler (no per-file iteration state), but the changeset overview and per-file context summaries add content to the conversation. Verify that the command remains coherent for large changesets (20+ files) where the overview and summaries are substantial.
