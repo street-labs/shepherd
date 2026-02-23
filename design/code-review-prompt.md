@@ -10,7 +10,7 @@ This is a single-page application with one primary view that transitions through
 |---|---|
 | **Empty State** | No file loaded. Shows drop zone and file loading instructions. |
 | **File Loaded State (Single File)** | One file is loaded and displayed in the code viewer. User can add, edit, delete comments. The prompt auto-generates when comments exist. When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears between the FileHeader and the code viewer (`FR-crp-review-context-display`). |
-| **File Loaded State (Multi-File)** | Two or more files are loaded. A File Tab Bar appears between the toolbar and the content area, showing all loaded files with comment counts. The active file is displayed in the code viewer. User can switch between files, add/remove files, and annotate each independently. When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears between the File Tab Bar and the code viewer, showing overall changeset context and per-file context for the active tab (`FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`). Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`. |
+| **File Loaded State (Multi-File)** | Two or more files are loaded. A File Tab Bar appears between the toolbar and the content area, showing all loaded files with comment counts, grouped by review status ("To Review" and "Reviewed" sections with `FR-crp-file-reviewed-grouping`). The active file is displayed in the code viewer. User can switch between files, add/remove files, mark files as reviewed, and annotate each independently. A review progress indicator in the toolbar shows "N/M reviewed" (`FR-crp-file-reviewed-progress`). When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears between the File Tab Bar and the code viewer, showing overall changeset context and per-file context for the active tab (`FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`). Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`. |
 | **Prompt Preview State** | The auto-generated prompt is displayed in a preview panel alongside the code viewer. Active whenever >= 1 comment exists on any loaded file. When multiple files have comments, the prompt aggregates all files (`FR-crp-multi-file-prompt`). |
 
 Within the File Loaded State (both single and multi-file), the application has several sub-states depending on user activity (editing a comment, selecting a line range, etc.). These are described in detail below.
@@ -188,9 +188,11 @@ Contains the following from top to bottom:
 
 2. **ReviewContextPanel** (conditional): Visible only when review context data is available (`FR-crp-review-context-receive`). Positioned between the FileHeader (or the top of the Code Viewer Panel in multi-file mode) and the CodeViewer. Shows overall changeset context and per-file context for the active file. Collapsible to maximize code viewing space. See ReviewContextPanel component spec for full details. When no context data is available (standalone mode, single `/shepherd`), this component is not rendered at all (`AC-crp-context-graceful-missing`).
 
-3. **CodeViewer**: The main scrollable code display area. See Component Specs for full details. Implements `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`. In multi-file mode, the CodeViewer displays the content of the currently active file only. When the user switches tabs, the CodeViewer swaps to the new file's content, restoring that file's scroll position and rendering its comments.
+3. **ReviewStatusBar** (file-reviewed feature): A compact horizontal bar at the top of the code viewer area (below the ReviewContextPanel if present, or below the FileHeader / tab bar). Shows the reviewed state of the active file with a toggle button. Implements `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`. See ReviewStatusBar component spec for full details.
 
-4. **InlineCommentEditor**: Appears inline within the CodeViewer when the user is creating or editing a comment. See Component Specs.
+4. **CodeViewer**: The main scrollable code display area. See Component Specs for full details. Implements `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`. In multi-file mode, the CodeViewer displays the content of the currently active file only. When the user switches tabs, the CodeViewer swaps to the new file's content, restoring that file's scroll position and rendering its comments.
+
+5. **InlineCommentEditor**: Appears inline within the CodeViewer when the user is creating or editing a comment. See Component Specs.
 
 #### Sidebar Panel
 
@@ -225,7 +227,7 @@ All toolbar items update to their active states:
 | **Prompt sent (fallback)** | User clicks Done but `window.close()` fails (not app-mode) (`AC-crp-done-confirmation`) | Done button transitions: "Done" -> "Sending..." (with spinner) -> "Sent" (green checkmark, disabled). A toast notification appears: "Prompt sent to agent! Switch back to your terminal." The "Sent" state persists until the user modifies comments or preamble, at which point the button resets to "Done". |
 | **Prompt send failed** | Done POST request fails (`AC-crp-done-fallback-clipboard`) | Done button reverts from "Sending..." to "Done". A toast notification appears: "Could not send to agent. Prompt copied to clipboard -- paste it manually." The prompt is still available on the clipboard. |
 | **Large file warning** | File exceeds 10,000 lines (`NFR-crp-large-file-perf`) | A dismissible yellow banner appears at the top of the code viewer: "This file has N lines. Performance may be affected for very large files." Dismissing sets a per-file session flag. If a different large file is activated, its warning is independent. |
-| **Multi-file: file switching** | User clicks a different tab in the File Tab Bar (`FR-crp-multi-file-nav`) | The code viewer transitions to the newly active file. The previous file's state (comments, scroll position) is preserved in memory. The new file's scroll position is restored. The active tab indicator updates. `AC-crp-multi-file-nav-preserves-state` |
+| **Multi-file: file switching** | User clicks a different tab in the File Tab Bar (`FR-crp-multi-file-nav`) | The code viewer transitions to the newly active file. The previous file's state (comments, scroll position, reviewed status) is preserved in memory. The new file's scroll position is restored. The active tab indicator updates. The ReviewStatusBar updates to reflect the new file's reviewed state. `AC-crp-multi-file-nav-preserves-state`, `AC-crp-file-reviewed-survives-tab-switch` |
 | **Multi-file: file removal** | User closes a tab (`FR-crp-multi-file-remove`) | The tab disappears. If the removed file was active, the adjacent tab becomes active (see Flow 19). If no files remain, the application returns to the Empty State. `AC-crp-multi-file-empty-after-remove-last` |
 | **Multi-file: add file overlay** | User clicks "+" in the File Tab Bar | The FileDropZone appears as a centered modal overlay over the code viewer area. The existing file remains visible behind the backdrop. On successful load, the overlay closes and the new file's tab appears. See Flow 17. |
 | **Multi-file: drag-over add** | User drags file(s) over the application while files are loaded | A drop overlay appears over the code viewer: "Drop to add file(s)" with a highlighted dashed border (`#2563EB`). On drop, files are added to the session. See Flow 20. |
@@ -352,7 +354,7 @@ All toolbar items update to their active states:
    - Body (single file): "This will remove the loaded file, all N comments, and the preamble. This action cannot be undone."
    - Body (multi-file): "This will remove all M loaded files, all N comments, and the preamble. This action cannot be undone." (`AC-crp-multi-file-clear-all`)
    - Buttons: "Cancel" (secondary, left) and "Clear session" (destructive/red, right).
-   - If user clicks "Clear session", ALL loaded files, ALL comments across all files, and the preamble are removed. The application resets to the Empty State. The File Tab Bar disappears.
+   - If user clicks "Clear session", ALL loaded files, ALL comments across all files, the preamble, and all reviewed statuses are removed (`AC-crp-file-reviewed-clear-session`). The application resets to the Empty State. The File Tab Bar disappears. The review progress indicator disappears.
    - If user clicks "Cancel" or presses `Escape`, the dialog closes and nothing changes.
 3. **If no comments exist on any file** (`AC-crp-clear-no-confirm-empty`): The session clears immediately without a dialog. All loaded files are removed. The application returns to the Empty State.
 
@@ -443,7 +445,7 @@ The mode is tracked as a boolean flag in application state (e.g., `isSlashComman
    - Buttons: "Cancel" (secondary) / "Remove" (destructive/red).
    - If user clicks "Remove", proceed to step 5. If "Cancel", the dialog closes and nothing changes.
 4. **If the file has no comments** (`AC-crp-multi-file-remove-no-comments`): The file is removed immediately without a confirmation dialog. Proceed to step 5.
-5. The tab disappears from the File Tab Bar. The file and all its comments are removed from the session.
+5. The tab disappears from the File Tab Bar. The file, all its comments, and its reviewed status are removed from the session (`FR-crp-file-reviewed-persistence`). The review progress indicator updates immediately (e.g., if the removed file was reviewed, the reviewed count decrements; the total count also decrements).
 6. If the removed file was the active tab:
    - If other files remain: The tab to the right becomes active (or the tab to the left if the rightmost tab was removed). The code viewer switches to the newly active file.
    - If no files remain (`AC-crp-multi-file-empty-after-remove-last`): The application returns to the Empty State. The File Tab Bar disappears.
@@ -462,6 +464,55 @@ The mode is tracked as a boolean flag in application state (e.g., `isSlashComman
 5. An info toast confirms the result: "Loaded N files." (or "Loaded N files. M files were skipped." if some were binary).
 6. The last successfully loaded file becomes the active tab. Its content is displayed in the code viewer.
 7. If the user was previously in single-file mode, the File Tab Bar appears for the first time.
+
+### Flow 21: Mark a File as Reviewed (`FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-reviewed-with-comments`)
+
+There are three ways to mark a file as reviewed:
+
+**Via the ReviewStatusBar (primary mechanism):**
+
+1. User is viewing a file in the code viewer. The ReviewStatusBar is visible below the ReviewContextPanel (or at the top of the code viewer area if no context panel). The bar shows a checkbox and the text "Mark as reviewed".
+2. User clicks the "Mark as reviewed" button (or the checkbox).
+3. The ReviewStatusBar transitions: the checkbox fills with a green checkmark, the text changes to "Reviewed", and the bar's background subtly shifts to a pale green tint (`#F0FDF4`; dark mode: `#052E16`) for 300ms, then settles to a neutral reviewed appearance.
+4. The file's tab in the File Tab Bar immediately updates: a green checkmark icon appears before the file name, and if the tab is inactive, its text color mutes.
+5. The file's tab smoothly animates (150ms ease-out CSS transition on `transform` and `opacity`) from the "To Review" group to the "Reviewed" group. If this is the first reviewed file, the "REVIEWED" group label and divider appear simultaneously.
+6. The review progress indicator in the toolbar updates immediately (e.g., "2/7 reviewed" becomes "3/7 reviewed"). `AC-crp-file-reviewed-progress-count`
+7. The file remains active in the code viewer — the user does not lose their place. The user can continue reading, adding comments, or navigating. `AC-crp-file-reviewed-with-comments`
+
+**Via the tab bar review toggle button:**
+
+1. User hovers over a tab (or the tab is active), revealing the review toggle button (circle icon) after the comment badge.
+2. User clicks the review toggle button.
+3. The tab immediately updates with the reviewed visual treatment (green checkmark, muted text if inactive).
+4. The tab moves to the "Reviewed" group with the same animation as above.
+5. The ReviewStatusBar (if visible for this file) updates to show the "Reviewed" state.
+6. The progress indicator updates.
+7. This mechanism works without switching to the file — the user can mark other files as reviewed while remaining on the current file. `FR-crp-file-reviewed-toggle`
+
+**Via keyboard shortcut:**
+
+1. User presses `Cmd+Shift+R` / `Ctrl+Shift+R` (global shortcut) or `r` (when a tab is focused in the tab bar).
+2. The active file's reviewed state toggles. All visual updates are identical to the ReviewStatusBar mechanism.
+3. A brief toast-style screen reader announcement: "[filename] marked as reviewed" or "[filename] unmarked".
+
+### Flow 22: Unmark a Reviewed File (`AC-crp-file-unmark-reviewed`)
+
+1. User sees a file in the "Reviewed" state (either viewing it or seeing it in the tab bar).
+2. User clicks the ReviewStatusBar "Reviewed" checkbox/button, clicks the tab's review toggle button, or presses the keyboard shortcut.
+3. The ReviewStatusBar transitions: the checkbox empties, the text changes back to "Mark as reviewed", the pale green tint fades out.
+4. The file's tab updates: the green checkmark disappears, text color returns to normal.
+5. The tab animates from the "Reviewed" group back to the "To Review" group, maintaining its original load-order position within the group. If the "Reviewed" group is now empty, the group label and divider disappear.
+6. The progress indicator decrements (e.g., "3/7 reviewed" becomes "2/7 reviewed").
+
+### Flow 23: Tab Grouping Transition on Review Status Change (`FR-crp-file-reviewed-grouping`)
+
+When a file's reviewed status changes, the tab must visually move between groups:
+
+1. **Mark as reviewed**: The tab fades slightly (opacity 0.5, 100ms), slides horizontally toward the "Reviewed" group (150ms ease-out), and fades back in (opacity 1.0, 100ms) in its new position. The surrounding tabs in both groups adjust their positions smoothly (150ms CSS transition on `transform`).
+2. **Unmark as reviewed**: The reverse animation. The tab fades, slides back to its load-order position in the "To Review" group, and fades in.
+3. **Group label appearance**: When the first file enters a group (either "To Review" or "Reviewed"), the group label fades in (opacity 0 to 1, 150ms). When the last file leaves a group, the label fades out. The divider follows the same pattern.
+4. **Edge case — all reviewed**: When the last unreviewed file is marked as reviewed, the "TO REVIEW" label and divider disappear. Only the "REVIEWED" label remains with all tabs. The progress indicator text turns green.
+5. **Edge case — all unreviewed**: When the last reviewed file is unmarked, the "REVIEWED" label disappears. Group labels are hidden entirely (the default state with no labels is cleaner).
 
 ---
 
@@ -564,34 +615,62 @@ Handles all three file loading methods: paste, upload, and drag-and-drop. Implem
 
 ### FileTabBar
 
-Horizontal tab bar showing all loaded files in the session. Implements `FR-crp-multi-file-nav`. Only rendered when two or more files are loaded (see layout section for transition rules).
+Horizontal tab bar showing all loaded files in the session, grouped by review status. Implements `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`. Only rendered when two or more files are loaded (see layout section for transition rules).
 
-- **Position**: Below the toolbar, above the code viewer and sidebar. Full width of the viewport. Height: 40px. Background: `#F8FAFC`. Border-bottom: 1px solid `#E2E8F0`.
+- **Position**: Below the toolbar, above the code viewer and sidebar. Full width of the viewport. Min-height: 40px (may expand if group labels are present). Background: `#F8FAFC`. Border-bottom: 1px solid `#E2E8F0`.
 
 - **Props/Inputs**:
-  - `files: FileTab[]` where `FileTab = { id: string; name: string; language: string; commentCount: number }`
+  - `files: FileTab[]` where `FileTab = { id: string; name: string; language: string; commentCount: number; isReviewed: boolean }`
   - `activeFileId: string`
   - `onSelectFile: (fileId: string) => void`
   - `onRemoveFile: (fileId: string) => void`
   - `onAddFile: () => void`
+  - `onToggleReviewed: (fileId: string) => void`
 
-- **Visual Structure**:
+- **Visual Structure (with grouping, `FR-crp-file-reviewed-grouping`)**:
+
+  When at least one file is in each group (both "To Review" and "Reviewed" are non-empty):
+  ```
+  +---TO REVIEW---[utils.ts (3)]---[helpers.ts]---|---REVIEWED---[✓ config.json (1)]---[✓ app.ts]---[+]---+
+  ```
+
+  When all files are unreviewed (no "Reviewed" group label needed):
   ```
   +---[utils.ts (3)]---[helpers.ts]---[config.json (1)]---[+]-------------+
   ```
+
+  When all files are reviewed (no "To Review" group needed):
+  ```
+  +---REVIEWED---[✓ utils.ts (3)]---[✓ helpers.ts]---[✓ config.json (1)]---[+]---+
+  ```
+
+  - **Group labels**: Inline labels "TO REVIEW" and "REVIEWED" appear before each group's tabs. Style: 10px semi-bold (600), uppercase, letter-spacing `0.05em`, color `#94A3B8`, padding 0 8px, vertically centered in the tab bar. Group labels are only shown when both groups are non-empty, or when all files are in the "Reviewed" group (to make the reviewed state obvious). When all files are unreviewed, group labels are omitted since this is the default state and the labels would add visual noise without informational value.
+  - **Group divider**: A thin vertical separator (1px solid `#CBD5E1`, height 20px, vertically centered) appears between the last "To Review" tab and the "REVIEWED" label. Only rendered when both groups have at least one file.
+  - **Dark mode group labels**: Color `#64748B`. Divider: 1px solid `#3F4451`.
+
+  Within each group, files maintain their original load order (`FR-crp-file-reviewed-grouping`).
+
   - Each loaded file gets a tab showing:
-    - **File name**: Truncated with ellipsis if > 20 characters. Monospace font, 13px.
+    - **Reviewed indicator** (`FR-crp-file-reviewed-visual`): When `isReviewed` is true, a green checkmark icon (12px, color `#16A34A`) appears before the file name with 4px right margin. The icon is always visible (not hover-gated) so the reviewed state is obvious at a glance.
+      - Dark mode: Checkmark color `#4ADE80` (green-400).
+    - **File name**: Truncated with ellipsis if > 20 characters. Monospace font, 13px. When the file is reviewed and the tab is inactive, the text color is muted to `#94A3B8` (light slate) to further distinguish reviewed files visually.
     - **Comment count badge**: Small pill shown only when `commentCount > 0`. Style: background `#3B82F6`, text white, font-size 10px, border-radius 8px, min-width 16px, height 16px, padding 0 4px. Positioned inline after the file name with 6px left margin.
+    - **Review toggle button**: A small circle icon button (16px hit target, 12px icon) to the right of the comment count badge (or after the file name if no badge). Visible on hover or when the tab is active. When unreviewed: empty circle outline (color `#94A3B8`); when reviewed: filled green checkmark circle (color `#16A34A`). Clicking this toggles the reviewed state directly from the tab without switching to the file (`FR-crp-file-reviewed-toggle`). `aria-label="Mark [filename] as reviewed"` or `aria-label="Unmark [filename] as reviewed"` depending on state.
     - **Close button (X icon)**: 14px icon. Visible on hover or when the tab is active. Clicking removes the file (`FR-crp-multi-file-remove`). Hidden for the last remaining file (use Clear session instead).
-  - **Tooltip on hover**: Shows the full file name and detected language (e.g., "helpers.ts -- TypeScript"). For pasted files, shows "Untitled -- Plain Text" or the user-given name.
+  - **Tooltip on hover**: Shows the full file name, detected language, and review status (e.g., "helpers.ts -- TypeScript" or "config.json -- JSON -- Reviewed"). For pasted files, shows "Untitled -- Plain Text" or the user-given name.
 
 - **Tab States**:
 
-  | State | Background | Text Color | Border | Font Weight |
-  |---|---|---|---|---|
-  | **Active** | `#FFFFFF` (white) | `#1E293B` (dark slate) | border-bottom: 2px solid `#2563EB` | 600 (semi-bold) |
-  | **Inactive** | transparent | `#64748B` (slate) | none | 400 (regular) |
-  | **Inactive (hover)** | `#E2E8F0` | `#475569` | none | 400 |
+  | State | Background | Text Color | Border | Font Weight | Checkmark |
+  |---|---|---|---|---|---|
+  | **Active, unreviewed** | `#FFFFFF` (white) | `#1E293B` (dark slate) | border-bottom: 2px solid `#2563EB` | 600 (semi-bold) | None |
+  | **Active, reviewed** | `#FFFFFF` (white) | `#1E293B` (dark slate) | border-bottom: 2px solid `#2563EB` | 600 (semi-bold) | Green checkmark (`#16A34A`) before name |
+  | **Inactive, unreviewed** | transparent | `#64748B` (slate) | none | 400 (regular) | None |
+  | **Inactive, reviewed** | transparent | `#94A3B8` (light slate, muted) | none | 400 (regular) | Green checkmark (`#16A34A`) before name |
+  | **Inactive, unreviewed (hover)** | `#E2E8F0` | `#475569` | none | 400 | None |
+  | **Inactive, reviewed (hover)** | `#E2E8F0` | `#475569` | none | 400 | Green checkmark |
+
+  The reviewed visual treatment is always visible on the tab regardless of hover or focus state (`FR-crp-file-reviewed-visual`). The muted text color for inactive reviewed tabs provides an additional visual cue that the file has been "completed" without requiring hover.
 
 - **Tab Sizing**: Each tab has min-width 120px, max-width 200px, padding 0 12px. Height: 40px (matching the bar). Tabs are left-aligned, laid out horizontally.
 
@@ -603,18 +682,74 @@ Horizontal tab bar showing all loaded files in the session. Implements `FR-crp-m
 
 - **Keyboard Accessibility** (`NFR-crp-accessibility-keyboard`):
   - The tab bar is focusable as a group. `Tab` key moves focus into the tab bar from the toolbar.
-  - `ArrowLeft` / `ArrowRight` moves focus between tabs within the bar.
+  - `ArrowLeft` / `ArrowRight` moves focus between tabs within the bar (traverses across both groups seamlessly — the group labels are not focusable).
   - `Enter` or `Space` activates (selects) the focused tab.
   - `Delete` or `Backspace` on a focused tab removes that file (with confirmation if it has comments, per `FR-crp-multi-file-remove`).
+  - `r` on a focused tab toggles the reviewed state for that file (`FR-crp-file-reviewed-toggle`). This key only fires when focus is on a tab element, not when focus is in a text input or comment editor.
   - `Tab` from the last tab moves focus to the "+" button. `Enter` or `Space` on the "+" button opens the add-file modal.
   - `Shift+Tab` from the tab bar moves focus back to the toolbar.
 
 - **ARIA Attributes**:
   - Container: `role="tablist"`, `aria-label="Loaded files"`
-  - Each tab: `role="tab"`, `aria-selected="true|false"`, `aria-controls` pointing to the code viewer panel ID
+  - Each tab: `role="tab"`, `aria-selected="true|false"`, `aria-controls` pointing to the code viewer panel ID. When the file is reviewed, the tab also includes `aria-description="Reviewed"`.
   - Active tab's associated code viewer panel: `role="tabpanel"`, `aria-labelledby` pointing to the active tab's ID
   - Close button within each tab: `aria-label="Remove [filename]"`
+  - Review toggle button within each tab: `aria-label="Mark [filename] as reviewed"` (unreviewed) or `aria-label="Unmark [filename] as reviewed"` (reviewed), `aria-pressed="true|false"`
   - Add file button: `aria-label="Add another file"`
+  - Group labels: `role="presentation"` (decorative, not interactive)
+
+---
+
+### ReviewStatusBar
+
+A compact horizontal bar that displays the reviewed/unreviewed status of the currently active file and provides the primary mechanism for toggling it. Implements `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `FR-crp-file-reviewed-persistence`.
+
+- **Position**: Inside the Code Viewer Panel, below the ReviewContextPanel (if present) or below the FileHeader (single-file mode) / the top of the panel (multi-file mode). Spans the full width of the Code Viewer Panel. Height: 36px. The bar is always visible when at least one file is loaded, regardless of whether context data is available.
+
+- **Props/Inputs**:
+  - `isReviewed: boolean` — Whether the currently active file is marked as reviewed.
+  - `fileName: string` — Name of the currently active file (used in screen reader announcements).
+  - `onToggleReviewed: () => void` — Callback to toggle the active file's reviewed state.
+
+- **Visual Structure (unreviewed)**:
+  ```
+  +--------------------------------------------------------------+
+  | [ ] Mark as reviewed                     Cmd+Shift+R          |
+  +--------------------------------------------------------------+
+  ```
+
+- **Visual Structure (reviewed)**:
+  ```
+  +--------------------------------------------------------------+
+  | [✓] Reviewed                             Cmd+Shift+R          |
+  +--------------------------------------------------------------+
+  ```
+
+- **Styling (unreviewed — light mode)**:
+  - **Container**: Full width. Height: 36px. Background: `#F8FAFC`. Border-bottom: 1px solid `#E2E8F0`. Padding: 0 16px. Display: flex, align-items center, justify-content space-between.
+  - **Checkbox**: 16px square, border: 2px solid `#CBD5E1`, border-radius: 3px, background: white. Cursor: pointer. On hover: border color `#94A3B8`.
+  - **Label**: "Mark as reviewed" in 13px regular (400), color `#475569`. Margin-left: 8px from checkbox. Cursor: pointer (clicking the label also toggles).
+  - **Shortcut hint**: "Cmd+Shift+R" (or "Ctrl+Shift+R" on non-Mac) in 11px regular, color `#94A3B8`. Right-aligned.
+  - **Dark mode**: Background: `#1A1D23`. Border-bottom: 1px solid `#2D3139`. Checkbox border: `#3F4451`. Label: `#A0AABB`. Shortcut hint: `#64748B`.
+
+- **Styling (reviewed — light mode)**:
+  - **Container**: Same dimensions. Background: `#F0FDF4` (green-50, subtle). Border-bottom: 1px solid `#BBF7D0` (green-200).
+  - **Checkbox**: 16px square, background: `#16A34A` (green), border: none, border-radius: 3px. White checkmark icon (10px) centered inside.
+  - **Label**: "Reviewed" in 13px semi-bold (600), color `#15803D` (green-700). Margin-left: 8px.
+  - **Shortcut hint**: Same as unreviewed.
+  - **Dark mode**: Background: `#052E16` (dark green tint). Border-bottom: 1px solid `#166534`. Checkbox background: `#4ADE80`. Label: `#4ADE80`.
+
+- **Behavior**:
+  - Clicking anywhere on the bar (checkbox, label, or background) toggles the reviewed state.
+  - The toggle fires `onToggleReviewed`. The parent component handles the state update.
+  - The transition between states uses a 150ms CSS transition on background-color and color for a smooth visual shift.
+  - In single-file mode, the bar still appears (the toggle is still useful as a personal workflow marker, even though grouping and progress are not shown).
+
+- **Keyboard Accessibility**:
+  - The checkbox is focusable (`tabindex="0"`).
+  - `Enter` or `Space` toggles the reviewed state.
+  - `Tab` from the ReviewContextPanel header (or FileHeader) moves focus to the checkbox. `Tab` from the checkbox moves focus to the code viewer.
+  - Screen reader: `role="checkbox"`, `aria-checked="true|false"`, `aria-label="Mark [filename] as reviewed"` or `aria-label="[filename] is reviewed"`.
 
 ---
 
@@ -629,6 +764,7 @@ The persistent toolbar at the top of the application. Always visible.
   - `currentCommentIndex: number | null` — Index of the currently focused comment (for navigation display). When navigating comments across multiple files, the index spans all files in tab order.
   - `hasFile: boolean` — Whether **at least one** file is loaded. True when one or more files exist in the session.
   - `fileCount: number` — Number of loaded files. Used to adjust the clear confirmation message (e.g., "This will remove all 3 loaded files, all 5 comments, and the preamble.").
+  - `reviewedCount: number` — Number of files marked as reviewed (`FR-crp-file-reviewed-progress`). Used for the progress indicator.
   - `isSlashCommandMode: boolean` — Whether the CRPG was launched via the slash command. Controls Done button visibility.
   - `doneState: 'idle' | 'sending' | 'sent'` — Current state of the Done button.
   - `onDone: () => void` — Callback when Done is clicked.
@@ -641,17 +777,21 @@ The persistent toolbar at the top of the application. Always visible.
 
   When **not** in slash command mode (standalone):
   ```
-  +---[Logo/Title]---[Comment Nav]---[Comment Count]------[Copy][Clear]---+
+  +---[Logo/Title]---[Comment Nav]---[Comment Count]---[3/7 reviewed]---[Copy][Clear]---+
   ```
 
   When in **slash command mode**:
   ```
-  +---[Logo/Title]---[Comment Nav]---[Comment Count]---[Done][Copy][Clear]---+
+  +---[Logo/Title]---[Comment Nav]---[Comment Count]---[3/7 reviewed]---[Done][Copy][Clear]---+
   ```
 
   - Left section: Application title "Code Review Prompt Generator" (or abbreviated to "CRPG" on narrower viewports approaching 1024px).
   - Center section: Comment navigation group — `[< Prev]` `Comment 2 of 5` `[Next >]`. The label shows "No comments" when count is 0.
-  - Right section: Action buttons. In slash command mode, "Done" (primary/filled style, blue background) appears to the left of "Copy" (secondary/outlined style). In standalone mode, "Done" is not rendered and "Copy" uses primary style. "Clear" always uses ghost/text style, red on hover for destructive affordance.
+  - Right section (before action buttons): **Review progress indicator** (`FR-crp-file-reviewed-progress`, `AC-crp-file-reviewed-progress-count`). Displays as a compact text badge: "[N]/[M] reviewed" where N = number of reviewed files and M = total loaded files. Only visible when `fileCount >= 2`. Hidden when 0 or 1 files are loaded (single-file sessions have limited utility for a progress indicator). Updates immediately when a file is marked/unmarked, added, or removed. When all files are reviewed, the text turns green (`#16A34A`; dark mode: `#4ADE80`) to signal completion.
+    - **Style**: Font-size 12px, font-weight 500 (medium), color `#64748B` (slate; dark mode: `#8B95A5`). Background: `#F1F5F9` (light; dark mode: `#21252B`). Border-radius: 4px. Padding: 2px 8px. Positioned between the comment count and the action buttons with 12px left margin.
+    - **Completion style**: When `reviewedCount === fileCount` and `fileCount >= 2`: Text color changes to `#16A34A` (green; dark mode: `#4ADE80`). Background changes to `#F0FDF4` (green-50; dark mode: `#052E16`).
+    - **Screen reader**: `aria-label="N of M files reviewed"`, `role="status"`, `aria-live="polite"` so changes are announced.
+  - Right section (action buttons): In slash command mode, "Done" (primary/filled style, blue background) appears to the left of "Copy" (secondary/outlined style). In standalone mode, "Done" is not rendered and "Copy" uses primary style. "Clear" always uses ghost/text style, red on hover for destructive affordance.
 
 - **Done Button States** (`FR-crp-done-action`):
 
@@ -688,6 +828,7 @@ The persistent toolbar at the top of the application. Always visible.
     - Copy: `Cmd+Shift+C` / `Ctrl+Shift+C`
     - Previous comment: `[`
     - Next comment: `]`
+    - Mark as reviewed: `Cmd+Shift+R` / `Ctrl+Shift+R` — toggles the reviewed state for the currently active file (`FR-crp-file-reviewed-toggle`). This is a global shortcut that works from anywhere in the application as long as a file is loaded, so the user does not need to switch away from their current context.
     - Clear: No shortcut (destructive action).
 
 ---
@@ -1358,6 +1499,7 @@ All core workflows are achievable via keyboard:
 | **Edit a comment** | `Tab` to comment bubble, `Enter` to focus Edit button, `Enter` |
 | **Delete a comment** | `Tab` to comment bubble, `Tab` to Delete button, `Enter` |
 | **Navigate comments** | `[` for previous, `]` for next (navigates across all files) |
+| **Mark/unmark file as reviewed** | `Cmd+Shift+R` / `Ctrl+Shift+R` (global shortcut, toggles active file); or `r` when a tab is focused in the File Tab Bar |
 | **Copy prompt** | `Cmd+Shift+C` / `Ctrl+Shift+C` |
 | **Send prompt (Done)** | `Cmd+Shift+D` / `Ctrl+Shift+D` (slash command mode only) |
 | **Clear session** | `Tab` to Clear button, `Enter` |
@@ -1390,6 +1532,10 @@ All core workflows are achievable via keyboard:
 | Prompt preview | `role="region"`, `aria-label="Generated prompt preview"` |
 | Drop zone | `role="region"`, `aria-label="File loading area"` |
 | Add file modal | `role="dialog"`, `aria-label="Add file"`, `aria-modal="true"` |
+| Review status bar checkbox | `role="checkbox"`, `aria-checked="true\|false"`, `aria-label="Mark [filename] as reviewed"` |
+| Review progress indicator | `role="status"`, `aria-live="polite"`, `aria-label="N of M files reviewed"` |
+| File tab review toggle button | `aria-label="Mark [filename] as reviewed"` / `aria-label="Unmark [filename] as reviewed"`, `aria-pressed="true\|false"` |
+| File tab group labels | `role="presentation"` |
 | Review context panel header | `role="button"`, `aria-expanded="true\|false"`, `aria-controls="review-context-content"` |
 | Review context panel content | `role="region"`, `aria-label="Review context"` |
 | Context section (neutral) | `role="note"`, `aria-label="What Changed"` |
@@ -1442,6 +1588,18 @@ All core workflows are achievable via keyboard:
 | Review context background | Violet-50 | `#F5F3FF` |
 | Review context border | Violet-200 | `#DDD6FE` |
 | Review context icon | Violet | `#7C3AED` |
+| Reviewed checkmark (light) | Green | `#16A34A` |
+| Reviewed checkmark (dark) | Green-400 | `#4ADE80` |
+| Reviewed bar background (light) | Green-50 | `#F0FDF4` |
+| Reviewed bar background (dark) | Dark green | `#052E16` |
+| Reviewed bar border (light) | Green-200 | `#BBF7D0` |
+| Reviewed bar border (dark) | Green-800 | `#166534` |
+| Reviewed text (light) | Green-700 | `#15803D` |
+| Reviewed tab muted text | Light slate | `#94A3B8` |
+| Progress complete text (light) | Green | `#16A34A` |
+| Progress complete background (light) | Green-50 | `#F0FDF4` |
+| Tab group label text | Muted | `#94A3B8` |
+| Tab group divider | Dashed gray | `#CBD5E1` |
 
 ---
 
@@ -1465,6 +1623,9 @@ All core workflows are achievable via keyboard:
 | Context section label | System sans-serif | 11px | 600 | 16px |
 | Context section header | System sans-serif | 12px | 600 | 16px |
 | Context content text | System sans-serif | 13px | 400 | 20px |
+| Tab group label | System sans-serif | 10px | 600 | 16px |
+| Review status bar label | System sans-serif | 13px | 400 (unreviewed) / 600 (reviewed) | 20px |
+| Review progress indicator | System sans-serif | 12px | 500 | 16px |
 
 System sans-serif stack: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`
 
@@ -1508,6 +1669,11 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-review-context-display` | ReviewContextPanel component; ContextSection component; Application Layout (single-file and multi-file with context panel); Code Viewer Panel layout; Flow 18 step 6 |
 | `FR-crp-review-context-overall` | ReviewContextPanel component (overall section); Application Layout diagrams; Flow 18 step 6 |
 | `FR-crp-review-context-per-file` | ReviewContextPanel component (per-file section); Flow 18 step 6 (per-file context updates on tab switch) |
+| `FR-crp-file-reviewed-toggle` | ReviewStatusBar component (primary toggle); FileTabBar review toggle button; Toolbar keyboard shortcut `Cmd+Shift+R`; Flow 21; Flow 22 |
+| `FR-crp-file-reviewed-visual` | FileTabBar tab states (green checkmark, muted text for reviewed tabs); ReviewStatusBar styling (reviewed variant) |
+| `FR-crp-file-reviewed-grouping` | FileTabBar visual structure (group labels "TO REVIEW" / "REVIEWED", divider, grouping logic); Flow 23 |
+| `FR-crp-file-reviewed-progress` | Toolbar review progress indicator ("N/M reviewed" badge); Toolbar props (`reviewedCount`) |
+| `FR-crp-file-reviewed-persistence` | ReviewStatusBar behavior (session-level state); Flow 19 step 5 (discarded on removal); Flow 12 (cleared on session clear); File Loaded Screen "multi-file: file switching" state |
 
 ### Non-Functional Requirements
 
@@ -1567,3 +1733,10 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-context-neutral-vs-review` | ContextSection component (neutral vs review variants with distinct visual treatment); ReviewContextPanel component |
 | `AC-crp-context-graceful-missing` | ReviewContextPanel component (absent/hidden state — not rendered when no context data); Code Viewer Panel layout |
 | `AC-crp-context-readonly` | ReviewContextPanel component (read-only content); ContextSection component (read-only div, no editable elements) |
+| `AC-crp-file-mark-reviewed` | ReviewStatusBar component (unreviewed -> reviewed transition); FileTabBar (review toggle button, visual update); Flow 21 |
+| `AC-crp-file-unmark-reviewed` | ReviewStatusBar component (reviewed -> unreviewed transition); FileTabBar (review toggle button, visual update); Flow 22 |
+| `AC-crp-file-reviewed-grouping` | FileTabBar (group labels, divider, tab ordering by group); Flow 23 (transition animations) |
+| `AC-crp-file-reviewed-progress-count` | Toolbar review progress indicator (updates on mark/unmark/add/remove); Flow 21 step 6 |
+| `AC-crp-file-reviewed-survives-tab-switch` | File Loaded Screen "multi-file: file switching" state; Flow 18 (reviewed status preserved) |
+| `AC-crp-file-reviewed-with-comments` | Flow 21 step 7 (reviewed status is orthogonal to comments); ReviewStatusBar (available regardless of comment state) |
+| `AC-crp-file-reviewed-clear-session` | Flow 12 (all reviewed statuses cleared with session) |

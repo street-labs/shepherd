@@ -43,6 +43,9 @@ This bridges the gap between a developer's code review observations and an actio
 ### US-11: See review context alongside files
 **As a** developer reviewing files in the CRPG, **I want to** see what changed in each file and the agent's review feedback without switching back to the terminal, **so that** I have all the context I need right where I'm doing my review.
 
+### US-12: Track review progress across files
+**As a** developer reviewing a multi-file changeset, **I want to** mark files as "reviewed" and see my progress through the file list, **so that** I can keep track of which files I've finished looking at and how much of the review remains.
+
 ## Requirements
 
 ### Functional Requirements
@@ -148,6 +151,21 @@ The CRPG displays an overall changeset summary (neutral context + review feedbac
 
 #### `FR-crp-review-context-per-file` -- Display per-file context
 Each file tab displays context specific to that file (neutral context + review feedback). When the user switches tabs, the context updates to show the relevant file's context. Files without context data (e.g., files loaded via paste/upload/drag-drop that were not part of the shepherd-review invocation) simply don't show the context panel — no empty or placeholder state is needed.
+
+#### `FR-crp-file-reviewed-toggle` -- Mark/unmark a file as reviewed
+The user can toggle an individual file's review status between "unreviewed" (default) and "reviewed". This is a manual action — the application never automatically marks a file as reviewed. The toggle is available for every loaded file regardless of whether the file has comments, context data, or was loaded via any particular method (paste, upload, drag-drop, slash command, shepherd-review). In a single-file session, the toggle is still available but the grouping and progress features (`FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`) may have limited utility. The toggle mechanism is a design decision (could be a checkbox on the tab, a button in the toolbar, a keyboard shortcut, or some combination), but it must be reachable without switching away from the current file.
+
+#### `FR-crp-file-reviewed-visual` -- Visual distinction for reviewed files
+Files that are marked as reviewed must have a visually distinct treatment in the tab bar and any file list or navigation UI. The visual treatment must be obvious at a glance — a user scanning the tab bar should be able to instantly tell which files are reviewed and which are not without hovering or clicking. Possible treatments include (but are not limited to): a checkmark icon, muted/dimmed text, a different background color, or a strikethrough on the file name. The specific visual treatment is a design decision. The currently active file's tab still shows its reviewed/unreviewed state even while active.
+
+#### `FR-crp-file-reviewed-grouping` -- Group files by review status
+Files in the tab bar or file navigation UI are organized into two groups: "To Review" (unreviewed files) and "Reviewed" (reviewed files). Unreviewed files appear first so they are prominent and easy to find. Reviewed files are separated into their own group but remain accessible — the user can still click on a reviewed file to view it, add comments to it, or unmark it. Within each group, files maintain their original load order. When all files are reviewed, the "To Review" group is empty (which is fine — this is the goal state). When no files are reviewed, the "Reviewed" group is empty. The grouping must include visual labels or separators so the two groups are distinguishable.
+
+#### `FR-crp-file-reviewed-progress` -- Review progress indicator
+The application displays a progress indicator showing the number of reviewed files versus total loaded files (e.g., "3/7 reviewed" or a progress bar or percentage). The indicator is visible at all times when two or more files are loaded, positioned in a persistently visible area (such as the toolbar, sidebar header, or near the tab bar). The indicator updates immediately when a file is marked or unmarked as reviewed, when a file is added to the session, or when a file is removed from the session. In a single-file session, the progress indicator is optional (a design decision) since "0/1" or "1/1" has limited value. When the session is cleared, the progress indicator resets (or disappears if no files are loaded).
+
+#### `FR-crp-file-reviewed-persistence` -- Review status session persistence
+A file's reviewed/unreviewed status persists within the current browser session. Switching between file tabs, scrolling, adding/editing/deleting comments, toggling view modes (file/diff/rendered), and interacting with the preamble or context panels do not affect a file's reviewed status. Consistent with `NFR-crp-no-data-persistence`, reviewed status does NOT persist across page reloads — all files return to "unreviewed" on reload. When a file is removed from the session via `FR-crp-multi-file-remove`, its reviewed status is discarded. When the session is cleared via `FR-crp-clear-session`, all reviewed statuses are reset.
 
 ### Non-Functional Requirements
 
@@ -299,6 +317,27 @@ The application is not required to persist sessions across page reloads in this 
 
 #### `AC-crp-context-readonly` -- Context is read-only
 **Given** context is displayed (neutral or review feedback), **then** the user cannot edit the neutral context or review feedback text. They are read-only reference material.
+
+#### `AC-crp-file-mark-reviewed` -- Marking a file changes its visual state
+**Given** a file is loaded and currently unreviewed, **when** the user marks it as reviewed, **then** the file's tab (and any file list entry) immediately displays the reviewed visual treatment (e.g., checkmark, muted styling), and the file moves to the "Reviewed" group in the tab bar.
+
+#### `AC-crp-file-unmark-reviewed` -- User can unmark a reviewed file
+**Given** a file is marked as reviewed, **when** the user toggles its reviewed status again, **then** the file returns to the unreviewed visual state and moves back to the "To Review" group. This confirms the reviewed status is a toggle, not a one-way action.
+
+#### `AC-crp-file-reviewed-grouping` -- Reviewed files are grouped separately
+**Given** 5 files are loaded and 2 are marked as reviewed, **then** the tab bar or file list shows the 3 unreviewed files in a "To Review" group and the 2 reviewed files in a "Reviewed" group. The "To Review" group appears first (most prominent position). Both groups are visually labeled or separated.
+
+#### `AC-crp-file-reviewed-progress-count` -- Progress indicator shows correct count
+**Given** 7 files are loaded and 3 have been marked as reviewed, **then** the progress indicator shows "3/7" (or equivalent). **When** the user marks a 4th file as reviewed, **then** the indicator updates to "4/7". **When** the user unmarks one file, **then** it updates to "3/7". **When** the user removes a reviewed file from the session, **then** it updates to "2/6". **When** the user adds a new file, **then** it updates to "2/7" (new files default to unreviewed).
+
+#### `AC-crp-file-reviewed-survives-tab-switch` -- Reviewed status persists across tab switches
+**Given** "utils.ts" is marked as reviewed and "helpers.ts" is not, **when** the user switches from "utils.ts" to "helpers.ts" and back to "utils.ts", **then** "utils.ts" still shows as reviewed and "helpers.ts" still shows as unreviewed.
+
+#### `AC-crp-file-reviewed-with-comments` -- Reviewed status is independent of comments
+**Given** a file has no comments, **when** the user marks it as reviewed, **then** the file is successfully marked as reviewed. Conversely, **given** a file has 5 comments and is marked as reviewed, **when** the user deletes all comments, **then** the file remains marked as reviewed. The reviewed status is orthogonal to whether the file has comments.
+
+#### `AC-crp-file-reviewed-clear-session` -- Clear session resets reviewed statuses
+**Given** 3 files are marked as reviewed, **when** the user clears the session (per `FR-crp-clear-session`), **then** all files are removed and all reviewed statuses are discarded. If the user then loads new files, they all start as unreviewed.
 
 ## Open Questions
 

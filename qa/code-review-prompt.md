@@ -60,6 +60,18 @@
 | `AC-crp-context-neutral-vs-review` | `TC-crp-context-neutral-vs-review` | Not started |
 | `AC-crp-context-graceful-missing` | `TC-crp-context-graceful-missing` | Not started |
 | `AC-crp-context-readonly` | `TC-crp-context-readonly` | Not started |
+| `AC-crp-file-mark-reviewed` | `TC-crp-mark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard` | Not started |
+| `AC-crp-file-unmark-reviewed` | `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-keyboard` | Not started |
+| `AC-crp-file-reviewed-grouping` | `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed` | Not started |
+| `AC-crp-file-reviewed-progress-count` | `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single` | Not started |
+| `AC-crp-file-reviewed-survives-tab-switch` | `TC-crp-reviewed-survives-tab-switch` | Not started |
+| `AC-crp-file-reviewed-with-comments` | `TC-crp-reviewed-independent-of-comments` | Not started |
+| `AC-crp-file-reviewed-clear-session` | `TC-crp-reviewed-clear-session-resets` | Not started |
+| `FR-crp-file-reviewed-toggle` | `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard` | Not started |
+| `FR-crp-file-reviewed-visual` | `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-reviewed-visual-tab-states` | Not started |
+| `FR-crp-file-reviewed-grouping` | `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-reviewed-new-file-unreviewed` | Not started |
+| `FR-crp-file-reviewed-progress` | `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`, `TC-crp-reviewed-remove-file-discards` | Not started |
+| `FR-crp-file-reviewed-persistence` | `TC-crp-reviewed-survives-tab-switch`, `TC-crp-reviewed-clear-session-resets` | Not started |
 
 ---
 
@@ -1449,6 +1461,315 @@
 
 ---
 
+### File Review Tracking
+
+---
+
+#### `TC-crp-mark-reviewed-happy`: Mark a file as reviewed via ReviewStatusBar
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-mark-reviewed`, `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`
+- **Preconditions**: Multiple files are loaded. The active file is unreviewed (default state).
+- **Steps**:
+  1. Locate the ReviewStatusBar in the code viewer area. It should show an unchecked checkbox with the label "Mark as reviewed".
+  2. Click the checkbox or button to mark the file as reviewed.
+  3. Observe the ReviewStatusBar.
+  4. Observe the file's tab in the FileTabBar.
+  5. Observe the tab grouping in the FileTabBar.
+- **Expected Result**: After step 2: the ReviewStatusBar checkbox becomes filled with a green checkmark and the label changes to "Reviewed" (the checkmark is rendered inside the checkbox icon, not as label text). The file's tab in the FileTabBar shows a green checkmark icon, and the tab text is muted (lower contrast/opacity). The file's tab moves from the "TO REVIEW" group to the "REVIEWED" group in the FileTabBar.
+- **Edge Cases**:
+  - Marking a file with no comments as reviewed: should work identically (reviewed status is independent of comments).
+  - Marking a file with comments as reviewed: the comments remain visible and editable.
+
+---
+
+#### `TC-crp-unmark-reviewed-happy`: Unmark a reviewed file
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-unmark-reviewed`, `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`
+- **Preconditions**: Multiple files are loaded. The active file has been marked as reviewed.
+- **Steps**:
+  1. The ReviewStatusBar shows a checked checkbox (filled green checkmark) with label "Reviewed".
+  2. Click the checkbox or button to unmark the file.
+  3. Observe the ReviewStatusBar.
+  4. Observe the file's tab in the FileTabBar.
+  5. Observe the tab grouping.
+- **Expected Result**: After step 2: the ReviewStatusBar reverts to an unchecked checkbox with label "Mark as reviewed". The file's tab no longer shows a green checkmark, and the tab text returns to normal contrast. The file's tab moves from the "REVIEWED" group back to the "TO REVIEW" group.
+- **Edge Cases**:
+  - Unmarking the only reviewed file: the "REVIEWED" group should become empty/hidden.
+
+---
+
+#### `TC-crp-mark-reviewed-via-tab`: Mark a file as reviewed via tab bar toggle icon
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-mark-reviewed`, `FR-crp-file-reviewed-toggle`
+- **Preconditions**: Multiple files are loaded. File B is unreviewed. File A is the active/visible tab.
+- **Steps**:
+  1. Hover over file B's tab in the FileTabBar (without clicking to switch to it).
+  2. A small toggle icon (e.g., a circle or checkmark outline) should appear on hover.
+  3. Click the toggle icon on file B's tab.
+  4. Observe file B's tab.
+  5. Verify that the active file is still file A (the viewer did not switch).
+- **Expected Result**: After step 3: file B's tab shows a green checkmark and muted text. File B moves to the "REVIEWED" group. The code viewer still displays file A's content (the active file did not change). The progress indicator updates to reflect one more file reviewed.
+- **Edge Cases**:
+  - Clicking the tab text (not the toggle icon): this should switch to file B (standard tab behavior), not toggle the reviewed status.
+
+---
+
+#### `TC-crp-mark-reviewed-keyboard`: Toggle review status via keyboard shortcut
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `FR-crp-file-reviewed-toggle`
+- **Preconditions**: Multiple files are loaded. The active file is unreviewed.
+- **Steps**:
+  1. Press `Cmd+Shift+R` (macOS) or `Ctrl+Shift+R` (other platforms).
+  2. Observe the ReviewStatusBar and the file's tab.
+  3. Press `Cmd+Shift+R` / `Ctrl+Shift+R` again.
+  4. Observe the ReviewStatusBar and the file's tab.
+- **Expected Result**: After step 1: the file is marked as reviewed (checkbox filled with green checkmark, label "Reviewed", tab shows checkmark, tab moves to "REVIEWED" group). After step 3: the file is unmarked (checkbox unchecked, label "Mark as reviewed", tab returns to normal, tab moves back to "TO REVIEW" group). The shortcut toggles the reviewed state of the currently active file.
+- **Edge Cases**:
+  - Pressing the shortcut with only 1 file loaded: should still toggle the reviewed status (but the progress indicator may be hidden per `TC-crp-reviewed-progress-hidden-single`).
+  - Pressing `r` when the tab bar is focused: should also toggle reviewed status for the focused tab (per design spec keyboard shortcut `r` for tab-focused context).
+
+---
+
+#### `TC-crp-reviewed-grouping-display`: Reviewed and unreviewed files grouped correctly
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-grouping`
+- **Preconditions**: 5 files are loaded (A.ts, B.ts, C.ts, D.ts, E.ts). All are initially unreviewed.
+- **Steps**:
+  1. Mark A.ts and C.ts as reviewed.
+  2. Observe the FileTabBar.
+- **Expected Result**: The FileTabBar shows two groups separated by a vertical divider. The first group is labeled "TO REVIEW" and contains B.ts, D.ts, E.ts (3 files). The second group is labeled "REVIEWED" and contains A.ts, C.ts (2 files). The "TO REVIEW" group appears first (left of "REVIEWED"). Within each group, files maintain their original load order.
+- **Edge Cases**:
+  - Within each group, the tab order should follow the original load order (not alphabetical or review-time order).
+
+---
+
+#### `TC-crp-reviewed-grouping-all-reviewed`: All files reviewed hides "To Review" group
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-grouping`
+- **Preconditions**: 3 files loaded, all unreviewed.
+- **Steps**:
+  1. Mark all 3 files as reviewed.
+  2. Observe the FileTabBar.
+- **Expected Result**: The "TO REVIEW" group is empty and hidden (no empty group label shown). The "REVIEWED" group contains all 3 files. Only the "REVIEWED" group label is visible.
+- **Edge Cases**:
+  - Unmarking one file after all are reviewed: the "TO REVIEW" group reappears with that file.
+
+---
+
+#### `TC-crp-reviewed-grouping-none-reviewed`: Default state shows all files in "To Review"
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-grouping`
+- **Preconditions**: 3 files loaded. No files have been marked as reviewed.
+- **Steps**:
+  1. Observe the FileTabBar.
+- **Expected Result**: All 3 files appear in the "TO REVIEW" group. The "REVIEWED" group is empty and hidden. No divider or "REVIEWED" label is shown.
+- **Edge Cases**:
+  - With only 1 file loaded: the "TO REVIEW" group still shows, or the grouping labels are hidden entirely for single-file sessions (per design spec behavior).
+
+---
+
+#### `TC-crp-reviewed-progress-display`: Progress indicator shows correct reviewed count
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-progress-count`, `FR-crp-file-reviewed-progress`
+- **Preconditions**: 4 files are loaded. All unreviewed.
+- **Steps**:
+  1. Observe the toolbar for a progress indicator.
+  2. Mark the first file as reviewed.
+  3. Observe the progress indicator.
+  4. Mark the second file as reviewed.
+  5. Observe the progress indicator.
+- **Expected Result**: Step 1: the progress indicator shows "0/4 reviewed". Step 3: "1/4 reviewed". Step 5: "2/4 reviewed". The format is "N/M reviewed" where N is the count of reviewed files and M is the total file count.
+- **Edge Cases**:
+  - The progress indicator should be a badge or inline text in the Toolbar area (per design spec).
+
+---
+
+#### `TC-crp-reviewed-progress-updates`: Progress updates correctly through mark, unmark, add, and remove
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-progress-count`, `FR-crp-file-reviewed-progress`
+- **Preconditions**: 3 files loaded (A.ts, B.ts, C.ts). All unreviewed.
+- **Steps**:
+  1. Mark A.ts as reviewed. Observe the progress indicator.
+  2. Mark B.ts as reviewed. Observe.
+  3. Unmark A.ts (toggle back to unreviewed). Observe.
+  4. Remove B.ts from the session (close its tab). Observe.
+  5. Add a new file D.ts. Observe.
+- **Expected Result**: Step 1: "1/3 reviewed". Step 2: "2/3 reviewed". Step 3: "1/3 reviewed" (A.ts unmarked). Step 4: "0/2 reviewed" (B.ts was reviewed and removed; denominator decreases). Step 5: "0/3 reviewed" (D.ts is added as unreviewed; denominator increases).
+- **Edge Cases**:
+  - Removing an unreviewed file: the denominator decreases but the numerator stays the same.
+
+---
+
+#### `TC-crp-reviewed-progress-hidden-single`: Progress indicator hidden with single file
+
+- **Type**: Integration
+- **Covers**: `AC-crp-file-reviewed-progress-count`, `FR-crp-file-reviewed-progress`
+- **Preconditions**: Only 1 file is loaded.
+- **Steps**:
+  1. Observe the toolbar area for a progress indicator.
+- **Expected Result**: No progress indicator ("N/M reviewed" badge) is shown. The progress indicator only appears when 2 or more files are loaded.
+- **Edge Cases**:
+  - Adding a second file: the progress indicator should appear.
+  - Removing files until only 1 remains: the progress indicator should disappear.
+
+---
+
+#### `TC-crp-reviewed-survives-tab-switch`: Reviewed status persists across tab switches
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-survives-tab-switch`, `FR-crp-file-reviewed-persistence`
+- **Preconditions**: 3 files loaded (A.ts, B.ts, C.ts). A.ts is marked as reviewed. B.ts and C.ts are unreviewed.
+- **Steps**:
+  1. Verify A.ts tab shows the reviewed checkmark.
+  2. Click B.ts tab to switch to it.
+  3. Observe A.ts's tab (it should still show the reviewed checkmark).
+  4. Click C.ts tab.
+  5. Click A.ts tab to switch back to it.
+  6. Observe the ReviewStatusBar for A.ts.
+- **Expected Result**: Throughout all tab switches, A.ts remains marked as reviewed. The tab always shows the checkmark. The ReviewStatusBar on A.ts shows the checked state (filled green checkmark, label "Reviewed") when A.ts is the active file. B.ts and C.ts remain unreviewed throughout.
+- **Edge Cases**:
+  - Rapidly switching between tabs (A -> B -> C -> A in quick succession): reviewed states are always consistent and never lost.
+
+---
+
+#### `TC-crp-reviewed-independent-of-comments`: Reviewed status is orthogonal to comments
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-with-comments`
+- **Preconditions**: 2 files loaded. File A has no comments. File B has 2 comments.
+- **Steps**:
+  1. Mark file A (no comments) as reviewed. Verify it works.
+  2. Mark file B (2 comments) as reviewed. Verify it works.
+  3. Add a comment to file A (now reviewed with 1 comment). Verify file A is still reviewed.
+  4. Delete all comments from file B (now reviewed with 0 comments). Verify file B is still reviewed.
+  5. Add a comment to file B. Verify file B is still reviewed.
+- **Expected Result**: At every step, the reviewed status is independent of whether comments exist. Marking a file reviewed does not require comments. Adding or removing comments does not change the reviewed status. The reviewed checkmark and grouping remain stable through comment changes.
+- **Edge Cases**:
+  - A reviewed file with comments still generates its section in the prompt (reviewed status does not suppress prompt generation).
+
+---
+
+#### `TC-crp-reviewed-clear-session-resets`: Clearing session discards all reviewed statuses
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-clear-session`, `FR-crp-file-reviewed-persistence`
+- **Preconditions**: 4 files loaded. 3 of them are marked as reviewed. Progress shows "3/4 reviewed".
+- **Steps**:
+  1. Click "Clear" in the toolbar.
+  2. Confirm the clear action (click "Clear session" in the dialog).
+  3. Observe the application state.
+  4. Load new files (e.g., upload 2 new files).
+  5. Observe the new files' reviewed states and the progress indicator.
+- **Expected Result**: After step 3: the application is in the empty state (no files, no comments, no preamble, no reviewed statuses). After step 5: the 2 new files are both unreviewed. The progress indicator shows "0/2 reviewed" (if 2+ files are loaded). No reviewed status from the previous session carries over.
+- **Edge Cases**:
+  - Cancelling the clear dialog: all reviewed statuses are preserved.
+
+---
+
+#### `TC-crp-reviewed-remove-file-discards`: Removing a reviewed file updates progress
+
+- **Type**: E2E
+- **Covers**: `FR-crp-file-reviewed-progress`
+- **Preconditions**: 3 files loaded. Files A and B are reviewed, file C is unreviewed. Progress shows "2/3 reviewed".
+- **Steps**:
+  1. Remove file A (close its tab, confirm if it has comments).
+  2. Observe the progress indicator.
+  3. Observe the FileTabBar grouping.
+- **Expected Result**: After step 1: the progress indicator shows "1/2 reviewed" (B is still reviewed, C is unreviewed). The "REVIEWED" group shows only B. The "TO REVIEW" group shows only C. File A's reviewed status is fully discarded.
+- **Edge Cases**:
+  - Removing the only reviewed file: progress shows "0/N reviewed" and the "REVIEWED" group is hidden.
+
+---
+
+#### `TC-crp-reviewed-new-file-unreviewed`: Newly added files default to unreviewed
+
+- **Type**: E2E
+- **Covers**: `FR-crp-file-reviewed-grouping`
+- **Preconditions**: 2 files loaded. Both are marked as reviewed. Progress shows "2/2 reviewed".
+- **Steps**:
+  1. Add a new file (via "+" button, upload, paste, or drag-and-drop).
+  2. Observe the new file's tab.
+  3. Observe the FileTabBar grouping.
+  4. Observe the progress indicator.
+- **Expected Result**: The new file's tab appears in the "TO REVIEW" group with no checkmark and normal (non-muted) text. The progress indicator updates to "2/3 reviewed". The new file's ReviewStatusBar shows "Mark as reviewed" (unchecked).
+- **Edge Cases**:
+  - Adding multiple files at once (drag-and-drop multiple): all new files should be unreviewed.
+
+---
+
+#### `TC-crp-reviewed-visual-tab-states`: Visual distinction between reviewed and unreviewed tabs
+
+- **Type**: E2E
+- **Covers**: `FR-crp-file-reviewed-visual`
+- **Preconditions**: 3 files loaded. File A is reviewed. Files B and C are unreviewed. File B is the active tab.
+- **Steps**:
+  1. Observe file A's tab (reviewed, inactive).
+  2. Observe file B's tab (unreviewed, active).
+  3. Observe file C's tab (unreviewed, inactive).
+  4. Click file A's tab to make it active.
+  5. Observe file A's tab (reviewed, active).
+  6. Observe file B's tab (unreviewed, inactive).
+- **Expected Result**: Reviewed tabs (A) have: a green checkmark icon, muted/lower-opacity text, and a subtly different background from unreviewed tabs. Unreviewed tabs (B, C) have: no checkmark icon, normal-contrast text. The active tab styling (e.g., white background, blue bottom border) applies on top of the reviewed/unreviewed styling. Specifically: file A active+reviewed is visually distinct from file B active+unreviewed. File A inactive+reviewed is visually distinct from file C inactive+unreviewed. All four combinations (active/inactive x reviewed/unreviewed) are distinguishable.
+- **Edge Cases**:
+  - In dark mode: the checkmark, muted text, and background differences should still be distinguishable.
+
+---
+
+### File Review Tracking -- Edge Cases
+
+---
+
+#### `TC-crp-reviewed-edge-rapid-toggle`: Rapid toggling does not lose state
+
+- **Type**: E2E
+- **Covers**: `FR-crp-file-reviewed-toggle`
+- **Preconditions**: A file is loaded and unreviewed.
+- **Steps**:
+  1. Rapidly click the ReviewStatusBar checkbox 10 times in quick succession.
+  2. Observe the final state.
+- **Expected Result**: The final state reflects the correct toggle parity (10 toggles from unreviewed = unreviewed). No intermediate states are visible as "stuck." The progress indicator matches the final state. No errors in the console.
+- **Edge Cases**:
+  - Rapidly using the keyboard shortcut (`Cmd+Shift+R` / `Ctrl+Shift+R`) multiple times: same behavior, final state is correct.
+
+---
+
+#### `TC-crp-reviewed-edge-single-file-reviewed`: Marking the only file as reviewed
+
+- **Type**: E2E
+- **Covers**: `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-grouping`
+- **Preconditions**: Only 1 file is loaded. It is unreviewed.
+- **Steps**:
+  1. Mark the file as reviewed.
+  2. Observe the ReviewStatusBar, tab, and grouping.
+- **Expected Result**: The ReviewStatusBar shows the checked state (filled green checkmark, label "Reviewed"). The tab shows a checkmark. The progress indicator is hidden (single file). Group labels are not shown in single-file mode since the FileTabBar is not visible with only one file.
+- **Edge Cases**:
+  - Unmarking the only file: reverts to unreviewed state with no grouping labels visible.
+
+---
+
+#### `TC-crp-reviewed-edge-add-after-all-reviewed`: Adding a file when all are reviewed
+
+- **Type**: E2E
+- **Covers**: `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`
+- **Preconditions**: 2 files loaded, both reviewed. Progress shows "2/2 reviewed".
+- **Steps**:
+  1. Add a new file.
+  2. Observe the FileTabBar and progress indicator.
+- **Expected Result**: The new file appears in the "TO REVIEW" group (which was previously hidden and now reappears). The progress indicator updates to "2/3 reviewed". The "TO REVIEW" group appears above/before the "REVIEWED" group.
+- **Edge Cases**:
+  - The new file is the active tab: its ReviewStatusBar should show "Mark as reviewed" (unchecked).
+
+---
+
 ## Edge Cases & Error Scenarios
 
 This section covers additional edge cases and error conditions not directly mapped to a single AC slug but important for comprehensive coverage.
@@ -1780,6 +2101,8 @@ Since this is a greenfield single-page application with no existing features, tr
 
 13. **Dark mode and context**: The context panel introduces new color tokens (blue for neutral, violet for review). Dark mode must provide appropriate dark-mode variants of these colors. Changes to the dark mode implementation could cause the context panel to render with light-mode colors or insufficient contrast.
 
+14. **File review tracking and tab bar grouping**: The file review tracking feature adds grouping ("TO REVIEW" / "REVIEWED") to the FileTabBar and a progress indicator to the Toolbar. Changes to tab bar rendering, tab ordering, or file addition/removal logic could break the grouping display or cause reviewed status to be lost. The reviewed status must survive tab switches but not page reloads. Changes to the clear session flow must also reset all reviewed statuses. The reviewed status is orthogonal to comments -- changes to comment add/edit/delete logic must not affect the reviewed flag.
+
 ### Recommended regression suite
 
 Run the following test cases as a minimum regression suite before any release:
@@ -1806,3 +2129,8 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-context-overall-visible` (overall context displayed with context data)
 - `TC-crp-context-per-file-switches` (per-file context updates on tab switch)
 - `TC-crp-context-neutral-vs-review` (neutral vs review visual distinction)
+- `TC-crp-mark-reviewed-happy` (file reviewed toggle works)
+- `TC-crp-reviewed-grouping-display` (reviewed/unreviewed grouping correct)
+- `TC-crp-reviewed-progress-updates` (progress indicator tracks correctly)
+- `TC-crp-reviewed-survives-tab-switch` (reviewed status persists across tabs)
+- `TC-crp-reviewed-clear-session-resets` (clear session resets reviewed statuses)

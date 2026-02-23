@@ -1576,6 +1576,78 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/code-review-prompt.md`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-readonly`
 
+### `FR-crp-file-reviewed-toggle`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard`, `TC-crp-reviewed-edge-rapid-toggle`
+
+### `FR-crp-file-reviewed-visual`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-reviewed-visual-tab-states`
+
+### `FR-crp-file-reviewed-grouping`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-reviewed-new-file-unreviewed`, `TC-crp-reviewed-edge-single-file-reviewed`, `TC-crp-reviewed-edge-add-after-all-reviewed`
+
+### `FR-crp-file-reviewed-progress`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`, `TC-crp-reviewed-remove-file-discards`, `TC-crp-reviewed-edge-add-after-all-reviewed`
+
+### `FR-crp-file-reviewed-persistence`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-survives-tab-switch`, `TC-crp-reviewed-clear-session-resets`
+
+### `AC-crp-file-mark-reviewed`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard`
+
+### `AC-crp-file-unmark-reviewed`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-keyboard`
+
+### `AC-crp-file-reviewed-grouping`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`
+
+### `AC-crp-file-reviewed-progress-count`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`
+
+### `AC-crp-file-reviewed-survives-tab-switch`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-survives-tab-switch`
+
+### `AC-crp-file-reviewed-with-comments`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-independent-of-comments`
+
+### `AC-crp-file-reviewed-clear-session`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-clear-session-resets`
+
 <!--
 Entry template -- copy this when adding a new slug:
 

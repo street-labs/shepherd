@@ -303,6 +303,26 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: ReviewContextPanel (component name), context panel
 **Not to be confused with**: Prompt Preview (which shows the generated prompt, not review context)
 
+## Reviewed Status
+**Definition**: A per-file boolean flag indicating whether the user considers a file "reviewed." Defaults to unreviewed for all files. Toggled manually by the user — the application never auto-marks a file. Persists within the browser session but not across page reloads. Independent of whether the file has comments. Used to drive tab grouping, visual indicators, and the progress indicator.
+**Also known as**: Review status, reviewed flag
+**Not to be confused with**: Review feedback (the AI agent's assessment), inline comments (user annotations on specific lines)
+
+## Review Status Bar
+**Definition**: A compact horizontal bar inside the code viewer panel that provides the primary mechanism for toggling a file's reviewed status. Displays a checkbox and label ("Mark as reviewed" / "Reviewed") and a keyboard shortcut hint. Always visible when at least one file is loaded. The entire bar is clickable.
+**Also known as**: ReviewStatusBar (component name)
+**Not to be confused with**: File Tab Bar (which shows all files as tabs), Toolbar (the top-level action bar)
+
+## Review Progress Indicator
+**Definition**: A compact text badge in the toolbar showing the count of reviewed files versus total loaded files (e.g., "3/7 reviewed"). Only visible when two or more files are loaded. Updates immediately on mark/unmark, file add, or file remove. Turns green when all files are reviewed.
+**Also known as**: Progress indicator, reviewed count
+**Not to be confused with**: Comment count (which tracks inline comments, not reviewed status)
+
+## File Grouping
+**Definition**: The organization of tabs in the File Tab Bar into two visual groups based on reviewed status: "TO REVIEW" (unreviewed files, shown first) and "REVIEWED" (reviewed files, shown second). Groups are separated by inline labels and a vertical divider. Within each group, files maintain their original load order. Group labels appear when there are files in both groups, or when all files are reviewed (only the "REVIEWED" label shows).
+**Also known as**: Tab grouping, reviewed/unreviewed grouping
+**Not to be confused with**: File ordering (which is load order within each group)
+
 <!--
 Entry template:
 

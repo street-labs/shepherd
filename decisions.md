@@ -306,6 +306,28 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: The design system gains two new color token sets (neutral-context and review-feedback). Both light and dark mode need appropriate tones. The distinction must be documented in the glossary.
 **Slug references**: `AC-crp-context-neutral-vs-review`, `FR-crp-review-context-display`
 
+## 2026-02-23 -- Reviewed status tracked as a Set<string> in Zustand store
+**Context**: The file review tracking feature (`FR-crp-file-reviewed-toggle`) needs to track which files are marked as reviewed. Need a data structure for O(1) lookups when rendering tabs and the progress indicator.
+**Decision**: Use `reviewedFiles: Set<string>` in the Zustand AppState, storing file IDs.
+**Alternatives considered**: A `reviewed: boolean` flag on each `FileInfo` object (natural but requires iterating all files for counts and grouping), a separate `Record<string, boolean>` map (equivalent to Set but more verbose).
+**Rationale**: Set provides O(1) `has()` for per-tab rendering, O(1) `add()`/`delete()` for toggling, and `.size` for the progress count. Keeps the reviewed concern orthogonal to `FileInfo`, so file data and review status are independently mutable. Zustand handles Set serialization internally.
+**Consequences**: `groupedFileOrder` derived selector iterates `fileOrder` and partitions by Set membership. `clearSession` resets to empty Set. `removeFile` deletes from Set.
+**Slug references**: `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-persistence`
+## 2026-02-23 -- ReviewStatusBar as primary toggle, tab button as secondary
+**Context**: Users need a way to mark files as reviewed (`FR-crp-file-reviewed-toggle`). Multiple affordances were considered for the toggle action.
+**Decision**: Three toggle mechanisms: (1) ReviewStatusBar (checkbox bar below context panel, primary), (2) review toggle icon button on each tab in FileTabBar (secondary, works without switching files), (3) keyboard shortcut `Cmd+Shift+R` / `Ctrl+Shift+R`.
+**Alternatives considered**: A single toolbar button (too far from context), only a tab-level toggle (too small and easy to miss), auto-marking on tab switch (violates the "manual-only" requirement).
+**Rationale**: The ReviewStatusBar is always visible when viewing a file and provides a large click target with clear state feedback. The tab button enables marking files as reviewed without switching to them (useful for skimming). The keyboard shortcut supports power users. All three trigger the same `toggleFileReviewed(fileId)` store action.
+**Consequences**: ReviewStatusBar is a new component positioned in the CodeViewerPanel. FileTabBar gains a review toggle icon per tab.
+**Slug references**: `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`
+## 2026-02-23 -- Tab grouping uses "To Review" first, "Reviewed" second
+**Context**: File review tracking groups tabs by status (`FR-crp-file-reviewed-grouping`). Need to decide the visual ordering of groups.
+**Decision**: Unreviewed ("To Review") group appears first (left), reviewed group appears second (right). Within each group, files maintain original load order.
+**Alternatives considered**: Reviewed first (de-emphasizes remaining work), interleaved with visual markers only (harder to scan), user-configurable ordering (over-engineering for v1).
+**Rationale**: Putting unreviewed files first keeps the "work remaining" prominent. The user's natural left-to-right reading order aligns with the workflow: work through files left to right, marking each as reviewed, until all tabs shift to the "Reviewed" group. Group labels and a divider provide clear visual separation.
+**Consequences**: `groupedFileOrder` derived selector returns `{ toReview: string[], reviewed: string[] }`. FileTabBar renders groups with inline labels ("TO REVIEW" / "REVIEWED") and a vertical divider. Animated transitions move tabs between groups.
+**Slug references**: `FR-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-grouping`
+
 <!--
 Entry template:
 
