@@ -2,7 +2,7 @@
 
 The user has described what they want: **$ARGUMENTS**
 
-Follow this sequence exactly. Steps are sequential unless noted otherwise.
+Follow this sequence exactly. Steps are sequential unless noted otherwise. **Maximize parallelism** — launch independent tasks simultaneously wherever the dependency graph allows.
 
 ---
 
@@ -63,7 +63,7 @@ Delegate to the product agent (operating in `product/`). Be explicit about wheth
 - **New spec**: Have it create a new PRD markdown file following the template in `product/CLAUDE.md`.
 - **Platform-specific variant**: Tell the agent which base spec to reference (e.g., `product/code-review-prompt.md`) and have it create a `<feature>.<platform>.md` file that covers only platform-specific requirements and divergences. The variant must reference the base spec and not duplicate shared requirements.
 
-For cross-platform work, always do the base spec first, then platform variants.
+For cross-platform work, always do the base spec first, then platform variants **in parallel** (e.g., launch macos and ios variant agents simultaneously — they don't depend on each other).
 
 Ensure all requirement slugs follow the format: `FR-<feature>-<slug>`, `NFR-<feature>-<slug>`, `AC-<feature>-<slug>`
 
@@ -83,7 +83,7 @@ Read the product spec from Step 1 (or the existing product spec if Step 1 was sk
 - **New spec**: Have it create a design spec following `design/CLAUDE.md`.
 - **Platform-specific variant**: Tell the agent which base design spec to reference and have it create a `<feature>.<platform>.md` file. The variant covers platform-specific UI/UX (e.g., native controls, platform conventions) and references the base spec for shared behavior.
 
-For cross-platform work, do the base design spec first, then platform variants.
+For cross-platform work, do the base design spec first, then platform variants **in parallel**.
 
 The design spec must address every requirement and user story. Reference specific requirement slugs.
 
@@ -123,28 +123,35 @@ Test cases must cover every acceptance criterion. Reference specific slugs.
 
 ---
 
-## Step 4: Update Traceability Index
+## Step 4: Post-Processing + Quality Checks (parallel)
 
-Update `index.md` at the project root. For any new slugs, add entries linking to all referencing files. For modified slugs, update the references.
+**Wait for Step 3 to complete.**
 
-## Step 5: Update Glossary
+Maximize parallelism here — launch all independent tasks simultaneously using multiple Task calls in one message:
 
-Review the artifacts created or modified. If any new domain terms were introduced, add them to `glossary.md`.
+### Parallel batch — launch ALL of these at the same time:
 
-## Step 6: Log Decisions
+1. **Update traceability index** — Update `index.md` at the project root. For any new slugs, add entries linking to all referencing files. For modified slugs, update the references.
 
-If any significant decisions were made during this kickoff (technology choices, scope decisions, design patterns), append them to `decisions-pending.md` (not `decisions.md` directly — the pre-commit hook merges pending entries at commit time).
+2. **Update glossary** — Review the artifacts created or modified. If any new domain terms were introduced, add them to `glossary.md`. If none were introduced, skip this.
 
-## Step 7: Review
+3. **Log decisions** — If any significant decisions were made during this kickoff (technology choices, scope decisions, design patterns), append them to `decisions-pending.md` (not `decisions.md` directly — the pre-commit hook merges pending entries at commit time). If no significant decisions were made, skip this.
 
-Run the reviewer pass: read all artifacts that were created or modified and check for gaps, inconsistencies, or mismatches between them. Report any issues found.
+4. **Reviewer pass** — Read all artifacts that were created or modified and check for gaps, inconsistencies, or mismatches between them. Report any issues found.
 
-Run the consistency pass: check that terminology is consistent across all artifacts and matches `glossary.md`.
+5. **Consistency pass** — Check that terminology is consistent across all artifacts and matches `glossary.md`.
 
-Run `./scripts/audit-traceability.sh` to verify the index is correct.
+### After the parallel batch completes:
+
+Run `./scripts/audit-traceability.sh` to verify the index is correct. This must wait for the index update (task 1) to finish.
+
+---
+
+## Step 5: Summary
 
 Present a summary to the user:
 - What was **created** (new files)
 - What was **updated** (existing files, with a summary of changes)
 - What was **skipped** and why
-- Any issues found during review
+- Any issues found during review or consistency checks
+- Traceability audit result (pass/fail)
