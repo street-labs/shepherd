@@ -87,6 +87,7 @@
 | `AC-crp-line-wrap-persists-session` | `TC-crp-line-wrap-persists-file-switch` | Not started |
 | `AC-crp-file-path-display` | `TC-crp-file-path-disambiguates-same-name`, `TC-crp-file-path-root-file`, `TC-crp-file-path-truncation`, `TC-crp-file-tree-collapse-expand`, `TC-crp-file-tree-keyboard-nav` | Not started |
 | `AC-crp-file-path-single-dir` | `TC-crp-file-path-always-shown`, `TC-crp-file-path-pasted-file`, `TC-crp-file-tree-collapse-expand` | Not started |
+| `FR-crp-session-identity` | `TC-crp-session-identity-window-title`, `TC-crp-session-identity-standalone` | Not started |
 
 ---
 
@@ -1079,6 +1080,37 @@
 - **Expected Result**: Prompt is copied to clipboard. The "Copied to clipboard" toast appears. No POST request is sent. The Done button is not affected (remains in its current state).
 - **Edge Cases**:
   - Clicking Copy after Done shows "Sent ✓": Copy should work normally, and Done should remain in "Sent ✓" state.
+
+---
+
+### Session Identity
+
+---
+
+#### `TC-crp-session-identity-window-title`: Window title displays project name in slash command mode
+
+- **Type**: E2E
+- **Covers**: `FR-crp-session-identity`
+- **Preconditions**: CRPG opened via `/shepherd file.ts` from a project directory named `my-project`. The `?session=<id>` parameter is present in the URL.
+- **Steps**:
+  1. Observe the browser window title (or `document.title` via DevTools).
+- **Expected Result**: The window title is "Shepherd -- my-project" where "my-project" is the project name derived from the working directory or git repository root. This allows users to distinguish between multiple concurrent CRPG windows.
+- **Edge Cases**:
+  - Project name with special characters: should be displayed correctly.
+  - Very long project name: may be truncated by the OS window manager, but `document.title` should contain the full name.
+
+---
+
+#### `TC-crp-session-identity-standalone`: Window title is generic in standalone mode
+
+- **Type**: E2E
+- **Covers**: `FR-crp-session-identity`
+- **Preconditions**: CRPG opened directly (e.g., by navigating to `http://localhost:<port>` without a `?session=` parameter).
+- **Steps**:
+  1. Observe the browser window title (or `document.title` via DevTools).
+- **Expected Result**: The window title is simply "Shepherd" (no project name suffix). This is the default title when the CRPG is not launched via a slash command with session context.
+- **Edge Cases**:
+  - Loading a file via paste or upload does not change the title to include a project name.
 
 ---
 
@@ -2636,3 +2668,5 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-line-wrap-line-numbers` (line numbers correct with wrapping)
 - `TC-crp-line-wrap-comment-click` (clicking wrapped lines targets correct line)
 - `TC-crp-line-wrap-persists-file-switch` (wrap preference persists across file switches)
+- `TC-crp-session-identity-window-title` (window title shows project name in slash command mode)
+- `TC-crp-session-identity-standalone` (window title is generic in standalone mode)

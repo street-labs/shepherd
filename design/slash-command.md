@@ -27,6 +27,7 @@ This feature spans two surfaces: the agent conversation (Claude Code) and the ex
 | **CRPG web app -- Toolbar** | Modified -- Done button appears in slash command mode (see `design/code-review-prompt.md`, Toolbar component spec) |
 | **CRPG web app -- FileDropZone** | Modified -- bypassed when a file is auto-loaded via URL parameter |
 | **CRPG web app -- FileHeader** | Unchanged -- displays the basename from the auto-loaded file path |
+| **CRPG web app -- Window title** | Modified -- displays session context (project/worktree name) to identify concurrent sessions (`FR-crp-session-identity`) |
 | **CRPG web app -- Toolbar** | Unchanged -- session clear behavior applies when a new file replaces an existing one |
 
 ---
@@ -42,7 +43,7 @@ This feature spans two surfaces: the agent conversation (Claude Code) and the ex
 - `--help` displays the usage message (same content as the no-args output).
 - No other flags or options exist in v1.
 
-When invoked as a slash command in Claude Code (e.g., `/shepherd src/utils.ts`), the agent executes the instructions in the custom command file. The agent validates the file, ensures the Vite dev server is running, opens the browser with the appropriate URL, and then enters a **waiting state** where it runs a blocking file watcher for `~/.shepherd/prompt-output.md`. The agent remains blocked until the user clicks "Done" in the CRPG (which writes the prompt to the watched file) or the watcher times out after 30 minutes (`FR-sc-prompt-receive`).
+When invoked as a slash command in Claude Code (e.g., `/shepherd src/utils.ts`), the agent executes the instructions in the custom command file. The agent validates the file, ensures the Vite dev server is running, opens the browser with the appropriate URL, and then enters a **waiting state** where it runs a blocking file watcher for `~/.shepherd/sessions/<session-id>/prompt-output.md`. The agent remains blocked until the user clicks "Done" in the CRPG (which writes the prompt to the watched file) or the watcher times out after 30 minutes (`FR-sc-prompt-receive`).
 
 ### Output Format (`FR-sc-output-feedback`)
 
@@ -51,15 +52,17 @@ All output is plain text reported by the agent in the conversation. No colors, n
 #### Successful launch
 
 ```
-Opened Code Review Prompt Generator at http://localhost:5173
+Opened Code Review Prompt Generator at http://localhost:4821
 Loaded: src/utils.ts (142 lines, TypeScript)
+Session: my-project
 The file is loaded in the Code Review Prompt Generator. Annotate your code and click Done when you're finished. I'll wait for your prompt.
 ```
 
 Output fields:
-- **Line 1**: The full URL where the CRPG is accessible. Always present.
+- **Line 1**: The full URL where the CRPG is accessible. The port is dynamically assigned (`FR-sc-dynamic-port`). Always present.
 - **Line 2**: The file that was loaded. Format: `Loaded: <relative-or-original-path> (<line-count> lines, <language>)`. The path shown is the same path the user typed (not the resolved absolute path), so it matches their mental model. The line count is the number of newline-delimited lines. The language is detected from the file extension using the same detection logic as `FR-crp-syntax-highlight`; if unknown, shows "Plain Text".
-- **Line 3**: The waiting message. Tells the user to annotate and click Done, and confirms the agent will wait. Always present after a successful launch.
+- **Line 3**: The session ID. A human-readable identifier derived from the project directory name (`FR-sc-session-id`). Helps identify which session/worktree this window belongs to.
+- **Line 4**: The waiting message. Tells the user to annotate and click Done, and confirms the agent will wait. Always present after a successful launch.
 
 #### Prompt received (`FR-sc-prompt-receive`)
 
@@ -86,8 +89,9 @@ When the file exceeds 10,000 lines (consistent with `NFR-crp-large-file-perf`):
 
 ```
 Warning: src/big-file.ts has 15000 lines. Performance may be degraded for very large files.
-Opened Code Review Prompt Generator at http://localhost:5173
+Opened Code Review Prompt Generator at http://localhost:4821
 Loaded: src/big-file.ts (15000 lines, TypeScript)
+Session: my-project
 ```
 
 The warning is reported before the success output.
@@ -141,26 +145,37 @@ Error messages always show the **resolved absolute path** (after path resolution
    - Checks read permission. If denied, reports error.
    - Reads the first 8,192 bytes and checks for null bytes. If binary, reports error.
    - Counts lines. If > 10,000, reports warning (but continues).
-5. Agent checks whether the Vite dev server is already running (e.g., by checking if `http://localhost:5173` responds).
-   - If the server is running, reuse it.
-   - If the server is not running, start it with `pnpm dev`.
-6. Agent opens a standalone app-mode window with `http://localhost:5173?file=<url-encoded-absolute-path>` (`FR-sc-browser-open`). See Cross-Platform Behavior for the fallback chain.
-7. Agent reports the success output in the conversation.
-8. In the browser, the CRPG app reads the `?file=` query parameter, fetches the file content from `GET /api/file?path=<encoded-path>`, and loads it into the code viewer (`FR-sc-auto-load-file`). Any existing session is cleared without confirmation (`AC-sc-session-clear-on-new-file`).
+5. Agent checks whether a Vite dev server is already running for the current worktree (by checking the recorded port from a previous invocation in this worktree).
+   - If a server is running for this worktree, reuse it (`AC-sc-server-reuse`).
+   - If no server is running for this worktree, start one with `pnpm dev`. The server binds to a dynamically assigned port (`FR-sc-dynamic-port`).
+6. Agent derives the session ID from the project directory basename (`FR-sc-session-id`).
+7. Agent opens a standalone app-mode window with `http://localhost:<port>?session=<id>&file=<url-encoded-absolute-path>` (`FR-sc-browser-open`, `FR-sc-concurrent-windows`). See Cross-Platform Behavior for the fallback chain.
+8. Agent reports the success output in the conversation.
+9. In the browser, the CRPG app reads the `?file=` and `?session=` query parameters, fetches the file content from `GET /api/file?path=<encoded-path>`, and loads it into the code viewer (`FR-sc-auto-load-file`). The session ID is stored in app state for use when calling `POST /api/prompt-output`. Any existing session is cleared without confirmation (`AC-sc-session-clear-on-new-file`).
 
 **Timing**: The agent should complete file validation and server check quickly. The Vite dev server starts fast since it does not require a build step (`NFR-sc-launch-speed`).
 
-### Flow 2: Subsequent Invocation -- Server Reuse (`AC-sc-server-reuse`)
+### Flow 2: Subsequent Invocation -- Same Worktree (`AC-sc-server-reuse`)
 
-1. User has previously run `/shepherd file1.ts`. The Vite dev server is still running.
-2. User types `/shepherd file2.ts`.
+1. User has previously run `/shepherd file1.ts` from worktree A. The Vite dev server is still running on a dynamic port (e.g., 4821).
+2. User types `/shepherd file2.ts` from the same worktree A.
 3. Agent resolves and validates `file2.ts` (same as Flow 1, steps 3-4).
-4. Agent detects the server is already running.
-5. Agent opens the browser with `http://localhost:5173?file=<url-encoded-absolute-path-to-file2>`.
-6. Agent reports success output in the conversation.
-7. In the browser:
-   - If the CRPG tab is already open, the browser navigates to the new URL. The app detects the new `?file=` parameter and auto-loads the new file, clearing the previous session without confirmation (`AC-sc-session-clear-on-new-file`).
-   - If the previous tab was closed, a new tab opens and the app starts fresh with the new file.
+4. Agent detects a server is already running for this worktree and reuses it.
+5. Agent generates a new session ID for this invocation (`FR-sc-session-id`).
+6. Agent opens the browser with `http://localhost:4821?session=<new-id>&file=<url-encoded-absolute-path-to-file2>`.
+7. Agent reports success output in the conversation.
+8. In the browser:
+   - If the previous CRPG window is still open, a new app-mode window opens for the new session (`FR-sc-concurrent-windows`). Both windows share the same server.
+   - If the previous window was closed, the new window opens and the app starts fresh with the new file.
+
+### Flow 2b: Concurrent Sessions -- Different Worktrees (`AC-sc-concurrent-sessions`)
+
+1. User types `/shepherd src/utils.ts` from worktree `myproject`. A server starts on a dynamic port (e.g., 4821). Session `myproject` opens in a new app-mode window.
+2. User switches to worktree `other-repo` in a different terminal/session.
+3. User types `/shepherd lib/helpers.ts` from worktree `other-repo`. A separate server starts on a different dynamic port (e.g., 4822). Session `other-repo` opens in its own app-mode window.
+4. Both browser windows are now active simultaneously. Each shows its own file from its own worktree. The window titles show different project names ("Shepherd — myproject" vs "Shepherd — other-repo") (`FR-crp-session-identity`).
+5. User clicks "Done" in session `myproject`. The prompt is written to `~/.shepherd/sessions/myproject/prompt-output.md` (`FR-sc-session-scoped-output`). Session `other-repo` is unaffected (`AC-sc-session-output-isolation`).
+6. The agent watching worktree A reads the prompt output. Worktree B's agent continues waiting for its own session.
 
 ### Flow 3: File Not Found (`AC-sc-file-not-found`)
 
@@ -215,13 +230,13 @@ Error messages always show the **resolved absolute path** (after path resolution
 1. User types `/shepherd src/utils.ts` in their Claude Code session.
 2. Agent validates the file and opens the CRPG in the browser (existing Flow 1, steps 1-7).
 3. Agent prints: "The file is loaded in the Code Review Prompt Generator. Annotate your code and click Done when you're finished. I'll wait for your prompt."
-4. Agent cleans up any stale prompt output file at `~/.shepherd/prompt-output.md` (`FR-sc-prompt-cleanup`, `AC-sc-prompt-cleanup-stale`).
-5. Agent runs the file watcher -- a blocking shell loop that polls for the existence of `~/.shepherd/prompt-output.md`. The loop checks once per second and exits on one of two conditions: the file appears, or 30 minutes elapse.
+4. Agent cleans up any stale prompt output file at `~/.shepherd/sessions/<session-id>/prompt-output.md` (`FR-sc-prompt-cleanup`, `AC-sc-prompt-cleanup-stale`).
+5. Agent runs the file watcher -- a blocking shell loop that polls for the existence of `~/.shepherd/sessions/<session-id>/prompt-output.md`. The loop checks once per second and exits on one of two conditions: the file appears, or 30 minutes elapse.
 6. User annotates code in the CRPG (minutes pass). The agent conversation is blocked during this time.
 7. User clicks "Done" in the CRPG toolbar.
-8. The CRPG sends a POST request to `/api/prompt-output` with the generated prompt text. The server-side handler writes the prompt content to `~/.shepherd/prompt-output.md` (`FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success`).
+8. The CRPG sends a POST request to `/api/prompt-output?session=<session-id>` with the generated prompt text. The server-side handler writes the prompt content to `~/.shepherd/sessions/<session-id>/prompt-output.md` (`FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success`, `FR-sc-session-scoped-output`).
 9. On POST success, the CRPG calls `window.close()`. In app-mode, the window closes and focus returns to the terminal (the last active window). If the window cannot be closed (not in app-mode), the CRPG falls back to showing the "Sent" confirmation state (see `design/code-review-prompt.md`, Flow 15).
-10. The watcher detects the file on its next poll iteration (within 1 second). It reads the file contents, outputs them to stdout, and deletes the file.
+10. The watcher detects the file on its next poll iteration (within 1 second). It reads the file contents, outputs them to stdout, and deletes the file. The session directory (`~/.shepherd/sessions/<session-id>/`) is cleaned up (`FR-sc-session-cleanup`).
 11. The agent receives the prompt text from the watcher's stdout. It reports: "Received review prompt (3 comments on src/utils.ts)" and proceeds to act on the prompt content.
 
 ### Flow 11: Prompt Feedback Loop -- Timeout (`AC-sc-prompt-watcher-timeout`)
@@ -241,13 +256,17 @@ The Vite dev server is a standard development server. The agent manages it as fo
 
 ### Server Start
 
-- On the first `/shepherd <file>` invocation, the agent checks if the Vite dev server is running by probing `http://localhost:5173`. If it is not running, the agent starts it with `pnpm dev`.
+- On the first `/shepherd <file>` invocation in a given worktree, the agent starts a Vite dev server with `pnpm dev`. The server binds to a dynamically assigned port (`FR-sc-dynamic-port`) rather than the fixed port 5173. The agent records the assigned port so subsequent invocations from the same worktree can reuse the server.
 - The server serves the CRPG web app with hot module replacement and the file API plugin.
 - Startup is fast since Vite does not perform a full build in dev mode (`NFR-sc-launch-speed`).
 
 ### Server Reuse
 
-- On subsequent invocations, the agent detects the server is already running and reuses it. No special reuse mechanism is needed -- the server is a long-running process.
+- On subsequent invocations from the same worktree, the agent detects that a server is already running for this worktree (via the recorded port) and reuses it. No new server is started. Each new invocation generates a fresh session ID but connects to the existing server.
+
+### Multiple Concurrent Servers
+
+- Multiple servers can run simultaneously, one per worktree. Each server binds to its own dynamically assigned port. This supports concurrent review sessions across different codebases or worktrees (`AC-sc-concurrent-sessions`).
 
 ### Server Stop
 
@@ -264,14 +283,15 @@ The following changes are required to the existing CRPG web application (designe
 
 **Current behavior**: The App root component renders the Empty State (FileDropZone) on initial load and waits for user interaction to load a file.
 
-**New behavior**: On mount, the App root component checks for a `?file=` query parameter in the URL.
+**New behavior**: On mount, the App root component checks for `?file=` and `?session=` query parameters in the URL.
 
 - **If `?file=` is present**:
-  1. Extract the file path from the query parameter (URL-decoded).
-  2. Fetch the file content from the local server API: `GET /api/file?path=<encoded-path>`.
-  3. While fetching, show a brief loading state (the FileDropZone in its `loading` variant with text "Loading file...").
-  4. On success: transition directly to the File Loaded state. The file name is derived from the path basename (e.g., `/Users/dev/project/src/utils.ts` yields `utils.ts`). Language is detected from the file extension per `FR-crp-syntax-highlight`. If a session already exists (file loaded, comments present), it is cleared without confirmation (`AC-sc-session-clear-on-new-file`).
-  5. On error (4xx/5xx from the API): show the FileDropZone in its `error` variant with the error message from the API response. The user can then manually load a file through the normal drop zone interactions.
+  1. Extract the file path from the `?file=` query parameter (URL-decoded).
+  2. If `?session=` is also present, extract the session ID and store it in app state. The session ID is used when calling `POST /api/prompt-output?session=<session-id>` (`FR-sc-session-id`).
+  3. Fetch the file content from the local server API: `GET /api/file?path=<encoded-path>`.
+  4. While fetching, show a brief loading state (the FileDropZone in its `loading` variant with text "Loading file...").
+  5. On success: transition directly to the File Loaded state. The file name is derived from the path basename (e.g., `/Users/dev/project/src/utils.ts` yields `utils.ts`). Language is detected from the file extension per `FR-crp-syntax-highlight`. If a session already exists (file loaded, comments present), it is cleared without confirmation (`AC-sc-session-clear-on-new-file`).
+  6. On error (4xx/5xx from the API): show the FileDropZone in its `error` variant with the error message from the API response. The user can then manually load a file through the normal drop zone interactions.
 - **If `?file=` is not present**: existing behavior is unchanged. The Empty State renders normally.
 
 **Navigation/URL handling**: After loading a file from a `?file=` parameter, the app clears the query parameter from the URL (using `history.replaceState`) so that refreshing the page returns to the Empty State rather than re-fetching the file. This is consistent with the session being in-memory only (`NFR-crp-no-data-persistence`).
@@ -322,27 +342,30 @@ The response for a 200 also includes a `X-File-Lines` header with the total line
 The Vite dev server exposes a prompt output endpoint via the same Vite plugin as the file API. The CRPG web app calls this endpoint when the user clicks "Done" (see `design/code-review-prompt.md`, Flow 15).
 
 ```
-POST /api/prompt-output
+POST /api/prompt-output?session=<session-id>
 ```
 
 **Request**:
 - Content-Type: `text/plain; charset=utf-8`
 - Body: The full generated prompt text.
+- Query parameter: `session` -- the session ID that was passed to the CRPG via the URL (`FR-sc-session-id`). Required when in slash command mode.
 
 **Responses**:
 
 | Status | Condition | Body |
 |---|---|---|
 | 200 OK | Prompt written successfully | `{"status": "ok"}` as `application/json` |
+| 400 Bad Request | Missing session parameter | `{"error": "Missing session parameter"}` as `application/json` |
 | 403 Forbidden | Request not from localhost | `{"error": "Forbidden"}` as `application/json` |
 | 500 Internal Server Error | Failed to write file | `{"error": "Failed to write prompt output"}` as `application/json` |
 
 **Server-side behavior**:
 1. Validate that the request originates from localhost (`127.0.0.1` or `::1`), same as the file API endpoint (`AC-sc-prompt-output-api-localhost-only`).
-2. Read the request body as UTF-8 text.
-3. Ensure the `~/.shepherd/` directory exists (create if needed).
-4. Write the prompt text to `~/.shepherd/prompt-output.md`, overwriting any existing content.
-5. Return 200 with `{"status": "ok"}`.
+2. Read the `session` query parameter. If missing, return 400.
+3. Read the request body as UTF-8 text.
+4. Ensure the `~/.shepherd/sessions/<session-id>/` directory exists (create if needed) (`FR-sc-session-scoped-output`).
+5. Write the prompt text to `~/.shepherd/sessions/<session-id>/prompt-output.md`, overwriting any existing content.
+6. Return 200 with `{"status": "ok"}`.
 
 If the write fails for any reason (permission denied, disk full, etc.), return 500.
 
@@ -427,8 +450,9 @@ The fallback chain is: Chrome app mode -> Chromium app mode -> default browser. 
 If all browser-open attempts fail (e.g., `xdg-open` not installed on a headless Linux server), the agent reports the URL and a note:
 
 ```
-Opened Code Review Prompt Generator at http://localhost:5173
+Opened Code Review Prompt Generator at http://localhost:4821
 Loaded: src/utils.ts (142 lines, TypeScript)
+Session: my-project
 Warning: Could not open the browser automatically. Open the URL above in your browser.
 ```
 
@@ -462,6 +486,12 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-sc-prompt-receive` | Command Syntax (waiting state); Flow 10; Output Format -- Prompt received |
 | `FR-sc-prompt-output-api` | Prompt Output API Endpoint section; Flow 10 step 8 |
 | `FR-sc-prompt-cleanup` | Flow 10 step 4 |
+| `FR-sc-session-id` | Output Format -- Successful launch (Line 3); Flow 1 step 6; Flow 2 step 5; App Root Component (session parameter extraction) |
+| `FR-sc-dynamic-port` | Output Format -- Successful launch (Line 1); Flow 1 step 5; Server Management -- Server Start |
+| `FR-sc-session-scoped-output` | Flow 10 steps 4-5, 8, 10; Prompt Output API Endpoint (session-scoped write path) |
+| `FR-sc-concurrent-windows` | Flow 1 step 7; Flow 2 step 6; Flow 2b (concurrent sessions) |
+| `FR-sc-session-cleanup` | Flow 10 step 10 (session directory cleanup) |
+| `FR-crp-session-identity` | Interface Inventory (window title); Flow 2b step 4 |
 
 ### Non-Functional Requirements
 
@@ -496,3 +526,5 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-sc-prompt-cleanup-stale` | Flow 10 step 4 |
 | `AC-sc-prompt-output-api-success` | Prompt Output API Endpoint (200 response); Flow 10 step 8 |
 | `AC-sc-prompt-output-api-localhost-only` | Prompt Output API Endpoint (403 response, localhost check) |
+| `AC-sc-concurrent-sessions` | Flow 2b (concurrent sessions from different worktrees); Server Management -- Multiple Concurrent Servers |
+| `AC-sc-session-output-isolation` | Flow 2b step 5 (session-scoped output does not affect other sessions) |

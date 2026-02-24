@@ -49,6 +49,15 @@
 | `AC-sc-prompt-cleanup-stale` | `TC-sc-watcher-cleanup-stale` | Not started |
 | `AC-sc-prompt-output-api-success` | `TC-sc-prompt-api-write-happy` | Not started |
 | `AC-sc-prompt-output-api-localhost-only` | `TC-sc-prompt-api-localhost-only` | Not started |
+| `FR-sc-session-id` | `TC-sc-session-id-generated`, `TC-sc-session-id-unique` | Not started |
+| `FR-sc-dynamic-port` | `TC-sc-dynamic-port`, `TC-sc-separate-servers-different-worktrees` | Not started |
+| `FR-sc-session-scoped-output` | `TC-sc-session-scoped-output-path`, `TC-sc-session-output-isolation`, `TC-sc-prompt-api-write-happy` | Not started |
+| `FR-sc-concurrent-windows` | `TC-sc-concurrent-sessions-happy` | Not started |
+| `FR-sc-session-cleanup` | `TC-sc-session-cleanup-after-read`, `TC-sc-watcher-cleanup-stale` | Not started |
+| `FR-crp-session-identity` | `TC-sc-window-title-shows-project` | Not started |
+| `AC-sc-concurrent-sessions` | `TC-sc-concurrent-sessions-happy` | Not started |
+| `AC-sc-session-output-isolation` | `TC-sc-session-output-isolation` | Not started |
+| `AC-sc-server-reuse` | `TC-sc-server-reuse-same-worktree`, `TC-sc-server-reuse-vite` | Not started |
 
 ---
 
@@ -70,7 +79,7 @@
   2. Type `/shepherd engineering/apps/web/src/App.tsx`.
   3. Observe the agent conversation output.
   4. Observe the browser.
-- **Expected Result**: The agent reports a URL (`http://localhost:5173?file=<encoded-path>`). The default browser opens to the CRPG with `App.tsx` loaded in the code viewer. Syntax highlighting shows TypeScript. The file name "App.tsx" is displayed in the file header.
+- **Expected Result**: The agent reports a session ID derived from the project directory (e.g., `Session: shepherd-1`) and a URL (`http://localhost:<port>?session=<id>&file=<encoded-path>`) where `<port>` is a dynamically assigned port. The default browser opens to the CRPG with `App.tsx` loaded in the code viewer. Syntax highlighting shows TypeScript. The file name "App.tsx" is displayed in the file header.
 - **Edge Cases**:
   - Vite dev server not running when command is invoked: the agent should start it (per the custom command instructions).
   - The file path contains the repo-relative path; the agent resolves it to an absolute path before constructing the URL.
@@ -540,11 +549,11 @@
 - **Steps**:
   1. Type `/shepherd somefile.ts` in Claude Code.
   2. Observe whether the agent starts the Vite dev server.
-  3. Verify the server is running by accessing `http://localhost:5173`.
-- **Expected Result**: The agent detects no running server, starts it with `pnpm dev`, and then proceeds to open the browser with the file URL. The server serves the CRPG correctly.
+  3. Verify the server is running by accessing `http://localhost:<port>` (the dynamically assigned port reported in the output).
+- **Expected Result**: The agent detects no running server for this worktree, starts it on a dynamic port, and then proceeds to open the browser with the file URL. The server serves the CRPG correctly. The output shows the assigned port.
 - **Edge Cases**:
   - `pnpm` not installed: the agent should report a clear error.
-  - Port 5173 already in use by another process: Vite's built-in port conflict handling increments the port (e.g., 5174). The agent should adapt to the actual port.
+  - Multiple servers running for different worktrees: each gets its own dynamic port.
 
 ---
 
@@ -552,9 +561,9 @@
 
 - **Type**: Integration
 - **Covers**: `FR-sc-app-serve`
-- **Preconditions**: The Vite dev server is running.
+- **Preconditions**: The Vite dev server is running on a dynamically assigned port.
 - **Steps**:
-  1. Send `GET /` to `http://localhost:5173`.
+  1. Send `GET /` to `http://localhost:<port>` (the port reported during server startup).
   2. Inspect the response.
 - **Expected Result**: `GET /` returns 200 with `text/html` content type and the CRPG's `index.html`. The static assets are served correctly.
 - **Edge Cases**:
@@ -788,7 +797,7 @@
 - **Priority**: High
 - **Type**: Performance / Automated
 - **Covers**: `AC-sc-warm-launch-2s`, `NFR-sc-launch-speed`, `FR-sc-launcher-script`
-- **Preconditions**: Vite dev server is running on localhost:5173. A valid text file exists.
+- **Preconditions**: Vite dev server is running on a dynamic port for this worktree. A valid text file exists.
 - **Steps**:
   1. Record the current timestamp.
   2. Invoke `/shepherd <filepath>` in Claude Code.
@@ -806,12 +815,12 @@
 - **Covers**: `AC-sc-cold-launch-8s`, `NFR-sc-launch-speed`, `FR-sc-launcher-script`
 - **Preconditions**: Vite dev server is NOT running. A valid text file exists. The Shepherd repository is cloned with `node_modules` installed.
 - **Steps**:
-  1. Ensure no process is listening on port 5173.
+  1. Ensure no Vite dev server is running for this worktree.
   2. Record the current timestamp.
   3. Invoke `/shepherd <filepath>` in Claude Code.
   4. Record the timestamp when the browser tab opens.
   5. Calculate elapsed time.
-- **Expected Result**: Elapsed time is under 8 seconds (including Vite dev server startup).
+- **Expected Result**: Elapsed time is under 8 seconds (including Vite dev server startup on a dynamic port).
 
 ---
 
@@ -854,11 +863,11 @@
 - **Covers**: `FR-sc-launcher-script`, `FR-sc-app-serve`, `AC-sc-cold-launch-8s`
 - **Preconditions**: Vite dev server is NOT running. A valid text file exists.
 - **Steps**:
-  1. Verify no process is listening on port 5173.
+  1. Verify no Vite dev server is running for this worktree.
   2. Run `scripts/shepherd-launch.sh <filepath>`.
-  3. Verify the Vite dev server is now running on port 5173.
-  4. Verify the browser opened with the correct URL.
-- **Expected Result**: The script starts the dev server, waits for it to be ready, and opens the browser. Exit code is 0. Output summary indicates server was started (not reused).
+  3. Verify the Vite dev server is now running on a dynamically assigned port.
+  4. Verify the browser opened with the correct URL including `?session=<id>&file=<encoded-path>`.
+- **Expected Result**: The script starts the dev server on a dynamic port, waits for it to be ready, and opens the browser. Exit code is 0. Output summary indicates server was started (not reused) and reports the session ID and port.
 
 ---
 
@@ -885,34 +894,34 @@
 
 ---
 
-#### `TC-sc-prompt-api-write-happy`: POST /api/prompt-output writes file
+#### `TC-sc-prompt-api-write-happy`: POST /api/prompt-output writes file to session-scoped path
 
 - **Type**: Unit
-- **Covers**: `FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success`
-- **Preconditions**: Vite dev server running. `~/.shepherd/` directory exists.
+- **Covers**: `FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success`, `FR-sc-session-scoped-output`
+- **Preconditions**: Vite dev server running. A session with ID `<session-id>` is active.
 - **Steps**:
-  1. Send `POST /api/prompt-output` with text body "test prompt content" from localhost.
+  1. Send `POST /api/prompt-output?session=<session-id>` with text body "test prompt content" from localhost.
   2. Inspect the response status.
-  3. Read the file at `~/.shepherd/prompt-output.md`.
-- **Expected Result**: Response status is 200. The file `~/.shepherd/prompt-output.md` exists with content "test prompt content".
+  3. Read the file at `~/.shepherd/sessions/<session-id>/prompt-output.md`.
+- **Expected Result**: Response status is 200. The file `~/.shepherd/sessions/<session-id>/prompt-output.md` exists with content "test prompt content".
 - **Edge Cases**:
   - Empty body: should still write the file (with empty content) and return 200.
   - Very large body (1 MB of text): should write successfully.
 
 ---
 
-#### `TC-sc-prompt-api-creates-dir`: API creates ~/.shepherd/ directory if missing
+#### `TC-sc-prompt-api-creates-dir`: API creates session directory if missing
 
 - **Type**: Unit
-- **Covers**: `FR-sc-prompt-output-api`
-- **Preconditions**: Vite dev server running. `~/.shepherd/` directory does NOT exist (renamed or removed temporarily for this test).
+- **Covers**: `FR-sc-prompt-output-api`, `FR-sc-session-scoped-output`
+- **Preconditions**: Vite dev server running. `~/.shepherd/sessions/<session-id>/` directory does NOT exist. A session with ID `<session-id>` is active.
 - **Steps**:
-  1. Ensure `~/.shepherd/` does not exist.
-  2. Send `POST /api/prompt-output` with text body "test content" from localhost.
+  1. Ensure `~/.shepherd/sessions/<session-id>/` does not exist.
+  2. Send `POST /api/prompt-output?session=<session-id>` with text body "test content" from localhost.
   3. Inspect the response status and filesystem.
-- **Expected Result**: Response status is 200. The `~/.shepherd/` directory was created. The file `~/.shepherd/prompt-output.md` exists with content "test content".
+- **Expected Result**: Response status is 200. The `~/.shepherd/sessions/<session-id>/` directory was created (including intermediate directories). The file `~/.shepherd/sessions/<session-id>/prompt-output.md` exists with content "test content".
 - **Edge Cases**:
-  - Parent directory (`~/`) always exists, so this only tests creation of the `.shepherd` subdirectory.
+  - `~/.shepherd/` directory does not exist at all: the API should create the full directory tree (`~/.shepherd/sessions/<session-id>/`).
 
 ---
 
@@ -920,10 +929,10 @@
 
 - **Type**: Unit
 - **Covers**: `FR-sc-prompt-output-api`
-- **Preconditions**: Vite dev server running. `~/.shepherd/prompt-output.md` already exists with content "old content".
+- **Preconditions**: Vite dev server running. `~/.shepherd/sessions/<session-id>/prompt-output.md` already exists with content "old content". A session with ID `<session-id>` is active.
 - **Steps**:
-  1. Send `POST /api/prompt-output` with text body "new content" from localhost.
-  2. Read the file at `~/.shepherd/prompt-output.md`.
+  1. Send `POST /api/prompt-output?session=<session-id>` with text body "new content" from localhost.
+  2. Read the file at `~/.shepherd/sessions/<session-id>/prompt-output.md`.
 - **Expected Result**: Response status is 200. File content is "new content" (the old content is fully replaced).
 - **Edge Cases**:
   - N/A (focused test).
@@ -936,9 +945,9 @@
 - **Covers**: `AC-sc-prompt-output-api-localhost-only`
 - **Preconditions**: Vite dev server running.
 - **Steps**:
-  1. Send `POST /api/prompt-output` with an `Origin` header set to `http://evil.com` and text body "malicious content".
+  1. Send `POST /api/prompt-output?session=<session-id>` with an `Origin` header set to `http://evil.com` and text body "malicious content".
   2. Inspect the response status.
-  3. Check that `~/.shepherd/prompt-output.md` was NOT written (or not overwritten if it existed).
+  3. Check that `~/.shepherd/sessions/<session-id>/prompt-output.md` was NOT written (or not overwritten if it existed).
 - **Expected Result**: Response status is 403. The file is not written.
 - **Edge Cases**:
   - `Origin: http://localhost:9999` (different port but still localhost): should be accepted.
@@ -954,7 +963,7 @@
 - **Covers**: `FR-sc-prompt-output-api`
 - **Preconditions**: Vite dev server running.
 - **Steps**:
-  1. Send `GET /api/prompt-output` from localhost.
+  1. Send `GET /api/prompt-output?session=<session-id>` from localhost.
   2. Inspect the response status.
 - **Expected Result**: Response status is 405 or another appropriate error (not 200). The file is not written.
 - **Edge Cases**:
@@ -971,7 +980,7 @@
 - **Steps**:
   1. Send `GET /api/file?path=<url-encoded-path>` from localhost.
   2. Inspect the response (should be 200 with file content).
-  3. Send `POST /api/prompt-output` with text body "prompt text" from localhost.
+  3. Send `POST /api/prompt-output?session=<session-id>` with text body "prompt text" from localhost.
   4. Inspect the response (should be 200).
   5. Send `GET /api/file?path=<url-encoded-path>` again.
   6. Inspect the response (should be 200 with same file content as step 2).
@@ -985,13 +994,13 @@
 
 ---
 
-#### `TC-sc-watcher-detects-file`: Watcher detects prompt output file
+#### `TC-sc-watcher-detects-file`: Watcher detects prompt output file in session directory
 
 - **Type**: Integration
-- **Covers**: `FR-sc-prompt-receive`, `AC-sc-prompt-received`
-- **Preconditions**: The watcher script/polling loop is running. `~/.shepherd/prompt-output.md` does NOT exist.
+- **Covers**: `FR-sc-prompt-receive`, `AC-sc-prompt-received`, `FR-sc-session-scoped-output`
+- **Preconditions**: The watcher script/polling loop is running for session `<session-id>`. `~/.shepherd/sessions/<session-id>/prompt-output.md` does NOT exist.
 - **Steps**:
-  1. Write content "Test prompt from CRPG" to `~/.shepherd/prompt-output.md`.
+  1. Write content "Test prompt from CRPG" to `~/.shepherd/sessions/<session-id>/prompt-output.md`.
   2. Wait up to 2 seconds.
   3. Observe the watcher output.
 - **Expected Result**: The watcher detects the file within 2 seconds (1-second polling interval + processing time). The watcher outputs the file content ("Test prompt from CRPG"). The file is deleted after being read.
@@ -1000,20 +1009,20 @@
 
 ---
 
-#### `TC-sc-watcher-cleanup-stale`: Stale file cleaned up before watcher starts
+#### `TC-sc-watcher-cleanup-stale`: Stale session directory cleaned up before watcher starts
 
 - **Type**: Unit
-- **Covers**: `FR-sc-prompt-cleanup`, `AC-sc-prompt-cleanup-stale`
-- **Preconditions**: `~/.shepherd/prompt-output.md` exists from a previous session (stale file).
+- **Covers**: `FR-sc-prompt-cleanup`, `AC-sc-prompt-cleanup-stale`, `FR-sc-session-cleanup`
+- **Preconditions**: `~/.shepherd/sessions/<session-id>/prompt-output.md` exists from a previous session (stale file).
 - **Steps**:
-  1. Run the stale cleanup command (`rm -f ~/.shepherd/prompt-output.md`) as part of the watcher startup sequence.
-  2. Verify the file no longer exists.
-  3. Start the watcher.
+  1. Run the stale cleanup command as part of the watcher startup sequence for a new session.
+  2. Verify the stale session's `prompt-output.md` is not processed.
+  3. Start the watcher for the new session.
   4. Observe the watcher state.
-- **Expected Result**: The stale file is deleted. The watcher starts fresh and waits for a new file to appear. It does NOT process the stale file as if it were a new prompt.
+- **Expected Result**: The watcher starts fresh for its own session directory and waits for a new file to appear. It does NOT process stale files from other sessions. Stale session directories older than 24 hours are cleaned up by the session cleanup mechanism.
 - **Edge Cases**:
-  - No stale file exists: cleanup should be a no-op (no error from `rm -f`).
-  - `~/.shepherd/` directory does not exist: cleanup should not error.
+  - No stale session directories exist: cleanup should be a no-op.
+  - `~/.shepherd/sessions/` directory does not exist: cleanup should not error.
 
 ---
 
@@ -1024,7 +1033,7 @@
 - **Preconditions**: Watcher running with a short timeout (e.g., 5 seconds for testing purposes instead of the full 30 minutes).
 - **Steps**:
   1. Start the watcher with a 5-second timeout.
-  2. Do NOT create the `~/.shepherd/prompt-output.md` file.
+  2. Do NOT create the `~/.shepherd/sessions/<session-id>/prompt-output.md` file.
   3. Wait for the timeout to expire.
   4. Observe the watcher output.
 - **Expected Result**: The watcher exits gracefully with a timeout message after 5 seconds. No crash occurs. No zombie processes remain.
@@ -1040,9 +1049,9 @@
 - **Covers**: `FR-sc-prompt-receive`
 - **Preconditions**: Watcher is running.
 - **Steps**:
-  1. Write "prompt content" to `~/.shepherd/prompt-output.md`.
+  1. Write "prompt content" to `~/.shepherd/sessions/<session-id>/prompt-output.md`.
   2. Wait for the watcher to detect and process the file.
-  3. Check if `~/.shepherd/prompt-output.md` still exists.
+  3. Check if `~/.shepherd/sessions/<session-id>/prompt-output.md` still exists.
 - **Expected Result**: The file is deleted after being read. The watcher output contains "prompt content". Subsequent watcher polls do not re-process the same content.
 - **Edge Cases**:
   - File deletion fails (e.g., permissions changed): the watcher should still output the content but may log a warning about the failed deletion.
@@ -1063,8 +1072,8 @@
   2. Click the Done button.
   3. Observe the CRPG UI (button state, toast).
   4. Observe the watcher/agent output.
-  5. Check that the file `~/.shepherd/prompt-output.md` is cleaned up.
-- **Expected Result**: The CRPG sends a POST to `/api/prompt-output` with the generated prompt. The server writes the prompt to `~/.shepherd/prompt-output.md`. The watcher detects the file, reads its content, outputs the prompt, and deletes the file. The CRPG shows "Sent ✓" and the success toast. The full loop completes without manual intervention.
+  5. Check that the file `~/.shepherd/sessions/<session-id>/prompt-output.md` is cleaned up.
+- **Expected Result**: The CRPG sends a POST to `/api/prompt-output?session=<session-id>` with the generated prompt. The server writes the prompt to `~/.shepherd/sessions/<session-id>/prompt-output.md`. The watcher detects the file, reads its content, outputs the prompt, and deletes the file. The CRPG shows "Sent ✓" and the success toast. The full loop completes without manual intervention.
 - **Edge Cases**:
   - Watcher detects the file before the CRPG receives the 200 response: this is fine -- the file write is what matters, not the HTTP response timing.
 
@@ -1083,6 +1092,165 @@
 - **Expected Result**: A new prompt (including the new comment) is sent via POST. A new file is written. A new watcher instance (or the continued watcher loop) detects and processes the new file. The previous output does not interfere.
 - **Edge Cases**:
   - Rapid successive Done clicks across multiple edits: each should be treated independently.
+
+---
+
+### Session Isolation
+
+---
+
+#### `TC-sc-session-id-generated`: Each invocation produces a unique session ID visible in output and URL
+
+- **Type**: Integration
+- **Covers**: `FR-sc-session-id`
+- **Preconditions**: The `/shepherd` custom command is available. A valid text file exists.
+- **Steps**:
+  1. Type `/shepherd somefile.ts` in Claude Code.
+  2. Observe the agent output.
+  3. Observe the browser URL.
+- **Expected Result**: The agent output includes a session identifier (e.g., `Session: my-project`). The session ID is derived from the working directory basename — it should be a slugified version of the directory name (lowercase alphanumeric and hyphens, e.g., `shepherd-1`, `my-project`). The browser URL contains `?session=<id>&file=<encoded-path>` where `<id>` matches the session ID in the agent output.
+- **Edge Cases**:
+  - The session ID should contain only lowercase alphanumeric characters and hyphens. No uppercase, underscores, spaces, or special characters.
+
+---
+
+#### `TC-sc-session-id-deterministic`: Same worktree produces same session ID
+
+- **Type**: Integration
+- **Covers**: `FR-sc-session-id`
+- **Preconditions**: The `/shepherd` custom command is available. A valid text file exists.
+- **Steps**:
+  1. Type `/shepherd somefile.ts` in Claude Code from directory `/path/to/my-project`. Note the session ID from the output.
+  2. Type `/shepherd somefile.ts` again from the same directory. Note the session ID from the output.
+  3. Compare the two session IDs.
+- **Expected Result**: The two session IDs are identical (e.g., both are `my-project`). The session ID is derived from the working directory, so the same worktree always produces the same ID.
+- **Edge Cases**:
+  - Different worktrees with different names produce different session IDs (e.g., `project-a` vs `project-b`).
+  - Two directories with the same basename in different parent paths (e.g., `/home/alice/myapp` and `/home/bob/myapp`) produce the same session ID (`myapp`). This is acceptable — users rarely have two repos with the same name on the same machine.
+
+---
+
+#### `TC-sc-dynamic-port`: Server uses a dynamic port instead of fixed 5173
+
+- **Type**: Integration
+- **Covers**: `FR-sc-dynamic-port`
+- **Preconditions**: The `/shepherd` custom command is available. A valid text file exists. No existing server is running for this worktree.
+- **Steps**:
+  1. Type `/shepherd somefile.ts` in Claude Code.
+  2. Observe the port number in the agent output URL.
+- **Expected Result**: The URL shows a dynamically assigned port (not necessarily 5173). The port is a valid TCP port number. The server is accessible at the reported port.
+- **Edge Cases**:
+  - The port may happen to be 5173 if that port is available, but it is not guaranteed to be 5173.
+
+---
+
+#### `TC-sc-concurrent-sessions-happy`: Two sessions from different worktrees run simultaneously
+
+- **Type**: E2E
+- **Covers**: `AC-sc-concurrent-sessions`, `FR-sc-concurrent-windows`, `FR-sc-dynamic-port`
+- **Preconditions**: Two separate worktrees (or clones) of a repository exist at different paths. Valid text files exist in each. The `/shepherd` command is available.
+- **Steps**:
+  1. Open a Claude Code session in worktree A. Type `/shepherd file1.ts`. Note the session ID (A) and port (A).
+  2. Open a Claude Code session in worktree B. Type `/shepherd file2.ts`. Note the session ID (B) and port (B).
+  3. Verify both browser windows are open and functional.
+  4. In browser window A, add a comment to file1.ts.
+  5. In browser window B, add a comment to file2.ts.
+- **Expected Result**: Session IDs A and B are different. Ports A and B are different (separate server instances). Both browser windows are open simultaneously. Each shows its respective file. Adding a comment in window A does not affect window B, and vice versa. Neither session is clobbered by the other.
+- **Edge Cases**:
+  - Starting session B while session A is still active: session A should remain fully functional.
+  - Both sessions using the same file name (but from different worktrees): both should work independently.
+
+---
+
+#### `TC-sc-session-output-isolation`: Clicking Done in one session does not affect another
+
+- **Type**: E2E
+- **Covers**: `AC-sc-session-output-isolation`, `FR-sc-session-scoped-output`
+- **Preconditions**: Two concurrent sessions (A and B) are running from different worktrees. Comments have been added in both sessions.
+- **Steps**:
+  1. In session A's browser window, click "Done".
+  2. Verify session A's output is written to `~/.shepherd/sessions/<session-id-A>/prompt-output.md`.
+  3. Verify session B's directory (`~/.shepherd/sessions/<session-id-B>/`) is unaffected -- no `prompt-output.md` exists there yet.
+  4. Verify session B's browser window remains fully functional (can still navigate, add comments, etc.).
+  5. In session B's browser window, click "Done".
+  6. Verify session B's output is written to `~/.shepherd/sessions/<session-id-B>/prompt-output.md`.
+- **Expected Result**: Each session writes output only to its own session-scoped directory. Clicking Done in session A has no effect on session B's files or UI. Both outputs contain only their respective session's comments.
+- **Edge Cases**:
+  - Clicking Done in both sessions within a few milliseconds of each other: both should write independently without race conditions.
+
+---
+
+#### `TC-sc-session-scoped-output-path`: Prompt output is written to session-scoped path
+
+- **Type**: Integration
+- **Covers**: `AC-sc-prompt-output-api-success`, `FR-sc-session-scoped-output`
+- **Preconditions**: A session is active with session ID `<session-id>`. A file is loaded and a comment has been added.
+- **Steps**:
+  1. Click "Done" in the CRPG.
+  2. Check the filesystem for the output file.
+- **Expected Result**: The output file is written to `~/.shepherd/sessions/<session-id>/prompt-output.md`. The file does NOT exist at the legacy path `~/.shepherd/prompt-output.md`. The session-scoped directory was created automatically.
+- **Edge Cases**:
+  - `~/.shepherd/sessions/` directory does not exist before the first session: it should be created automatically.
+
+---
+
+#### `TC-sc-session-cleanup-after-read`: Session directory is cleaned up after agent reads the output
+
+- **Type**: Integration
+- **Covers**: `FR-sc-session-cleanup`
+- **Preconditions**: A session has completed -- the user clicked Done and the output was written to `~/.shepherd/sessions/<session-id>/prompt-output.md`.
+- **Steps**:
+  1. Observe the agent reading the output file.
+  2. Check if `~/.shepherd/sessions/<session-id>/` directory exists after the agent reads the output.
+- **Expected Result**: After the agent reads the output, the session directory `~/.shepherd/sessions/<session-id>/` is deleted (along with its contents). The `~/.shepherd/sessions/` parent directory may still exist for other active sessions.
+- **Edge Cases**:
+  - If the directory deletion fails (e.g., permissions), the agent should log a warning but not crash.
+  - Other session directories (from concurrent sessions) must NOT be affected by this cleanup.
+
+---
+
+#### `TC-sc-server-reuse-same-worktree`: Server is reused for the same worktree
+
+- **Type**: Integration
+- **Covers**: `AC-sc-server-reuse`, `FR-sc-dynamic-port`
+- **Preconditions**: A server is already running from a previous `/shepherd` invocation in worktree A.
+- **Steps**:
+  1. Type `/shepherd file1.ts` from worktree A. Note the port number.
+  2. Type `/shepherd file2.ts` from the same worktree A. Note the port number.
+- **Expected Result**: The port number is the same for both invocations. The agent output indicates the server was reused (e.g., "reusing existing server" or similar). A new session ID is generated for each invocation, but the underlying server is shared. The second invocation opens faster (warm launch) because no server startup is needed.
+- **Edge Cases**:
+  - The second invocation uses a different session ID than the first, even though the server is reused.
+
+---
+
+#### `TC-sc-separate-servers-different-worktrees`: Different worktrees get different servers
+
+- **Type**: Integration
+- **Covers**: `FR-sc-dynamic-port`, `FR-sc-concurrent-windows`
+- **Preconditions**: Two separate worktrees exist. No servers are running.
+- **Steps**:
+  1. Type `/shepherd file.ts` from worktree A. Note the port.
+  2. Type `/shepherd file.ts` from worktree B. Note the port.
+  3. List running server processes.
+- **Expected Result**: Different ports are assigned for worktree A and worktree B. Two separate server processes are running. Each server serves the CRPG independently.
+- **Edge Cases**:
+  - Stopping the server for worktree A should not affect the server for worktree B.
+
+---
+
+#### `TC-sc-window-title-shows-project`: Browser window title shows project context
+
+- **Type**: E2E
+- **Covers**: `FR-crp-session-identity`
+- **Preconditions**: The `/shepherd` command is available. A valid text file exists in a project directory named `my-project`.
+- **Steps**:
+  1. Type `/shepherd somefile.ts` from the `my-project` directory.
+  2. Observe the browser window title.
+- **Expected Result**: The browser window title displays "Shepherd -- my-project" (where "my-project" is derived from the working directory or git repository name). This helps distinguish multiple concurrent sessions when switching between browser windows.
+- **Edge Cases**:
+  - Project directory with a long name: the title should still be readable (may be truncated by the OS window manager).
+  - Project directory with special characters in the name: should be displayed correctly.
+  - Running in a subdirectory of the project: the title should still show the project root name, not the subdirectory.
 
 ---
 
@@ -1194,18 +1362,18 @@
 
 ---
 
-### `TC-sc-edge-port-in-use`: Default Vite port is occupied by another process
+### `TC-sc-edge-port-in-use`: Dynamic port assignment avoids conflicts
 
 - **Type**: Unit
-- **Covers**: `FR-sc-app-serve`
-- **Preconditions**: Another process is listening on port 5173.
+- **Covers**: `FR-sc-app-serve`, `FR-sc-dynamic-port`
+- **Preconditions**: Several other processes are listening on various ports.
 - **Steps**:
-  1. Start another process listening on port 5173.
+  1. Start several processes on common ports (e.g., 3000, 5173, 8080).
   2. Type `/shepherd somefile.ts` in Claude Code.
-  3. Observe the agent's behavior.
-- **Expected Result**: Vite's built-in port conflict handling increments the port (e.g., 5174). The agent should adapt to the actual port.
+  3. Observe the assigned port in the output.
+- **Expected Result**: The server is assigned a dynamic port that does not conflict with existing processes. The browser opens with the correct dynamically assigned port.
 - **Edge Cases**:
-  - N/A (focused test).
+  - Extremely rare but theoretically possible: all ports in the dynamic range are occupied. The agent should report a clear error.
 
 ---
 
@@ -1254,6 +1422,10 @@ The slash command introduces changes to the existing CRPG web application and ad
 
 5. **Watcher polling and file cleanup**: The file watcher uses simple polling with file deletion. If the cleanup logic has bugs, stale files could trigger false prompts on the next session. **Regression test**: `TC-sc-watcher-cleanup-stale` verifies stale files are removed before the watcher starts.
 
+6. **Session isolation and concurrent sessions**: The move from a single fixed output path (`~/.shepherd/prompt-output.md`) to session-scoped paths (`~/.shepherd/sessions/<session-id>/prompt-output.md`) could break existing single-session workflows if the path migration is incomplete. **Regression tests**: `TC-sc-session-scoped-output-path` verifies the new path is used. `TC-sc-session-output-isolation` verifies concurrent sessions do not interfere.
+
+7. **Dynamic port assignment**: The move from fixed port 5173 to dynamic ports could break URL construction, server detection, and server reuse logic. **Regression tests**: `TC-sc-dynamic-port` verifies dynamic ports work. `TC-sc-server-reuse-same-worktree` verifies server reuse still works within a worktree.
+
 ### Recommended regression suite
 
 Run the following test cases as a minimum regression suite after any slash command changes:
@@ -1280,9 +1452,19 @@ Also run the existing CRPG regression suite from `qa/code-review-prompt.md`:
 - `TC-crp-clear-confirmation-confirm-clears`
 
 And the prompt feedback loop tests:
-- `TC-sc-prompt-api-write-happy` (prompt output API works)
+- `TC-sc-prompt-api-write-happy` (prompt output API writes to session-scoped path)
 - `TC-sc-prompt-api-localhost-only` (security check works for prompt API)
 - `TC-sc-prompt-api-no-collision` (prompt API doesn't break file API)
-- `TC-sc-watcher-detects-file` (watcher detects prompt file)
-- `TC-sc-watcher-cleanup-stale` (stale file cleanup works)
+- `TC-sc-watcher-detects-file` (watcher detects prompt file in session directory)
+- `TC-sc-watcher-cleanup-stale` (stale session cleanup works)
 - `TC-sc-feedback-loop-e2e` (full end-to-end feedback loop)
+
+And the session isolation tests:
+- `TC-sc-session-id-generated` (session ID is generated and visible)
+- `TC-sc-dynamic-port` (server uses dynamic port)
+- `TC-sc-concurrent-sessions-happy` (two sessions run simultaneously)
+- `TC-sc-session-output-isolation` (Done in one session doesn't affect another)
+- `TC-sc-session-scoped-output-path` (output uses session-scoped path)
+- `TC-sc-session-cleanup-after-read` (session directory cleaned up after use)
+- `TC-sc-server-reuse-same-worktree` (server reused within same worktree)
+- `TC-sc-window-title-shows-project` (window title shows project context)

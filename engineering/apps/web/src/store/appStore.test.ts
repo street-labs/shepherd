@@ -458,6 +458,55 @@ describe('appStore', () => {
     });
   });
 
+  // ─── sessionId ────────────────────────────────────────────────
+
+  describe('sessionId', () => {
+    it('defaults to null', () => {
+      expect(useAppStore.getState().sessionId).toBeNull();
+    });
+
+    it('can be set via setSessionId', () => {
+      useAppStore.getState().setSessionId('my-project');
+      expect(useAppStore.getState().sessionId).toBe('my-project');
+    });
+
+    it('resets on clearSession', () => {
+      useAppStore.getState().setSessionId('my-project');
+      useAppStore.getState().clearSession();
+      expect(useAppStore.getState().sessionId).toBeNull();
+    });
+
+    it('sendPromptToAgent includes session param in URL when sessionId is set', async () => {
+      useAppStore.getState().setSessionId('my-project');
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+      const closeSpy = vi.fn();
+      vi.stubGlobal('close', closeSpy);
+
+      await useAppStore.getState().sendPromptToAgent();
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        '/api/prompt-output?session=my-project',
+        expect.objectContaining({ body: '' }),
+      );
+      vi.restoreAllMocks();
+    });
+
+    it('sendPromptToAgent uses plain URL when sessionId is null', async () => {
+      expect(useAppStore.getState().sessionId).toBeNull();
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+      const closeSpy = vi.fn();
+      vi.stubGlobal('close', closeSpy);
+
+      await useAppStore.getState().sendPromptToAgent();
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        '/api/prompt-output',
+        expect.objectContaining({ body: '' }),
+      );
+      vi.restoreAllMocks();
+    });
+  });
+
   // ─── Rendered mode ─────────────────────────────────────────
 
   describe('rendered mode', () => {

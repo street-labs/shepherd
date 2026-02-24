@@ -113,10 +113,13 @@ When multiple files have comments, the format extends to include multiple file s
 When the user clicks "Done", the combined multi-file prompt (same content as what Copy would produce) is sent to the local server for handoff back to the AI agent. The prompt is also copied to the system clipboard as a fallback. The Done button is only enabled when at least one inline comment exists on any file (same condition as the Copy button per `FR-crp-prompt-copy`). After a successful send, the CRPG automatically closes its browser window (`window.close()`). If the window cannot be closed (browser security restrictions in non-app-mode windows), the CRPG shows a confirmation state indicating the prompt has been sent and instructs the user to switch back to the terminal. The Done button is only visible when the CRPG is running in slash command mode (served by the local server); when loaded standalone (paste/upload/drag-and-drop), the Done button is not shown and the Copy button remains the primary action.
 
 #### `FR-crp-prompt-handoff` -- Prompt handoff to agent via server
-When the Done action is triggered, the CRPG sends the generated prompt text to the local server via `POST /api/prompt-output`. The request body is the prompt text (the same text that would be copied to the clipboard). The server writes this to a known file location (`~/.shepherd/prompt-output.md`). This endpoint is only available when the CRPG is served by the local server (slash command mode), not when loaded standalone. If the POST fails, the prompt is still copied to the clipboard and the user is informed to paste manually.
+When the Done action is triggered, the CRPG sends the generated prompt text to the local server via `POST /api/prompt-output`, including the session ID. The request body is the prompt text (the same text that would be copied to the clipboard). The server writes this to the session-scoped file location (`~/.shepherd/sessions/<session-id>/prompt-output.md`). This endpoint is only available when the CRPG is served by the local server (slash command mode), not when loaded standalone. If the POST fails, the prompt is still copied to the clipboard and the user is informed to paste manually.
+
+#### `FR-crp-session-identity` -- Display session context in window title
+When the CRPG is launched via the slash command with a session ID, it displays the session context (working directory or project name, derived from the file paths or passed as a parameter) in the browser window title. This allows users to distinguish between multiple concurrent CRPG sessions at a glance (e.g., "Shepherd — myproject" vs. "Shepherd — other-repo"). When the CRPG is used in standalone mode (no session ID), the window title uses a generic label (e.g., "Shepherd").
 
 #### `FR-crp-clear-session` -- Clear / reset session
-The user can clear the current session — removing ALL loaded files, all comments across all files, and the preamble — and return to the initial empty state. This is the "nuclear option" that resets everything. The application must ask for confirmation before clearing if any comments exist on any file. For removing an individual file without clearing the entire session, see `FR-crp-multi-file-remove`.
+The user can clear the current session — removing ALL loaded files, all comments across all files, and the preamble — and return to the initial empty state. This is the "nuclear option" that resets everything. The application must ask for confirmation before clearing if any comments exist on any file. For removing an individual file without clearing the entire session, see `FR-crp-multi-file-remove`. Clearing a session affects only the current browser window's in-memory state. Other concurrent sessions (in other browser windows with different session IDs) are not affected.
 
 #### `FR-crp-filename-display` -- Display file name
 When a file is loaded via upload or drag-and-drop, the application displays the file name above or near the viewer. When content is pasted, the user can optionally provide a file name.
@@ -203,7 +206,7 @@ The application must be usable on viewports from 1024px wide and above. Below 10
 Core workflows (load file, add comment, generate prompt, copy prompt) must be achievable via keyboard alone without requiring mouse interaction.
 
 #### `NFR-crp-no-data-persistence` -- No data persistence requirement
-The application is not required to persist sessions across page reloads in this initial version. Session data is held in memory only. This is an explicit scoping decision.
+The application is not required to persist sessions across page reloads in this initial version. Session data is held in memory only. This is an explicit scoping decision. Sessions are now identifiable via a session ID (see `FR-sc-session-id`), but the session ID is used only for routing (URL-based window targeting) and prompt handoff (writing to the session-scoped output path). The session ID does not enable persistence — all in-browser state (loaded files, comments, preamble) is still lost on page reload.
 
 ## Acceptance Criteria
 
@@ -265,7 +268,7 @@ The application is not required to persist sessions across page reloads in this 
 **Given** the application is in the initial empty state, **when** the user attempts to upload a binary file (e.g., an image or compiled executable), **then** the application displays an error message indicating that only text files are supported and does not crash or display garbled content.
 
 #### `AC-crp-done-sends-prompt` -- Done action sends prompt to server and clipboard
-**Given** inline comments exist and the CRPG is running in slash command mode (served by the local server), **when** the user clicks Done, **then** the generated prompt is sent to the server via `POST /api/prompt-output` and written to `~/.shepherd/prompt-output.md`, and the prompt is also copied to the system clipboard.
+**Given** inline comments exist and the CRPG is running in slash command mode (served by the local server), **when** the user clicks Done, **then** the generated prompt is sent to the server via `POST /api/prompt-output` with the session ID and written to `~/.shepherd/sessions/<session-id>/prompt-output.md`, and the prompt is also copied to the system clipboard.
 
 #### `AC-crp-done-auto-close` -- Window closes automatically after Done succeeds
 **Given** the CRPG is running in an app-mode browser window and the user clicks Done and the handoff succeeds, **then** the browser window closes automatically via `window.close()`, returning focus to the terminal (which was the previously active window). If the window cannot be closed (e.g., opened as a regular browser tab instead of app mode), the CRPG falls back to showing the confirmation state.

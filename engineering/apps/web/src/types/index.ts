@@ -92,6 +92,8 @@ export interface AppState {
   lineWrapEnabled: boolean;
   /** Set of directory paths that are currently collapsed in the file tree. */
   collapsedDirs: Set<string>;
+  /** Session ID from ?session= URL param. Null in standalone mode. */
+  sessionId: string | null;
 }
 
 // Implements: FR-crp-file-tree-display

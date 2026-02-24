@@ -13,7 +13,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 WEB_DIR="$REPO_ROOT/engineering/apps/web"
-SERVER_URL="http://localhost:5173"
+
+# --- Session ID derivation ---
+
+PROJECT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+SESSION_ID=$(basename "$PROJECT_DIR" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')
+
+# --- Lock file infrastructure ---
+
+SHEPHERD_DIR="$HOME/.shepherd"
+SERVERS_DIR="$SHEPHERD_DIR/servers"
+mkdir -p "$SERVERS_DIR"
+PROJECT_HASH=$(printf '%s' "$PROJECT_DIR" | shasum -a 256 | head -c 16)
+LOCK_FILE="$SERVERS_DIR/$PROJECT_HASH.lock"
 
 # --- Parse flags ---
 
@@ -90,25 +102,51 @@ fi
 
 # --- Check / start dev server ---
 
+PORT=""
+
 check_server() {
+  # Read port and PID from lock file; verify the process is alive and the server responds
+  if [ ! -f "$LOCK_FILE" ]; then
+    return 1
+  fi
+  local lock_port lock_pid
+  lock_port=$(sed -n '1p' "$LOCK_FILE")
+  lock_pid=$(sed -n '2p' "$LOCK_FILE")
+  if [ -z "$lock_port" ] || [ -z "$lock_pid" ]; then
+    rm -f "$LOCK_FILE"
+    return 1
+  fi
+  # Check if the PID is still alive
+  if ! kill -0 "$lock_pid" 2>/dev/null; then
+    rm -f "$LOCK_FILE"
+    return 1
+  fi
+  # Verify HTTP response
   local code
-  code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 1 "$SERVER_URL" 2>/dev/null) || true
-  [ "$code" = "200" ]
+  code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 1 "http://localhost:$lock_port" 2>/dev/null) || true
+  if [ "$code" = "200" ]; then
+    PORT="$lock_port"
+    return 0
+  fi
+  return 1
 }
 
 kill_server() {
-  # Kill any process listening on port 5173
-  local pid
-  pid=$(lsof -ti tcp:5173 2>/dev/null) || true
-  if [ -n "$pid" ]; then
-    kill $pid 2>/dev/null || true
-    # Wait briefly for port to free up
+  if [ ! -f "$LOCK_FILE" ]; then
+    return
+  fi
+  local lock_pid
+  lock_pid=$(sed -n '2p' "$LOCK_FILE")
+  if [ -n "$lock_pid" ]; then
+    kill "$lock_pid" 2>/dev/null || true
+    # Wait briefly for process to exit
     local i=0
-    while [ $i -lt 10 ] && lsof -ti tcp:5173 &>/dev/null; do
+    while [ $i -lt 10 ] && kill -0 "$lock_pid" 2>/dev/null; do
       sleep 0.2
       i=$((i+1))
     done
   fi
+  rm -f "$LOCK_FILE"
 }
 
 SERVER_REUSED=false
@@ -135,16 +173,24 @@ else
     fi
   fi
 
+  # Find a free port
+  PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
+
   # Start dev server in background, capturing stderr for diagnostics
   SERVER_LOG=$(mktemp)
-  (cd "$WEB_DIR" && pnpm dev 2>"$SERVER_LOG" &)
+  (cd "$WEB_DIR" && pnpm dev --port "$PORT" 2>"$SERVER_LOG" &)
+  SERVER_PID=$!
+
+  # Write lock file: port on line 1, PID on line 2
+  printf '%s\n%s\n' "$PORT" "$SERVER_PID" > "$LOCK_FILE"
 
   # Poll for up to 8 seconds (16 attempts at 0.5s)
   ATTEMPTS=0
   MAX_ATTEMPTS=16
   while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
     sleep 0.5
-    if check_server; then
+    local_code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 1 "http://localhost:$PORT" 2>/dev/null) || true
+    if [ "$local_code" = "200" ]; then
       break
     fi
     ATTEMPTS=$((ATTEMPTS + 1))
@@ -156,11 +202,13 @@ else
       echo "Server output:" >&2
       cat "$SERVER_LOG" >&2
     fi
-    rm -f "$SERVER_LOG"
+    rm -f "$SERVER_LOG" "$LOCK_FILE"
     exit 2
   fi
   rm -f "$SERVER_LOG"
 fi
+
+SERVER_URL="http://localhost:$PORT"
 
 # --- URL-encode helper ---
 
@@ -178,16 +226,12 @@ url_encode() {
   done
 }
 
-# --- Build URL with multiple file params ---
+# --- Build URL with session and file params ---
 
-QUERY=""
+QUERY="session=$(url_encode "$SESSION_ID")"
 for vpath in "${VALID_PATHS[@]}"; do
   encoded="$(url_encode "$vpath")"
-  if [ -z "$QUERY" ]; then
-    QUERY="file=${encoded}"
-  else
-    QUERY="${QUERY}&file=${encoded}"
-  fi
+  QUERY="${QUERY}&file=${encoded}"
 done
 
 OPEN_URL="${SERVER_URL}?${QUERY}"
@@ -264,6 +308,8 @@ REUSE_LABEL=""
 if [ "$SERVER_REUSED" = true ]; then
   REUSE_LABEL=" (reusing server)"
 fi
+
+echo "Session: $SESSION_ID"
 
 FILE_COUNT=${#VALID_PATHS[@]}
 if [ "$FILE_COUNT" -eq 1 ]; then

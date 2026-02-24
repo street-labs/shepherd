@@ -150,9 +150,17 @@ Rank files using these heuristics (highest priority first):
 
 Within each tier, rank by the size/significance of the change (larger diffs first). Use your judgment — the goal is that the reviewer sees the most important files first.
 
-**6b. Generate structured review context JSON.**
+**6b. Derive the session ID.**
 
-Build a JSON object with the following structure and write it to `~/.shepherd/review-context.json` using the Write tool:
+Compute the session ID the same way the launch script does:
+
+```bash
+SESSION_ID=$(basename "$(git rev-parse --show-toplevel)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')
+```
+
+**6c. Generate structured review context JSON.**
+
+Build a JSON object with the following structure and write it to `~/.shepherd/sessions/$SESSION_ID/review-context.json` using the Write tool (create the directory first with `mkdir -p ~/.shepherd/sessions/$SESSION_ID`):
 
 ```json
 {
@@ -175,9 +183,7 @@ The `review` fields contain your agent assessment — what looks good, what migh
 
 Use **absolute file paths** as keys in the `files` object (these must match the paths passed to `shepherd-launch.sh` so the CRPG can correlate them with loaded files).
 
-Make sure to create the `~/.shepherd/` directory if it doesn't exist.
-
-**6c. Display a brief summary and proceed immediately.**
+**6d. Display a brief summary and proceed immediately.**
 
 Output a brief summary (no per-file details — those are now in the CRPG):
 
@@ -200,7 +206,7 @@ The "excluded" line is omitted if zero files were filtered. **Do not use `AskUse
 Remove any previous prompt output file so we can detect a fresh one (do NOT remove `review-context.json` — it was just freshly written in Step 6):
 
 ```bash
-rm -f ~/.shepherd/prompt-output.md
+rm -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md
 ```
 
 **7b. Launch all files in the CRPG.**
@@ -229,7 +235,7 @@ Use `AskUserQuestion` to present the user with these options:
 
 Based on the response:
 
-- **"Added comments"**: Read `~/.shepherd/prompt-output.md` with the Read tool. Store the contents as PROMPT_OUTPUT. If the file does not exist, tell the user "Could not find prompt output. Make sure you clicked 'Done' in the CRPG." and re-ask.
+- **"Added comments"**: Read `~/.shepherd/sessions/$SESSION_ID/prompt-output.md` with the Read tool. Store the contents as PROMPT_OUTPUT. If the file does not exist, tell the user "Could not find prompt output. Make sure you clicked 'Done' in the CRPG." and re-ask.
 - **"Reviewed, no comments"**: Set PROMPT_OUTPUT to empty. Proceed to Step 8.
 - **"Cancel"**: Output "Review session cancelled." and stop. Do not proceed to Step 8.
 
@@ -261,7 +267,13 @@ Prompt output from CRPG:
 ---
 ```
 
-**8c. Ask what to do with the feedback.**
+**8c. Clean up session directory.**
+
+```bash
+rm -rf ~/.shepherd/sessions/$SESSION_ID
+```
+
+**8d. Ask what to do with the feedback.**
 
 Use `AskUserQuestion` to let the user choose:
 

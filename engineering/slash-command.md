@@ -7,11 +7,11 @@
 
 The slash command feature uses a single-mode architecture: a Claude Code custom command backed by a Vite dev server plugin.
 
-When a developer types `/shepherd README.md` in Claude Code, the custom command file at `.claude/commands/shepherd.md` instructs the agent to start the CRPG dev server (if not already running), then open the browser to `http://localhost:5173?file=<encoded-path>`. The web app reads the URL parameter and fetches the file from an API endpoint served by a Vite plugin.
+When a developer types `/shepherd README.md` in Claude Code, the custom command file at `.claude/commands/shepherd.md` instructs the agent to start the CRPG dev server (if not already running for the current project), then open the browser to `http://localhost:<port>?session=<id>&file=<encoded-path>`. Each invocation generates a unique session ID (`FR-sc-session-id`) and uses a dynamic port (`FR-sc-dynamic-port`), enabling concurrent sessions from different projects. The web app reads the URL parameters and fetches the file from an API endpoint served by a Vite plugin.
 
 - **In-repo use**: Works automatically. Claude Code discovers project-level commands from `.claude/commands/` in the repo.
 - **Global use**: `scripts/install-command.sh` creates a symlink from `~/.claude/commands/shepherd.md` to the repo's `.claude/commands/shepherd.md`. This means updates propagate automatically via `git pull` -- no reinstall needed.
-- **Server**: The Vite dev server (with the file API plugin) is the only server. No standalone server, no bundled assets, no lockfile/PID management.
+- **Server**: The Vite dev server (with the file API plugin) is the only server. Each project/worktree gets its own Vite instance on a dynamic port, with the port recorded in a per-project lock file at `~/.shepherd/servers/<hash>.lock` for reuse detection.
 
 ### Key Technical Decisions
 
@@ -20,6 +20,8 @@ When a developer types `/shepherd README.md` in Claude Code, the custom command 
 | Command mechanism | Claude Code custom command (`.claude/commands/shepherd.md`) | Zero code needed for the command itself -- it is a markdown prompt file that Claude Code natively supports. The agent reads the file, follows instructions, and executes shell commands. No CLI binary required. |
 | Dev server file API | Vite plugin | Vite's plugin API supports the `configureServer` hook, which gives access to the underlying Connect middleware stack. A custom plugin can register an Express-style route handler for `/api/file` without adding any npm dependencies. This keeps the dev server self-contained. |
 | Global install mechanism | Symlink via install script | A symlink from `~/.claude/commands/shepherd.md` to the repo file means the command stays in sync with the repo. No package manager, no version management, no publish step. `git pull` is the update mechanism. |
+| Session isolation (`FR-sc-session-id`) | Path-derived session ID (slugified directory basename) | Deterministic and human-readable — same worktree always produces the same session ID (e.g., `my-project`). Different worktrees produce different IDs, providing natural session isolation. No random component needed. |
+| Port assignment (`FR-sc-dynamic-port`) | Dynamic port (find available port at startup) | Allows multiple concurrent servers — one per project/worktree. Port recorded in a per-project lock file for reuse detection. Replaces the fixed port 5173 assumption. |
 
 ---
 
@@ -51,7 +53,7 @@ This is the simplest possible architecture. It requires no npm packages, no comp
 ### Limitations
 
 - Only works with Claude Code (other AI agents have different command mechanisms).
-- Depends on the Vite dev server, which binds to a fixed port (5173 by default).
+- Depends on the Vite dev server, which binds to a dynamic port (recorded in a per-project lock file).
 - The agent performs the validation, so exact error message formatting depends on the prompt instructions rather than deterministic code.
 
 ---
@@ -77,36 +79,57 @@ shepherd-launch.sh <filepath>
 ```
 
 - **Input**: A file path (relative or absolute).
-- **Stdout**: A one-line summary on success (e.g., `Opened CRPG at http://localhost:5173 — loaded utils.ts (142 lines) (reusing server)`).
+- **Stdout**: A multi-line summary on success, including the session ID and the server URL. Example:
+  ```
+  Session: shepherd-1
+  Opened CRPG at http://localhost:54321 — loaded utils.ts (142 lines) (reusing server)
+  ```
 - **Stderr**: Error messages and warnings (e.g., large file warning).
 - **Exit codes**: 0 on success, 1 on validation error, 2 on server startup failure.
 
 #### Algorithm
 
-1. **Resolve path**: Resolve `$1` to an absolute path using `realpath` (or `readlink -f` on Linux). If the path does not exist, print error to stderr and exit 1.
-2. **Validate file**:
+1. **Derive session ID** (`FR-sc-session-id`): Derive the session ID from the project/worktree directory name. Use the repository root (`git rev-parse --show-toplevel`) if inside a git repo, otherwise use the current working directory. Take the basename and slugify it (lowercase, replace non-alphanumeric characters except hyphens with hyphens, collapse consecutive hyphens, trim leading/trailing hyphens):
+   ```bash
+   PROJECT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+   SESSION_ID=$(basename "$PROJECT_DIR" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')
+   ```
+   This produces IDs like `shepherd-1`, `my-project`, `cool-feature`. The ID is deterministic — the same worktree always produces the same session ID — and used throughout the session for scoping output paths and URL parameters.
+2. **Resolve path**: Resolve `$1` to an absolute path using `realpath` (or `readlink -f` on Linux). If the path does not exist, print error to stderr and exit 1.
+3. **Validate file**:
    - Check it is not a directory (`-d` test). If it is, print error and exit 1.
    - Check readability (`-r` test). If not readable, print error and exit 1.
    - Binary detection: read first 8,192 bytes and check for null bytes (`head -c 8192 | tr -cd '\0' | wc -c`). If null bytes found, print error and exit 1.
    - Count lines: `wc -l < "$filepath"`. If > 10,000, print warning to stderr (but continue).
-3. **Check server**: `curl -s -o /dev/null -w '%{http_code}' --connect-timeout 1 http://localhost:5173` — if 200, set `server_reused=true`.
-4. **Start server if needed**: If server is not running:
+4. **Determine project directory**: Compute a stable identifier for the current project/worktree. Use the repository root (`git rev-parse --show-toplevel`) if inside a git repo, otherwise use the current working directory. Hash the absolute path to produce a short filesystem-safe key:
+   ```bash
+   PROJECT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+   PROJECT_HASH=$(printf '%s' "$PROJECT_DIR" | shasum -a 256 | head -c 16)
+   ```
+5. **Check server via lock file** (`FR-sc-dynamic-port`): Check if a lock file exists at `~/.shepherd/servers/$PROJECT_HASH.lock`. The lock file contains the port number on the first line and the PID on the second line.
+   - If the lock file exists, read the recorded port and check if the server is responding: `curl -s -o /dev/null -w '%{http_code}' --connect-timeout 1 http://localhost:$PORT`. If 200, set `server_reused=true` and use that port.
+   - If the lock file does not exist, or the recorded port is not responding, proceed to start a new server.
+6. **Start server if needed**: If server is not running:
    - Determine the repo root by finding the script's own directory and navigating up.
-   - Start `pnpm dev` in the background: `cd "$repo_root/engineering/apps/web" && pnpm dev &>/dev/null &`
-   - Poll `http://localhost:5173` every 0.5s for up to 8 seconds. If it never responds, print error to stderr and exit 2.
+   - Find a free port: Start Vite with `--port 0` to let the OS assign a free port, or use a helper to find an available port. The actual port is captured from Vite's startup output (Vite prints `Local: http://localhost:<port>/` to stderr).
+   - Start `pnpm dev` in the background: `cd "$repo_root/engineering/apps/web" && pnpm dev --port 0 &>$TMPLOG &`
+   - Parse the assigned port from Vite's output (grep for `localhost:` in the log).
+   - Poll `http://localhost:$PORT` every 0.5s for up to 8 seconds. If it never responds, print error to stderr and exit 2.
+   - Write the lock file: `echo "$PORT\n$$" > ~/.shepherd/servers/$PROJECT_HASH.lock`
    - Set `server_reused=false`.
-5. **URL-encode the path**: Use a portable shell-based percent-encoding function (encode everything except `[A-Za-z0-9._~/-]`).
-6. **Open browser**: Platform-aware:
-   - macOS: `open "http://localhost:5173?file=$encoded_path"`
-   - Linux: `xdg-open "http://localhost:5173?file=$encoded_path"`
-   - Windows (Git Bash/WSL): `cmd.exe /c start "http://localhost:5173?file=$encoded_path"`
-7. **Print summary**: Print the one-line summary to stdout with filename, line count, and whether the server was reused.
+7. **URL-encode the path**: Use a portable shell-based percent-encoding function (encode everything except `[A-Za-z0-9._~/-]`).
+8. **Open browser** (`FR-sc-concurrent-windows`): Platform-aware, with session ID and file path in the URL:
+   - macOS: `open "http://localhost:$PORT?session=$SESSION_ID&file=$encoded_path"`
+   - Linux: `xdg-open "http://localhost:$PORT?session=$SESSION_ID&file=$encoded_path"`
+   - Windows (Git Bash/WSL): `cmd.exe /c start "http://localhost:$PORT?session=$SESSION_ID&file=$encoded_path"`
+9. **Print summary**: Print the session ID and one-line summary to stdout with filename, line count, port, and whether the server was reused.
 
 #### Portability
 
-- Uses only POSIX shell builtins plus `curl`, `head`, `tr`, `wc`, `realpath`/`readlink` — all standard on macOS and Linux.
+- Uses only POSIX shell builtins plus `curl`, `head`, `tr`, `wc`, `realpath`/`readlink`, `shasum`, `mkdir` — all standard on macOS and Linux.
 - No Node.js, Python, or other runtime required for the script itself (Node.js is only needed for the Vite server).
 - The `realpath` command is available on macOS 13+ and all modern Linux distros. For older macOS, the script falls back to `cd "$(dirname "$1")" && pwd -P)/$(basename "$1")`.
+- `basename`, `tr`, and `sed` are available on all Unix-like systems for session ID derivation.
 
 #### Performance Budget (Shell Execution Only)
 
@@ -114,15 +137,17 @@ These timings cover the script's shell execution. The agent tool call overhead (
 
 | Step | Expected Time |
 |---|---|
+| Session ID generation | ~5ms |
 | Path resolution + validation | ~10ms |
-| Server check (warm) | ~50ms |
+| Project hash + lock file check | ~15ms |
+| Server check (warm, via lock file port) | ~50ms |
 | URL encoding | ~5ms |
 | Browser open | ~200ms |
-| **Total warm (shell only)** | **~265ms** |
-| Server startup (cold) | ~3-6s |
+| **Total warm (shell only)** | **~285ms** |
+| Server startup (cold, with port discovery) | ~3-6s |
 | **Total cold (shell only)** | **~3-6s** |
 
-The shell execution total (~265ms warm) is well under the 2-second `NFR-sc-launch-speed` target. The remaining budget (~1.7s) accommodates the single agent tool call. End-to-end warm launch: ~760-1760ms; cold launch: ~3.5-7.5s.
+The shell execution total (~285ms warm) is well under the 2-second `NFR-sc-launch-speed` target. The remaining budget (~1.7s) accommodates the single agent tool call. End-to-end warm launch: ~780-1780ms; cold launch: ~3.5-7.5s.
 
 ---
 
@@ -170,7 +195,7 @@ A symlink means the global command file is always identical to the repo's versio
 
 > Implements: `FR-sc-auto-load-file`, `AC-sc-launch-happy-path`, `AC-sc-session-clear-on-new-file`
 
-The existing `App` component (at `engineering/apps/web/src/App.tsx`) is modified to check for a `?file=` query parameter on mount.
+The existing `App` component (at `engineering/apps/web/src/App.tsx`) is modified to check for `?session=` and `?file=` query parameters on mount.
 
 #### New Hook: `useFileFromUrl`
 
@@ -187,16 +212,18 @@ interface UseFileFromUrlResult {
 
 Behavior:
 
-1. On mount, read `window.location.search` for a `file` parameter using `URLSearchParams`.
+1. On mount, read `window.location.search` for `session` and `file` parameters using `URLSearchParams`.
 2. If `file` is not present, do nothing (`isLoading: false`, `error: null`).
 3. If `file` is present:
    - Set `isLoading: true`.
+   - Read the `session` parameter if present. Store the session ID in app state via `store.setSessionId(sessionId)` (`FR-sc-session-id`).
    - Fetch `GET /api/file?path=<encoded-path>` from the same origin.
    - On success (200): extract the file content (response body as text), the line count from the `X-File-Lines` header, and the language from the `X-File-Language` header. Compute the basename from the path. Call `store.loadFile(content, basename, language)`. This clears any existing session without confirmation (`AC-sc-session-clear-on-new-file`).
    - On error (403/404/415): set `error` to the message from the JSON response body.
    - On network error: set `error` to `"Could not connect to the local server. Try running the shepherd command again."`.
-   - After success or error, clear the `?file=` parameter from the URL using `history.replaceState(null, '', window.location.pathname)`. This prevents re-fetching on page refresh, consistent with `NFR-crp-no-data-persistence`.
+   - After success or error, clear the `?file=` and `?session=` parameters from the URL using `history.replaceState(null, '', window.location.pathname)`. This prevents re-fetching on page refresh, consistent with `NFR-crp-no-data-persistence`.
    - Set `isLoading: false`.
+   - If a session ID is present, update `document.title` to include the project/directory name (e.g., `"Shepherd — projectname"`) (`FR-crp-session-identity`).
 
 #### Integration in `App.tsx`
 
@@ -308,12 +335,14 @@ The existing Zustand store (`engineering/apps/web/src/store/appStore.ts`) is ext
 **New state fields:**
 - `isSlashCommandMode: boolean` -- set to `true` by `useFileFromUrl` after successful URL file load; reset by `clearSession`.
 - `doneState: 'idle' | 'sending' | 'sent'` -- tracks the Done button lifecycle; resets to `'idle'` on comment/preamble changes.
+- `sessionId: string | null` -- the session ID read from the `?session=` URL parameter. Set by `useFileFromUrl` on mount; reset to `null` by `clearSession`. Used when POSTing to `/api/prompt-output?session=<id>` (`FR-sc-session-id`).
 
 **New actions:**
 - `setSlashCommandMode(mode: boolean)` -- called by `useFileFromUrl` hook and `clearSession`.
-- `sendPromptToAgent()` -- POSTs generated prompt to `/api/prompt-output` and copies to clipboard in parallel.
+- `setSessionId(id: string | null)` -- stores the session ID from the URL; called by `useFileFromUrl` on mount.
+- `sendPromptToAgent()` -- POSTs generated prompt to `/api/prompt-output?session=<session-id>` and copies to clipboard in parallel. Uses `state.sessionId` to construct the URL.
 
-The existing `loadFile` action behavior is unchanged -- it still accepts `(content, fileName, language)` and resets all session state, which is exactly what the URL-parameter auto-load needs (`AC-sc-session-clear-on-new-file`). The `useFileFromUrl` hook now additionally calls `store.setSlashCommandMode(true)` after `store.loadFile()`.
+The existing `loadFile` action behavior is unchanged -- it still accepts `(content, fileName, language)` and resets all session state, which is exactly what the URL-parameter auto-load needs (`AC-sc-session-clear-on-new-file`). The `useFileFromUrl` hook now additionally calls `store.setSessionId(sessionId)` (where `sessionId` comes from the `?session=` URL parameter) and `store.setSlashCommandMode(true)` after `store.loadFile()`.
 
 ### Loading and Error State
 
@@ -354,19 +383,20 @@ A new route handler is added to the existing Vite plugin at `engineering/apps/we
 
 #### API Contract
 
-**Request**: `POST /api/prompt-output`
+**Request**: `POST /api/prompt-output?session=<session-id>`
 
 | Header | Value |
 |---|---|
 | `Content-Type` | `text/plain` |
 
-The request body is the generated prompt text (plain text string).
+The request body is the generated prompt text (plain text string). The `session` query parameter is **required** (`FR-sc-session-scoped-output`).
 
 **Response**:
 
 | Status | Condition | Content-Type | Body |
 |---|---|---|---|
 | 200 | Prompt written successfully | `application/json` | `{"status": "ok"}` |
+| 400 | Missing `session` parameter | `application/json` | `{"error": "Missing session parameter"}` |
 | 403 | Non-localhost origin | `application/json` | `{"error": "Forbidden"}` |
 | 405 | Non-POST method | `application/json` | `{"error": "Method not allowed"}` |
 | 500 | File write error | `application/json` | `{"error": "Failed to write prompt output"}` |
@@ -389,6 +419,15 @@ server.middlewares.use('/api/prompt-output', async (req, res) => {
     return;
   }
 
+  // Extract session ID from query string (FR-sc-session-scoped-output)
+  const url = new URL(req.url!, `http://${req.headers.host}`);
+  const sessionId = url.searchParams.get('session');
+  if (!sessionId) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Missing session parameter' }));
+    return;
+  }
+
   // Read request body as text (no body-parser dependency)
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
@@ -397,9 +436,9 @@ server.middlewares.use('/api/prompt-output', async (req, res) => {
   const body = Buffer.concat(chunks).toString('utf-8');
 
   try {
-    const shepherdDir = path.join(os.homedir(), '.shepherd');
-    fs.mkdirSync(shepherdDir, { recursive: true });
-    const outputPath = path.join(shepherdDir, 'prompt-output.md');
+    const sessionDir = path.join(os.homedir(), '.shepherd', 'sessions', sessionId);
+    fs.mkdirSync(sessionDir, { recursive: true });
+    const outputPath = path.join(sessionDir, 'prompt-output.md');
     fs.writeFileSync(outputPath, body, 'utf-8');
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -412,11 +451,13 @@ server.middlewares.use('/api/prompt-output', async (req, res) => {
 ```
 
 Key implementation details:
+- **Session parameter**: The `session` query parameter is read from the URL. If missing, the endpoint returns 400. This ensures every prompt output is scoped to a specific session (`FR-sc-session-scoped-output`).
+- **Session-scoped directory**: Prompt output is written to `~/.shepherd/sessions/<session-id>/prompt-output.md` instead of the global `~/.shepherd/prompt-output.md`. This prevents concurrent sessions from overwriting each other's output.
 - **Localhost validation**: Reuses the same `isLocalhostRequest()` function already implemented for the `GET /api/file` endpoint. This function checks the `Origin` and `Host` headers to ensure the request comes from `127.0.0.1` or `localhost` (`AC-sc-prompt-output-api-localhost-only`).
 - **No body-parser**: The request body is read via Node.js async iteration on the request stream, avoiding any additional npm dependency.
-- **Directory creation**: `fs.mkdirSync(path.join(os.homedir(), '.shepherd'), { recursive: true })` ensures the `~/.shepherd/` directory exists before writing. The `recursive: true` flag is a no-op if the directory already exists.
-- **File write**: `fs.writeFileSync(outputPath, body, 'utf-8')` provides an atomic-ish write. For the expected use case (single writer, single reader), this is sufficient.
-- **Imports**: Uses `os` (for `homedir()`), `path`, and `fs` -- all Node.js built-ins already used by the existing plugin.
+- **Directory creation**: `fs.mkdirSync(sessionDir, { recursive: true })` ensures the `~/.shepherd/sessions/<session-id>/` directory exists before writing. The `recursive: true` flag creates the entire path if any intermediate directories are missing.
+- **File write**: `fs.writeFileSync(outputPath, body, 'utf-8')` provides an atomic-ish write. For the expected use case (single writer, single reader per session), this is sufficient.
+- **Imports**: Uses `os` (for `homedir()`), `path`, `fs`, and `URL` -- all Node.js built-ins already used by the existing plugin.
 
 ### Claude Code Custom Command Changes
 
@@ -429,31 +470,32 @@ After the existing steps (validate file, start server, open browser, print succe
 **Step 8: Clean up stale prompt output**
 
 ```bash
-rm -f ~/.shepherd/prompt-output.md
+rm -f ~/.shepherd/sessions/<session-id>/prompt-output.md
 ```
 
-This ensures any stale file from a previous session does not immediately trigger the watcher (`AC-sc-prompt-cleanup-stale`).
+This ensures any stale file from a previous session does not immediately trigger the watcher (`AC-sc-prompt-cleanup-stale`). The `<session-id>` is the ID generated in the launch script and passed to the agent via stdout.
 
 **Step 9: Inform the user**
 
 Print a message to the conversation:
 
-> "The file is loaded in the Code Review Prompt Generator. Annotate your code and click Done when you're finished. I'll wait for your prompt."
+> "Session: \<session-id\>. The file is loaded in the Code Review Prompt Generator. Annotate your code and click Done when you're finished. I'll wait for your prompt."
 
-This sets expectations that the agent is in a waiting state.
+This sets expectations that the agent is in a waiting state and identifies the session.
 
 **Step 10: Run the file watcher**
 
-A blocking loop that polls for the existence of `~/.shepherd/prompt-output.md`:
+A blocking loop that polls for the existence of the session-scoped prompt output file (`FR-sc-session-scoped-output`):
 
 ```bash
-i=0; while [ ! -f ~/.shepherd/prompt-output.md ] && [ $i -lt 1800 ]; do sleep 1; i=$((i+1)); done
-if [ -f ~/.shepherd/prompt-output.md ]; then cat ~/.shepherd/prompt-output.md; rm ~/.shepherd/prompt-output.md; else echo "SHEPHERD_TIMEOUT"; fi
+SESSION_DIR="$HOME/.shepherd/sessions/<session-id>"
+i=0; while [ ! -f "$SESSION_DIR/prompt-output.md" ] && [ $i -lt 1800 ]; do sleep 1; i=$((i+1)); done
+if [ -f "$SESSION_DIR/prompt-output.md" ]; then cat "$SESSION_DIR/prompt-output.md"; rm -rf "$SESSION_DIR"; else echo "SHEPHERD_TIMEOUT"; fi
 ```
 
 The agent interprets the output:
-- **If the file exists** (loop exited because the file appeared, exit is not `SHEPHERD_TIMEOUT`): The output is the prompt text. The agent reads it and proceeds to execute the code review based on the prompt content (`AC-sc-prompt-received`).
-- **If the output is `SHEPHERD_TIMEOUT`** (loop ran for 1800 iterations = 30 minutes): The agent tells the user the session timed out and they can paste the prompt manually from their clipboard (`AC-sc-prompt-watcher-timeout`).
+- **If the file exists** (loop exited because the file appeared, exit is not `SHEPHERD_TIMEOUT`): The output is the prompt text. The agent reads it and proceeds to execute the code review based on the prompt content (`AC-sc-prompt-received`). The session directory is cleaned up after reading (`FR-sc-session-cleanup`).
+- **If the output is `SHEPHERD_TIMEOUT`** (loop ran for 1800 iterations = 30 minutes): The agent tells the user the session timed out and they can paste the prompt manually from their clipboard (`AC-sc-prompt-watcher-timeout`). The session directory is cleaned up.
 - **If the command fails for another reason**: The agent tells the user to paste the prompt manually.
 
 #### Cross-Platform Watcher Considerations
@@ -462,10 +504,11 @@ The watcher script uses only POSIX shell built-ins (`[`, `sleep`, arithmetic exp
 
 - **macOS**: Works natively. No dependency on `timeout` (which requires coreutils/Homebrew).
 - **Linux**: Works natively.
-- **Windows**: The slash command is a markdown prompt, so the Claude Code agent adapts the shell commands to the available shell. On Windows, the file path is `%USERPROFILE%\.shepherd\prompt-output.md` and the agent uses PowerShell equivalents:
+- **Windows**: The slash command is a markdown prompt, so the Claude Code agent adapts the shell commands to the available shell. On Windows, the session directory is `%USERPROFILE%\.shepherd\sessions\<session-id>\` and the agent uses PowerShell equivalents:
   ```powershell
-  $i=0; while (-not (Test-Path "$env:USERPROFILE\.shepherd\prompt-output.md") -and $i -lt 1800) { Start-Sleep -Seconds 1; $i++ }
-  if (Test-Path "$env:USERPROFILE\.shepherd\prompt-output.md") { Get-Content "$env:USERPROFILE\.shepherd\prompt-output.md"; Remove-Item "$env:USERPROFILE\.shepherd\prompt-output.md" } else { Write-Output "SHEPHERD_TIMEOUT" }
+  $sessionDir = "$env:USERPROFILE\.shepherd\sessions\<session-id>"
+  $i=0; while (-not (Test-Path "$sessionDir\prompt-output.md") -and $i -lt 1800) { Start-Sleep -Seconds 1; $i++ }
+  if (Test-Path "$sessionDir\prompt-output.md") { Get-Content "$sessionDir\prompt-output.md"; Remove-Item -Recurse -Force $sessionDir } else { Write-Output "SHEPHERD_TIMEOUT" }
   ```
 
 The portable POSIX version is preferred in the command file since Claude Code primarily runs on macOS and Linux. The agent can adapt for Windows when it detects a Windows environment (`NFR-sc-watcher-low-overhead`).
@@ -488,7 +531,7 @@ The agent detects the platform (via `uname` on Unix or by recognizing the shell 
 **macOS:**
 
 ```bash
-URL="http://localhost:5173?file=<encoded-path>"
+URL="http://localhost:$PORT?session=$SESSION_ID&file=<encoded-path>"
 open -na "Google Chrome" --args --app="$URL" 2>/dev/null || \
 open -na "Google Chrome Canary" --args --app="$URL" 2>/dev/null || \
 open -na "Chromium" --args --app="$URL" 2>/dev/null || \
@@ -498,7 +541,7 @@ open "$URL"
 **Linux:**
 
 ```bash
-URL="http://localhost:5173?file=<encoded-path>"
+URL="http://localhost:$PORT?session=$SESSION_ID&file=<encoded-path>"
 google-chrome --app="$URL" 2>/dev/null || \
 chromium-browser --app="$URL" 2>/dev/null || \
 chromium --app="$URL" 2>/dev/null || \
@@ -508,7 +551,7 @@ xdg-open "$URL"
 **Windows (PowerShell):**
 
 ```powershell
-$URL = "http://localhost:5173?file=<encoded-path>"
+$URL = "http://localhost:$PORT?session=$SESSION_ID&file=<encoded-path>"
 try { Start-Process chrome -ArgumentList "--app=$URL" -ErrorAction Stop }
 catch { Start-Process $URL }
 ```
@@ -522,9 +565,9 @@ The POST endpoint follows the same security model as the existing `GET /api/file
 - **No CORS headers**: Cross-origin requests from other pages are blocked by the browser's same-origin policy.
 - **No outbound network calls**: The server writes to a local file and responds. No external communication.
 
-The output file is written to `~/.shepherd/prompt-output.md`:
-- The `~/.shepherd/` directory is created under the user's home directory, inheriting the home directory's permissions (typically `700` on Unix systems).
-- The file is ephemeral -- it is deleted immediately after the agent reads it.
+The output file is written to `~/.shepherd/sessions/<session-id>/prompt-output.md`:
+- The `~/.shepherd/sessions/<session-id>/` directory is created under the user's home directory, inheriting the home directory's permissions (typically `700` on Unix systems).
+- The file and its session directory are ephemeral -- deleted immediately after the agent reads the output (`FR-sc-session-cleanup`). A background cleanup mechanism also removes session directories older than 24 hours to handle abandoned sessions.
 - The file contains only the prompt text that the user explicitly chose to send. No secrets or credentials are written.
 
 ---
@@ -540,11 +583,11 @@ The launcher script architecture (`FR-sc-launcher-script`) eliminates the domina
 | Step | Expected Time | Notes |
 |---|---|---|
 | Agent processes command + invokes script | ~500-1500ms | Single AI inference + tool call |
-| Script: file validation | ~10ms | `stat` + read 8 KB + line count |
-| Script: server check | ~50ms | HTTP request to localhost:5173 |
+| Script: session ID derivation + file validation | ~15ms | `git rev-parse` + `basename` + `stat` + read 8 KB + line count |
+| Script: project hash + lock file + server check | ~65ms | `shasum` + file read + HTTP request to localhost (dynamic port from lock file) |
 | Script: browser open | ~200-600ms | App-mode fallback chain tries Chrome first, then falls back (see [Cross-Platform Browser Opening](#cross-platform-browser-opening)). Each failed attempt adds ~100ms before the next try. |
-| **Total warm launch** | **~760-2150ms** | Under 2s budget (typical ~1s) |
-| Script: server startup (cold) | ~3-6s | Vite cold start |
+| **Total warm launch** | **~780-2180ms** | Under 2s budget (typical ~1s) |
+| Script: server startup (cold, with port discovery) | ~3-6s | Vite cold start with dynamic port assignment |
 | **Total cold launch** | **~3.5-7.5s** | Under 8s budget |
 
 ---
@@ -559,7 +602,7 @@ The file-serving API endpoint reads arbitrary files from the local filesystem. W
 
 2. **No directory listing**: The API only accepts explicit file paths. There is no endpoint for listing directory contents, browsing the filesystem, or discovering files.
 
-3. **Controlled file writing**: The `POST /api/prompt-output` endpoint writes only to a single well-known path (`~/.shepherd/prompt-output.md`). The path is not user-controllable -- there is no path parameter. The existing `GET /api/file` endpoint remains read-only.
+3. **Controlled file writing**: The `POST /api/prompt-output` endpoint writes only to session-scoped paths under `~/.shepherd/sessions/<session-id>/prompt-output.md`. The session ID is validated as a slugified directory name (lowercase alphanumeric and hyphens only, no path separators) to prevent path traversal. The base directory (`~/.shepherd/sessions/`) is not user-controllable. The existing `GET /api/file` endpoint remains read-only.
 
 4. **Binary file rejection**: Binary files are rejected before their content is transmitted, preventing accidental exposure of binary secrets (e.g., SSH keys in binary format).
 
@@ -585,8 +628,9 @@ Unit tests for the file API plugin (`fileApiPlugin.ts`) using Vitest:
 | Returns 403 for unreadable file | `FR-sc-file-api`, `AC-sc-permission-denied` |
 | Returns 415 for binary file | `FR-sc-file-api`, `AC-sc-binary-file-rejected` |
 | Rejects non-localhost origin | `NFR-sc-localhost-only` |
-| POST /api/prompt-output writes file to ~/.shepherd/ | `FR-sc-prompt-output-api`, `AC-sc-prompt-output-api-success` |
-| POST /api/prompt-output creates ~/.shepherd/ directory if missing | `FR-sc-prompt-output-api` |
+| POST /api/prompt-output?session=abc123 writes file to ~/.shepherd/sessions/abc123/ | `FR-sc-prompt-output-api`, `FR-sc-session-scoped-output`, `AC-sc-prompt-output-api-success` |
+| POST /api/prompt-output?session=abc123 creates session directory if missing | `FR-sc-prompt-output-api`, `FR-sc-session-scoped-output` |
+| POST /api/prompt-output without session parameter returns 400 | `FR-sc-session-scoped-output` |
 | POST /api/prompt-output rejects non-localhost origin | `AC-sc-prompt-output-api-localhost-only` |
 | POST /api/prompt-output returns 405 for GET requests | `FR-sc-prompt-output-api` |
 | POST /api/prompt-output returns 500 on write error | `FR-sc-prompt-output-api` |
@@ -605,7 +649,9 @@ Component/integration tests for the `useFileFromUrl` hook and `App.tsx` changes:
 | Existing session is cleared without confirmation | `AC-sc-session-clear-on-new-file` |
 | App works normally when `?file=` is not present | Regression check |
 | `isSlashCommandMode` set to true after URL file load | `FR-crp-done-action` |
-| `sendPromptToAgent` posts to /api/prompt-output | `FR-crp-prompt-handoff`, `AC-crp-done-sends-prompt` |
+| `sessionId` stored in app state from `?session=` URL parameter | `FR-sc-session-id` |
+| `sendPromptToAgent` posts to /api/prompt-output?session=\<id\> | `FR-crp-prompt-handoff`, `FR-sc-session-scoped-output`, `AC-crp-done-sends-prompt` |
+| `document.title` updated when session ID is present | `FR-crp-session-identity` |
 | `sendPromptToAgent` copies to clipboard in parallel | `FR-crp-done-action`, `AC-crp-done-sends-prompt` |
 | `doneState` transitions: idle -> sending -> sent | `AC-crp-done-confirmation` |
 | `doneState` resets to idle on comment change | `FR-crp-done-action` |
@@ -620,15 +666,16 @@ Shell-based tests for `scripts/shepherd-launch.sh`:
 
 | Test Case | Coverage |
 |---|---|
-| Exits 0 and prints summary for valid file (server running) | `FR-sc-launcher-script`, `AC-sc-warm-launch-2s` |
+| Exits 0 and prints summary with session ID for valid file (server running) | `FR-sc-launcher-script`, `FR-sc-session-id`, `AC-sc-warm-launch-2s` |
+| Output includes "Session: \<id\>" line with path-derived session ID | `FR-sc-session-id` |
 | Exits 1 with error for missing file | `FR-sc-file-validation`, `AC-sc-file-not-found` |
 | Exits 1 with error for directory path | `FR-sc-file-validation`, `AC-sc-directory-rejected` |
 | Exits 1 with error for binary file | `FR-sc-file-validation`, `AC-sc-binary-file-rejected` |
 | Exits 1 with error for unreadable file | `FR-sc-file-validation`, `AC-sc-permission-denied` |
 | Prints warning to stderr for files > 10,000 lines | `AC-sc-large-file-warning` |
-| Starts server when not running, exits 0 | `FR-sc-app-serve`, `AC-sc-cold-launch-8s` |
-| Prints "reusing server" when server already running | `AC-sc-server-reuse` |
-| Opens browser with correct URL | `FR-sc-browser-open` |
+| Starts server on dynamic port when not running, writes lock file, exits 0 | `FR-sc-app-serve`, `FR-sc-dynamic-port`, `AC-sc-cold-launch-8s` |
+| Reuses server when lock file port is responding | `AC-sc-server-reuse`, `FR-sc-dynamic-port` |
+| Opens browser with session ID and file in URL | `FR-sc-browser-open`, `FR-sc-session-id`, `FR-sc-concurrent-windows` |
 
 ### End-to-End Tests
 
@@ -636,15 +683,16 @@ Playwright E2E tests that validate the full flow (these test the Vite plugin pat
 
 | Test Case | Coverage |
 |---|---|
-| Navigate to `?file=<path>` loads file in code viewer | `AC-sc-launch-happy-path`, `FR-sc-auto-load-file` |
+| Navigate to `?session=abc123&file=<path>` loads file in code viewer | `AC-sc-launch-happy-path`, `FR-sc-auto-load-file`, `FR-sc-session-id` |
 | Navigate to `?file=<absolute-path>` works | `AC-sc-absolute-path` |
 | Navigate to `?file=<nonexistent>` shows error | `AC-sc-file-not-found` |
 | Navigate to `?file=<binary>` shows error | `AC-sc-binary-file-rejected` |
 | File loaded via URL clears existing session | `AC-sc-session-clear-on-new-file` |
 | Large file loaded via URL shows warning | `AC-sc-large-file-warning` |
-| Done button visible when loaded via URL, click sends prompt to /api/prompt-output | `FR-crp-done-action`, `AC-crp-done-sends-prompt`, `FR-crp-prompt-handoff` |
+| Done button visible when loaded via URL, click sends prompt to /api/prompt-output?session=\<id\> | `FR-crp-done-action`, `AC-crp-done-sends-prompt`, `FR-crp-prompt-handoff`, `FR-sc-session-scoped-output` |
 | Done button shows sent confirmation after successful send | `AC-crp-done-confirmation` |
 | Done button hidden when file loaded via paste (no URL param) | `AC-crp-done-standalone-hidden` |
+| `document.title` reflects project name when session ID is present | `FR-crp-session-identity` |
 
 ---
 
@@ -661,7 +709,7 @@ Playwright E2E tests that validate the full flow (these test the Vite plugin pat
 5. Write integration tests for the `useFileFromUrl` hook.
 6. Write Playwright E2E tests for the `?file=` URL parameter flow.
 
-**Delivers**: A developer can navigate to `http://localhost:5173?file=/path/to/file.ts` and the file loads automatically in the CRPG. All error cases are handled.
+**Delivers**: A developer can navigate to `http://localhost:<port>?session=<id>&file=/path/to/file.ts` and the file loads automatically in the CRPG. All error cases are handled.
 
 **Slug coverage**: `FR-sc-file-api`, `FR-sc-auto-load-file`, `AC-sc-launch-happy-path`, `AC-sc-absolute-path`, `AC-sc-file-not-found`, `AC-sc-binary-file-rejected`, `AC-sc-permission-denied`, `AC-sc-directory-rejected`, `AC-sc-session-clear-on-new-file`, `AC-sc-large-file-warning`, `NFR-sc-localhost-only`.
 
@@ -743,10 +791,16 @@ shepherd/                                 (project root)
 | `FR-sc-file-api` | Vite plugin (`fileApiPlugin.ts`); API contract defined in this spec |
 | `FR-sc-install` | Claude Code project-level commands (automatic for in-repo); `scripts/install-command.sh` (symlink for global use) |
 | `FR-sc-output-feedback` | Claude Code command file (prompt instructs agent to print output with URL, file info, and line count) |
-| `FR-sc-prompt-receive` | Claude Code command file (`.claude/commands/shepherd.md`) -- file watcher loop polls for `~/.shepherd/prompt-output.md`, reads and deletes on detection |
-| `FR-sc-prompt-output-api` | Vite plugin (`fileApiPlugin.ts`) -- `POST /api/prompt-output` endpoint; writes request body to `~/.shepherd/prompt-output.md` |
-| `FR-sc-prompt-cleanup` | Claude Code command file -- `rm -f ~/.shepherd/prompt-output.md` before starting watcher |
+| `FR-sc-prompt-receive` | Claude Code command file (`.claude/commands/shepherd.md`) -- file watcher loop polls for `~/.shepherd/sessions/<session-id>/prompt-output.md`, reads and deletes session directory on detection |
+| `FR-sc-prompt-output-api` | Vite plugin (`fileApiPlugin.ts`) -- `POST /api/prompt-output?session=<id>` endpoint; writes request body to `~/.shepherd/sessions/<session-id>/prompt-output.md` |
+| `FR-sc-prompt-cleanup` | Claude Code command file -- `rm -f ~/.shepherd/sessions/<session-id>/prompt-output.md` before starting watcher |
 | `FR-sc-launcher-script` | Shell script (`scripts/shepherd-launch.sh`); invoked by `.claude/commands/shepherd.md` |
+| `FR-sc-session-id` | Launcher script derives session ID from project directory basename (slugified); passed in URL `?session=<id>`; stored in Zustand store as `sessionId` |
+| `FR-sc-dynamic-port` | Launcher script uses dynamic port assignment with per-project lock files at `~/.shepherd/servers/<hash>.lock`; replaces fixed port 5173 |
+| `FR-sc-session-scoped-output` | Vite plugin `POST /api/prompt-output?session=<id>` writes to `~/.shepherd/sessions/<session-id>/prompt-output.md`; watcher monitors session-scoped path |
+| `FR-sc-concurrent-windows` | Each session opens its own browser window via unique `?session=<id>` URL parameter; dynamic port ensures server isolation per project |
+| `FR-sc-session-cleanup` | Watcher deletes session directory after reading prompt output; stale sessions (>24h) cleaned up by background mechanism |
+| `FR-crp-session-identity` | `document.title` updated in CRPG when session ID is present (e.g., "Shepherd — projectname") |
 
 ### Non-Functional Requirements
 
@@ -770,10 +824,10 @@ shepherd/                                 (project root)
 | `AC-sc-no-args-usage` | Claude Code command file (prompt handles no-args case) |
 | `AC-sc-large-file-warning` | Claude Code command file (agent warns when lines > 10,000); web app shows large file warning banner (existing behavior in `CodeViewer`) |
 | `AC-sc-session-clear-on-new-file` | `useFileFromUrl` hook calls `store.loadFile()` which resets all state; no confirmation dialog |
-| `AC-sc-prompt-received` | Claude Code command file watcher detects `~/.shepherd/prompt-output.md`, reads contents, deletes file, agent proceeds with prompt |
-| `AC-sc-prompt-watcher-timeout` | Claude Code command file watcher loop exits after 1800 iterations (30 minutes), agent prints timeout message |
-| `AC-sc-prompt-cleanup-stale` | Claude Code command file runs `rm -f ~/.shepherd/prompt-output.md` before starting watcher |
-| `AC-sc-prompt-output-api-success` | Vite plugin `POST /api/prompt-output` returns 200 and writes body to `~/.shepherd/prompt-output.md` |
+| `AC-sc-prompt-received` | Claude Code command file watcher detects `~/.shepherd/sessions/<session-id>/prompt-output.md`, reads contents, deletes session directory, agent proceeds with prompt |
+| `AC-sc-prompt-watcher-timeout` | Claude Code command file watcher loop exits after 1800 iterations (30 minutes), agent prints timeout message and cleans up session directory |
+| `AC-sc-prompt-cleanup-stale` | Claude Code command file runs `rm -f ~/.shepherd/sessions/<session-id>/prompt-output.md` before starting watcher |
+| `AC-sc-prompt-output-api-success` | Vite plugin `POST /api/prompt-output?session=<id>` returns 200 and writes body to `~/.shepherd/sessions/<session-id>/prompt-output.md` |
 | `AC-sc-standalone-window` | Claude Code command file (`.claude/commands/shepherd.md`) -- platform-specific Chrome/Chromium app-mode fallback chain opens CRPG in a standalone window; falls back to default browser if Chrome unavailable |
 | `AC-sc-prompt-output-api-localhost-only` | Vite plugin `POST /api/prompt-output` returns 403 for non-localhost requests (reuses `isLocalhostRequest()` from `GET /api/file`) |
 | `AC-sc-warm-launch-2s` | Launcher script warm path (~265ms shell time); single agent tool call budget (~1.7s) |

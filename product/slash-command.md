@@ -49,10 +49,10 @@ Before launching the CRPG, the command validates the target file:
 4. **Size warning**: If the file exceeds 10,000 lines, the command prints a warning that performance may be degraded (consistent with `NFR-crp-large-file-perf`), but proceeds with the launch. It does not block.
 
 #### `FR-sc-app-serve` -- Serve the CRPG web application
-The command instructs the agent to start the Vite dev server (`pnpm dev`) in the Shepherd repository if it is not already running. The agent detects a running instance by checking whether the expected port is responding. If the server is already running, it is reused. The server binds to `localhost` and the port is communicated to the browser URL. No pre-built assets or standalone server binary is required — the user must have the repo cloned.
+The command instructs the agent to start the Vite dev server (`pnpm dev`) in the Shepherd repository if it is not already running. Each server instance uses dynamic port assignment — it finds an available port at startup rather than using a fixed port. The agent detects a running instance scoped to the current worktree/project directory (e.g., by checking a recorded port in a lock file or equivalent mechanism). If a server is already running for the current worktree, it is reused. If the user has multiple worktrees or projects, each gets its own server instance on its own dynamically assigned port. The server binds to `localhost` and the assigned port is communicated to the browser URL. No pre-built assets or standalone server binary is required — the user must have the repo cloned.
 
 #### `FR-sc-browser-open` -- Open the CRPG in a standalone app window
-After the server is running, the command opens the CRPG in a standalone app-mode browser window (not a regular browser tab). The URL includes a query parameter that tells the app which file to load (e.g., `http://localhost:<port>?file=<encoded-path>`). App-mode windows have no address bar, tabs, or browser chrome — they look and feel like a standalone application. The command attempts to open in app mode using Chrome/Chromium's `--app` flag; if Chrome is not available, it falls back to opening in the default browser as a regular tab. If the CRPG app window is already open from a previous invocation, the new file replaces the previously loaded file.
+After the server is running, the command opens the CRPG in a standalone app-mode browser window (not a regular browser tab). The URL includes query parameters that tell the app which file to load and which session to target (e.g., `http://localhost:<port>?session=<id>&file=<encoded-path>`). App-mode windows have no address bar, tabs, or browser chrome — they look and feel like a standalone application. The command attempts to open in app mode using Chrome/Chromium's `--app` flag; if Chrome is not available, it falls back to opening in the default browser as a regular tab. Each session ID opens its own browser window. Invoking a new session from a different worktree does NOT replace an existing session's window. If a session is re-invoked with the same session ID, the existing window may be reused (this is the within-session reload case, e.g., running `/shepherd` again from the same worktree).
 
 #### `FR-sc-auto-load-file` -- Automatically load the file in the CRPG
 When the CRPG web app starts (or is already open) and receives a file path via the URL query parameter, it reads the file from the local filesystem via the local server and loads it into the code viewer. The file name displayed in the UI is derived from the file path (the basename). The language detection and syntax highlighting follow the existing behavior defined in `FR-crp-syntax-highlight`. The app clears any existing session (file, comments, preamble) when a new file is loaded via the slash command, without requiring confirmation even if comments exist. This is intentional: the slash command is a "start fresh with this file" operation.
@@ -64,10 +64,10 @@ The local server exposes an API endpoint (e.g., `GET /api/file?path=<encoded-pat
 The slash command lives at `.claude/commands/shepherd.md` in the Shepherd repository. When working inside the repo, it is automatically available as a project-level command — no installation required. For global availability (so `/shepherd` works from any directory), a script (`scripts/install-command.sh`) creates a symlink from `~/.claude/commands/shepherd.md` to the repo's `.claude/commands/shepherd.md`. Because the global command is a symlink, running `git pull` in the repo automatically updates the command everywhere. No npm package or standalone CLI binary is needed for Claude Code users.
 
 #### `FR-sc-server-shutdown` -- Server lifecycle management
-The local server is the Vite dev server (`pnpm dev`), managed by the agent or manually by the user. The agent starts the dev server if it is not already running (detected by checking whether the expected port is responding). The user can stop the server manually (e.g., Ctrl-C in the terminal) or the agent can stop it when appropriate. No lockfile, PID tracking, or idle timeout is required.
+The local server is the Vite dev server (`pnpm dev`), managed by the agent or manually by the user. The agent starts the dev server if it is not already running (detected by checking whether the recorded port for the current worktree is responding). The user can stop the server manually (e.g., Ctrl-C in the terminal) or the agent can stop it when appropriate. Because the server's port is ephemeral (dynamically assigned), the lock file or equivalent mechanism must record the assigned port so that subsequent invocations can detect and reuse the running server. No idle timeout is required.
 
 #### `FR-sc-launcher-script` -- Launcher shell script
-The command delegates all validation and launch logic to a shell script (`scripts/shepherd-launch.sh`) rather than having the AI agent perform each step individually. The script handles file path resolution, file validation (existence, readability, binary detection, size warning), server lifecycle (detect running server, start if needed, wait for readiness), URL encoding, and browser opening. The slash command file (`.claude/commands/shepherd.md`) invokes this single script and relays its output. This minimizes the number of agent tool calls required to a single shell invocation, eliminating the per-step AI inference overhead that dominates launch latency.
+The command delegates all validation and launch logic to a shell script (`scripts/shepherd-launch.sh`) rather than having the AI agent perform each step individually. The script handles file path resolution, file validation (existence, readability, binary detection, size warning), server lifecycle (detect running server on the current worktree's port, start with dynamic port if needed, wait for readiness), session ID generation, URL construction (including the session ID as a query parameter), URL encoding, and browser opening. Each invocation generates a unique session ID and passes it through the URL (e.g., `?session=<id>&file=<path>`). The script uses dynamic port assignment so multiple server instances can coexist across different worktrees. The slash command file (`.claude/commands/shepherd.md`) invokes this single script and relays its output. This minimizes the number of agent tool calls required to a single shell invocation, eliminating the per-step AI inference overhead that dominates launch latency.
 
 #### `FR-sc-output-feedback` -- Command output and feedback
 After a successful launch, the command outputs a brief confirmation message to the agent conversation:
@@ -78,13 +78,30 @@ After a successful launch, the command outputs a brief confirmation message to t
 Error messages are written to stderr. Success messages are written to stdout.
 
 #### `FR-sc-prompt-receive` -- Receive prompt back from CRPG
-After launching the CRPG, the slash command instructs the agent to wait for the user to finish annotating. The agent runs a blocking watcher that monitors for the prompt output file (`~/.shepherd/prompt-output.md`). When the file appears (written by the CRPG's Done action per `FR-crp-done-action`), the agent reads its contents and receives the complete generated prompt. The watcher then deletes the output file to prevent stale data. The watcher has a configurable timeout (default: 30 minutes) after which it exits with a message that the user can still paste the prompt manually.
+After launching the CRPG, the slash command instructs the agent to wait for the user to finish annotating. The agent runs a blocking watcher that monitors for the session-scoped prompt output file (`~/.shepherd/sessions/<session-id>/prompt-output.md`). When the file appears (written by the CRPG's Done action per `FR-crp-done-action`), the agent reads its contents and receives the complete generated prompt. The watcher then deletes the output file to prevent stale data. The watcher has a configurable timeout (default: 30 minutes) after which it exits with a message that the user can still paste the prompt manually.
 
 #### `FR-sc-prompt-output-api` -- Prompt output API endpoint
-The local server exposes `POST /api/prompt-output` that accepts the generated prompt text in the request body and writes it to `~/.shepherd/prompt-output.md`. The endpoint creates the `~/.shepherd/` directory if it doesn't exist. The endpoint only accepts requests from localhost (same security model as `FR-sc-file-api`). The endpoint overwrites any existing file at that path (in case of stale output from a previous session).
+The local server exposes `POST /api/prompt-output` that accepts the generated prompt text in the request body and a session ID (e.g., as a query parameter or in the request body). The endpoint writes the prompt text to the session-scoped path `~/.shepherd/sessions/<session-id>/prompt-output.md`. The endpoint creates the session directory (`~/.shepherd/sessions/<session-id>/`) if it doesn't exist. The endpoint only accepts requests from localhost (same security model as `FR-sc-file-api`). The endpoint overwrites any existing file at that path (in case of a re-submission within the same session).
 
 #### `FR-sc-prompt-cleanup` -- Cleanup of stale output files
-On startup, the slash command checks for and removes any existing `~/.shepherd/prompt-output.md` file before starting the watcher. This prevents the watcher from immediately picking up stale output from a previous session.
+On startup, the slash command checks for and removes any existing prompt output file at the current session's path (`~/.shepherd/sessions/<session-id>/prompt-output.md`) before starting the watcher. This prevents the watcher from immediately picking up stale output from a previous run of the same session. This cleanup is scoped to the current session only — it does not touch other sessions' output files.
+
+#### Session Isolation
+
+#### `FR-sc-session-id` -- Unique session identifier
+Each invocation of `/shepherd` (or `/shepherd-review` via the launch script) derives a session ID from the working directory path. The session ID is the slugified basename of the project/worktree directory (e.g., if invoked from `/Users/dev/my-project`, the session ID is `my-project`; from `/Users/dev/shepherd-1`, it is `shepherd-1`). Slugification lowercases the name and replaces non-alphanumeric characters (except hyphens) with hyphens. This makes the session ID human-readable and deterministic — the same worktree always produces the same session ID, while different worktrees produce different IDs. The session ID is used to scope all session-specific state: the browser window, the prompt output path, and the URL routing. It is passed to the CRPG via a URL query parameter (e.g., `?session=my-project&file=<path>`). The session ID is derived by the launcher script (`FR-sc-launcher-script`) at invocation time.
+
+#### `FR-sc-dynamic-port` -- Dynamic port assignment
+The launcher script uses dynamic port assignment instead of a fixed port. Each server instance finds an available port at startup. The assigned port is recorded (e.g., in a lock file scoped to the worktree) so the agent and watcher know where to find the server. Multiple servers can run concurrently on different ports — one per worktree or codebase. This replaces the previous assumption of a single well-known port.
+
+#### `FR-sc-session-scoped-output` -- Session-scoped prompt output
+The prompt output file is scoped to the session. Instead of a single global `~/.shepherd/prompt-output.md`, each session writes to `~/.shepherd/sessions/<session-id>/prompt-output.md`. The session directory (`~/.shepherd/sessions/<session-id>/`) is created on demand when the prompt output API receives a write. The agent's watcher monitors the session-specific path, ensuring that concurrent sessions do not read or overwrite each other's output.
+
+#### `FR-sc-concurrent-windows` -- Concurrent browser windows per session
+Each session opens its own browser window. Opening a new session from a different worktree does NOT replace an existing session's browser window. The URL includes the session ID, so different sessions route to different URLs and open distinct windows. If a session is re-invoked with the same session ID, it may reuse the existing window (this is the within-session reload case, e.g., loading a different file in the same worktree).
+
+#### `FR-sc-session-cleanup` -- Session directory cleanup
+Session directories (`~/.shepherd/sessions/<session-id>/`) are cleaned up after the prompt output is read by the agent (the watcher deletes the session directory after reading the output file), or after a configurable timeout for stale sessions (default: 24 hours). The stale cleanup removes session directories whose modification time is older than the threshold. This prevents unbounded accumulation of session directories over time.
 
 ### Non-Functional Requirements
 
@@ -138,8 +155,8 @@ The file watcher that monitors for the prompt output file must use minimal syste
 #### `AC-sc-large-file-warning` -- Large files show a warning but still load
 **Given** a text file with 15,000 lines exists, **when** the user types `/shepherd large-file.ts`, **then** the command prints a warning about potential performance degradation, but still launches the CRPG and loads the file.
 
-#### `AC-sc-server-reuse` -- Subsequent invocations reuse the running server
-**Given** the user has already run `/shepherd file1.ts` and the server is still running, **when** the user runs `/shepherd file2.ts`, **then** the CRPG opens (or reloads) in the browser with `file2.ts` loaded, reusing the existing server on the same port, and the output message indicates the server was reused.
+#### `AC-sc-server-reuse` -- Subsequent invocations reuse the running server (per worktree)
+**Given** the user has already run `/shepherd file1.ts` from worktree A and the server is still running, **when** the user runs `/shepherd file2.ts` from the same worktree A, **then** the CRPG opens (or reloads) in the browser with `file2.ts` loaded, reusing the existing server on the same port, and the output message indicates the server was reused. Two different worktrees get separate servers on separate ports.
 
 #### `AC-sc-server-manual-stop` -- Server can be stopped manually
 **Given** a Vite dev server is running from a previous `/shepherd` invocation, **when** the user stops the server process (e.g., Ctrl-C in the terminal running `pnpm dev`), **then** the server terminates and the port is freed.
@@ -154,16 +171,16 @@ The file watcher that monitors for the prompt output file must use minimal syste
 **Given** the slash command is installed on macOS, Linux, or Windows, **when** the user runs `/shepherd <filepath>`, **then** the CRPG opens in an app-mode window using the platform-appropriate mechanism. Falls back to the default browser if app-mode is not available.
 
 #### `AC-sc-prompt-received` -- Agent receives prompt automatically after Done
-**Given** the user has launched `/shepherd file.ts` and the agent is waiting (the watcher is running), **when** the user clicks Done in the CRPG, **then** the agent receives the generated prompt text and can proceed to act on it without the user needing to copy-paste.
+**Given** the user has launched `/shepherd file.ts` and the agent is waiting (the watcher is monitoring `~/.shepherd/sessions/<session-id>/prompt-output.md`), **when** the user clicks Done in the CRPG, **then** the CRPG writes the prompt to the session-scoped output path, the agent receives the generated prompt text, and can proceed to act on it without the user needing to copy-paste.
 
 #### `AC-sc-prompt-watcher-timeout` -- Watcher exits after timeout
 **Given** the watcher has been waiting for 30 minutes without receiving a prompt output file, **then** it exits gracefully and the agent informs the user that the session timed out, with instructions to paste the prompt manually.
 
 #### `AC-sc-prompt-cleanup-stale` -- Stale output file is cleaned up on launch
-**Given** a stale `~/.shepherd/prompt-output.md` file exists from a previous session, **when** the user runs `/shepherd file.ts`, **then** the stale file is deleted before the watcher starts, so the watcher does not pick up old output.
+**Given** a stale prompt output file exists at the current session's path (`~/.shepherd/sessions/<session-id>/prompt-output.md`) from a previous run of the same session, **when** the user runs `/shepherd file.ts`, **then** the stale file is deleted before the watcher starts, so the watcher does not pick up old output. Other sessions' output files are not affected.
 
 #### `AC-sc-prompt-output-api-success` -- Prompt output API writes file and returns 200
-**Given** the CRPG sends a `POST` to `/api/prompt-output` with the generated prompt text in the request body, **then** the server writes the text to `~/.shepherd/prompt-output.md` and returns HTTP 200.
+**Given** the CRPG sends a `POST` to `/api/prompt-output` with the generated prompt text in the request body and a session ID, **then** the server writes the text to `~/.shepherd/sessions/<session-id>/prompt-output.md` (creating the session directory if needed) and returns HTTP 200.
 
 #### `AC-sc-prompt-output-api-localhost-only` -- Prompt output API rejects non-localhost requests
 **Given** a `POST` to `/api/prompt-output` originates from a non-localhost source, **then** the server rejects it with HTTP 403.
@@ -176,6 +193,12 @@ The file watcher that monitors for the prompt output file must use minimal syste
 
 #### `AC-sc-single-tool-call` -- Command uses a single agent tool call
 **Given** the `/shepherd` command is invoked with a file path, **when** the agent processes the command, **then** the entire launch operation (validation, server check, browser open) is completed in a single shell invocation rather than multiple sequential agent tool calls. This ensures launch speed is bounded by shell execution time, not AI inference time.
+
+#### `AC-sc-concurrent-sessions` -- Concurrent sessions from different worktrees
+**Given** the user has opened `/shepherd file1.ts` from worktree A, **when** they open `/shepherd file2.ts` from worktree B (a different directory/repo), **then** both sessions are active simultaneously — worktree A's session is not affected. Both browser windows remain open and functional. Each session's "Done" action writes to its own session-scoped prompt output file (`~/.shepherd/sessions/<session-id-A>/prompt-output.md` and `~/.shepherd/sessions/<session-id-B>/prompt-output.md` respectively).
+
+#### `AC-sc-session-output-isolation` -- Session output isolation
+**Given** two concurrent sessions (A and B), **when** the user clicks "Done" in session A, **then** only session A's prompt output is written to `~/.shepherd/sessions/<session-id-A>/prompt-output.md`. Session B's prompt output file is unaffected. The agent watching session A reads session A's output file; the agent watching session B reads session B's output file.
 
 ## Open Questions
 

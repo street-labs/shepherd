@@ -35,9 +35,9 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Preamble (which is only one section of the generated prompt)
 
 ## Session
-**Definition**: The current working state of the application: all loaded files, all inline comments across those files, and the preamble. A session exists only in browser memory and is lost on page reload (v1). A session can contain multiple files simultaneously.
+**Definition**: The current working state of the application: all loaded files, all inline comments across those files, and the preamble. A session exists only in browser memory and is lost on page reload (v1). A session can contain multiple files simultaneously. Each session is identified by a unique Session ID when launched via the `/shepherd` or `/shepherd-review` slash commands.
 **Also known as**: Review session
-**Not to be confused with**: Browser session or authentication session
+**Not to be confused with**: Browser session or authentication session, Session ID (which is the unique identifier for a session, not the session state itself)
 
 ## Line Range
 **Definition**: A contiguous selection of two or more lines to which a single inline comment can be attached. Displayed as lines N-M in the generated prompt.
@@ -99,10 +99,10 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: File API, local file endpoint
 **Not to be confused with**: The CRPG's in-browser file loading (drag-drop, upload, paste), which does not involve a server
 
-## Lockfile
-**Definition**: A file at `~/.shepherd/server.lock` that records the PID and port of a running CRPG server instance. Used to detect and reuse existing server instances across multiple slash command invocations, and to enable explicit shutdown via `--stop`.
+## Server Lock File
+**Definition**: A file at `~/.shepherd/servers/<project-hash>.lock` that records the PID and port of a running Vite dev server instance for a specific project/worktree. Used to detect and reuse existing servers. Each worktree gets its own lock file, identified by a hash of the project directory path. Enables per-project server isolation and explicit shutdown via `--stop`.
 **Also known as**: Server lockfile, PID file
-**Not to be confused with**: `pnpm-lock.yaml` (dependency lockfile)
+**Not to be confused with**: `pnpm-lock.yaml` (dependency lockfile), Session Directory (which is session-scoped, not server-scoped)
 
 ## Auto-Load
 **Definition**: The behavior where the CRPG web app automatically loads a file on startup when a `?file=<path>` URL query parameter is present. Bypasses the normal drop zone interaction. Clears any existing session without confirmation.
@@ -190,9 +190,9 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Prompt copy (which puts the prompt on the clipboard for manual pasting)
 
 ## Prompt Output File
-**Definition**: A temporary file at `~/.shepherd/prompt-output.md` used as the handoff mechanism between the CRPG and the AI agent. Written by the server when the user clicks Done, read by the agent's file watcher, and deleted immediately after reading. Stale files from previous sessions are cleaned up on each new slash command invocation.
+**Definition**: A session-scoped temporary file at `~/.shepherd/sessions/<session-id>/prompt-output.md` used as the handoff mechanism between the CRPG and the AI agent. Written by the server when the user clicks Done, read by the agent after the interactive prompt, and deleted immediately after reading. Stale session directories from previous sessions (older than 24 hours) are cleaned up on each new slash command invocation.
 **Also known as**: Output file, handoff file
-**Not to be confused with**: The generated prompt (which is the content written to the file, not the file itself)
+**Not to be confused with**: The generated prompt (which is the content written to the file, not the file itself), Session Directory (which is the parent directory containing this file)
 
 ## Rendered View
 **Definition**: An alternative display mode for markdown files in the CRPG that converts raw markdown source into formatted HTML output (headings, bold, lists, tables, code blocks, etc.). Available only for markdown files. The user can toggle between rendered view and raw view.
@@ -273,6 +273,17 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Definition**: A spec file with a platform suffix (e.g., `code-review-prompt.macos.md`) that documents how a feature diverges from its base spec on a particular platform. Only covers differences — shared behavior stays in the base spec.
 **Also known as**: Platform variant, suffixed spec
 **Not to be confused with**: Base spec (which covers shared or web-specific behavior)
+
+## Session Directory
+**Definition**: A directory at `~/.shepherd/sessions/<session-id>/` that holds session-scoped files (primarily `prompt-output.md`). Created on demand when the CRPG writes the prompt output. Cleaned up after the agent reads the output, or after 24 hours if stale. Each `/shepherd` or `/shepherd-review` invocation gets its own session directory, identified by its unique Session ID.
+**Also known as**: Session folder, session-scoped directory
+**Not to be confused with**: Session (which is the in-browser working state, not a filesystem directory), Server Lock File (which is per-project, not per-session)
+
+## Session ID
+**Definition**: A human-readable identifier derived from the working directory path, used to scope session state for each `/shepherd` or `/shepherd-review` invocation. The session ID is the slugified basename of the project/worktree directory (e.g., `my-project`, `shepherd-1`). The same worktree always produces the same session ID, providing deterministic session isolation. Used to scope the browser window, URL routing, and prompt output file path. Passed via URL query parameter (`?session=<id>`) and included in the agent's output. Not related to browser session cookies or authentication.
+**Also known as**: Session identifier, project slug
+**Not to be confused with**: Session (which is the working state identified by the session ID), process ID (PID, used in server lock files)
+
 ## FileBrowser
 **Definition**: A vertical sidebar panel (240px fixed width) on the left side of the CRPG layout in multi-file mode. Lists all loaded files grouped by review status ("To Review" and "Reviewed" sections). Each file row shows the file name, comment count badge, review toggle, and remove button. The header contains a review progress indicator and an "Add file" button. Appears when two or more files are loaded; collapses to single-file layout when only one file remains. Replaces the former horizontal File Tab Bar component.
 **Also known as**: FileBrowser (component name), file sidebar

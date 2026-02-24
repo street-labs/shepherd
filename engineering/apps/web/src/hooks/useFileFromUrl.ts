@@ -28,6 +28,7 @@ export function useFileFromUrl(): FileFromUrlState {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const filePaths = params.getAll('file');
+    const sessionParam = params.get('session') || null;
     if (filePaths.length === 0) return;
 
     let cancelled = false;
@@ -102,9 +103,18 @@ export function useFileFromUrl(): FileFromUrlState {
       }
       setSlashCommandMode(true);
 
+      // Set session ID in store (if provided via URL)
+      useAppStore.getState().setSessionId(sessionParam);
+      if (sessionParam) {
+        document.title = `Shepherd \u2014 ${sessionParam}`;
+      }
+
       // Phase 3: Load review context (graceful degradation — panel just won't show if missing)
       try {
-        const contextRes = await fetch('/api/review-context');
+        const contextUrl = sessionParam
+          ? `/api/review-context?session=${encodeURIComponent(sessionParam)}`
+          : '/api/review-context';
+        const contextRes = await fetch(contextUrl);
         if (contextRes.ok) {
           const contextData = await contextRes.json();
           useAppStore.getState().setReviewContext(contextData);
@@ -115,9 +125,10 @@ export function useFileFromUrl(): FileFromUrlState {
 
       setState({ loading: false, error: null });
 
-      // Clean the URL without reloading — removes all 'file' params at once
+      // Clean the URL without reloading — removes 'file' and 'session' params
       const url = new URL(window.location.href);
       url.searchParams.delete('file');
+      url.searchParams.delete('session');
       window.history.replaceState({}, '', url.pathname);
     })();
 

@@ -183,18 +183,28 @@ function activateTerminal() {
   });
 }
 
-function handlePromptOutput(req: IncomingMessage, res: ServerResponse) {
+function handlePromptOutput(req: IncomingMessage, res: ServerResponse, url: URL) {
+  const session = url.searchParams.get('session');
+  if (session && !/^[a-z0-9-]+$/.test(session)) {
+    return jsonError(res, 400, 'Invalid session ID format');
+  }
+
   const chunks: Buffer[] = [];
   req.on('data', (chunk: Buffer) => chunks.push(chunk));
   req.on('end', () => {
     const body = Buffer.concat(chunks).toString('utf-8');
 
     const homeDir = os.homedir();
-    const shepherdDir = path.join(homeDir, '.shepherd');
-    const outputPath = path.join(shepherdDir, 'prompt-output.md');
+    let outputDir: string;
+    if (session) {
+      outputDir = path.join(homeDir, '.shepherd', 'sessions', session);
+    } else {
+      outputDir = path.join(homeDir, '.shepherd');
+    }
+    const outputPath = path.join(outputDir, 'prompt-output.md');
 
     try {
-      fs.mkdirSync(shepherdDir, { recursive: true });
+      fs.mkdirSync(outputDir, { recursive: true });
       fs.writeFileSync(outputPath, body, 'utf-8');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
@@ -207,29 +217,48 @@ function handlePromptOutput(req: IncomingMessage, res: ServerResponse) {
 }
 
 // Implements: FR-rc-api-endpoint
-function handleReviewContext(_req: IncomingMessage, res: ServerResponse) {
+function handleReviewContext(_req: IncomingMessage, res: ServerResponse, url: URL) {
+  const session = url.searchParams.get('session');
   const homeDir = os.homedir();
-  const contextPath = path.join(homeDir, '.shepherd', 'review-context.json');
+
+  // Try session-scoped path first, fall back to global for backward compat
+  let contextPath: string;
+  if (session) {
+    contextPath = path.join(homeDir, '.shepherd', 'sessions', session, 'review-context.json');
+  } else {
+    contextPath = path.join(homeDir, '.shepherd', 'review-context.json');
+  }
 
   let content: string;
   try {
     content = fs.readFileSync(contextPath, 'utf-8');
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      return jsonError(res, 404, 'No review context available');
+      // If session path not found, try global fallback
+      if (session) {
+        const fallbackPath = path.join(homeDir, '.shepherd', 'review-context.json');
+        try {
+          content = fs.readFileSync(fallbackPath, 'utf-8');
+        } catch {
+          return jsonError(res, 404, 'No review context available');
+        }
+      } else {
+        return jsonError(res, 404, 'No review context available');
+      }
+    } else {
+      return jsonError(res, 500, `Failed to read review context: ${(err as Error).message}`);
     }
-    return jsonError(res, 500, `Failed to read review context: ${(err as Error).message}`);
   }
 
   // Validate JSON before sending
   try {
-    JSON.parse(content);
+    JSON.parse(content!);
   } catch {
     return jsonError(res, 500, 'Review context file contains invalid JSON');
   }
 
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(content);
+  res.end(content!);
 }
 
 export function fileApiPlugin(): Plugin {
@@ -238,14 +267,16 @@ export function fileApiPlugin(): Plugin {
     configureServer(server) {
       // Prompt output endpoint (must be registered before /api/file middleware)
       server.middlewares.use((req, res, next) => {
-        if (req.url !== '/api/prompt-output' || req.method !== 'POST') return next();
-        handlePromptOutput(req, res);
+        const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+        if (url.pathname !== '/api/prompt-output' || req.method !== 'POST') return next();
+        handlePromptOutput(req, res, url);
       });
 
       // Review context endpoint
       server.middlewares.use((req, res, next) => {
-        if (req.url !== '/api/review-context' || req.method !== 'GET') return next();
-        handleReviewContext(req, res);
+        const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+        if (url.pathname !== '/api/review-context' || req.method !== 'GET') return next();
+        handleReviewContext(req, res, url);
       });
 
       server.middlewares.use((req, res, next) => {

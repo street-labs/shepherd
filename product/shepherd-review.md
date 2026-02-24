@@ -97,7 +97,7 @@ For each reviewable file, the command generates context with two distinct parts:
 Per-file context is not displayed in the agent conversation. It is passed as structured data to the CRPG (see `FR-sr-context-handoff`) where each file's context appears alongside its diff in the tool UI. This keeps the review context co-located with the code being reviewed, rather than in a separate conversation window the developer must scroll back to.
 
 #### `FR-sr-context-handoff` -- Pass structured context data to the CRPG
-The command passes all generated context to the CRPG as structured data so the tool can display it in its UI. The data includes:
+The command passes all generated context to the CRPG as structured data so the tool can display it in its UI. The context data is scoped to the session (tied to the session ID from `FR-sc-session-id`), so concurrent reviews from different worktrees do not clobber each other's context. The data includes:
 
 1. **Overall neutral context**: The factual changeset summary (from `FR-sr-changeset-overview`)
 2. **Overall review feedback**: The agent's assessment of the changeset (from `FR-sr-changeset-overview`)
@@ -108,7 +108,7 @@ The command passes all generated context to the CRPG as structured data so the t
    - Review feedback for this file (from `FR-sr-per-file-context`)
 4. **File ordering**: The priority order from `FR-sr-priority-ordering`
 
-The specific mechanism for passing this data (file on disk, URL parameters, or other approach) is an engineering decision. The product requirement is that the CRPG receives all of the above as structured data with the neutral/review distinction preserved, and displays both parts in its UI with clear visual separation so the reviewer can distinguish factual context from the agent's opinions.
+The specific mechanism for passing this data (file on disk, URL parameters, or other approach) is an engineering decision. The product requirement is that the CRPG receives all of the above as structured data with the neutral/review distinction preserved, scoped to the session so that concurrent reviews are isolated, and displays both parts in its UI with clear visual separation so the reviewer can distinguish factual context from the agent's opinions.
 
 #### `FR-sr-iteration-loop` -- Auto-open all files in a single CRPG session
 Immediately after changeset detection, context generation, and the brief conversation summary (see `FR-sr-file-list-display`), the command auto-opens all reviewable files in a single CRPG session. There is no confirmation prompt — the user invoked `/shepherd-review`, so the intent to review is already established. The CRPG opens automatically.
@@ -117,17 +117,17 @@ The files appear as tabs in the CRPG, ordered by review priority (see `FR-sr-pri
 
 The command invokes the launch script (see `FR-sr-multi-file-launch`) with all file paths and context data, which opens the CRPG with one tab per file. After launching the CRPG, the command presents an interactive prompt (via `AskUserQuestion`) asking the user about their review outcome. The prompt offers three choices:
 
-- **"Added comments"** — The user reviewed files in the CRPG and clicked "Done" (which writes the unified multi-file prompt to `~/.shepherd/prompt-output.md`). The agent reads the prompt output file to collect feedback.
+- **"Added comments"** — The user reviewed files in the CRPG and clicked "Done" (which writes the unified multi-file prompt to `~/.shepherd/sessions/<session-id>/prompt-output.md`). The agent reads the session-scoped prompt output file to collect feedback.
 - **"Reviewed, no comments"** — The user looked at the files but did not add any comments. The session proceeds to the completion summary with zero comments.
 - **"Cancel"** — The user abandons the review session entirely. The session ends immediately with no summary.
 
 There is no sequential iteration, no "next" or "skip" commands, no per-file prompting, no pre-launch confirmation prompt, and no file-watcher or polling loop. The user controls their review entirely within the CRPG UI and signals completion through the interactive prompt.
 
 #### `FR-sr-feedback-collection` -- Receive unified multi-file feedback from CRPG
-After the user selects "Added comments" from the interactive prompt, the agent reads `~/.shepherd/prompt-output.md` (written by the CRPG's "Done" action). This file contains a single multi-file prompt with all comments across all files, organized by file. The CRPG handles aggregation internally and produces one unified output. If the user selects "Reviewed, no comments", the session proceeds to the completion summary with zero comments. If the user selects "Cancel", the session ends immediately with no summary. The command does NOT need to collect feedback file-by-file — the CRPG aggregates all per-file comments into one prompt output file.
+After the user selects "Added comments" from the interactive prompt, the agent reads the session-scoped prompt output file (`~/.shepherd/sessions/<session-id>/prompt-output.md`, written by the CRPG's "Done" action). This file contains a single multi-file prompt with all comments across all files, organized by file. The CRPG handles aggregation internally and produces one unified output. If the user selects "Reviewed, no comments", the session proceeds to the completion summary with zero comments. If the user selects "Cancel", the session ends immediately with no summary. The command does NOT need to collect feedback file-by-file — the CRPG aggregates all per-file comments into one prompt output file.
 
 #### `FR-sr-completion-summary` -- Display a review summary and feedback handoff
-When the user selects "Added comments" from the interactive prompt and the agent successfully reads `~/.shepherd/prompt-output.md`, the command displays a summary including: total files opened, filtered count, and files that received comments.
+When the user selects "Added comments" from the interactive prompt and the agent successfully reads the session-scoped prompt output file (`~/.shepherd/sessions/<session-id>/prompt-output.md`), the command displays a summary including: total files opened, filtered count, and files that received comments.
 
 If the prompt output file contains feedback, the command presents the full prompt content and asks the user what to do:
 - **apply** — implement the changes described in the feedback
@@ -177,7 +177,7 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 ## Acceptance Criteria
 
 #### `AC-sr-happy-path` -- Full review session completes successfully
-**Given** the user is on a feature branch with 5 modified source files and 3 lockfiles/generated files relative to main, **when** the user types `/shepherd-review`, **then** the command displays a brief summary ("Opening 5 files for review (3 excluded)") in the conversation and immediately auto-opens all 5 files in a single CRPG session with one tab per file. The CRPG displays the overall neutral context and review feedback, and each file tab shows its per-file neutral context and review feedback alongside the diff. There is no confirmation prompt before opening the CRPG. The agent then presents an interactive prompt with three options. The user reviews files freely, clicks "Done" in the CRPG, selects "Added comments" from the interactive prompt, the agent reads `~/.shepherd/prompt-output.md`, and the command displays a summary with feedback action options.
+**Given** the user is on a feature branch with 5 modified source files and 3 lockfiles/generated files relative to main, **when** the user types `/shepherd-review`, **then** the command displays a brief summary ("Opening 5 files for review (3 excluded)") in the conversation and immediately auto-opens all 5 files in a single CRPG session with one tab per file, using a unique session ID. The CRPG displays the overall neutral context and review feedback, and each file tab shows its per-file neutral context and review feedback alongside the diff. There is no confirmation prompt before opening the CRPG. The agent then presents an interactive prompt with three options. The user reviews files freely, clicks "Done" in the CRPG, selects "Added comments" from the interactive prompt, the agent reads the session-scoped prompt output file (`~/.shepherd/sessions/<session-id>/prompt-output.md`), and the command displays a summary with feedback action options.
 
 #### `AC-sr-filters-lockfiles` -- Lockfiles are excluded
 **Given** the changeset includes `package-lock.json` and `pnpm-lock.yaml`, **when** the file list is displayed, **then** neither lockfile appears in the review list and the exclusion count reflects them.
@@ -216,7 +216,7 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 **Given** the command has opened the CRPG with 5 files, **when** the user wants to reference the file list and context while reviewing, **then** the overall neutral context and review feedback are visible in the CRPG UI (not in the agent conversation). Each file tab shows its per-file neutral context and review feedback alongside the diff. The CRPG tab bar shows all file names for navigation.
 
 #### `AC-sr-completion-summary` -- Summary displays after CRPG prompt is returned
-**Given** the user completes a review of 5 files and selects "Added comments" from the interactive prompt, **when** the agent reads `~/.shepherd/prompt-output.md`, **then** the command displays a summary showing the total files opened, the number of files that received comments, and presents the action options (apply, discuss, save, nothing).
+**Given** the user completes a review of 5 files and selects "Added comments" from the interactive prompt, **when** the agent reads the session-scoped prompt output file (`~/.shepherd/sessions/<session-id>/prompt-output.md`), **then** the command displays a summary showing the total files opened, the number of files that received comments, and presents the action options (apply, discuss, save, nothing).
 
 #### `AC-sr-sorted-file-list` -- Files are sorted by review priority and tab order matches
 **Given** the changeset includes `src/utils.ts`, `src/app.tsx`, `lib/helpers.ts`, `tests/utils.test.ts`, and `README.md`, **when** the file list is displayed and the CRPG opens, **then** the files appear in priority order (core source first, then config, then docs, then tests) both in the displayed list and in the CRPG tab order.
@@ -225,7 +225,7 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 **Given** there are 5 reviewable files, **when** the command finishes changeset detection and context generation, **then** a single CRPG session auto-opens in the browser with 5 tabs (one per file), without any confirmation prompt. The user does not need to wait for sequential prompts or invoke any per-file commands.
 
 #### `AC-sr-unified-prompt` -- CRPG generates a single multi-file prompt
-**Given** the user has added comments on 3 of 5 open files in the CRPG, **when** the user clicks "Done", **then** the CRPG generates a single prompt that includes all comments organized by file and writes it to `~/.shepherd/prompt-output.md`. The agent reads this file after the user selects "Added comments" from the interactive prompt.
+**Given** the user has added comments on 3 of 5 open files in the CRPG, **when** the user clicks "Done", **then** the CRPG generates a single prompt that includes all comments organized by file and writes it to the session-scoped path (`~/.shepherd/sessions/<session-id>/prompt-output.md`). The agent reads this file after the user selects "Added comments" from the interactive prompt.
 
 #### `AC-sr-install-global` -- Command is available globally via symlink
 **Given** the user runs `./scripts/install-command.sh`, **when** the script completes, **then** a symlink exists at `~/.claude/commands/shepherd-review.md` pointing to the repo's `.claude/commands/shepherd-review.md`, and `/shepherd-review` is available as a global command in Claude Code.
@@ -266,7 +266,7 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 - **`shepherd-launch.sh` script**: The launch script must be updated to accept multiple file path arguments, context data, and construct a URL that loads all files as tabs in a single CRPG session. Currently supports a single `?file=<path>` parameter. Must also support passing structured context data (overall and per-file, neutral and review) to the CRPG.
 - **CRPG multi-file URL support**: The CRPG web app must support loading multiple files from URL parameters (new engineering work). The in-app multi-file tab support already exists; this dependency is specifically about initializing a multi-file session from a URL.
 - **CRPG context display**: The CRPG web app must support receiving and displaying structured context data (see `FR-sr-context-handoff`). This includes overall neutral context and review feedback displayed in the UI, plus per-file neutral context and review feedback displayed alongside each file's diff. The neutral and review sections must be visually distinct. This is new engineering work.
-- **CRPG multi-file prompt generation**: The CRPG already supports generating a unified multi-file prompt from comments across tabs and writing it to `~/.shepherd/prompt-output.md`. No new work needed here. The agent uses an interactive prompt (`AskUserQuestion`) rather than a file-watcher or polling mechanism to determine when the user is done and which outcome to process. The prompt output file is still written by the CRPG; only the agent's discovery mechanism changes.
+- **CRPG multi-file prompt generation**: The CRPG already supports generating a unified multi-file prompt from comments across tabs and writing it to the session-scoped path (`~/.shepherd/sessions/<session-id>/prompt-output.md`). No new work needed here beyond session-scoping (see `FR-sc-session-scoped-output`). The agent uses an interactive prompt (`AskUserQuestion`) rather than a file-watcher or polling mechanism to determine when the user is done and which outcome to process. The prompt output file is still written by the CRPG; only the path is now session-scoped.
 - **Git**: The command requires git to be installed and the working directory to be inside a git repository. Git is used for changeset detection (`git diff`, `git merge-base`).
 - **Claude Code custom commands**: The command is implemented as a `.claude/commands/` markdown file and relies on Claude Code's custom command execution model. The command uses `AskUserQuestion` (a standard agent capability) to present the interactive prompt after launching the CRPG.
 - **`scripts/install-command.sh`**: The existing install script must be updated to also symlink the new command file for global availability.

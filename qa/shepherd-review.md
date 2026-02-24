@@ -48,6 +48,8 @@
 | `NFR-sr-no-dependencies` | `TC-sr-no-external-dependencies` | Not started |
 | `NFR-sr-agent-native` | `TC-sr-happy-path-batch-open` | Not started |
 | `NFR-sr-cross-platform` | `TC-sr-cross-platform-git-commands` | Not started |
+| `AC-sc-concurrent-sessions` | `TC-sr-concurrent-review-sessions` | Not started |
+| `FR-sc-session-scoped-output` | `TC-sr-concurrent-review-sessions` | Not started |
 
 ---
 
@@ -74,9 +76,9 @@
   7. Verify the CRPG displays overall neutral context and review feedback, and each file tab shows per-file neutral context and review feedback alongside the diff.
   8. Review files freely in the CRPG: navigate between tabs, add comments on 3 of the 5 files.
   9. Click "Done" in the CRPG.
-  10. Return to the agent conversation. The agent presents an interactive prompt (`AskUserQuestion`) with three options: "Added comments", "Reviewed, no comments", and "Cancel". Select "Added comments". The agent reads `~/.shepherd/prompt-output.md`.
+  10. Return to the agent conversation. The agent presents an interactive prompt (`AskUserQuestion`) with three options: "Added comments", "Reviewed, no comments", and "Cancel". Select "Added comments". The agent reads `~/.shepherd/sessions/<session-id>/prompt-output.md`.
   11. Observe the completion summary and action options triggered by the interactive prompt response.
-- **Expected Result**: The brief summary appears in the conversation (scope, file count, exclusion count only -- no detailed file list or per-file summaries). The CRPG auto-opens without any confirmation prompt. All 5 files appear as tabs in a single CRPG session in priority order. The CRPG UI shows overall and per-file context (both neutral and review) with clear visual distinction. The user reviews files in any order they choose. After clicking "Done" in the CRPG and selecting "Added comments" from the interactive prompt, the agent reads the unified multi-file prompt from `~/.shepherd/prompt-output.md` containing comments from the 3 files that received feedback. The completion summary shows:
+- **Expected Result**: The brief summary appears in the conversation (scope, file count, exclusion count only -- no detailed file list or per-file summaries). The CRPG auto-opens without any confirmation prompt. All 5 files appear as tabs in a single CRPG session in priority order. The CRPG UI shows overall and per-file context (both neutral and review) with clear visual distinction. The user reviews files in any order they choose. After clicking "Done" in the CRPG and selecting "Added comments" from the interactive prompt, the agent reads the unified multi-file prompt from `~/.shepherd/sessions/<session-id>/prompt-output.md` containing comments from the 3 files that received feedback. The completion summary shows:
   ```
   Review complete.
     8 files in changeset
@@ -435,12 +437,12 @@
   1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, add comments on 2 of the 3 files.
   3. Click "Done" in the CRPG. Return to the agent conversation.
-  4. Select "Added comments" from the interactive prompt. Verify the agent reads `~/.shepherd/prompt-output.md` and displays the prompt content.
-- **Expected Result**: The CRPG writes the unified multi-file prompt to `~/.shepherd/prompt-output.md`. After the user selects "Added comments" from the interactive prompt, the agent reads the file content. The prompt is organized by file, with each file's comments grouped together. The agent displays the prompt content in the conversation and presents the action options (apply, discuss, save, nothing).
+  4. Select "Added comments" from the interactive prompt. Verify the agent reads `~/.shepherd/sessions/<session-id>/prompt-output.md` and displays the prompt content.
+- **Expected Result**: The CRPG writes the unified multi-file prompt to `~/.shepherd/sessions/<session-id>/prompt-output.md`. After the user selects "Added comments" from the interactive prompt, the agent reads the file content. The prompt is organized by file, with each file's comments grouped together. The agent displays the prompt content in the conversation and presents the action options (apply, discuss, save, nothing).
 - **Edge Cases**:
-  - If `~/.shepherd/prompt-output.md` already existed from a previous session, it should be overwritten or the agent should handle staleness (e.g., by checking a timestamp or clearing the file before launch).
+  - Session-scoped directories prevent staleness from previous sessions. Each session writes to its own directory, so old data from a different session ID cannot interfere.
   - Very large prompt (many comments across many files): the agent should still read and display the full content.
-  - User selects "Added comments" but has not clicked Done in the CRPG yet (`~/.shepherd/prompt-output.md` does not exist or contains stale data): the agent should handle this gracefully, e.g., by reporting that no prompt output was found and suggesting the user click Done first.
+  - User selects "Added comments" but has not clicked Done in the CRPG yet (`~/.shepherd/sessions/<session-id>/prompt-output.md` does not exist): the agent should handle this gracefully, e.g., by reporting that no prompt output was found and suggesting the user click Done first.
 
 ---
 
@@ -1008,6 +1010,30 @@
 
 ---
 
+### Concurrent Session Edge Cases
+
+#### `TC-sr-concurrent-review-sessions`: Two shepherd-review sessions from different worktrees run simultaneously
+
+- **Type**: Manual
+- **Covers**: `AC-sc-concurrent-sessions`, `FR-sc-session-scoped-output`
+- **Preconditions**: Two separate worktrees of a repository exist, each on a different feature branch with different changed files. The `/shepherd-review` command is available in both.
+- **Steps**:
+  1. Open a Claude Code session in worktree A. Run `/shepherd-review`. Note the session ID and port.
+  2. Open a Claude Code session in worktree B. Run `/shepherd-review`. Note the session ID and port.
+  3. Verify both CRPG browser windows are open, each showing their respective set of changed files.
+  4. In CRPG window A, add comments on 2 files.
+  5. In CRPG window B, add comments on 3 files.
+  6. Click "Done" in CRPG window A. In agent A's conversation, select "Added comments".
+  7. Verify agent A reads from `~/.shepherd/sessions/<session-id-A>/prompt-output.md` and displays only worktree A's comments.
+  8. Click "Done" in CRPG window B. In agent B's conversation, select "Added comments".
+  9. Verify agent B reads from `~/.shepherd/sessions/<session-id-B>/prompt-output.md` and displays only worktree B's comments.
+- **Expected Result**: Both sessions run independently. Session IDs and ports are different. Each CRPG window shows its own worktree's changed files. Clicking Done in one session does not affect the other. Each agent reads its own session-scoped output file. The completion summaries are independent and accurate for their respective sessions.
+- **Edge Cases**:
+  - Both sessions click Done at the same time: both should write to their own session directories without interference.
+  - One session is cancelled while the other completes: the cancelled session should clean up without affecting the other.
+
+---
+
 ## Regression Considerations
 
 ### `shepherd-launch.sh` script dependency
@@ -1020,9 +1046,10 @@
 - Verify that the existing single-file URL loading (used by `/shepherd` for individual files) still works correctly.
 
 ### `prompt-output.md` multi-file content regression
-- The CRPG generates a unified multi-file prompt and writes it to `~/.shepherd/prompt-output.md`. Changes to the prompt format or the file-write mechanism could break the feedback return workflow.
+- The CRPG generates a unified multi-file prompt and writes it to the session-scoped path `~/.shepherd/sessions/<session-id>/prompt-output.md`. Changes to the prompt format or the file-write mechanism could break the feedback return workflow.
 - Verify that the prompt-output file contains all comments from all files, organized by file.
-- Verify that the agent correctly reads `~/.shepherd/prompt-output.md` after the user selects "Added comments" from the interactive prompt (`AskUserQuestion`). The agent no longer uses a file-watcher polling loop -- it relies on the user's interactive prompt selection to know when to read the file.
+- Verify that the agent correctly reads `~/.shepherd/sessions/<session-id>/prompt-output.md` after the user selects "Added comments" from the interactive prompt (`AskUserQuestion`). The agent no longer uses a file-watcher polling loop -- it relies on the user's interactive prompt selection to know when to read the file.
+- Verify that session-scoped paths prevent cross-session interference when multiple `/shepherd-review` sessions run concurrently from different worktrees.
 
 ### Install script
 - The `scripts/install-command.sh` script is modified to also install `shepherd-review.md`. Verify that the existing `/shepherd` symlink is still created correctly and that the script is idempotent (running it multiple times does not cause issues).

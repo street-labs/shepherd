@@ -89,9 +89,11 @@ interface AppState {
   // Slash-command fields
   isSlashCommandMode: boolean;
   doneState: 'idle' | 'sending' | 'sent';
+  /** Session ID from the `?session=` URL parameter. Null when in standalone mode. Used to scope prompt output to `~/.shepherd/sessions/<session-id>/prompt-output.md` and to set `document.title` (`FR-sc-session-id`, `FR-crp-session-identity`). */
+  sessionId: string | null;
 
   // Review context (from shepherd-review command)
-  /** Structured review context data loaded from ~/.shepherd/review-context.json via GET /api/review-context. Null when no context is available (standalone mode, single /shepherd). */
+  /** Structured review context data loaded from ~/.shepherd/sessions/<session-id>/review-context.json via GET /api/review-context?session=<id>. Null when no context is available (standalone mode, single /shepherd). */
   reviewContext: ReviewContext | null;
   /** Whether the ReviewContextPanel is collapsed. Session-level preference, not per-file. */
   isReviewContextCollapsed: boolean;
@@ -431,8 +433,9 @@ interface AppStore extends AppState {
   // Scroll position
   saveScrollPosition: (fileId: string, scrollOffset: number) => void;
 
-  // Slash command (unchanged)
+  // Slash command
   setSlashCommandMode: (mode: boolean) => void;
+  setSessionId: (id: string | null) => void;
   sendPromptToAgent: () => Promise<void>;
 
   // Review context
@@ -466,7 +469,7 @@ interface AppStore extends AppState {
 - **`navigateComment`**: Advances or retreats `focusedCommentId` within `commentOrder` (filtered to active file only), wrapping at boundaries.
 - **`setPreamble`**: Updates the preamble text. Automatically regenerates the prompt via `buildPrompt()` if comments exist on any file.
 - **`copyPrompt`**: Calls `navigator.clipboard.writeText(generatedPrompt)`. Returns a promise; the component handles success/failure UI.
-- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`, `collapsedDirs` to an empty `Set`. Also resets `reviewContext` to `null`, `isReviewContextCollapsed` to `false`, `isReviewContextSidebarCollapsed` to `false`, `sidebarTab` to `'preview'`, and `lineWrapEnabled` to `true` (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`, `AC-crp-line-wrap-default-on`).
+- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`, `collapsedDirs` to an empty `Set`, `sessionId` to `null`. Also resets `reviewContext` to `null`, `isReviewContextCollapsed` to `false`, `isReviewContextSidebarCollapsed` to `false`, `sidebarTab` to `'preview'`, and `lineWrapEnabled` to `true`. Resets `document.title` to the default ("Shepherd") (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`, `AC-crp-line-wrap-default-on`).
 - **`saveScrollPosition`**: Stores the given scroll offset for the specified file ID in `scrollPositions`. Called automatically by `setActiveFile` before switching.
 - **`setReviewContext`**: Sets the `reviewContext` field. Called once on mount by the `useFileFromUrl` hook after loading files, if context data is available from `GET /api/review-context`. Setting this to a non-null value causes the `ReviewContextPanel` to render.
 - **`toggleReviewContextCollapsed`**: Toggles `isReviewContextCollapsed`. This is a session-level preference — persists across file switches.
@@ -861,6 +864,7 @@ doneState: 'idle' | 'sending' | 'sent';  // Done button lifecycle state
 
 - **`isSlashCommandMode`**: Set to `true` by the `useFileFromUrl` hook when it successfully loads a file from the `?file=` URL parameter. Reset to `false` when the session is cleared via `clearSession`. This determines whether the Done button is visible. In standalone mode (file loaded via paste/upload/drag-drop), this remains `false` and the Done button is hidden (`AC-crp-done-standalone-hidden`).
 - **`doneState`**: Tracks the Done button's lifecycle. Transitions: `'idle'` -> `'sending'` -> `'sent'`. Resets to `'idle'` whenever comments or preamble change (hooked into the existing `addComment`, `updateComment`, `deleteComment`, and `setPreamble` actions). This reset ensures the user knows they need to re-send after making changes.
+- **`sessionId`**: The session ID from the `?session=` URL parameter. Set by `useFileFromUrl` on mount via `store.setSessionId(sessionId)`. Reset to `null` by `clearSession`. Used by `sendPromptToAgent()` to include the session ID in the POST URL (`POST /api/prompt-output?session=<id>`). Also used to set `document.title` to include the project name when present (`FR-sc-session-id`, `FR-crp-session-identity`).
 
 #### New Actions
 
@@ -871,10 +875,11 @@ sendPromptToAgent: () => Promise<void>;
 ```
 
 - **`setSlashCommandMode(mode)`**: Simple setter for `isSlashCommandMode`. Called by `useFileFromUrl` on successful file load (`true`) and by `clearSession` (`false`).
+- **`setSessionId(id)`**: Simple setter for `sessionId`. Called by `useFileFromUrl` when a `?session=` parameter is present in the URL. Called with `null` by `clearSession`. When set to a non-null value, also updates `document.title` to include the project/directory name derived from the loaded file paths (e.g., `"Shepherd — myproject"`) (`FR-crp-session-identity`).
 - **`sendPromptToAgent()`**: Orchestrates the Done action. Implementation:
   1. Set `doneState` to `'sending'`.
   2. In parallel (`Promise.all`):
-     - POST the current `generatedPrompt` to `/api/prompt-output` as `text/plain`. The `fetch` call uses an `AbortController` with a 10-second timeout to prevent the Done button from being stuck in the 'Sending...' state if the local server hangs.
+     - POST the current `generatedPrompt` to `/api/prompt-output?session=<sessionId>` as `text/plain`, where `<sessionId>` is read from `state.sessionId` (`FR-sc-session-scoped-output`). The `fetch` call uses an `AbortController` with a 10-second timeout to prevent the Done button from being stuck in the 'Sending...' state if the local server hangs.
      - Copy the prompt to clipboard via the existing `clipboard.ts` module.
   3. If POST succeeds:
      a. Set `doneState` to `'sent'`.
@@ -925,23 +930,27 @@ Maps to: `FR-crp-done-action`, `AC-crp-done-sends-prompt`, `AC-crp-done-confirma
 
 > See existing hook spec in `../engineering/slash-command.md`
 
-Minor addition: after successfully loading a file from the URL parameter (after calling `store.addFile()`), also call `store.setSlashCommandMode(true)`. This is the single signal that places the CRPG into slash command mode for the duration of the session.
+After successfully loading a file from the URL parameter (after calling `store.addFile()`):
+1. Read the `?session=` URL parameter and call `store.setSessionId(sessionId)` if present (`FR-sc-session-id`). This stores the session ID for use by `sendPromptToAgent()`.
+2. Call `store.setSlashCommandMode(true)`. This is the signal that places the CRPG into slash command mode for the duration of the session.
+3. If a session ID is present, update `document.title` to include the project name derived from the file path(s) (e.g., `"Shepherd — myproject"`) (`FR-crp-session-identity`).
 
-The `clearSession` action resets `isSlashCommandMode` to `false`, so clearing the session returns the app to standalone mode.
+The `clearSession` action resets `isSlashCommandMode` to `false`, `sessionId` to `null`, and `document.title` to the default, so clearing the session returns the app to standalone mode.
 
 ### POST /api/prompt-output Client-Side Call
 
-The `sendPromptToAgent` store action makes the following call:
+The `sendPromptToAgent` store action makes the following call, including the session ID as a query parameter (`FR-sc-session-scoped-output`):
 
 ```typescript
-const response = await fetch('/api/prompt-output', {
+const sessionParam = state.sessionId ? `?session=${encodeURIComponent(state.sessionId)}` : '';
+const response = await fetch(`/api/prompt-output${sessionParam}`, {
   method: 'POST',
   headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   body: generatedPrompt,
 });
 ```
 
-This is a same-origin request (the CRPG and the Vite dev server share the same origin). No special CORS headers or authentication are needed. The server-side endpoint is defined in `../engineering/slash-command.md`.
+This is a same-origin request (the CRPG and the Vite dev server share the same origin). No special CORS headers or authentication are needed. The server-side endpoint is defined in `../engineering/slash-command.md`. The session parameter ensures the prompt output is written to the correct session-scoped directory (`~/.shepherd/sessions/<session-id>/prompt-output.md`), preventing concurrent sessions from interfering with each other.
 
 Error handling:
 - Network error (fetch throws): catch, set `doneState` to `'idle'`, show warning toast.
@@ -958,9 +967,9 @@ Error handling:
 
 This section covers how the CRPG receives and displays structured review context data from the shepherd-review command.
 
-### Vite Plugin Endpoint: `GET /api/review-context`
+### Vite Plugin Endpoint: `GET /api/review-context?session=<session-id>`
 
-A new endpoint is added to the Vite dev server plugin (in `vite.config.ts`, alongside the existing `/api/file` and `/api/prompt-output` endpoints). This endpoint reads the context data file written by the shepherd-review command.
+A new endpoint is added to the Vite dev server plugin (in `vite.config.ts`, alongside the existing `/api/file` and `/api/prompt-output` endpoints). This endpoint reads the session-scoped context data file written by the shepherd-review command.
 
 ```typescript
 // In the Vite plugin's configureServer hook:
@@ -971,7 +980,15 @@ server.middlewares.use('/api/review-context', (req, res) => {
     return;
   }
 
-  const contextPath = path.join(os.homedir(), '.shepherd', 'review-context.json');
+  const url = new URL(req.url!, `http://${req.headers.host}`);
+  const sessionId = url.searchParams.get('session');
+  if (!sessionId) {
+    res.statusCode = 400;
+    res.end(JSON.stringify({ error: 'Missing session parameter' }));
+    return;
+  }
+
+  const contextPath = path.join(os.homedir(), '.shepherd', 'sessions', sessionId, 'review-context.json');
 
   try {
     const content = fs.readFileSync(contextPath, 'utf-8');
@@ -988,7 +1005,8 @@ server.middlewares.use('/api/review-context', (req, res) => {
 ```
 
 Key details:
-- The endpoint reads `~/.shepherd/review-context.json` from disk each time it is called. No caching.
+- The `session` query parameter is required. Returns 400 if missing. This ensures each request is scoped to a specific session (`FR-sc-session-scoped-output`).
+- The endpoint reads `~/.shepherd/sessions/<session-id>/review-context.json` from disk each time it is called. No caching.
 - Returns the JSON content as-is (the agent wrote valid JSON matching the `ReviewContext` TypeScript interface).
 - Returns 404 if the file does not exist or is invalid JSON. The CRPG treats 404 as "no context available" and simply does not render the ReviewContextPanel (`AC-crp-context-graceful-missing`).
 - Same-origin request (same as `/api/file` and `/api/prompt-output`). No CORS headers needed.
@@ -998,26 +1016,31 @@ Key details:
 The existing `useFileFromUrl` hook is updated to also load review context data after loading files from URL parameters. The loading sequence:
 
 1. Read all `file` params from the URL (existing behavior).
-2. For each file, fetch via `GET /api/file?path=<encoded-path>` and call `store.addFile()` (existing behavior).
-3. Set slash command mode: `store.setSlashCommandMode(true)` (existing behavior).
-4. **NEW**: After all files are loaded, fetch `GET /api/review-context`:
+2. Read the `session` param from the URL. Store it via `store.setSessionId(sessionId)` (`FR-sc-session-id`).
+3. For each file, fetch via `GET /api/file?path=<encoded-path>` and call `store.addFile()` (existing behavior).
+4. Set slash command mode: `store.setSlashCommandMode(true)` (existing behavior).
+5. **NEW**: After all files are loaded, if a session ID is present, fetch `GET /api/review-context?session=<session-id>`:
    - On success (200 with valid JSON): call `store.setReviewContext(data)`.
-   - On failure (404, network error, invalid JSON): do nothing. `reviewContext` remains `null` and the ReviewContextPanel is not rendered. This is the graceful degradation path (`AC-crp-context-graceful-missing`).
-5. Clean URL params (existing behavior).
+   - On failure (400, 404, network error, invalid JSON): do nothing. `reviewContext` remains `null` and the ReviewContextPanel is not rendered. This is the graceful degradation path (`AC-crp-context-graceful-missing`).
+6. Clean URL params (existing behavior).
 
 The context fetch is non-blocking with respect to file loading -- files load and render first, then context data populates the ReviewContextPanel. In practice, the context file is small (a few KB of JSON) and the fetch is same-origin to localhost, so it completes in <10ms.
 
 ```typescript
 // In useFileFromUrl, after loading all files and setting slash command mode:
-try {
-  const contextRes = await fetch('/api/review-context');
-  if (contextRes.ok) {
-    const contextData: ReviewContext = await contextRes.json();
-    store.setReviewContext(contextData);
+const sessionId = params.get('session');
+if (sessionId) {
+  store.setSessionId(sessionId);
+  try {
+    const contextRes = await fetch(`/api/review-context?session=${encodeURIComponent(sessionId)}`);
+    if (contextRes.ok) {
+      const contextData: ReviewContext = await contextRes.json();
+      store.setReviewContext(contextData);
+    }
+    // 404 or other failure: silently ignore, no context panel shown
+  } catch {
+    // Network error: silently ignore
   }
-  // 404 or other failure: silently ignore, no context panel shown
-} catch {
-  // Network error: silently ignore
 }
 ```
 
@@ -1034,8 +1057,8 @@ This matching is exact-string. No normalization or fuzzy matching is needed beca
 ### Privacy (`NFR-crp-client-only`)
 
 - In standalone mode, no file content leaves the browser. There are no `fetch` calls, no analytics, no telemetry.
-- In slash command mode, the network calls are limited to same-origin requests to the local Vite dev server: `GET /api/file` (file loading), `POST /api/prompt-output` (prompt handoff), and `GET /api/review-context` (context data loading). All data stays on the developer's machine -- the context file is read from `~/.shepherd/review-context.json` on the local filesystem. This is consistent with the spirit of `NFR-crp-client-only`.
-- Content Security Policy headers should be configured to block all outbound network requests except those needed to load the app's own assets and the same-origin API endpoints (`/api/file`, `/api/prompt-output`, `/api/review-context`).
+- In slash command mode, the network calls are limited to same-origin requests to the local Vite dev server: `GET /api/file` (file loading), `POST /api/prompt-output?session=<id>` (session-scoped prompt handoff), and `GET /api/review-context?session=<id>` (session-scoped context data loading). All data stays on the developer's machine -- the context file is read from `~/.shepherd/sessions/<session-id>/review-context.json` on the local filesystem. This is consistent with the spirit of `NFR-crp-client-only`.
+- Content Security Policy headers should be configured to block all outbound network requests except those needed to load the app's own assets and the same-origin API endpoints (`/api/file`, `/api/prompt-output?session=<id>`, `/api/review-context?session=<id>`).
 - Shiki WASM grammars are bundled with the application and served from the same origin -- no CDN dependency at runtime.
 
 ### Input Safety
@@ -1147,7 +1170,7 @@ Pure logic functions tested in isolation:
 | `binaryDetect.ts` | Detects null bytes; passes clean UTF-8; handles empty input; handles exactly 8,192 bytes boundary. Validates `AC-crp-binary-file-rejected`. |
 | `languageDetect.ts` | Maps all 14+ extensions correctly; returns "plaintext" for unknown; case-insensitive extension matching. Validates `FR-crp-syntax-highlight`. |
 | `buildFileTree.ts` | Builds nested directory tree from file paths; groups files under shared directory prefixes; root-level files appear at top level; pasted files ("Untitled") appear at top level; within each directory, unreviewed files sort before reviewed files; maintains load order among same-status files; handles deeply nested paths (e.g., `src/components/ui/Button.tsx`); handles mixed depths (some files nested, some at root); single shared directory still produces a directory node. Validates `AC-crp-file-path-display`, `AC-crp-file-path-single-dir`, `FR-crp-file-reviewed-grouping`. |
-| `appStore.ts` | `addFile` creates file with unique ID and preserves existing files; `addFile` sets new file as active; `addFile` does NOT add to `reviewedFiles`; `removeFile` removes file and its comments; `removeFile` removes file from `reviewedFiles`; `removeFile` switches active file when removed file was active; `removeFile` returns to empty state when last file removed; `setActiveFile` preserves comments on previous file; `setActiveFile` recomputes `commentOrder` for new active file; `setActiveFile` saves and restores scroll positions; `addComment` auto-sets `fileId` to active file; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment on any file removed); `navigateComment` wraps correctly within active file; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including all files, all comments, `generatedPrompt` to null, `reviewContext` to null, `isReviewContextCollapsed` to false, and `reviewedFiles` to empty set; `setSlashCommandMode` sets the flag; `sendPromptToAgent` posts to `/api/prompt-output` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false`; `setReviewContext` stores context data; `toggleReviewContextCollapsed` toggles collapse state; `toggleReviewContextSidebarCollapsed` toggles sidebar collapse state independently of panel collapse; `setSidebarTab` switches between `'preview'` and `'comments'`; `clearSession` resets `isReviewContextSidebarCollapsed` to `false` and `sidebarTab` to `'preview'`; `toggleFileReviewed` adds file to `reviewedFiles` when unreviewed; `toggleFileReviewed` removes file from `reviewedFiles` when reviewed; `toggleFileReviewed` does not affect comments or active file; `toggleDirCollapsed` adds directory path to `collapsedDirs` when expanded; `toggleDirCollapsed` removes directory path from `collapsedDirs` when collapsed; `clearSession` resets `collapsedDirs` to empty set. Validates store-level behavior for most FR and AC slugs including `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-clear-session`, `AC-crp-context-sidebar-collapse`, `FR-crp-comment-summary`. |
+| `appStore.ts` | `addFile` creates file with unique ID and preserves existing files; `addFile` sets new file as active; `addFile` does NOT add to `reviewedFiles`; `removeFile` removes file and its comments; `removeFile` removes file from `reviewedFiles`; `removeFile` switches active file when removed file was active; `removeFile` returns to empty state when last file removed; `setActiveFile` preserves comments on previous file; `setActiveFile` recomputes `commentOrder` for new active file; `setActiveFile` saves and restores scroll positions; `addComment` auto-sets `fileId` to active file; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment on any file removed); `navigateComment` wraps correctly within active file; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including all files, all comments, `generatedPrompt` to null, `reviewContext` to null, `isReviewContextCollapsed` to false, and `reviewedFiles` to empty set; `setSlashCommandMode` sets the flag; `setSessionId` stores session ID; `sendPromptToAgent` posts to `/api/prompt-output?session=<id>` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false` and `sessionId` to `null`; `setReviewContext` stores context data; `toggleReviewContextCollapsed` toggles collapse state; `toggleReviewContextSidebarCollapsed` toggles sidebar collapse state independently of panel collapse; `setSidebarTab` switches between `'preview'` and `'comments'`; `clearSession` resets `isReviewContextSidebarCollapsed` to `false` and `sidebarTab` to `'preview'`; `toggleFileReviewed` adds file to `reviewedFiles` when unreviewed; `toggleFileReviewed` removes file from `reviewedFiles` when reviewed; `toggleFileReviewed` does not affect comments or active file; `toggleDirCollapsed` adds directory path to `collapsedDirs` when expanded; `toggleDirCollapsed` removes directory path from `collapsedDirs` when collapsed; `clearSession` resets `collapsedDirs` to empty set. Validates store-level behavior for most FR and AC slugs including `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-clear-session`, `AC-crp-context-sidebar-collapse`, `FR-crp-comment-summary`. |
 
 ### Component Tests (React Testing Library)
 
@@ -1320,9 +1343,9 @@ The work is divided into four phases. Each phase produces a deployable increment
 
 **Goal**: Receive structured review context data from the shepherd-review command and display it alongside diffs in the CRPG.
 
-1. Add `GET /api/review-context` Vite plugin endpoint that reads `~/.shepherd/review-context.json` and returns the JSON content (or 404 if the file doesn't exist).
+1. Add `GET /api/review-context?session=<id>` Vite plugin endpoint that reads `~/.shepherd/sessions/<session-id>/review-context.json` and returns the JSON content (400 if session missing, 404 if the file doesn't exist).
 2. Add `ReviewContext` type and `reviewContext`/`isReviewContextCollapsed` fields to the Zustand store. Add `setReviewContext` and `toggleReviewContextCollapsed` actions. Update `clearSession` to reset these fields.
-3. Update `useFileFromUrl` hook: after loading files from URL params, fetch `GET /api/review-context`. On success, call `store.setReviewContext(data)`. On failure (404/error), silently ignore.
+3. Update `useFileFromUrl` hook: after loading files from URL params, read session ID from `?session=` param, fetch `GET /api/review-context?session=<id>`. On success, call `store.setReviewContext(data)`. On failure (400/404/error), silently ignore.
 4. Build `ContextSection` component with two variants: neutral ("What Changed", blue styling, info icon) and review ("Agent Review", violet styling, sparkle icon). Render content as plain text with `white-space: pre-wrap`. Hide when content is empty.
 5. Build `ReviewContextPanel` component: collapsible panel containing overall and per-file sections, each with neutral + review `ContextSection` sub-components. Position between FileHeader (single-file) or top of Code Viewer Panel (multi-file, where FileBrowser replaces FileHeader) and CodeViewer. Conditionally rendered only when `state.reviewContext` is non-null. Per-file section derived from `state.reviewContext.files[activeFilePath]` -- updates on file switch via Zustand selector. Max-height 40% of Code Viewer Panel with overflow scroll.
 6. Wire the ReviewContextPanel into the CodeViewerPanel layout. Verify it appears in both single-file and multi-file modes when context data is available, and is absent when not.
@@ -1413,7 +1436,7 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-multi-file-remove` | `FileBrowser` close button; `ConfirmationDialog` (file removal variant); store `removeFile` action |
 | `FR-crp-multi-file-prompt` | `promptBuilder.ts` (multi-file mode); store auto-generation on any comment change across any file |
 | `FR-crp-multi-file-prompt-format` | `promptBuilder.ts` (multi-file format assembly with per-file sections) |
-| `FR-crp-review-context-receive` | `ReviewContextPanel` component (conditional rendering based on `state.reviewContext`); `useFileFromUrl` hook (fetches `GET /api/review-context` after loading files); Vite plugin endpoint (`GET /api/review-context` reads `~/.shepherd/review-context.json`); store `setReviewContext` action |
+| `FR-crp-review-context-receive` | `ReviewContextPanel` component (conditional rendering based on `state.reviewContext`); `useFileFromUrl` hook (fetches `GET /api/review-context?session=<id>` after loading files); Vite plugin endpoint (`GET /api/review-context?session=<id>` reads `~/.shepherd/sessions/<session-id>/review-context.json`); store `setReviewContext` action |
 | `FR-crp-review-context-display` | `ReviewContextPanel` component; `ContextSection` component (neutral/review variants); Code Viewer Panel layout (positioned between FileHeader and CodeViewer in single-file mode; at top of Code Viewer Panel in multi-file mode where FileBrowser replaces FileHeader) |
 | `FR-crp-review-context-overall` | `ReviewContextPanel` component (overall "CHANGESET OVERVIEW" section using `state.reviewContext.overall`); `ReviewContextSidebar` component (overall changeset context in sidebar) |
 | `FR-crp-review-context-collapsible` | `ReviewContextSidebar` component (collapsible header bar with chevron toggle); store `isReviewContextSidebarCollapsed` state and `toggleReviewContextSidebarCollapsed` action |

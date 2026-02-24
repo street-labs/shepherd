@@ -84,6 +84,7 @@ const initialState: AppState & DiffState & RenderedState = {
   reviewedFiles: new Set<string>(),
   lineWrapEnabled: true,
   collapsedDirs: new Set<string>(),
+  sessionId: null,
   comments: {},
   commentOrder: [],
   preamble: '',
@@ -275,6 +276,9 @@ interface AppActions {
 
   // Sidebar tabs
   setSidebarTab: (tab: 'preview' | 'comments') => void;
+
+  // Session ID
+  setSessionId: (id: string | null) => void;
 
   // Line wrapping
   toggleLineWrap: () => void;
@@ -877,13 +881,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ isSlashCommandMode: mode });
   },
 
+  setSessionId: (id) => {
+    set({ sessionId: id });
+  },
+
   sendPromptToAgent: async () => {
     const prompt = get().generatedPrompt ?? '';
+    const sessionId = get().sessionId;
+    const url = sessionId
+      ? `/api/prompt-output?session=${encodeURIComponent(sessionId)}`
+      : '/api/prompt-output';
 
     set({ doneState: 'sending' });
 
     const [postResult] = await Promise.allSettled([
-      fetch('/api/prompt-output', {
+      fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         body: prompt,

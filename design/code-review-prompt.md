@@ -414,6 +414,20 @@ When not in slash command mode, the Done button is not rendered at all (`AC-crp-
 
 The mode is tracked as a boolean flag in application state (e.g., `isSlashCommandMode`), set to `true` when `useFileFromUrl` successfully loads a file, and `false` otherwise. Clearing the session (via the Clear button) resets this flag to `false`, returning the app to standalone mode.
 
+### Window Title (`FR-crp-session-identity`)
+
+The browser window/tab title reflects the current session context:
+
+| Mode | Window Title |
+|---|---|
+| Standalone (no server) | `Shepherd` |
+| Slash command (single file) | `Shepherd — <project-name>` |
+| Shepherd review (multi-file) | `Shepherd — <project-name>` |
+
+The `<project-name>` is derived from the working directory path (e.g., the directory name of the project root). This allows users to distinguish between multiple concurrent CRPG windows at a glance when reviewing different codebases or worktrees.
+
+The title is set via `document.title` on app initialization when the `?session=` URL parameter is present. When no session parameter is present (standalone mode), the generic "Shepherd" title is used.
+
 ### Flow 17: Load Additional Files — Multi-File (`FR-crp-multi-file-load`, `AC-crp-multi-file-load-adds`)
 
 1. User has one or more files loaded and visible in the code viewer. The FileBrowser sidebar is visible (if two or more files) or appears as the second file is added.
@@ -1942,6 +1956,7 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-file-reviewed-progress` | FileBrowser sidebar header review progress indicator ("N/M reviewed" badge) |
 | `FR-crp-file-reviewed-persistence` | ReviewStatusBar behavior (session-level state); Flow 19 step 5 (discarded on removal); Flow 12 (cleared on session clear); File Loaded Screen "multi-file: file switching" state |
 | `FR-crp-line-wrap` | CodeViewer component (Line Wrapping Mode section); Toolbar component (Wrap toggle button, props, states, keyboard shortcut `Alt+Z`); Horizontal Overflow section |
+| `FR-crp-session-identity` | Window Title section (document.title set based on session context and project name) |
 
 ### Non-Functional Requirements
 

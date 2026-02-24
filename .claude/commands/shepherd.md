@@ -26,11 +26,13 @@ Where `$REPO_ROOT` is the root of the Shepherd repository (the directory contain
 
 Relay the script's stdout as a summary message. If the script exits non-zero, relay its stderr as an error message instead.
 
+Parse the `Session: <id>` line from the script's stdout to extract the SESSION_ID.
+
 ### Step 2: Clean up stale prompt output
 
 Remove any leftover output file from a previous session:
 ```bash
-rm -f ~/.shepherd/prompt-output.md
+rm -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md
 ```
 
 ### Step 3: Wait for the prompt
@@ -39,7 +41,7 @@ Tell the user: "Annotate your code and click **Done** when you're finished. I'll
 
 Then run the file watcher — a blocking loop that waits for the CRPG's Done action to write the prompt:
 ```bash
-i=0; while [ ! -f ~/.shepherd/prompt-output.md ] && [ $i -lt 1800 ]; do sleep 1; i=$((i+1)); done; if [ -f ~/.shepherd/prompt-output.md ]; then cat ~/.shepherd/prompt-output.md; rm ~/.shepherd/prompt-output.md; else echo "SHEPHERD_TIMEOUT"; fi
+i=0; while [ ! -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md ] && [ $i -lt 1800 ]; do sleep 1; i=$((i+1)); done; if [ -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md ]; then cat ~/.shepherd/sessions/$SESSION_ID/prompt-output.md; rm -rf ~/.shepherd/sessions/$SESSION_ID; else echo "SHEPHERD_TIMEOUT"; fi
 ```
 
 Interpret the output:

@@ -433,7 +433,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/slash-command.md`
 - **Design**: `design/slash-command.md`
 - **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-server-reuse-lockfile`, `TC-sc-server-reuse-output`, `TC-sc-output-reuse-note`, `TC-sc-edge-concurrent-invocations`
+- **QA**: `qa/slash-command.md` -> `TC-sc-server-reuse-lockfile`, `TC-sc-server-reuse-output`, `TC-sc-output-reuse-note`, `TC-sc-edge-concurrent-invocations`, `TC-sc-server-reuse-same-worktree`
 
 ### `AC-sc-server-manual-stop`
 - **Defined in**: `product/slash-command.md`
@@ -1750,6 +1750,53 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/code-review-prompt.md`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-persists-file-switch`
 
+### `FR-sc-session-id`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`, `engineering/code-review-prompt.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-session-id-generated`, `TC-sc-session-id-deterministic`
+
+### `FR-sc-dynamic-port`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-dynamic-port`, `TC-sc-separate-servers-different-worktrees`
+
+### `FR-sc-session-scoped-output`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`, `engineering/shepherd-review.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-session-scoped-output-path`; `qa/shepherd-review.md` -> `TC-sr-concurrent-review-sessions`
+
+### `FR-sc-concurrent-windows`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-concurrent-sessions-happy`
+
+### `FR-sc-session-cleanup`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-session-cleanup-after-read`
+
+### `FR-crp-session-identity`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`, `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`, `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-session-identity-window-title`, `TC-crp-session-identity-standalone`; `qa/slash-command.md` -> `TC-sc-window-title-shows-project`
+
+### `AC-sc-concurrent-sessions`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-concurrent-sessions-happy`; `qa/shepherd-review.md` -> `TC-sr-concurrent-review-sessions`
+
+### `AC-sc-session-output-isolation`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/slash-command.md`
+- **Engineering**: `engineering/slash-command.md`
+- **QA**: `qa/slash-command.md` -> `TC-sc-session-output-isolation`
 <!--
 Entry template -- copy this when adding a new slug:
 
