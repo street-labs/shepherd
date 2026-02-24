@@ -94,7 +94,7 @@ Within each tier, files with larger or more significant changes rank higher. The
 
 ### Completion Summary Format (`FR-sr-completion-summary`, `FR-sr-feedback-collection`, `AC-sr-completion-summary`)
 
-When the agent receives the CRPG-generated prompt (either pasted by the user or returned via `~/.shepherd/prompt-output.md`), it displays a summary:
+When the user selects "Added comments" from the interactive prompt and the agent reads `~/.shepherd/prompt-output.md`, it displays a summary:
 
 ```
 Review complete.
@@ -199,13 +199,13 @@ This flow covers a complete review session from command invocation through feedb
 9. Agent reads diffs for all reviewable files and generates structured context: overall neutral context and review feedback, plus per-file neutral context and review feedback (`FR-sr-changeset-overview`, `FR-sr-per-file-context`).
 10. Agent displays the brief conversation summary -- scope label, file count, and exclusion count (see "Conversation Summary Display" format above).
 11. Agent immediately invokes `shepherd-launch.sh` with all reviewable file paths and the structured context data (`FR-sr-multi-file-launch`, `FR-sr-context-handoff`, `AC-sr-invokes-shepherd`, `AC-sr-auto-open`). All files open in a single CRPG session as tabs in priority order (`AC-sr-batch-open`). The CRPG displays the overall and per-file context with neutral/review separation (`AC-sr-context-in-crpg`).
-12. Agent cleans up any stale `~/.shepherd/prompt-output.md` from a previous session, then waits for the user to complete their review in the CRPG.
-13. User reviews files freely in the CRPG -- navigating tabs in any order, reading context and review feedback alongside diffs, and adding comments on whichever files they choose.
-14. User clicks "Done" in the CRPG. The CRPG writes a unified multi-file prompt to `~/.shepherd/prompt-output.md` (`AC-sr-unified-prompt`).
-15. Agent reads the prompt from `~/.shepherd/prompt-output.md` (`FR-sr-feedback-collection`).
-16. Agent displays the completion summary (see "Completion Summary Format").
-17. If the prompt contains feedback: agent displays the full prompt content and the feedback action menu (apply, discuss, save, nothing). User selects an action and the agent proceeds accordingly.
-18. If the prompt contains no feedback: agent displays "No feedback was collected. Session complete." and the session ends.
+12. Agent cleans up any stale `~/.shepherd/prompt-output.md` from a previous session.
+13. Agent presents an interactive prompt (`AskUserQuestion`) with three options: "Added comments", "Reviewed, no comments", "Cancel" (`AC-sr-interactive-prompt`).
+14. User reviews files freely in the CRPG -- navigating tabs in any order, reading context and review feedback alongside diffs, and adding comments on whichever files they choose. When done, the user clicks "Done" in the CRPG, which writes the unified multi-file prompt to `~/.shepherd/prompt-output.md` (`AC-sr-unified-prompt`).
+15. User returns to the agent conversation and selects one of the three options from the interactive prompt.
+16. If "Added comments": Agent reads `~/.shepherd/prompt-output.md` (`FR-sr-feedback-collection`), displays the completion summary (see "Completion Summary Format"), displays the full prompt content, and presents the feedback action menu (apply, discuss, save, nothing). User selects an action and the agent proceeds accordingly.
+17. If "Reviewed, no comments": Agent displays a brief completion summary noting zero comments and ends the session. No feedback action menu is shown.
+18. If "Cancel": Session ends immediately with no summary.
 
 ### Flow 2: No Changes Found (`AC-sr-no-changes`)
 
@@ -246,7 +246,7 @@ This flow covers a complete review session from command invocation through feedb
 2. User navigates to 3 of the 5 files and adds comments on those 3.
 3. User clicks "Done" in the CRPG.
 4. The CRPG generates a unified prompt that includes only the 3 files with comments. The 2 files without comments are effectively skipped -- no explicit action is required.
-5. Agent reads the prompt, displays the completion summary showing "3 files with comments", and presents the feedback action menu.
+5. User selects "Added comments" from the interactive prompt. Agent reads `~/.shepherd/prompt-output.md`, displays the completion summary showing "3 files with comments", and presents the feedback action menu.
 
 Design note: In the batch-open model, skipping is implicit. The user simply does not comment on files they choose to skip. There is no "skip" command and no bookkeeping distinction between "reviewed without comments" and "not reviewed" -- the agent only knows which files received comments.
 
@@ -255,9 +255,11 @@ Design note: In the batch-open model, skipping is implicit. The user simply does
 1. The CRPG opens with 5 tabs.
 2. User reviews 2 files, adds comments, and clicks "Done" before visiting the other 3 tabs.
 3. The CRPG generates a prompt covering whatever comments exist at that point.
-4. Agent reads the prompt, displays the completion summary, and presents the feedback action menu (or "no feedback" message if no comments were added).
+4. User returns to the agent conversation and selects "Added comments" from the interactive prompt. Agent reads `~/.shepherd/prompt-output.md`, displays the completion summary, and presents the feedback action menu.
 
-There is no concept of "remaining" files or "quit early" in the batch-open model. The user simply finishes whenever they are ready by clicking "Done."
+Alternatively, the user can select "Cancel" from the interactive prompt in the agent conversation at any time -- even without clicking "Done" in the CRPG. This ends the session immediately with no summary and no feedback handoff.
+
+There is no concept of "remaining" files or "quit early" in the batch-open model. The user simply finishes whenever they are ready by clicking "Done" in the CRPG and selecting an option from the interactive prompt.
 
 ---
 
@@ -272,9 +274,13 @@ The agent must recognize variations of user commands. The following table define
 | `save` | "write", "save to file" | Post-prompt feedback menu only |
 | `nothing` | "done", "end", "no thanks", "skip" | Post-prompt feedback menu only |
 
-There is only one interaction context where the agent waits for user input:
+There are two interaction contexts where the agent waits for user input:
 
-1. **Post-prompt feedback menu**: After the CRPG prompt is returned and the summary is displayed. The user says `apply`, `discuss`, `save`, or `nothing`.
+1. **Post-launch review prompt** (`AC-sr-interactive-prompt`): After the CRPG opens, the agent presents an `AskUserQuestion` with three options. This prompt remains visible in the conversation while the user reviews in the CRPG. The user selects one option when they are ready.
+   - **"Added comments"** -- User reviewed and clicked Done in CRPG. Agent reads `~/.shepherd/prompt-output.md` and proceeds to the completion summary and feedback menu.
+   - **"Reviewed, no comments"** -- User looked but did not add comments. Agent displays a brief summary noting zero comments and ends the session.
+   - **"Cancel"** -- Abandon the review session. Session ends immediately with no summary.
+2. **Post-prompt feedback menu**: After the agent reads the CRPG prompt (triggered by the user selecting "Added comments") and the summary is displayed. The user says `apply`, `discuss`, `save`, or `nothing`.
 
 There is no pre-launch prompt. The CRPG opens automatically after changeset detection and context generation (`AC-sr-auto-open`). The `go`, `quit`, `next`, `skip`, and `list` commands from earlier designs are all removed. The user controls all file navigation within the CRPG UI.
 
@@ -331,7 +337,7 @@ The interaction is designed to avoid overwhelming the user and to keep them orie
 
 1. **Before launch**: The agent displays a brief summary (scope, file count, exclusion count) so the user knows what is about to happen. There is no confirmation prompt -- the user invoked `/shepherd-review`, so the intent to review is already established. The CRPG opens immediately. The changeset overview, per-file context, and review feedback are generated during this phase but are NOT displayed in the conversation; they are passed to the CRPG where they will be co-located with the code being reviewed (`FR-sr-context-handoff`).
 
-2. **During review**: The user controls pacing entirely within the CRPG. They navigate tabs freely, review files in any order, and spend as much or as little time as they want on each file. The agent conversation is idle during this phase -- the CRPG is the active surface. Context and review feedback are visible directly in the CRPG alongside the diffs, so the user does not need to scroll back through the agent conversation to find orientation information.
+2. **During review**: The user controls pacing entirely within the CRPG. They navigate tabs freely, review files in any order, and spend as much or as little time as they want on each file. The agent conversation displays the interactive prompt (`AskUserQuestion`) with the three options ("Added comments", "Reviewed, no comments", "Cancel") during this phase -- the prompt is visible but non-blocking while the CRPG is the active surface. Context and review feedback are visible directly in the CRPG alongside the diffs, so the user does not need to scroll back through the agent conversation to find orientation information.
 
 3. **After review**: The completion summary provides closure -- the user knows how many files were opened and how many received comments. The feedback action menu gives them clear next steps.
 
@@ -351,7 +357,7 @@ The agent constructs each absolute path by combining the repository root (from `
 
 The launch script constructs a URL that tells the CRPG web app to load all specified files, each appearing as a tab. The browser opens a single CRPG session -- there are no per-file `/shepherd` invocations. The CRPG's existing multi-file support handles tab navigation, per-file comments, and unified prompt generation.
 
-After launching, the agent cleans up any stale `~/.shepherd/prompt-output.md` from a previous session, then waits for the new file to appear. When the user clicks "Done" in the CRPG, the CRPG writes the unified multi-file prompt to `~/.shepherd/prompt-output.md`. The agent reads this file to obtain the feedback.
+After launching, the agent cleans up any stale `~/.shepherd/prompt-output.md` from a previous session, then presents an interactive prompt (`AskUserQuestion`) with three options: "Added comments", "Reviewed, no comments", "Cancel" (`AC-sr-interactive-prompt`). When the user clicks "Done" in the CRPG, the CRPG writes the unified multi-file prompt to `~/.shepherd/prompt-output.md`. The user then returns to the agent conversation and selects an option. The agent reads `~/.shepherd/prompt-output.md` only when the user selects "Added comments".
 
 If the launch script reports an error (e.g., the script is not found or the browser fails to open), the agent displays the error as-is and the session ends. The user can resolve the issue and re-run `/shepherd-review`.
 
@@ -443,4 +449,5 @@ This follows the same pattern as the existing `/shepherd` symlink. Both symlinks
 | `AC-sr-list-command` | Context Handoff to CRPG section (overall and per-file context visible in CRPG UI); CRPG tab bar shows all file names |
 | `AC-sr-completion-summary` | Output Format -- Completion Summary Format; Flow 1 step 16 |
 | `AC-sr-sorted-file-list` | Conversation Summary Display priority ordering rules; CRPG tab order matches |
+| `AC-sr-interactive-prompt` | Flow 1 step 13 (AskUserQuestion with three options); User Input Recognition -- Post-launch review prompt; Multi-File Launch section; Pacing and Flow Considerations step 2 |
 | `AC-sr-install-global` | Installation section |

@@ -9,7 +9,7 @@ The `/shepherd-review` command is a Claude Code custom command file -- a markdow
 
 The agent executes the prompt by running git commands via `Bash` tool calls, applying filtering logic described in the prompt, reading diffs for context, generating structured review context (both neutral descriptions and review feedback at the overall and per-file levels), writing the context to `~/.shepherd/review-context.json`, and immediately auto-opening `shepherd-launch.sh` with all file paths to launch a single CRPG session with one tab per file. The conversation output is a brief summary (scope, file count, exclusion count) -- not the detailed file list. There is no confirmation prompt before launch. The CRPG reads the context file on load and displays it alongside the diffs.
 
-The iteration loop is replaced with a batch-open + wait-for-done model: all files open at once, the user reviews freely in the CRPG with context and review feedback visible in the tool UI, clicks "Done" to generate a unified multi-file prompt, and the prompt output is returned to the agent via the existing `~/.shepherd/prompt-output.md` file-watcher mechanism. Session state is minimal -- just the file list, counts, and the prompt output.
+The iteration loop is replaced with a batch-open + wait-for-done model: all files open at once, the user reviews freely in the CRPG with context and review feedback visible in the tool UI, clicks "Done" to generate a unified multi-file prompt, and the agent presents an interactive prompt (`AskUserQuestion`) after launching the CRPG, and reads `~/.shepherd/prompt-output.md` when the user selects 'Added comments'. Session state is minimal -- just the file list, counts, and the prompt output.
 
 > Implements: `FR-sr-command-file`, `FR-sr-multi-file-launch`, `FR-sr-context-handoff`, `NFR-sr-no-dependencies`, `NFR-sr-agent-native`
 
@@ -25,7 +25,7 @@ The iteration loop is replaced with a batch-open + wait-for-done model: all file
 | Context handoff | JSON file at `~/.shepherd/review-context.json` | The agent writes structured context data (overall + per-file, each with neutral + review) to a JSON file before launching. The CRPG reads it on load via `GET /api/review-context`. This avoids URL length limits and is consistent with the existing `prompt-output.md` file-based handoff pattern. |
 | Auto-open (no confirmation) | Skip the "go"/"quit" prompt | The user invoked `/shepherd-review`, so intent to review is already established. Removing the confirmation step gets the user into the CRPG faster (`AC-sr-auto-open`). |
 | Conversation output | Brief summary only | The detailed changeset overview, per-file context, and review feedback are passed to the CRPG via the context file -- not displayed in the agent conversation. The conversation shows only scope, file count, and exclusion count. |
-| Prompt return | File-watcher on `~/.shepherd/prompt-output.md` | After opening the browser, the agent cleans up stale prompt output and polls for `~/.shepherd/prompt-output.md` to appear. Same mechanism as `/shepherd`. |
+| Prompt return | Interactive prompt (`AskUserQuestion`) | After opening the browser, the agent presents an interactive prompt with three options: 'Added comments' (reads `~/.shepherd/prompt-output.md`), 'Reviewed, no comments' (zero-feedback summary), 'Cancel' (end session). Simpler and more reliable than file-watcher polling -- no timeout management, no race conditions. |
 
 ---
 
@@ -62,13 +62,13 @@ The command file is organized into these sections:
 5. **Step 4: Filtering** -- The complete exclusion pattern list and instructions to apply them.
 6. **Step 5: Read diffs and generate structured context** -- Read the diffs for all reviewable files. Generate structured context data with two levels (overall and per-file), each split into neutral context and review feedback (`FR-sr-changeset-overview`, `FR-sr-per-file-context`).
 7. **Step 6: Write context file and display brief summary** -- Write the structured context data to `~/.shepherd/review-context.json` (`FR-sr-context-handoff`). Display a brief summary in the conversation: scope label, file count, and exclusion count. The detailed changeset overview, per-file context, and review feedback are NOT displayed in the conversation -- they are in the context file for the CRPG to display.
-8. **Step 7: Auto-open all files** -- Immediately invoke `shepherd-launch.sh` with all file paths (no confirmation prompt, `AC-sr-auto-open`), clean up stale `~/.shepherd/prompt-output.md`, wait for the prompt-output file to appear (file-watcher pattern).
+8. **Step 7: Auto-open all files** -- Immediately invoke `shepherd-launch.sh` with all file paths (no confirmation prompt, `AC-sr-auto-open`), clean up stale `~/.shepherd/prompt-output.md`, present an interactive prompt (`AskUserQuestion`) with three options: 'Added comments', 'Reviewed, no comments', 'Cancel'. Read prompt output if user selects 'Added comments'.
 9. **Step 8: Completion summary and feedback handoff** -- Display summary (total opened, filtered, files with comments) and present the feedback action options (apply, discuss, save, nothing).
 10. **Error messages** -- Exact wording for each error case.
 
 ### Allowed Tools
 
-The command file declares `Allowed tools: Bash, Read, Write` at the top. The agent needs `Bash` to run git commands and invoke `shepherd-launch.sh`. It needs `Read` to read file diffs for generating per-file context summaries. It needs `Write` to write the structured context data to `~/.shepherd/review-context.json` before launching the CRPG (`FR-sr-context-handoff`). It does not need `Edit` or any other tools.
+The command file declares `Allowed tools: Bash, Read, Write` at the top. The agent needs `Bash` to run git commands and invoke `shepherd-launch.sh`. It needs `Read` to read file diffs for generating per-file context summaries and to read `~/.shepherd/prompt-output.md` after the user selects 'Added comments'. It needs `Write` to write the structured context data to `~/.shepherd/review-context.json` before launching the CRPG (`FR-sr-context-handoff`). The command also uses `AskUserQuestion` for the post-launch interactive prompt that replaces the file-watcher polling mechanism (`AC-sr-interactive-prompt`). It does not need `Edit` or any other tools.
 
 ---
 
@@ -370,9 +370,9 @@ There is no per-file iteration loop and no confirmation prompt. The flow is:
 3. Agent displays a brief conversation summary (scope, file count, exclusion count).
 4. Agent immediately invokes `shepherd-launch.sh` with all file paths as absolute paths (`AC-sr-auto-open`). No "go"/"quit" prompt.
 5. Agent cleans up stale `~/.shepherd/prompt-output.md` (deletes if exists).
-6. Agent waits (polls) for `~/.shepherd/prompt-output.md` to appear.
-7. When the file appears, agent reads it and stores the content as `prompt_output`.
-8. Agent displays the completion summary and feedback handoff.
+6. Agent presents `AskUserQuestion` with three options: "Added comments", "Reviewed, no comments", "Cancel".
+7. Based on user's selection: "Added comments" → read `~/.shepherd/prompt-output.md`; "Reviewed, no comments" → proceed with zero comments; "Cancel" → end immediately.
+8. Agent displays the completion summary and feedback handoff (for "Added comments" and "Reviewed, no comments" paths).
 
 The user controls the review entirely within the CRPG UI -- navigating tabs freely, reading context and review feedback alongside each diff, adding comments on whichever files they choose, and clicking "Done" once when finished.
 
@@ -492,10 +492,10 @@ The web app's `useFileFromUrl` hook currently reads a single `?file=<path>` quer
 After opening the browser, the agent:
 
 1. **Cleans up stale output**: Deletes `~/.shepherd/prompt-output.md` if it exists from a previous session.
-2. **Waits for output**: Polls for `~/.shepherd/prompt-output.md` to appear. This is the same file-watcher pattern used by the `/shepherd` command. The CRPG writes this file when the user clicks "Done" -- it already handles multi-file prompts.
-3. **Reads the output**: When the file appears, the agent reads its content. This is the unified multi-file prompt covering all files that received comments.
+2. **Presents interactive prompt**: Uses `AskUserQuestion` with three options: 'Added comments' (user clicked Done in CRPG and prompt was written), 'Reviewed, no comments' (no feedback to collect), 'Cancel' (abandon session).
+3. **If 'Added comments'**: Reads `~/.shepherd/prompt-output.md` and stores the content as the unified multi-file prompt.
 
-The prompt-output mechanism is unchanged from `/shepherd` -- the CRPG already generates multi-file prompts and writes them to `~/.shepherd/prompt-output.md`.
+The CRPG still writes to `~/.shepherd/prompt-output.md` when the user clicks "Done" -- it already handles multi-file prompts. The interactive prompt replaces the file-watcher polling mechanism with a simpler, more reliable approach.
 
 > Implements: `FR-sr-feedback-collection`, `AC-sr-unified-prompt`
 
@@ -543,8 +543,10 @@ You are orchestrating a multi-file code review. Follow these steps exactly.
 [Immediately invoke shepherd-launch.sh with all absolute file paths.
  No confirmation prompt -- the CRPG opens automatically.
  Delete stale ~/.shepherd/prompt-output.md,
- poll for ~/.shepherd/prompt-output.md to appear,
- read the prompt output.]
+ present AskUserQuestion with three options:
+ 'Added comments' (read ~/.shepherd/prompt-output.md),
+ 'Reviewed, no comments' (proceed with zero comments),
+ 'Cancel' (end session).]
 
 ### Step 8: Completion summary and feedback handoff
 [Display summary: total opened, filtered, files with comments.
@@ -638,7 +640,7 @@ Create `.claude/commands/shepherd-review.md` with the complete prompt instructio
 - Write the context data to `~/.shepherd/review-context.json` (`FR-sr-context-handoff`).
 - Display a brief conversation summary: scope, file count, exclusion count (`FR-sr-file-list-display`). Do NOT display the detailed changeset overview, per-file context, or review feedback in the conversation.
 - Immediately invoke `shepherd-launch.sh` with all file paths -- no confirmation prompt (`AC-sr-auto-open`).
-- Clean up stale prompt output, wait for `~/.shepherd/prompt-output.md`, read it.
+- Clean up stale prompt output, present `AskUserQuestion` with three options ('Added comments', 'Reviewed, no comments', 'Cancel'), read `~/.shepherd/prompt-output.md` if user selects 'Added comments'.
 - Display the completion summary and feedback handoff (`FR-sr-completion-summary`).
 - Handle all error cases (not a git repo, no changes, all filtered, launch failure, unrecognized argument).
 
@@ -728,4 +730,5 @@ After initial testing, refine the prompt instructions in the command file based 
 | `AC-sr-sorted-file-list` | Sorting section -- priority-based sort; tab order matches displayed list |
 | `AC-sr-batch-open` | Multi-File Launch section -- all files open as tabs in a single CRPG session |
 | `AC-sr-unified-prompt` | Multi-File Launch section -- CRPG generates one multi-file prompt via prompt-output.md |
+| `AC-sr-interactive-prompt` | Session Flow step 6 (AskUserQuestion with three options); Command file Step 7; Multi-File Launch prompt output mechanism |
 | `AC-sr-install-global` | Install Script Update section -- symlink for `shepherd-review.md` |

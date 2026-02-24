@@ -710,7 +710,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-tab-order-matches-priority`, `TC-sr-implicit-skip`, `TC-sr-done-at-any-point`, `TC-sr-unified-prompt-return`, `TC-sr-no-comments-done`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-tab-order-matches-priority`, `TC-sr-implicit-skip`, `TC-sr-done-at-any-point`, `TC-sr-unified-prompt-return`, `TC-sr-no-comments-done`, `TC-sr-interactive-prompt-options`
 
 ### `FR-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
@@ -764,7 +764,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-unified-prompt-return`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-unified-prompt-return`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`, `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`
 
 ### `FR-sr-git-required`
 - **Defined in**: `product/shepherd-review.md`
@@ -842,7 +842,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-done-at-any-point`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-done-at-any-point`, `TC-sr-interactive-prompt-cancel`
 
 ### `AC-sr-no-changes`
 - **Defined in**: `product/shepherd-review.md`
@@ -1515,6 +1515,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/shepherd-review.md`
 - **Engineering**: `engineering/shepherd-review.md`
 - **QA**: `qa/shepherd-review.md` -> `TC-sr-auto-open`
+
+### `AC-sr-interactive-prompt`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/shepherd-review.md`
+- **Engineering**: `engineering/shepherd-review.md`
+- **QA**: `qa/shepherd-review.md` -> `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`
 
 ### `FR-crp-review-context-receive`
 - **Defined in**: `product/code-review-prompt.md`

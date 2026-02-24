@@ -15,7 +15,7 @@
 | `AC-sr-includes-config` | `TC-sr-includes-config-files` | Not started |
 | `AC-sr-excludes-deleted` | `TC-sr-excludes-deleted-files` | Not started |
 | `AC-sr-skip-file` | `TC-sr-implicit-skip` | Not started |
-| `AC-sr-quit-early` | `TC-sr-done-at-any-point` | Not started |
+| `AC-sr-quit-early` | `TC-sr-done-at-any-point`, `TC-sr-interactive-prompt-cancel` | Not started |
 | `AC-sr-no-changes` | `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence` | Not started |
 | `AC-sr-all-filtered` | `TC-sr-all-filtered` | Not started |
 | `AC-sr-not-git-repo` | `TC-sr-not-git-repo` | Not started |
@@ -33,8 +33,8 @@
 | `FR-sr-per-file-context` | `TC-sr-changeset-overview-with-context`, `TC-sr-context-handoff` | Not started |
 | `FR-sr-changeset-overview` | `TC-sr-changeset-overview-with-context`, `TC-sr-context-handoff` | Not started |
 | `FR-sr-priority-ordering` | `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority` | Not started |
-| `FR-sr-iteration-loop` | `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-done-at-any-point`, `TC-sr-implicit-skip`, `TC-sr-auto-open`, `TC-sr-no-pre-launch-prompt` | Not started |
-| `FR-sr-feedback-collection` | `TC-sr-unified-prompt-return`, `TC-sr-implicit-skip`, `TC-sr-no-comments-done` | Not started |
+| `FR-sr-iteration-loop` | `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-done-at-any-point`, `TC-sr-implicit-skip`, `TC-sr-auto-open`, `TC-sr-no-pre-launch-prompt`, `TC-sr-interactive-prompt-options` | Not started |
+| `FR-sr-feedback-collection` | `TC-sr-unified-prompt-return`, `TC-sr-implicit-skip`, `TC-sr-no-comments-done`, `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel` | Not started |
 | `FR-sr-completion-summary` | `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save` | Not started |
 | `FR-sr-command-file` | `TC-sr-command-file-exists` | Not started |
 | `FR-sr-install` | `TC-sr-install-global-symlink` | Not started |
@@ -43,6 +43,7 @@
 | `FR-sr-context-handoff` | `TC-sr-context-handoff` | Not started |
 | `AC-sr-context-in-crpg` | `TC-sr-context-in-crpg` | Not started |
 | `AC-sr-auto-open` | `TC-sr-auto-open`, `TC-sr-happy-path-batch-open` | Not started |
+| `AC-sr-interactive-prompt` | `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel` | Not started |
 | `NFR-sr-startup-speed` | `TC-sr-startup-speed` | Not started |
 | `NFR-sr-no-dependencies` | `TC-sr-no-external-dependencies` | Not started |
 | `NFR-sr-agent-native` | `TC-sr-happy-path-batch-open` | Not started |
@@ -73,9 +74,9 @@
   7. Verify the CRPG displays overall neutral context and review feedback, and each file tab shows per-file neutral context and review feedback alongside the diff.
   8. Review files freely in the CRPG: navigate between tabs, add comments on 3 of the 5 files.
   9. Click "Done" in the CRPG.
-  10. The unified multi-file prompt is returned (via `~/.shepherd/prompt-output.md`).
-  11. Observe the completion summary and action options.
-- **Expected Result**: The brief summary appears in the conversation (scope, file count, exclusion count only -- no detailed file list or per-file summaries). The CRPG auto-opens without any confirmation prompt. All 5 files appear as tabs in a single CRPG session in priority order. The CRPG UI shows overall and per-file context (both neutral and review) with clear visual distinction. The user reviews files in any order they choose. Clicking "Done" generates a single multi-file prompt containing comments from the 3 files that received feedback. The completion summary shows:
+  10. Return to the agent conversation. The agent presents an interactive prompt (`AskUserQuestion`) with three options: "Added comments", "Reviewed, no comments", and "Cancel". Select "Added comments". The agent reads `~/.shepherd/prompt-output.md`.
+  11. Observe the completion summary and action options triggered by the interactive prompt response.
+- **Expected Result**: The brief summary appears in the conversation (scope, file count, exclusion count only -- no detailed file list or per-file summaries). The CRPG auto-opens without any confirmation prompt. All 5 files appear as tabs in a single CRPG session in priority order. The CRPG UI shows overall and per-file context (both neutral and review) with clear visual distinction. The user reviews files in any order they choose. After clicking "Done" in the CRPG and selecting "Added comments" from the interactive prompt, the agent reads the unified multi-file prompt from `~/.shepherd/prompt-output.md` containing comments from the 3 files that received feedback. The completion summary shows:
   ```
   Review complete.
     8 files in changeset
@@ -386,7 +387,7 @@
   1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, add comments on files 1, 3, and 5 only. Leave files 2 and 4 without comments.
   3. Click "Done" in the CRPG.
-  4. Observe the returned prompt and the completion summary.
+  4. Return to the agent conversation and select "Added comments" from the interactive prompt. Observe the returned prompt and the completion summary.
 - **Expected Result**: The unified multi-file prompt includes only files 1, 3, and 5 (the files that received comments). Files 2 and 4 are not mentioned in the prompt. The completion summary shows:
   ```
   Review complete.
@@ -410,7 +411,7 @@
   1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, view only the first tab and add a comment on it.
   3. Click "Done" without visiting the other 4 tabs.
-  4. Observe the returned prompt and the completion summary.
+  4. Return to the agent conversation and select "Added comments" from the interactive prompt. Observe the returned prompt and the completion summary.
 - **Expected Result**: The session ends cleanly. The unified prompt contains the comment from the one file that received feedback. The completion summary shows:
   ```
   Review complete.
@@ -425,20 +426,21 @@
 
 ---
 
-#### `TC-sr-unified-prompt-return`: Multi-file prompt is returned via prompt-output.md
+#### `TC-sr-unified-prompt-return`: Multi-file prompt is returned via interactive prompt and prompt-output.md
 
 - **Type**: Manual
-- **Covers**: `AC-sr-unified-prompt`, `FR-sr-feedback-collection`
-- **Preconditions**: A branch with 3 reviewable files. The `~/.shepherd/prompt-output.md` file-watcher mechanism is functional.
+- **Covers**: `AC-sr-unified-prompt`, `AC-sr-interactive-prompt`, `FR-sr-feedback-collection`
+- **Preconditions**: A branch with 3 reviewable files.
 - **Steps**:
   1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, add comments on 2 of the 3 files.
-  3. Click "Done" in the CRPG.
-  4. Verify the prompt is returned to the agent conversation.
-- **Expected Result**: The CRPG writes the unified multi-file prompt to `~/.shepherd/prompt-output.md`. The agent detects this via the file-watcher mechanism and reads the content. The prompt is organized by file, with each file's comments grouped together. The agent displays the prompt content in the conversation and presents the action options (apply, discuss, save, nothing).
+  3. Click "Done" in the CRPG. Return to the agent conversation.
+  4. Select "Added comments" from the interactive prompt. Verify the agent reads `~/.shepherd/prompt-output.md` and displays the prompt content.
+- **Expected Result**: The CRPG writes the unified multi-file prompt to `~/.shepherd/prompt-output.md`. After the user selects "Added comments" from the interactive prompt, the agent reads the file content. The prompt is organized by file, with each file's comments grouped together. The agent displays the prompt content in the conversation and presents the action options (apply, discuss, save, nothing).
 - **Edge Cases**:
   - If `~/.shepherd/prompt-output.md` already existed from a previous session, it should be overwritten or the agent should handle staleness (e.g., by checking a timestamp or clearing the file before launch).
   - Very large prompt (many comments across many files): the agent should still read and display the full content.
+  - User selects "Added comments" but has not clicked Done in the CRPG yet (`~/.shepherd/prompt-output.md` does not exist or contains stale data): the agent should handle this gracefully, e.g., by reporting that no prompt output was found and suggesting the user click Done first.
 
 ---
 
@@ -450,9 +452,9 @@
 - **Steps**:
   1. Run `/shepherd-review` and wait for the CRPG to auto-open.
   2. In the CRPG, view the files but do not add any comments.
-  3. Click "Done" in the CRPG.
-  4. Observe the agent output.
-- **Expected Result**: The agent detects that no comments were made (empty prompt or explicit "no feedback" signal from the CRPG). The completion summary shows:
+  3. Click "Done" in the CRPG. Return to the agent conversation.
+  4. Select "Reviewed, no comments" from the interactive prompt.
+- **Expected Result**: The agent receives the "Reviewed, no comments" selection and ends the session cleanly. The completion summary shows:
   ```
   Review complete.
     ...
@@ -476,6 +478,36 @@
 - **Expected Result**: The agent does NOT display any confirmation prompt such as "Ready to start?", "Say 'go' to begin", or any variation asking the user whether to proceed. After the brief summary (scope, file count, exclusion count), the CRPG auto-opens immediately. There is no intermediate step where the user must type "go", "yes", or any other confirmation. The user's intent to review was established by invoking `/shepherd-review`.
 - **Edge Cases**:
   - The user cannot cancel the review before the CRPG opens. To "cancel," the user simply clicks "Done" in the CRPG without adding comments, which produces a zero-comment completion summary.
+
+---
+
+#### `TC-sr-interactive-prompt-options`: Interactive prompt presents three options after CRPG launch
+
+- **Type**: Manual
+- **Covers**: `AC-sr-interactive-prompt`, `FR-sr-iteration-loop`, `FR-sr-feedback-collection`
+- **Preconditions**: A branch with at least 2 reviewable files.
+- **Steps**:
+  1. Run `/shepherd-review`.
+  2. After the CRPG opens, observe the agent conversation.
+- **Expected Result**: The agent presents an interactive prompt (`AskUserQuestion`) with exactly three options: "Added comments", "Reviewed, no comments", and "Cancel". There is no file-watcher polling loop visible in the conversation. The prompt remains active while the user reviews in the CRPG.
+- **Edge Cases**:
+  - Single file in changeset: same three options are presented.
+  - Large changeset (20+ files): same three options, no difference in prompt behavior.
+
+---
+
+#### `TC-sr-interactive-prompt-cancel`: Cancel option ends the session immediately
+
+- **Type**: Manual
+- **Covers**: `AC-sr-interactive-prompt`, `AC-sr-quit-early`
+- **Preconditions**: A branch with at least 2 reviewable files.
+- **Steps**:
+  1. Run `/shepherd-review`.
+  2. After the CRPG opens, select "Cancel" from the interactive prompt without interacting with the CRPG.
+- **Expected Result**: The session ends immediately. The agent outputs "Review session cancelled." No completion summary is displayed. No feedback action options are presented.
+- **Edge Cases**:
+  - User has already clicked Done in the CRPG before selecting Cancel: the session still ends cleanly. The prompt output file exists but is not read.
+  - User has added comments in the CRPG but selects Cancel: comments are lost (not read by the agent). This is intentional -- Cancel means "I don't want to proceed."
 
 ---
 
@@ -969,9 +1001,9 @@
 - **Expected behavior**: All files are listed in the file list (with right-aligned position numbers). The launch script constructs a URL with all file paths. The CRPG opens with all files as tabs. The tab bar may become crowded but should remain navigable (scrollable tab bar or similar). The completion summary is accurate. There is no truncation of the file list or the tab set. If the URL exceeds browser limits, the launch script should use an alternative mechanism.
 - **Test case**: `TC-sr-many-files-batch`
 
-#### CRPG timeout
-- **Trigger**: The user opens all files in the CRPG but never clicks Done. The session remains idle for an extended period.
-- **Expected behavior**: The CRPG or the agent's file-watcher mechanism has a timeout (30 minutes, matching the `/shepherd` command's timeout). If the timeout is reached, the agent reports that the session timed out and displays a summary with zero comments. The user can re-run `/shepherd-review` to start a fresh session.
+#### CRPG idle session
+- **Trigger**: The user opens all files in the CRPG but never clicks Done and never responds to the interactive prompt. The session remains idle for an extended period.
+- **Expected behavior**: The interactive prompt (`AskUserQuestion`) has no timeout -- it waits indefinitely for the user's selection. The user can take as long as they need to review files in the CRPG. When the user eventually selects an option ("Added comments", "Reviewed, no comments", or "Cancel"), the agent proceeds normally. There is no automatic session expiry or file-watcher polling timeout.
 - **Test case**: `TC-sr-crpg-timeout`
 
 ---
@@ -988,9 +1020,9 @@
 - Verify that the existing single-file URL loading (used by `/shepherd` for individual files) still works correctly.
 
 ### `prompt-output.md` multi-file content regression
-- The CRPG generates a unified multi-file prompt and writes it to `~/.shepherd/prompt-output.md`. Changes to the prompt format, the file-write mechanism, or the agent's file-watcher could break the feedback return workflow.
+- The CRPG generates a unified multi-file prompt and writes it to `~/.shepherd/prompt-output.md`. Changes to the prompt format or the file-write mechanism could break the feedback return workflow.
 - Verify that the prompt-output file contains all comments from all files, organized by file.
-- Verify that the agent correctly detects and reads the prompt-output file after the user clicks Done.
+- Verify that the agent correctly reads `~/.shepherd/prompt-output.md` after the user selects "Added comments" from the interactive prompt (`AskUserQuestion`). The agent no longer uses a file-watcher polling loop -- it relies on the user's interactive prompt selection to know when to read the file.
 
 ### Install script
 - The `scripts/install-command.sh` script is modified to also install `shepherd-review.md`. Verify that the existing `/shepherd` symlink is still created correctly and that the script is idempotent (running it multiple times does not cause issues).

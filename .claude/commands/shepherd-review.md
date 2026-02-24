@@ -216,24 +216,22 @@ Use the absolute paths (`REPO_ROOT/<relative-path>`) for each file in the priori
 After launching, output:
 
 ```
-Opened <N> files in the CRPG. Review them in your browser.
-
-When you're done, click "Done" in the CRPG to send back your review prompt, or say "done" here to continue.
+Opened <N> files in the CRPG. Review them in your browser, then come back here when you're done.
 ```
 
-**7c. Wait for the prompt output.**
+**7c. Ask the user about their review.**
 
-Poll for the prompt output file. The CRPG writes to `~/.shepherd/prompt-output.md` when the user clicks "Done":
+Use `AskUserQuestion` to present the user with these options:
 
-```bash
-test -f ~/.shepherd/prompt-output.md && echo "EXISTS" || echo "WAITING"
-```
+- **"Added comments"** (description: "I reviewed files in the CRPG and clicked Done")
+- **"Reviewed, no comments"** (description: "I looked at the files but have no comments to add")
+- **"Cancel"** (description: "Abandon this review session")
 
-Poll every 3 seconds, up to a maximum of 10 minutes (200 attempts). If the user says "done" or similar in chat before the file appears, stop polling and proceed.
+Based on the response:
 
-When the file exists, read it with the Read tool and store the contents as PROMPT_OUTPUT.
-
-If the poll times out without the file appearing, output: `Timed out waiting for CRPG output. You can still use the review in your browser.` and proceed to Step 8 without prompt output.
+- **"Added comments"**: Read `~/.shepherd/prompt-output.md` with the Read tool. Store the contents as PROMPT_OUTPUT. If the file does not exist, tell the user "Could not find prompt output. Make sure you clicked 'Done' in the CRPG." and re-ask.
+- **"Reviewed, no comments"**: Set PROMPT_OUTPUT to empty. Proceed to Step 8.
+- **"Cancel"**: Output "Review session cancelled." and stop. Do not proceed to Step 8.
 
 ---
 
@@ -272,7 +270,7 @@ Use `AskUserQuestion` to let the user choose:
 - **"Save for later"** (description: "Write the review output to a file I can come back to") → Write to `review-feedback-<date>.md` in the repo root. Tell the user where it was saved.
 - **"Done"** (description: "I'll handle it myself") → End the session.
 
-If no prompt output was collected (timeout or user skipped), skip the prompt output display and the feedback action question. Just show the summary and end.
+If PROMPT_OUTPUT is empty (from "Reviewed, no comments"), display the summary with "0 files with comments" and output: "No comments were added during the review. Session complete." Do NOT present the feedback action options. Just end.
 
 ---
 
