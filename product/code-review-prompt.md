@@ -57,7 +57,10 @@ This bridges the gap between a developer's code review observations and an actio
 The user can load a file into the viewer by either pasting file content into a text area, uploading a file from their local filesystem via a file picker, or dragging and dropping a file onto the application. The application must accept any plain-text file regardless of extension. When the session already has one or more files loaded, loading a new file adds it to the session rather than replacing the existing file(s). When multiple files are dropped simultaneously, all files are loaded into the session. Binary files are detected by scanning the first 8,192 bytes (or the entire file if shorter) for null bytes (`0x00`); files containing null bytes are rejected with an error message. This is a deliberate trade-off that may reject rare text files containing legitimate null bytes, but it prevents garbled display of binary content.
 
 #### `FR-crp-file-display` -- Display file with line numbers
-The loaded file is displayed in a read-only viewer with sequential line numbers starting at 1. Each line is individually addressable (clickable). The viewer must use a monospace font and preserve the original indentation, whitespace, and line breaks of the source file.
+The loaded file is displayed in a read-only viewer with sequential line numbers starting at 1. Each line is individually addressable (clickable). The viewer must use a monospace font and preserve the original indentation, whitespace, and line breaks of the source file. By default, long lines wrap visually within the code content area (`FR-crp-line-wrap`). The user can toggle wrapping off to enable horizontal scrolling instead.
+
+#### `FR-crp-line-wrap` -- Toggle line wrapping in the code viewer
+The user can toggle line wrapping on or off in the code viewer. When line wrapping is enabled, long lines wrap visually within the code content area so that no horizontal scrollbar is needed for the code. Wrapped lines do not create new line numbers — each line number corresponds to a single logical line in the source file and appears only once, aligned to the first visual row of the wrapped content. The gutter (comment indicators) also aligns with the first visual row. Line wrapping does not affect commenting behavior — clicking on any visual row of a wrapped line targets the same logical line number. The toggle preference persists within the session (consistent with `NFR-crp-no-data-persistence`) — switching files and switching back does not reset the setting. The default state is wrapping ON (line wrapping enabled), so users can always read long lines without horizontal scrolling out of the box. When wrapping is disabled, the code content area uses horizontal scrolling for long lines. The gutter and line-number columns remain unaffected by the toggle.
 
 #### `FR-crp-syntax-highlight` -- Syntax highlighting
 The file viewer applies syntax highlighting based on the detected or specified language. The application must support at minimum these 13 languages: JavaScript, TypeScript, Python, Go, Rust, Java, C, C++, HTML, CSS, JSON, YAML, and Markdown. Multiple file extensions (e.g., `.js`, `.jsx`, `.mjs`, `.cjs`) may map to the same language. If the language cannot be detected, the file is displayed as plain text (the fallback) without highlighting.
@@ -365,6 +368,21 @@ The application is not required to persist sessions across page reloads in this 
 
 #### `AC-crp-file-reviewed-clear-session` -- Clear session resets reviewed statuses
 **Given** 3 files are marked as reviewed, **when** the user clears the session (per `FR-crp-clear-session`), **then** all files are removed and all reviewed statuses are discarded. If the user then loads new files, they all start as unreviewed.
+
+#### `AC-crp-line-wrap-toggle` -- Enabling line wrapping removes horizontal scrollbar
+**Given** a file with long lines is loaded, **when** the user enables line wrapping, **then** long lines wrap within the code content area and no horizontal scrollbar appears for the code.
+
+#### `AC-crp-line-wrap-preserves-line-numbers` -- Wrapped lines retain a single line number
+**Given** line wrapping is enabled and a long line wraps to 3 visual rows, **then** only one line number is displayed (aligned to the first visual row) and the next logical line's number follows correctly (no gaps, no duplicated numbers).
+
+#### `AC-crp-line-wrap-comment-target` -- Clicking any visual row of a wrapped line targets the correct logical line
+**Given** line wrapping is enabled, **when** the user clicks on any visual row of a wrapped line, **then** the comment is attached to the correct logical line number.
+
+#### `AC-crp-line-wrap-default-on` -- Line wrapping is on by default
+**Given** a new session is started, **then** line wrapping is on by default and long lines wrap visually within the code content area.
+
+#### `AC-crp-line-wrap-persists-session` -- Line wrapping preference persists within the session
+**Given** the user enables line wrapping, **when** they switch between files and switch back, **then** the line wrapping setting is still enabled.
 
 ## Open Questions
 

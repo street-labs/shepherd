@@ -59,6 +59,9 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
   const navigateRenderedDiffComment = useAppStore((s) => s.navigateRenderedDiffComment);
   const copyPrompt = useAppStore((s) => s.copyPrompt);
 
+  const lineWrapEnabled = useAppStore((s) => s.lineWrapEnabled);
+  const toggleLineWrap = useAppStore((s) => s.toggleLineWrap);
+
   const isSlashCommandMode = useAppStore((s) => s.isSlashCommandMode);
   const doneState = useAppStore((s) => s.doneState);
   const sendPromptToAgent = useAppStore((s) => s.sendPromptToAgent);
@@ -128,11 +131,18 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
         handleNavigate('prev');
         return;
       }
+
+      // Alt+Z: toggle line wrapping
+      if (e.altKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (hasFile) toggleLineWrap();
+        return;
+      }
     };
 
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [hasComments, hasPrompt, copyPrompt, handleNavigate, isSlashCommandMode, doneState, sendPromptToAgent]);
+  }, [hasComments, hasPrompt, copyPrompt, handleNavigate, isSlashCommandMode, doneState, sendPromptToAgent, toggleLineWrap, hasFile]);
 
   return (
     <header
@@ -210,6 +220,24 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
           <div className="w-px h-5 bg-border-default" role="separator" />
 
           <ThemeToggle />
+
+          <button
+            onClick={toggleLineWrap}
+            disabled={!hasFile}
+            className={`p-1.5 rounded border ${
+              lineWrapEnabled
+                ? 'bg-primary-500/15 border-primary-500/30 text-primary-600'
+                : 'border-border-default hover:bg-surface-secondary'
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
+            aria-label="Toggle line wrapping"
+            aria-pressed={lineWrapEnabled}
+            title={`${lineWrapEnabled ? 'Disable' : 'Enable'} line wrapping (Alt+Z)`}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M3 4h10M3 8h7a3 3 0 0 1 0 6H8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10 12l-2 2m0 0l2-2m-2 0" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
 
           {/* Actions */}
           {isSlashCommandMode && (

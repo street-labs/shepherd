@@ -82,6 +82,7 @@ const initialState: AppState & DiffState & RenderedState = {
   isReviewContextSidebarCollapsed: false,
   sidebarTab: 'preview' as const,
   reviewedFiles: new Set<string>(),
+  lineWrapEnabled: true,
   comments: {},
   commentOrder: [],
   preamble: '',
@@ -273,6 +274,9 @@ interface AppActions {
 
   // Sidebar tabs
   setSidebarTab: (tab: 'preview' | 'comments') => void;
+
+  // Line wrapping
+  toggleLineWrap: () => void;
 
   // File reviewed status
   toggleFileReviewed: (fileId: string) => void;
@@ -1044,6 +1048,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setSidebarTab: (tab) => {
     set({ sidebarTab: tab });
+  },
+
+  // --- Line wrapping ---
+
+  toggleLineWrap: () => {
+    set({ lineWrapEnabled: !get().lineWrapEnabled });
   },
 
   // --- File reviewed status ---

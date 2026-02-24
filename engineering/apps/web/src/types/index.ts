@@ -88,6 +88,8 @@ export interface AppState {
   sidebarTab: 'preview' | 'comments';
   /** Set of file IDs that the user has marked as reviewed. */
   reviewedFiles: Set<string>;
+  /** Whether line wrapping is enabled in the code viewer. Default: true (wrapping ON). */
+  lineWrapEnabled: boolean;
 }
 
 /** Display items for the virtualized code viewer. */

@@ -31,6 +31,7 @@ export function CodeViewer() {
   const dismissLargeFileWarning = useAppStore((s) => s.dismissLargeFileWarning);
   const openEditor = useAppStore((s) => s.openEditor);
   const setSelectedRange = useAppStore((s) => s.setSelectedRange);
+  const lineWrapEnabled = useAppStore((s) => s.lineWrapEnabled);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isSelectingRef = useRef(false);
@@ -166,6 +167,23 @@ export function CodeViewer() {
       virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
     }
   }, [focusedCommentId, displayItems, virtualizer]);
+
+  // Re-measure virtualizer when line wrap toggles
+  useEffect(() => {
+    virtualizer.measure();
+  }, [lineWrapEnabled, virtualizer]);
+
+  // Re-measure when container width changes (wrapped line heights depend on width)
+  useEffect(() => {
+    if (!lineWrapEnabled) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => {
+      virtualizer.measure();
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [lineWrapEnabled, virtualizer]);
 
   // Keyboard navigation for code viewer
   const handleKeyDown = useCallback(
@@ -401,13 +419,13 @@ export function CodeViewer() {
                 top: 0,
                 left: 0,
                 width: '100%',
-                height: `${CODE_LINE_HEIGHT}px`,
+                ...(lineWrapEnabled ? {} : { height: `${CODE_LINE_HEIGHT}px` }),
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
               {/* Gutter */}
               <div
-                className="w-8 flex-shrink-0 flex items-center justify-center cursor-pointer select-none hover:bg-surface-secondary"
+                className={`w-8 flex-shrink-0 flex ${lineWrapEnabled ? 'items-start pt-0.5' : 'items-center'} justify-center cursor-pointer select-none hover:bg-surface-secondary`}
                 onClick={(e) => handleGutterClick(lineNumber, e)}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -424,7 +442,7 @@ export function CodeViewer() {
 
               {/* Line number */}
               <div
-                className="flex-shrink-0 text-right pr-3 text-text-tertiary select-none cursor-pointer hover:bg-surface-secondary"
+                className={`flex-shrink-0 text-right pr-3 text-text-tertiary select-none cursor-pointer hover:bg-surface-secondary${lineWrapEnabled ? ' leading-[20px]' : ''}`}
                 style={{ width: `${(padWidth + 1) * 0.6 + 1}rem` }}
                 onClick={(e) => handleGutterClick(lineNumber, e)}
                 onMouseDown={(e) => {
@@ -437,7 +455,7 @@ export function CodeViewer() {
               </div>
 
               {/* Code content */}
-              <div className="flex-1 px-2 whitespace-pre overflow-x-auto" role="gridcell">
+              <div className={`flex-1 px-2 ${lineWrapEnabled ? 'whitespace-pre-wrap break-words overflow-x-hidden' : 'whitespace-pre overflow-x-auto'}`} role="gridcell">
                 {tokens ? (
                   tokens.map((token, j) => (
                     <span

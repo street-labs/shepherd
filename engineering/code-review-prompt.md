@@ -103,6 +103,9 @@ interface AppState {
 
   /** Active tab in the sidebar content area. 'preview' shows the PromptPreview, 'comments' shows the CommentSummary. Default: 'preview'. */
   sidebarTab: 'preview' | 'comments';
+
+  /** Whether line wrapping is enabled in the CodeViewer. When true, long lines wrap visually instead of scrolling horizontally. Default: true (on). Session-level preference — applies to all files. */
+  lineWrapEnabled: boolean;
 }
 
 /** Structured review context data passed from the shepherd-review command. */
@@ -187,7 +190,9 @@ Implements the persistent toolbar. Reads the global comment count (across all fi
 
 The `Cmd+Shift+R` / `Ctrl+Shift+R` keyboard shortcut is registered in the same `useEffect` keydown listener as other shortcuts. It is only active when at least one file is loaded (`activeFileId !== null`). It calls `toggleFileReviewed(activeFileId)` to toggle the active file's reviewed status.
 
-Maps to: `FR-crp-comment-count`, `FR-crp-comment-navigation`, `FR-crp-prompt-copy`, `FR-crp-clear-session`, `AC-crp-multi-file-comment-count`.
+The Toolbar also includes a **line wrap toggle** icon button. The button dispatches `store.toggleLineWrap()` and reflects the current `lineWrapEnabled` state visually (e.g., toggled/untoggled icon state). The `Alt+Z` keyboard shortcut (`FR-crp-line-wrap`) is registered in the same `useEffect` keydown listener as other Toolbar shortcuts. It is active whenever at least one file is loaded (`activeFileId !== null`). The shortcut calls `store.toggleLineWrap()`. The icon button displays a tooltip indicating the current state and shortcut ("Toggle line wrapping (Alt+Z)").
+
+Maps to: `FR-crp-comment-count`, `FR-crp-comment-navigation`, `FR-crp-prompt-copy`, `FR-crp-clear-session`, `AC-crp-multi-file-comment-count`, `FR-crp-line-wrap`, `AC-crp-line-wrap-toggle`.
 
 #### `FileDropZone`
 Handles all three file-loading methods: paste, upload, drag-and-drop (`FR-crp-file-load`). Supports two variants:
@@ -235,7 +240,11 @@ Line selection for range comments (`FR-crp-line-range-comment`) is handled via `
 
 Keyboard navigation (`NFR-crp-accessibility-keyboard`, `AC-crp-keyboard-add-comment`): The code viewer is a focusable container. Arrow keys move a `focusedLine` local state (distinct from the store's `focusedCommentId` which tracks comment navigation). `focusedLine` is local to the CodeViewer component; `focusedCommentId` is global store state. Enter or `c` on a focused line always opens the comment editor in create mode (even if the line already has comments). ARIA attributes match the design spec (role="grid", role="row", role="rowheader", role="gridcell").
 
-Maps to: `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`, `FR-crp-line-range-comment`, `FR-crp-comment-navigation`, `NFR-crp-large-file-perf`, `NFR-crp-render-time`, `AC-crp-large-file-scroll`, `AC-crp-keyboard-add-comment`.
+**Line wrapping** (`FR-crp-line-wrap`): The CodeViewer reads `lineWrapEnabled` from the store. When `lineWrapEnabled` is `true` (default), the code content area uses `white-space: pre-wrap; overflow-wrap: break-word; overflow-x: hidden` — long lines wrap visually within the viewport. When `lineWrapEnabled` is `false`, the code content area switches to `white-space: pre; overflow-x: auto` — long lines scroll horizontally. Line number cells and gutter cells use `vertical-align: top` (or flex `align-self: start`) so they pin to the first visual row when a line wraps to multiple visual rows (`AC-crp-line-wrap-preserves-line-numbers`). Comment targeting is unaffected — clicking a wrapped line still targets the logical line number for comment creation (`AC-crp-line-wrap-comment-target`).
+
+When `lineWrapEnabled` toggles, the virtualizer's size cache must be invalidated because all row heights may change. The CodeViewer component watches `lineWrapEnabled` in a `useEffect` and calls `virtualizer.measure()` to force re-measurement of all visible and overscan rows. Additionally, a `ResizeObserver` is attached to the code viewer panel container to detect width changes (from window resize or panel resize). When wrapping is active and the container width changes, the observer calls `virtualizer.measure()` to re-measure rows whose wrapped heights depend on the available width.
+
+Maps to: `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`, `FR-crp-line-range-comment`, `FR-crp-comment-navigation`, `FR-crp-line-wrap`, `NFR-crp-large-file-perf`, `NFR-crp-render-time`, `AC-crp-large-file-scroll`, `AC-crp-keyboard-add-comment`, `AC-crp-line-wrap-preserves-line-numbers`, `AC-crp-line-wrap-comment-target`.
 
 #### `CommentBubble`
 Displays a single comment. Shows edit/delete actions on hover. Dispatches `store.openEditor('edit', commentId)` and `store.deleteComment(commentId)`.
@@ -421,6 +430,9 @@ interface AppStore extends AppState {
 
   // File reviewed tracking
   toggleFileReviewed: (fileId: string) => void;
+
+  // Line wrapping
+  toggleLineWrap: () => void;
 }
 ```
 
@@ -436,13 +448,14 @@ interface AppStore extends AppState {
 - **`navigateComment`**: Advances or retreats `focusedCommentId` within `commentOrder` (filtered to active file only), wrapping at boundaries.
 - **`setPreamble`**: Updates the preamble text. Automatically regenerates the prompt via `buildPrompt()` if comments exist on any file.
 - **`copyPrompt`**: Calls `navigator.clipboard.writeText(generatedPrompt)`. Returns a promise; the component handles success/failure UI.
-- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`. Also resets `reviewContext` to `null`, `isReviewContextCollapsed` to `false`, `isReviewContextSidebarCollapsed` to `false`, and `sidebarTab` to `'preview'` (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`).
+- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`. Also resets `reviewContext` to `null`, `isReviewContextCollapsed` to `false`, `isReviewContextSidebarCollapsed` to `false`, `sidebarTab` to `'preview'`, and `lineWrapEnabled` to `true` (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`, `AC-crp-line-wrap-default-on`).
 - **`saveScrollPosition`**: Stores the given scroll offset for the specified file ID in `scrollPositions`. Called automatically by `setActiveFile` before switching.
 - **`setReviewContext`**: Sets the `reviewContext` field. Called once on mount by the `useFileFromUrl` hook after loading files, if context data is available from `GET /api/review-context`. Setting this to a non-null value causes the `ReviewContextPanel` to render.
 - **`toggleReviewContextCollapsed`**: Toggles `isReviewContextCollapsed`. This is a session-level preference — persists across file switches.
 - **`toggleReviewContextSidebarCollapsed`**: Toggles `isReviewContextSidebarCollapsed`. This controls the overall changeset context section in the right sidebar, independent of the per-file panel collapse state. Session-level preference. Maps to: `FR-crp-review-context-collapsible`, `AC-crp-context-sidebar-collapse`.
 - **`setSidebarTab`**: Sets the `sidebarTab` field to `'preview'` or `'comments'`. Controls which content is displayed in the sidebar below the PreambleInput. Default is `'preview'`. Maps to: `FR-crp-comment-summary`.
 - **`toggleFileReviewed`**: Toggles the given file's membership in `reviewedFiles`. If the file ID is currently in the set, removes it (unmark as reviewed); if not in the set, adds it (mark as reviewed). Does not change `activeFileId` or any other state — the toggle is orthogonal to file selection, comments, and scroll position (`AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-survives-tab-switch`). Triggers no prompt regeneration (reviewed status is not reflected in the generated prompt). Maps to: `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`.
+- **`toggleLineWrap`**: Toggles `lineWrapEnabled` between `true` and `false`. After toggling, the CodeViewer component detects the change via its Zustand subscription and calls `virtualizer.measure()` in a `useEffect` to invalidate the virtualizer's size cache and force re-measurement of all visible rows. The toggle does not affect scroll position, comments, or any other state — it is purely a display preference. The preference persists for the session but is reset on `clearSession` (`AC-crp-line-wrap-default-on`, `AC-crp-line-wrap-persists-session`). Maps to: `FR-crp-line-wrap`, `AC-crp-line-wrap-toggle`.
 
 #### Selectors
 
@@ -539,6 +552,10 @@ const commentsByFile = useAppStore((s) => {
 // Derived: sidebar tab state (SidebarContentTabs)
 const sidebarTab = useAppStore((s) => s.sidebarTab);
 const setSidebarTab = useAppStore((s) => s.setSidebarTab);
+
+// Line wrap state (CodeViewer, Toolbar)
+const lineWrapEnabled = useAppStore((s) => s.lineWrapEnabled);
+const toggleLineWrap = useAppStore((s) => s.toggleLineWrap);
 ```
 
 ### Data Flow Summary
@@ -618,11 +635,11 @@ This array is recomputed whenever comments or the editor state change. The compu
 
 #### Height Estimation
 
-- Code lines: fixed height of 20px (matching the design spec's 13px font, 20px line-height).
+- Code lines: fixed height of 20px when line wrapping is off (matching the design spec's 13px font, 20px line-height). When line wrapping is on, code line heights are variable — short lines remain at 20px, while long lines expand based on how many visual rows they wrap to. The 20px estimate is still used as the initial estimate; `measureElement` corrects it after render.
 - Comment bubbles: estimated at 60px initially, measured after render via `ResizeObserver` and fed back to TanStack Virtual for accurate scroll positioning.
 - Editor: estimated at 160px initially, measured dynamically.
 
-TanStack Virtual supports dynamic row heights natively via its `measureElement` callback. The virtualizer recalculates positions when measured heights differ from estimates.
+TanStack Virtual supports dynamic row heights natively via its `measureElement` callback. The virtualizer recalculates positions when measured heights differ from estimates. When `lineWrapEnabled` toggles, the component calls `virtualizer.measure()` to invalidate all cached measurements and force re-measurement of visible rows.
 
 #### Overscan
 
@@ -780,10 +797,19 @@ Target: no jank (no frame drops exceeding 200ms) for files up to 10,000 lines.
 
 Strategy:
 - Virtualization limits DOM nodes to ~90 at any time.
-- Code line rows have fixed height (20px), avoiding layout thrashing.
+- Code line rows have fixed height (20px) when line wrapping is off, avoiding layout thrashing.
 - Comment bubbles use `ResizeObserver` for height measurement but this only fires when bubbles enter/exit the viewport, not on every scroll frame.
 - Syntax-highlighted tokens are pre-computed `<span>` elements with inline styles -- no CSS class lookups or computed styles during scroll.
 - No `useEffect` subscriptions that fire on scroll. The virtualizer handles all scroll-position-to-rendered-rows logic internally.
+
+### Line Wrapping Performance (`FR-crp-line-wrap`)
+
+When line wrapping is enabled, row heights become variable — short lines remain at 20px while long lines expand to multiple visual rows. This piggybacks on the existing `ResizeObserver`-based dynamic height infrastructure already used for comment bubbles, so no new measurement pattern is needed.
+
+- **Toggling wrap** invalidates the virtualizer's measurement cache via `virtualizer.measure()`, triggering re-measurement of all visible + overscan rows. For most files (under 5,000 lines) this is imperceptible. For 10,000+ line files there may be a brief re-layout (estimated <100ms) while the browser recalculates wrapped heights for visible rows.
+- **Viewport/panel resize** while wrapping is active changes the available width, which changes wrapped line heights. A `ResizeObserver` on the code viewer panel container detects width changes and calls `virtualizer.measure()`. This fires only on actual resize events, not on every frame.
+- **Scroll performance with wrapping on** remains smooth because TanStack Virtual still only renders ~90 DOM nodes. Most lines in a typical file are short enough not to wrap, so the majority of rows retain their 20px height even with wrapping enabled. The virtualizer's overscan strategy is unaffected.
+- **No pre-computation**: Wrapped heights are not pre-calculated. They are measured after render by the existing `measureElement` / `ResizeObserver` pipeline. This is the same strategy used for comment bubbles and the inline editor.
 
 ### Prompt Generation (`NFR-crp-prompt-gen-time`)
 
@@ -1318,6 +1344,21 @@ The work is divided into four phases. Each phase produces a deployable increment
 
 **Slug coverage**: `FR-crp-review-context-collapsible`, `FR-crp-prompt-preamble`, `FR-crp-comment-summary`, `AC-crp-context-sidebar-collapse`, `AC-crp-overall-comment-label`, `AC-crp-overall-comment-in-prompt`, `AC-crp-comment-summary-shows-all`, `AC-crp-comment-summary-realtime`, `AC-crp-comment-summary-empty`.
 
+### Phase 9: Line Wrapping (estimated 1-2 days)
+
+**Goal**: Add a line wrap toggle to the Toolbar that switches the CodeViewer between horizontal scrolling and visual line wrapping.
+
+1. Add `lineWrapEnabled: boolean` (default `true`) and `toggleLineWrap` action to the Zustand store. Update `clearSession` to reset `lineWrapEnabled` to `true`.
+2. Update `CodeViewer.tsx`: Read `lineWrapEnabled` from the store. When true, apply `white-space: pre-wrap; overflow-wrap: break-word; overflow-x: hidden` to code content cells (replacing `white-space: pre; overflow-x: auto`). Apply `vertical-align: top` / `align-self: start` to line number and gutter cells so they pin to the first visual row when text wraps (`AC-crp-line-wrap-preserves-line-numbers`).
+3. Add a `useEffect` in `CodeViewer` that watches `lineWrapEnabled` and calls `virtualizer.measure()` on change to invalidate the size cache and trigger re-measurement of all visible rows.
+4. Add a `ResizeObserver` on the code viewer panel container that calls `virtualizer.measure()` when the container width changes and `lineWrapEnabled` is true. This handles viewport resize and panel resize scenarios.
+5. Update `Toolbar.tsx`: Add a line wrap toggle icon button that reads `lineWrapEnabled` and dispatches `toggleLineWrap()`. Register the `Alt+Z` keyboard shortcut in the existing `useEffect` keydown listener (`FR-crp-line-wrap`, `AC-crp-line-wrap-toggle`).
+6. Write unit tests for the `toggleLineWrap` store action (toggle on/off, reset on clearSession). Write component tests for the Toolbar wrap button (click toggles state, reflects icon state). Write component tests for CodeViewer (CSS class changes based on `lineWrapEnabled`). Write E2E tests for the full toggle flow and `Alt+Z` shortcut.
+
+**Delivers**: Users can toggle line wrapping on/off via an icon button or `Alt+Z`. Long lines wrap visually when enabled. Line numbers stay aligned. The virtualizer handles variable row heights. The preference persists for the session.
+
+**Slug coverage**: `FR-crp-line-wrap`, `AC-crp-line-wrap-toggle`, `AC-crp-line-wrap-preserves-line-numbers`, `AC-crp-line-wrap-comment-target`, `AC-crp-line-wrap-default-on`, `AC-crp-line-wrap-persists-session`.
+
 ---
 
 ## Requirement Traceability
@@ -1363,6 +1404,7 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-file-reviewed-grouping` | `FileBrowser` component (reads `groupedFileOrder` selector); group labels ("TO REVIEW" / "REVIEWED"); divider between groups |
 | `FR-crp-file-reviewed-progress` | `FileBrowser` component sidebar header (review progress indicator badge "N/M reviewed"); `reviewedCount` and `totalFileCount` derived selectors |
 | `FR-crp-file-reviewed-persistence` | Store `reviewedFiles` state (in-memory `Set<string>`); `clearSession` resets to empty set; `removeFile` removes from set; `addFile` does not add to set |
+| `FR-crp-line-wrap` | `Toolbar` wrap toggle icon button and `Alt+Z` keyboard shortcut; store `lineWrapEnabled` state and `toggleLineWrap` action; `CodeViewer` CSS switching (`pre` vs `pre-wrap`), line number/gutter `align-self: start`, `virtualizer.measure()` on toggle, `ResizeObserver` for width changes |
 
 ### Non-Functional Requirements
 
@@ -1435,3 +1477,8 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-comment-summary-shows-all` | `CommentSummary` component (groups comments by file in `fileOrder` order; shows file name headers, line references, truncated comment text; clicking navigates to file/comment) |
 | `AC-crp-comment-summary-realtime` | `CommentSummary` component (reads directly from Zustand store; updates immediately on comment add/edit/delete) |
 | `AC-crp-comment-summary-empty` | `CommentSummary` component (centered placeholder message "No comments yet. Add comments to code lines to see them here." when no comments exist on any file) |
+| `AC-crp-line-wrap-toggle` | `Toolbar` wrap toggle icon button (dispatches `toggleLineWrap`); `Alt+Z` keyboard shortcut registered in Toolbar `useEffect` |
+| `AC-crp-line-wrap-preserves-line-numbers` | `CodeViewer` line number and gutter cells use `vertical-align: top` / `align-self: start` to pin to first visual row when text wraps |
+| `AC-crp-line-wrap-comment-target` | `CodeViewer` click handler targets logical line number regardless of visual wrapping; no change to comment creation logic |
+| `AC-crp-line-wrap-default-on` | Store `lineWrapEnabled` initialized to `true`; `clearSession` resets to `true` |
+| `AC-crp-line-wrap-persists-session` | Store `lineWrapEnabled` persists in Zustand for the session lifetime; not reset on file switch or file add/remove |

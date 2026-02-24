@@ -79,6 +79,12 @@
 | `FR-crp-file-reviewed-grouping` | `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-reviewed-new-file-unreviewed` | Not started |
 | `FR-crp-file-reviewed-progress` | `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`, `TC-crp-reviewed-remove-file-discards` | Not started |
 | `FR-crp-file-reviewed-persistence` | `TC-crp-reviewed-survives-tab-switch`, `TC-crp-reviewed-clear-session-resets` | Not started |
+| `FR-crp-line-wrap` | `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`, `TC-crp-line-wrap-keyboard-shortcut`, `TC-crp-line-wrap-gutter-alignment`, `TC-crp-line-wrap-range-selection`, `TC-crp-line-wrap-comment-navigation`, `TC-crp-line-wrap-toggle-disabled-empty`, `TC-crp-line-wrap-toggle-performance` | Not started |
+| `AC-crp-line-wrap-toggle` | `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off` | Not started |
+| `AC-crp-line-wrap-preserves-line-numbers` | `TC-crp-line-wrap-line-numbers`, `TC-crp-line-wrap-gutter-alignment` | Not started |
+| `AC-crp-line-wrap-comment-target` | `TC-crp-line-wrap-comment-click` | Not started |
+| `AC-crp-line-wrap-default-on` | `TC-crp-line-wrap-default-on` | Not started |
+| `AC-crp-line-wrap-persists-session` | `TC-crp-line-wrap-persists-file-switch` | Not started |
 
 ---
 
@@ -1926,6 +1932,206 @@
 
 ---
 
+### Line Wrapping
+
+---
+
+#### `TC-crp-line-wrap-toggle-on`: Toggle line wrapping on
+
+- **Type**: E2E
+- **Covers**: `AC-crp-line-wrap-toggle`, `FR-crp-line-wrap`
+- **Preconditions**: A file is loaded containing lines longer than the viewer width (e.g., a minified JavaScript line of 500+ characters). Line wrapping is currently disabled (toggle is inactive).
+- **Steps**:
+  1. Observe the code viewer: a horizontal scrollbar should be present because long lines overflow.
+  2. Click the wrap toggle button in the Toolbar (wrap-text icon).
+  3. Observe the code viewer.
+  4. Observe the wrap toggle button state.
+- **Expected Result**: After step 2: the horizontal scrollbar disappears. Long lines visually wrap within the code content area (no horizontal overflow). The wrap toggle button shows an active/toggled state (e.g., highlighted background or pressed appearance). The CSS properties `white-space: pre-wrap`, `overflow-wrap: break-word`, and `overflow-x: hidden` are applied to the code content area.
+- **Edge Cases**:
+  - File with no long lines: toggling wrap on has no visible effect (no lines to wrap), but the button state should still reflect "on."
+  - File with mixed short and long lines: only the long lines wrap; short lines appear unchanged.
+
+---
+
+#### `TC-crp-line-wrap-toggle-off`: Toggle line wrapping off
+
+- **Type**: E2E
+- **Covers**: `AC-crp-line-wrap-toggle`, `FR-crp-line-wrap`
+- **Preconditions**: A file is loaded with long lines. Line wrapping is currently enabled (toggle is active).
+- **Steps**:
+  1. Confirm the code viewer shows wrapped long lines and no horizontal scrollbar.
+  2. Click the wrap toggle button in the Toolbar.
+  3. Observe the code viewer.
+  4. Observe the wrap toggle button state.
+- **Expected Result**: After step 2: the horizontal scrollbar returns. Long lines no longer wrap and extend beyond the visible area. The wrap toggle button shows an inactive state.
+- **Edge Cases**:
+  - Toggling off after scrolling within a wrapped view: the scroll position should adjust reasonably (not jump to a disorienting position).
+
+---
+
+#### `TC-crp-line-wrap-keyboard-shortcut`: Toggle wrapping via Alt+Z
+
+- **Type**: E2E
+- **Covers**: `FR-crp-line-wrap`
+- **Preconditions**: A file is loaded with long lines. Line wrapping is on (default).
+- **Steps**:
+  1. Press `Alt+Z`.
+  2. Observe the code viewer and toggle button state.
+  3. Press `Alt+Z` again.
+  4. Observe the code viewer and toggle button state.
+- **Expected Result**: After step 1: line wrapping is disabled -- horizontal scrollbar appears, toggle button shows inactive state. After step 3: line wrapping is enabled again -- long lines wrap, no horizontal scrollbar, toggle button shows active state. The keyboard shortcut toggles wrapping identically to clicking the button.
+- **Edge Cases**:
+  - Pressing `Alt+Z` while the InlineCommentEditor is focused: the shortcut should not trigger (editor captures keyboard input).
+
+---
+
+#### `TC-crp-line-wrap-line-numbers`: Line numbers correct with wrapping enabled
+
+- **Type**: E2E
+- **Covers**: `AC-crp-line-wrap-preserves-line-numbers`
+- **Preconditions**: A file is loaded where line 5 is very long (wraps to 3+ visual rows when wrapping is on). Lines 4 and 6 are short (single visual row each). Line wrapping is enabled (default).
+- **Steps**:
+  1. Observe the line number gutter for lines 4, 5, and 6.
+  2. Count the visual rows occupied by line 5.
+- **Expected Result**: Line 4 shows its number ("4") on its single visual row. Line 5 shows its number ("5") only on the first visual row; the continuation rows (second, third, etc.) have no line number displayed in the gutter. Line 6's number ("6") appears on the next visual row after line 5's wrapped content ends. The line numbers are vertically aligned to the top (first visual row) of their respective lines.
+- **Edge Cases**:
+  - A line that wraps to 10+ visual rows: the number appears only on the first row, all continuation rows are blank in the gutter.
+  - Adjacent long lines that both wrap: each line's number appears on its own first visual row with no ambiguity.
+
+---
+
+#### `TC-crp-line-wrap-gutter-alignment`: Gutter indicators align with wrapped lines
+
+- **Type**: E2E
+- **Covers**: `AC-crp-line-wrap-preserves-line-numbers`, `FR-crp-line-wrap`
+- **Preconditions**: A file is loaded with a long line (e.g., line 8 wraps to multiple visual rows). A comment has been added on line 8. Line wrapping is enabled (default).
+- **Steps**:
+  1. Observe the gutter indicator (blue dot) for line 8.
+  2. Compare its vertical position to line 8's content.
+- **Expected Result**: The blue dot comment indicator appears on the first visual row of line 8, vertically aligned with the line number "8". The indicator does not appear on continuation rows.
+- **Edge Cases**:
+  - Multiple comments on the same long, wrapped line: the gutter should show one indicator aligned to the first visual row.
+
+---
+
+#### `TC-crp-line-wrap-comment-click`: Clicking a wrapped line targets correct logical line
+
+- **Type**: E2E
+- **Covers**: `AC-crp-line-wrap-comment-target`
+- **Preconditions**: A file is loaded where line 10 is very long and wraps to 3+ visual rows. Line wrapping is enabled.
+- **Steps**:
+  1. Click on the second visual row of wrapped line 10 (i.e., click in the continuation area, not the first visual row).
+  2. Observe the InlineCommentEditor that opens.
+  3. Type "Comment on wrapped line" and submit.
+  4. Observe the CommentBubble.
+- **Expected Result**: The InlineCommentEditor opens and references line 10 (not a different line number). The submitted CommentBubble is associated with line 10. The gutter shows the blue dot on line 10's first visual row.
+- **Edge Cases**:
+  - Clicking on the third or later visual row of a wrapped line: same behavior, always targets the correct logical line.
+  - Clicking on the boundary between two wrapped lines: targets the line whose visual row was actually clicked.
+
+---
+
+#### `TC-crp-line-wrap-default-on`: Default wrapping state is on
+
+- **Type**: E2E
+- **Covers**: `AC-crp-line-wrap-default-on`
+- **Preconditions**: Fresh session (page load or reload). A file with long lines is loaded.
+- **Steps**:
+  1. Load the application in a fresh session.
+  2. Load a file containing lines longer than the viewer width.
+  3. Observe the code viewer.
+  4. Observe the wrap toggle button.
+- **Expected Result**: Long lines are wrapped within the code content area. There is no horizontal scrollbar. The wrap toggle button shows an active/toggled state (indicating wrapping is enabled).
+- **Edge Cases**:
+  - After reloading the page (even if wrapping was disabled before reload): wrapping should be on (preference does not persist across page reloads).
+
+---
+
+#### `TC-crp-line-wrap-persists-file-switch`: Wrap preference persists across file switches
+
+- **Type**: E2E
+- **Covers**: `AC-crp-line-wrap-persists-session`
+- **Preconditions**: Two files are loaded (both with long lines). Line wrapping is on (default).
+- **Steps**:
+  1. Disable line wrapping (click toggle or press `Alt+Z`).
+  2. Confirm wrapping is disabled on the current file (horizontal scrollbar present, long lines do not wrap).
+  3. Switch to the second file by clicking its entry in the FileBrowser sidebar.
+  4. Observe the code viewer for the second file.
+  5. Switch back to the first file.
+  6. Observe the code viewer for the first file.
+- **Expected Result**: After step 3: the second file also displays with wrapping disabled (horizontal scrollbar present, long lines do not wrap). The toggle button still shows the inactive state. After step 5: the first file still displays with wrapping disabled. The wrap preference is a global session setting, not per-file.
+- **Edge Cases**:
+  - Disabling wrapping on the second file and switching back: wrapping should be off on the first file too (global toggle).
+
+---
+
+#### `TC-crp-line-wrap-range-selection`: Range selection works with wrapping enabled
+
+- **Type**: E2E
+- **Covers**: `FR-crp-line-wrap`, `FR-crp-line-range-comment`
+- **Preconditions**: A file is loaded where line 5 is very long (wraps to multiple visual rows). Line wrapping is enabled.
+- **Steps**:
+  1. Click on line 3 in the gutter to start a selection.
+  2. Hold `Shift` and click on line 7 in the gutter to extend the selection.
+  3. Observe the highlighted lines.
+  4. Press `Enter` or `c` to open the InlineCommentEditor.
+  5. Observe the editor's line range label.
+- **Expected Result**: Lines 3 through 7 are highlighted, including all visual rows of the wrapped line 5. The selection highlight covers the full visual extent of each line (including wrapped rows). The InlineCommentEditor opens and references "Lines 3-7" (logical lines, not visual rows).
+- **Edge Cases**:
+  - Selecting a range where both the start and end lines wrap: the highlight should cover all visual rows of both lines and everything in between.
+
+---
+
+#### `TC-crp-line-wrap-comment-navigation`: Comment navigation works with wrapping enabled
+
+- **Type**: E2E
+- **Covers**: `FR-crp-line-wrap`, `FR-crp-comment-navigation`
+- **Preconditions**: A file is loaded with comments on lines 3, 10 (which wraps to multiple visual rows), and 50. Line wrapping is enabled.
+- **Steps**:
+  1. Click the "Next" arrow button in the toolbar (or press `]`).
+  2. Observe the viewer scroll position.
+  3. Click "Next" again to navigate to line 10's comment.
+  4. Observe the viewer -- line 10 should be visible with its wrapped content.
+  5. Click "Next" to navigate to line 50's comment.
+- **Expected Result**: Navigation correctly scrolls to each comment's logical line. When navigating to line 10's comment, the viewer scrolls so that line 10's first visual row (where the line number and gutter indicator are) is visible. The CommentBubble on line 10 is fully visible. The toolbar counter updates correctly ("Comment 1 of 3", "Comment 2 of 3", "Comment 3 of 3").
+- **Edge Cases**:
+  - Navigating to a comment on a line that wraps extensively (10+ visual rows): the viewer should scroll to show the first visual row of that line.
+
+---
+
+#### `TC-crp-line-wrap-toggle-disabled-empty`: Wrap toggle disabled when no file is loaded
+
+- **Type**: E2E
+- **Covers**: `FR-crp-line-wrap`
+- **Preconditions**: Application is in the initial empty state (no file loaded).
+- **Steps**:
+  1. Observe the Toolbar.
+  2. Locate the wrap toggle button.
+  3. Attempt to click it.
+- **Expected Result**: The wrap toggle button is visually disabled (grayed out or reduced opacity). Clicking it has no effect. The button does not change to an active state.
+- **Edge Cases**:
+  - After loading a file, the button should become enabled.
+  - After clearing the session (removing all files), the button should return to disabled.
+
+---
+
+#### `TC-crp-line-wrap-toggle-performance`: Toggling wrapping on a large file performs within threshold
+
+- **Type**: Performance
+- **Covers**: `NFR-crp-large-file-perf`, `FR-crp-line-wrap`
+- **Preconditions**: A file with 10,000 lines is loaded (some lines are long). Line wrapping has been disabled (toggle is inactive).
+- **Steps**:
+  1. Open browser developer tools and start a performance recording.
+  2. Click the wrap toggle button to enable wrapping.
+  3. Stop the performance recording.
+  4. Measure the time from click to visual completion of the wrap layout change.
+- **Expected Result**: The layout change completes without a freeze exceeding 200ms. The code viewer re-renders with wrapped lines smoothly. No dropped frames causing visible jank. This is consistent with `NFR-crp-large-file-perf` thresholds.
+- **Edge Cases**:
+  - Toggling wrapping off on the same large file: should also complete within 200ms.
+  - Toggling wrapping on a file where every line is very long: higher visual change, but still within performance threshold.
+
+---
+
 ## Edge Cases & Error Scenarios
 
 This section covers additional edge cases and error conditions not directly mapped to a single AC slug but important for comprehensive coverage.
@@ -2259,6 +2465,8 @@ Since this is a greenfield single-page application with no existing features, tr
 
 14. **File review tracking and FileBrowser sidebar grouping**: The file review tracking feature adds grouping ("TO REVIEW" / "REVIEWED") to the FileBrowser sidebar and a progress indicator to the FileBrowser sidebar header. Changes to FileBrowser sidebar rendering, file ordering, or file addition/removal logic could break the grouping display or cause reviewed status to be lost. The reviewed status must survive file switches but not page reloads. Changes to the clear session flow must also reset all reviewed statuses. The reviewed status is orthogonal to comments -- changes to comment add/edit/delete logic must not affect the reviewed flag.
 
+15. **Line wrapping and code viewer layout**: The line wrapping toggle changes the CSS layout of the code content area (`white-space`, `overflow-wrap`, `overflow-x`). This interacts with virtualization row height estimation (wrapped lines are taller), gutter alignment, comment bubble placement, line click targets, and range selection. Changes to the code viewer layout, TanStack Virtual configuration, or line numbering logic could break wrapped-line rendering. The wrap toggle state is a global session setting that must survive file switches but not page reloads -- changes to session state management must account for this.
+
 ### Recommended regression suite
 
 Run the following test cases as a minimum regression suite before any release:
@@ -2290,3 +2498,7 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-reviewed-progress-updates` (progress indicator tracks correctly)
 - `TC-crp-reviewed-survives-tab-switch` (reviewed status persists across file switches)
 - `TC-crp-reviewed-clear-session-resets` (clear session resets reviewed statuses)
+- `TC-crp-line-wrap-toggle-on` (line wrapping toggle works)
+- `TC-crp-line-wrap-line-numbers` (line numbers correct with wrapping)
+- `TC-crp-line-wrap-comment-click` (clicking wrapped lines targets correct line)
+- `TC-crp-line-wrap-persists-file-switch` (wrap preference persists across file switches)

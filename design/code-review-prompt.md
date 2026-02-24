@@ -814,22 +814,24 @@ The persistent toolbar at the top of the application. Always visible.
   - `onClear: () => void`
   - `onPrevComment: () => void`
   - `onNextComment: () => void`
+  - `lineWrapEnabled: boolean` — Whether line wrapping is currently on (`FR-crp-line-wrap`).
+  - `onToggleLineWrap: () => void` — Callback to toggle line wrapping on/off.
 
 - **Visual Structure**:
 
   When **not** in slash command mode (standalone):
   ```
-  +---[Logo/Title]---[Comment Nav]---[Comment Count]---[Copy][Clear]---+
+  +---[Logo/Title]---[Comment Nav]---[Comment Count]---[Wrap][Copy][Clear]---+
   ```
 
   When in **slash command mode**:
   ```
-  +---[Logo/Title]---[Comment Nav]---[Comment Count]---[Done][Copy][Clear]---+
+  +---[Logo/Title]---[Comment Nav]---[Comment Count]---[Wrap][Done][Copy][Clear]---+
   ```
 
   - Left section: Application title "Code Review Prompt Generator" (or abbreviated to "CRPG" on narrower viewports approaching 1024px).
   - Center section: Comment navigation group — `[< Prev]` `Comment 2 of 5` `[Next >]`. The label shows "No comments" when count is 0.
-  - Right section (action buttons): In slash command mode, "Done" (primary/filled style, blue background) appears to the left of "Copy" (secondary/outlined style). In standalone mode, "Done" is not rendered and "Copy" uses primary style. "Clear" always uses ghost/text style, red on hover for destructive affordance.
+  - Right section (action buttons): "Wrap" (icon-only toggle button, `FR-crp-line-wrap`) appears first in the right section. It uses a wrap-text icon (↩ or similar, 16px). When wrapping is **on** (default): highlighted background (`#DBEAFE`, blue-100) with blue icon (`#2563EB`) to indicate the active state (`AC-crp-line-wrap-toggle`). When wrapping is **off**: ghost/outlined style, same as inactive toolbar buttons. Tooltip: "Disable line wrapping" when on, "Toggle line wrapping" when off. The button is only **enabled** when at least one file is loaded (`hasFile === true`); otherwise it is disabled with tooltip "Load a file to get started". In slash command mode, "Done" (primary/filled style, blue background) appears after "Wrap" and to the left of "Copy" (secondary/outlined style). In standalone mode, "Done" is not rendered and "Copy" uses primary style. "Clear" always uses ghost/text style, red on hover for destructive affordance.
 
   > **Note**: The review progress indicator ("N/M reviewed") has moved from the toolbar to the FileBrowser sidebar header (`FR-crp-file-reviewed-progress`). It is only visible when the FileBrowser is rendered (2+ files loaded). See the FileBrowser component spec for details.
 
@@ -846,15 +848,16 @@ The persistent toolbar at the top of the application. Always visible.
 
 - **States**:
 
-  | Application State | Done (slash command mode) | Copy | Clear | Navigation |
-  |---|---|---|---|---|
-  | Empty (no file) | Not rendered | Disabled | Disabled | Disabled |
-  | File loaded, 0 comments | Disabled | Disabled | Enabled | Disabled |
-  | File loaded, >= 1 comment | Enabled (idle) | Enabled | Enabled | Enabled |
-  | File loaded, >= 1 comment, NOT slash command mode | Not rendered | Enabled (primary style) | Enabled | Enabled |
+  | Application State | Done (slash command mode) | Wrap | Copy | Clear | Navigation |
+  |---|---|---|---|---|---|
+  | Empty (no file) | Not rendered | Disabled | Disabled | Disabled | Disabled |
+  | File loaded, 0 comments | Disabled | Enabled | Disabled | Enabled | Disabled |
+  | File loaded, >= 1 comment | Enabled (idle) | Enabled | Enabled | Enabled | Enabled |
+  | File loaded, >= 1 comment, NOT slash command mode | Not rendered | Enabled | Enabled (primary style) | Enabled | Enabled |
 
   **Disabled button tooltips (all states)**:
   - Done disabled (0 comments): "Add at least one comment"
+  - Wrap disabled (empty state): "Load a file to get started"
   - Copy disabled (empty state): "Load a file to get started"
   - Copy disabled (file loaded, 0 comments): "Add at least one comment"
   - Clear disabled (empty state): "No session to clear"
@@ -868,6 +871,7 @@ The persistent toolbar at the top of the application. Always visible.
     - Copy: `Cmd+Shift+C` / `Ctrl+Shift+C`
     - Previous comment: `[`
     - Next comment: `]`
+    - Toggle line wrapping: `Alt+Z` — toggles line wrapping on/off (`FR-crp-line-wrap`). Only active when a file is loaded.
     - Mark as reviewed: `Cmd+Shift+R` / `Ctrl+Shift+R` — toggles the reviewed state for the currently active file (`FR-crp-file-reviewed-toggle`). This is a global shortcut that works from anywhere in the application as long as a file is loaded, so the user does not need to navigate to the FileBrowser sidebar.
     - Clear: No shortcut (destructive action).
 
@@ -908,8 +912,21 @@ The core code display component. Implements `FR-crp-file-display`, `FR-crp-synta
   ```
   - **G (Gutter)**: 28px wide. Shows comment indicators. On lines with comments: a filled blue circle (8px diameter). On the specific line the user is currently hovering over (if that line has no comments): a faint "+" icon (16px, gray `#94A3B8`, centered in the gutter) that invites the user to click and add a comment. The icon disappears when the mouse moves away.
   - **LN (Line Numbers)**: 48px wide (supports up to 5 digits). Right-aligned. Monospace font. Color: `#94A3B8` (muted). Clickable — clicking a line number initiates comment creation.
-  - **Code Content**: Remaining width. Monospace font (system monospace stack: `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`). Font size: 13px. Line height: 20px. Horizontal scrolling enabled if lines exceed panel width. Syntax highlighted per `FR-crp-syntax-highlight`.
+  - **Code Content**: Remaining width. Monospace font (system monospace stack: `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`). Font size: 13px. Line height: 20px. Default mode: line wrapping enabled. Syntax highlighted per `FR-crp-syntax-highlight`.
   - **Comment Bubbles**: Rendered inline between code lines, spanning the full width of the code content area. See CommentBubble component. When multiple comments are attached to the same line, they are stacked vertically with 8px vertical margin between each bubble, all rendered below the target line.
+
+- **Line Wrapping Mode** (`FR-crp-line-wrap`):
+
+  By default, line wrapping is **on** and long lines wrap within the code content area (`AC-crp-line-wrap-default-on`). The user can toggle wrapping on/off via the Toolbar wrap toggle button (see Toolbar component spec).
+
+  When line wrapping is **enabled**:
+  - The code content area uses CSS `word-wrap: break-word` / `overflow-wrap: break-word` with `white-space: pre-wrap` instead of `overflow-x: auto`. Horizontal scrolling is suppressed.
+  - **Line numbers** (`AC-crp-line-wrap-preserves-line-numbers`): The line number is displayed only on the **first visual row** of a wrapped line. Subsequent visual (continuation) rows have an empty line number cell, but the column width is preserved so all rows remain aligned.
+  - **Gutter indicators**: The comment indicator (blue dot or hover "+" icon) aligns with the **first visual row** of the wrapped line. Continuation rows show an empty gutter cell.
+  - **Continuation row indentation**: Wrapped continuation rows preserve the original indentation of the source line (the browser's `pre-wrap` behavior naturally handles this). No additional visual indicator (such as a "↩" glyph) is rendered on continuation rows — the display stays clean.
+  - **Comment bubbles**: Span the full width of the code content area, same as in non-wrapped mode.
+  - **Comment targeting** (`AC-crp-line-wrap-comment-target`): Clicking anywhere on a wrapped line (including continuation rows) targets the **logical line number** for comment creation. The gutter click target extends across all visual rows of the wrapped line.
+  - **State persistence** (`AC-crp-line-wrap-persists-session`): The wrapping preference is stored in component state and persists for the duration of the session. It is **not** persisted to localStorage (consistent with `NFR-crp-no-data-persistence`). Clearing the session resets wrapping to the default (on).
 
 - **Overlapping Range Comments**: Overlapping ranges are allowed and each comment is treated independently. When navigating to a comment, only that comment's range is highlighted (yellow background). When clicking on a line covered by multiple range comments, all comment bubbles for that line are visible and stacked vertically.
 
@@ -1694,7 +1711,7 @@ The boundary between the code viewer panel and the sidebar panel is **not** user
 
 ### Horizontal Overflow
 
-The code viewer handles long lines by enabling horizontal scrolling within the code content area. The gutter and line numbers remain fixed (sticky) while the code content scrolls horizontally.
+By default, the code viewer handles long lines by wrapping them within the code content area. When the user disables line wrapping (`FR-crp-line-wrap`), horizontal scrolling is enabled instead. In horizontal scrolling mode, the gutter and line numbers remain fixed (sticky) while the code content scrolls horizontally. See the CodeViewer component spec for visual details of wrapped line rendering.
 
 ---
 
@@ -1901,6 +1918,7 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-file-reviewed-grouping` | FileBrowser visual structure (group headers "TO REVIEW" / "REVIEWED", grouping logic); Flow 23 |
 | `FR-crp-file-reviewed-progress` | FileBrowser sidebar header review progress indicator ("N/M reviewed" badge) |
 | `FR-crp-file-reviewed-persistence` | ReviewStatusBar behavior (session-level state); Flow 19 step 5 (discarded on removal); Flow 12 (cleared on session clear); File Loaded Screen "multi-file: file switching" state |
+| `FR-crp-line-wrap` | CodeViewer component (Line Wrapping Mode section); Toolbar component (Wrap toggle button, props, states, keyboard shortcut `Alt+Z`); Horizontal Overflow section |
 
 ### Non-Functional Requirements
 
@@ -1973,3 +1991,8 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-comment-summary-shows-all` | CommentSummary component (comments organized by file, files without comments omitted) |
 | `AC-crp-comment-summary-realtime` | CommentSummary component (real-time updates) |
 | `AC-crp-comment-summary-empty` | CommentSummary component (empty state message) |
+| `AC-crp-line-wrap-toggle` | CodeViewer component (Line Wrapping Mode); Toolbar component (Wrap toggle button, active/inactive visual states) |
+| `AC-crp-line-wrap-preserves-line-numbers` | CodeViewer component (Line Wrapping Mode — line number rendering on first visual row only) |
+| `AC-crp-line-wrap-comment-target` | CodeViewer component (Line Wrapping Mode — click handling targets logical line number across all visual rows) |
+| `AC-crp-line-wrap-default-on` | CodeViewer component (Line Wrapping Mode — default state is on, wrapping enabled) |
+| `AC-crp-line-wrap-persists-session` | CodeViewer component (Line Wrapping Mode — state persistence within session, reset on clear) |

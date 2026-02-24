@@ -1702,6 +1702,42 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/code-review-prompt.md`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-empty`
 
+### `FR-crp-line-wrap`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`, `TC-crp-line-wrap-keyboard-shortcut`, `TC-crp-line-wrap-gutter-alignment`, `TC-crp-line-wrap-range-selection`, `TC-crp-line-wrap-comment-navigation`, `TC-crp-line-wrap-toggle-disabled-empty`, `TC-crp-line-wrap-toggle-performance`
+
+### `AC-crp-line-wrap-toggle`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`
+
+### `AC-crp-line-wrap-preserves-line-numbers`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-line-numbers`, `TC-crp-line-wrap-gutter-alignment`
+
+### `AC-crp-line-wrap-comment-target`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-comment-click`
+
+### `AC-crp-line-wrap-default-on`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-default-on`
+
+### `AC-crp-line-wrap-persists-session`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-persists-file-switch`
+
 <!--
 Entry template -- copy this when adding a new slug:
 

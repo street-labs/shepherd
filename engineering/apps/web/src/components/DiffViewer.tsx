@@ -33,6 +33,7 @@ export function DiffViewer() {
   const expandSection = useAppStore((s) => s.expandSection);
   const openDiffEditor = useAppStore((s) => s.openDiffEditor);
   const setDiffSelectedRange = useAppStore((s) => s.setDiffSelectedRange);
+  const lineWrapEnabled = useAppStore((s) => s.lineWrapEnabled);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isSelectingRef = useRef(false);
@@ -118,6 +119,23 @@ export function DiffViewer() {
       virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
     }
   }, [focusedDiffCommentId, displayItems, virtualizer]);
+
+  // Re-measure virtualizer when line wrap toggles
+  useEffect(() => {
+    virtualizer.measure();
+  }, [lineWrapEnabled, virtualizer]);
+
+  // Re-measure when container width changes (wrapped line heights depend on width)
+  useEffect(() => {
+    if (!lineWrapEnabled) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => {
+      virtualizer.measure();
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [lineWrapEnabled, virtualizer]);
 
   // Get tokens for a diff line
   const getTokensForLine = useCallback(
@@ -383,13 +401,13 @@ export function DiffViewer() {
                 top: 0,
                 left: 0,
                 width: '100%',
-                height: `${CODE_LINE_HEIGHT}px`,
+                ...(lineWrapEnabled ? {} : { height: `${CODE_LINE_HEIGHT}px` }),
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
               {/* Comment gutter (28px) */}
               <div
-                className={`w-7 flex-shrink-0 flex items-center justify-center cursor-pointer select-none hover:bg-selection-bg/50 ${gutterBg}`}
+                className={`w-7 flex-shrink-0 flex ${lineWrapEnabled ? 'items-start pt-0.5' : 'items-center'} justify-center cursor-pointer select-none hover:bg-selection-bg/50 ${gutterBg}`}
                 onClick={(e) => handleGutterClick(line.index, e)}
                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(line.index); }}
                 onMouseEnter={() => handleMouseEnter(line.index)}
@@ -403,7 +421,7 @@ export function DiffViewer() {
 
               {/* Old line number (44px) */}
               <div
-                className={`w-11 flex-shrink-0 text-right pr-1 text-text-tertiary select-none text-[11px] cursor-pointer hover:bg-selection-bg/50 ${gutterBg}`}
+                className={`w-11 flex-shrink-0 text-right pr-1 text-text-tertiary select-none text-[11px] cursor-pointer hover:bg-selection-bg/50 ${gutterBg}${lineWrapEnabled ? ' leading-[20px]' : ''}`}
                 onClick={(e) => handleGutterClick(line.index, e)}
                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(line.index); }}
                 onMouseEnter={() => handleMouseEnter(line.index)}
@@ -413,7 +431,7 @@ export function DiffViewer() {
 
               {/* New line number (44px) */}
               <div
-                className={`w-11 flex-shrink-0 text-right pr-1 text-text-tertiary select-none text-[11px] cursor-pointer hover:bg-selection-bg/50 ${gutterBg}`}
+                className={`w-11 flex-shrink-0 text-right pr-1 text-text-tertiary select-none text-[11px] cursor-pointer hover:bg-selection-bg/50 ${gutterBg}${lineWrapEnabled ? ' leading-[20px]' : ''}`}
                 onClick={(e) => handleGutterClick(line.index, e)}
                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(line.index); }}
                 onMouseEnter={() => handleMouseEnter(line.index)}
@@ -441,7 +459,7 @@ export function DiffViewer() {
               <div className="w-1 flex-shrink-0" />
 
               {/* Code content */}
-              <div className="flex-1 px-2 whitespace-pre overflow-x-auto" role="gridcell">
+              <div className={`flex-1 px-2 ${lineWrapEnabled ? 'whitespace-pre-wrap break-words overflow-x-hidden' : 'whitespace-pre overflow-x-auto'}`} role="gridcell">
                 {tokens ? (
                   tokens.map((token, j) => (
                     <span
