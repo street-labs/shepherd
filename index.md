@@ -1498,6 +1498,18 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/code-review-prompt.md`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-last-empty-state`
 
+### `AC-crp-file-path-display`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md`
+
+### `AC-crp-file-path-single-dir`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md`
+
 ### `FR-sr-context-handoff`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/shepherd-review.md`

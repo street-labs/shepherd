@@ -75,7 +75,7 @@ npm run dev
 ```bash
 cd engineering/apps/web
 
-# Unit and integration tests (215 tests)
+# Unit and integration tests (232 tests)
 npm run test
 
 # E2E tests (Playwright, 9 tests)
@@ -116,7 +116,7 @@ Changes always flow: **markdown → code**, never code → markdown.
 
 | Metric | Count |
 |--------|-------|
-| Requirement slugs | 273 |
-| Unit/integration tests | 215 |
+| Requirement slugs | 290 |
+| Unit/integration tests | 232 |
 | E2E tests | 9 |
-| Product features | 95 |
+| Product features | 98 |

@@ -46,7 +46,7 @@
 | `AC-crp-multi-file-clear-all` | `TC-crp-multi-file-clear-all-confirm`, `TC-crp-multi-file-clear-all-resets` | Not started |
 | `AC-crp-multi-file-empty-after-remove-last` | `TC-crp-multi-file-remove-last-empty-state` | Not started |
 | `FR-crp-multi-file-load` | `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`, `TC-crp-multi-file-drop-multiple-happy` | Not started |
-| `FR-crp-multi-file-nav` | `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-tab-shows-info` | Not started |
+| `FR-crp-multi-file-nav` | `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-tab-shows-info`, `TC-crp-file-path-disambiguates-same-name`, `TC-crp-file-path-always-shown`, `TC-crp-file-path-pasted-file`, `TC-crp-file-path-root-file`, `TC-crp-file-tree-collapse-expand`, `TC-crp-file-tree-keyboard-nav` | Not started |
 | `FR-crp-multi-file-remove` | `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-no-comments-immediate`, `TC-crp-multi-file-remove-active-switches` | Not started |
 | `FR-crp-multi-file-prompt` | `TC-crp-multi-file-prompt-structure-happy` | Not started |
 | `FR-crp-multi-file-prompt-format` | `TC-crp-multi-file-prompt-structure-happy`, `TC-crp-multi-file-prompt-order` | Not started |
@@ -69,14 +69,14 @@
 | `AC-crp-comment-summary-empty` | `TC-crp-comment-summary-empty` | Not started |
 | `AC-crp-file-mark-reviewed` | `TC-crp-mark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard` | Not started |
 | `AC-crp-file-unmark-reviewed` | `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-keyboard` | Not started |
-| `AC-crp-file-reviewed-grouping` | `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed` | Not started |
+| `AC-crp-file-reviewed-grouping` | `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-file-tree-reviewed-ordering`, `TC-crp-file-tree-dir-reviewed-indicator` | Not started |
 | `AC-crp-file-reviewed-progress-count` | `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single` | Not started |
 | `AC-crp-file-reviewed-survives-tab-switch` | `TC-crp-reviewed-survives-tab-switch` | Not started |
 | `AC-crp-file-reviewed-with-comments` | `TC-crp-reviewed-independent-of-comments` | Not started |
 | `AC-crp-file-reviewed-clear-session` | `TC-crp-reviewed-clear-session-resets` | Not started |
 | `FR-crp-file-reviewed-toggle` | `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard` | Not started |
 | `FR-crp-file-reviewed-visual` | `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-reviewed-visual-tab-states` | Not started |
-| `FR-crp-file-reviewed-grouping` | `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-reviewed-new-file-unreviewed` | Not started |
+| `FR-crp-file-reviewed-grouping` | `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-reviewed-new-file-unreviewed`, `TC-crp-file-tree-reviewed-ordering`, `TC-crp-file-tree-dir-reviewed-indicator` | Not started |
 | `FR-crp-file-reviewed-progress` | `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`, `TC-crp-reviewed-remove-file-discards` | Not started |
 | `FR-crp-file-reviewed-persistence` | `TC-crp-reviewed-survives-tab-switch`, `TC-crp-reviewed-clear-session-resets` | Not started |
 | `FR-crp-line-wrap` | `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`, `TC-crp-line-wrap-keyboard-shortcut`, `TC-crp-line-wrap-gutter-alignment`, `TC-crp-line-wrap-range-selection`, `TC-crp-line-wrap-comment-navigation`, `TC-crp-line-wrap-toggle-disabled-empty`, `TC-crp-line-wrap-toggle-performance` | Not started |
@@ -85,6 +85,8 @@
 | `AC-crp-line-wrap-comment-target` | `TC-crp-line-wrap-comment-click` | Not started |
 | `AC-crp-line-wrap-default-on` | `TC-crp-line-wrap-default-on` | Not started |
 | `AC-crp-line-wrap-persists-session` | `TC-crp-line-wrap-persists-file-switch` | Not started |
+| `AC-crp-file-path-display` | `TC-crp-file-path-disambiguates-same-name`, `TC-crp-file-path-root-file`, `TC-crp-file-path-truncation`, `TC-crp-file-tree-collapse-expand`, `TC-crp-file-tree-keyboard-nav` | Not started |
+| `AC-crp-file-path-single-dir` | `TC-crp-file-path-always-shown`, `TC-crp-file-path-pasted-file`, `TC-crp-file-tree-collapse-expand` | Not started |
 
 ---
 
@@ -1165,14 +1167,145 @@
 
 ---
 
-#### `TC-crp-multi-file-tab-shows-info`: File rows show file name and comment count
+#### `TC-crp-multi-file-tab-shows-info`: File tree shows files under directory nodes with comment badges
 
 - **Type**: Integration
 - **Covers**: `FR-crp-multi-file-nav`
-- **Preconditions**: Three files loaded. "utils.ts" has 3 comments, "helpers.ts" has 0 comments, "config.json" has 1 comment.
+- **Preconditions**: Three files loaded from different directories: `src/utils.ts` has 3 comments, `lib/helpers.ts` has 0 comments, `config.json` (root level) has 1 comment.
 - **Steps**:
   1. Observe the FileBrowser sidebar.
-- **Expected Result**: "utils.ts" file row shows a badge "3". "helpers.ts" file row shows no badge. "config.json" file row shows a badge "1". The active file row has distinct styling (highlighted background).
+- **Expected Result**: The FileBrowser sidebar renders a nested directory tree (`role="tree"`). The `src/` directory node contains `utils.ts`. The `lib/` directory node contains `helpers.ts`. `config.json` appears at the root level of the tree (no parent directory node). File nodes are 32px single-line entries showing only the file name. `utils.ts` shows a comment badge "3". `helpers.ts` shows no badge. `config.json` shows a comment badge "1". The active file node has distinct styling (highlighted background). Directory nodes display a collapse/expand chevron.
+
+---
+
+#### `TC-crp-file-path-disambiguates-same-name`: Tree structure distinguishes same-named files in different directories
+
+- **Type**: Integration
+- **Covers**: `AC-crp-file-path-display`, `FR-crp-multi-file-nav`
+- **Preconditions**: Two files loaded with the same name but different directories: `src/utils/helpers.ts` and `lib/helpers.ts`.
+- **Steps**:
+  1. Observe the FileBrowser sidebar tree.
+- **Expected Result**: The tree contains a `src/` directory node with a nested `utils/` directory node containing `helpers.ts`, and a `lib/` directory node containing `helpers.ts`. Both files display as "helpers.ts" but are distinguishable by their position under different parent directory nodes. No disambiguation suffix or secondary text is needed because the tree structure itself provides context.
+
+---
+
+#### `TC-crp-file-path-always-shown`: Directory node shown even when all files share one directory
+
+- **Type**: Integration
+- **Covers**: `AC-crp-file-path-single-dir`, `FR-crp-multi-file-nav`
+- **Preconditions**: Three files loaded from the same directory: `src/app.tsx`, `src/utils.ts`, `src/index.ts`.
+- **Steps**:
+  1. Observe the FileBrowser sidebar tree.
+- **Expected Result**: The tree shows a `src/` directory node containing all three files (`app.tsx`, `utils.ts`, `index.ts`). The directory node is present even when all files share the same directory -- it is not collapsed away or hidden. The `src/` node has a collapse/expand chevron.
+
+---
+
+#### `TC-crp-file-path-pasted-file`: Pasted file appears at root level of tree
+
+- **Type**: Integration
+- **Covers**: `AC-crp-file-path-single-dir`, `FR-crp-multi-file-nav`
+- **Preconditions**: One file loaded via the shepherd-review server mechanism (`src/utils.ts` -- loaded via `?file=` URL param so the full path is available) and one file loaded via paste (no file path -- name is "Untitled").
+- **Steps**:
+  1. Observe the FileBrowser sidebar tree.
+- **Expected Result**: The server-loaded file (`utils.ts`) appears under the `src/` directory node in the tree. The pasted file ("Untitled") appears at the root level of the tree with no parent directory node, displayed as a top-level file entry alongside any root-level directory nodes.
+
+---
+
+#### `TC-crp-file-path-root-file`: Root-level files appear at tree top without a parent directory
+
+- **Type**: Integration
+- **Covers**: `AC-crp-file-path-display`, `FR-crp-multi-file-nav`
+- **Preconditions**: Two files loaded: `README.md` (root level) and `src/app.tsx`.
+- **Steps**:
+  1. Observe the FileBrowser sidebar tree.
+- **Expected Result**: `README.md` appears at the top level of the tree as a direct child of the tree root, without a parent directory node. `app.tsx` appears nested under the `src/` directory node. Root-level files and directory nodes are siblings at the top level of the tree.
+
+---
+
+#### `TC-crp-file-path-truncation`: Long directory names truncate; deep nesting shows full hierarchy
+
+- **Type**: Integration
+- **Covers**: `AC-crp-file-path-display`
+- **Preconditions**: A file with a deeply nested path loaded (e.g., `src/components/features/authentication/providers/helpers.ts`). The sidebar is narrow enough that long directory names could overflow.
+- **Steps**:
+  1. Observe the file tree in the FileBrowser sidebar.
+  2. Hover over a directory node with a long name.
+- **Expected Result**: The tree shows the full directory hierarchy: `src/` > `components/` > `features/` > `authentication/` > `providers/` > `helpers.ts`. Each nesting level is indented. If a directory name exceeds the available width, it is truncated with an ellipsis. Hovering over any truncated directory or file node shows the full path in a tooltip. Deeply nested files are reachable by expanding each ancestor directory node.
+
+---
+
+#### `TC-crp-file-tree-collapse-expand`: Collapsing and expanding directory nodes hides/shows children
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-path-display`, `FR-crp-multi-file-nav`
+- **Preconditions**: Files loaded from multiple directories: `src/app.tsx`, `src/utils.ts`, `lib/helpers.ts`. All directory nodes are expanded by default.
+- **Steps**:
+  1. Observe the FileBrowser sidebar tree. Verify `src/` and `lib/` directory nodes are expanded showing their children.
+  2. Click the chevron on the `src/` directory node.
+  3. Observe the tree.
+  4. Click the chevron on the `src/` directory node again.
+  5. Observe the tree.
+- **Expected Result**: Step 1: `src/` shows `app.tsx` and `utils.ts` as children; `lib/` shows `helpers.ts`. Step 2-3: The `src/` directory node collapses. `app.tsx` and `utils.ts` are hidden. The `src/` node displays a summary "(2 files)" next to the directory name. The chevron rotates to point right (collapsed). `lib/` and its children are unaffected. Step 4-5: The `src/` directory node expands again. `app.tsx` and `utils.ts` reappear. The "(2 files)" summary is hidden. The chevron rotates back to point down (expanded).
+- **Edge Cases**:
+  - Collapsing a directory that contains the active file: the active file is hidden but remains the active file. The code viewer continues to show the active file's content.
+  - Collapsing a directory with a single child: the summary shows "(1 file)".
+
+---
+
+#### `TC-crp-file-tree-dir-reviewed-indicator`: Collapsed directory shows reviewed checkmark when all children reviewed
+
+- **Type**: E2E
+- **Covers**: `FR-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-grouping`, `FR-crp-multi-file-nav`
+- **Preconditions**: Files loaded: `src/app.tsx`, `src/utils.ts`. Both files are initially unreviewed. The `src/` directory node is expanded.
+- **Steps**:
+  1. Mark `src/app.tsx` as reviewed.
+  2. Observe the `src/` directory node.
+  3. Mark `src/utils.ts` as reviewed.
+  4. Observe the `src/` directory node.
+  5. Collapse the `src/` directory node.
+  6. Observe the collapsed `src/` directory node.
+  7. Unmark `src/app.tsx` as reviewed.
+  8. Observe the `src/` directory node.
+- **Expected Result**: Step 1-2: `src/` directory node does NOT show a checkmark — only one of two files is reviewed. Step 3-4: `src/` directory node now shows a green checkmark before the directory name, and the directory name text is muted — all children are reviewed. Step 5-6: The collapsed `src/` node shows "✓ ▸ src/ (2 files)" — the checkmark is visible on the collapsed node so the reviewer can see all contents are reviewed without expanding. Step 7-8: The `src/` directory checkmark is immediately removed and the name returns to normal styling — not all children are reviewed anymore.
+
+---
+
+#### `TC-crp-file-tree-keyboard-nav`: Keyboard navigation through the file tree
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-path-display`, `FR-crp-multi-file-nav`
+- **Preconditions**: Files loaded: `src/app.tsx`, `src/utils.ts`, `lib/helpers.ts`. The FileBrowser sidebar tree has focus. All directory nodes are expanded.
+- **Steps**:
+  1. Focus the tree and press ArrowDown to traverse visible nodes. Record the focus order.
+  2. On a directory node (`src/`), press ArrowLeft to collapse it.
+  3. Press ArrowDown. Verify that the collapsed children (`app.tsx`, `utils.ts`) are skipped and focus moves to the next visible node (`lib/`).
+  4. Press ArrowUp to return to the collapsed `src/` node.
+  5. Press ArrowRight to expand `src/`.
+  6. Press ArrowRight again (on an expanded directory) to move focus into the first child.
+  7. On a child file node, press ArrowLeft to move focus to the parent directory node.
+- **Expected Result**: Step 1: focus traverses all visible nodes in DOM order (directory nodes and file nodes). Step 2: `src/` collapses; its children are hidden. Step 3: focus moves from `src/` to `lib/` (skipping `app.tsx` and `utils.ts`). Step 5: `src/` expands; children reappear. Step 6: focus moves from the `src/` directory node to `app.tsx` (the first child). Step 7: focus moves from the child file back to the `src/` parent directory node. The tree uses `role="tree"` and `role="treeitem"` with `aria-expanded` on directory nodes.
+- **Edge Cases**:
+  - ArrowLeft on a root-level node (no parent): focus stays on the current node.
+  - ArrowRight on a file node (not a directory): no action.
+  - ArrowDown on the last visible node: focus does not wrap (stays on the last node).
+
+---
+
+#### `TC-crp-file-tree-reviewed-ordering`: Unreviewed files sort before reviewed within each directory
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-grouping`
+- **Preconditions**: Files loaded: `src/app.tsx`, `src/utils.ts`, `src/index.ts`. All under the `src/` directory node. All files are initially unreviewed.
+- **Steps**:
+  1. Observe the order of files under the `src/` directory node.
+  2. Mark `src/app.tsx` as reviewed.
+  3. Observe the order of files under the `src/` directory node.
+  4. Mark `src/index.ts` as reviewed.
+  5. Observe the order of files under the `src/` directory node.
+- **Expected Result**: Step 1: files appear in their original load order (`app.tsx`, `utils.ts`, `index.ts`). Step 3: `app.tsx` (reviewed) moves below the unreviewed files. The order becomes `utils.ts`, `index.ts`, `app.tsx`. `app.tsx` shows a checkmark and muted text at its tree position. Step 5: `utils.ts` (unreviewed) appears first, then `index.ts` (reviewed) and `app.tsx` (reviewed). Within the reviewed subset, original load order is maintained.
+- **Edge Cases**:
+  - Files in different directories are sorted independently. Marking `lib/helpers.ts` as reviewed does not affect the order within `src/`.
+  - Unmarking a reviewed file moves it back to the unreviewed group within its directory.
 
 ---
 
@@ -1638,7 +1771,7 @@
   3. Observe the ReviewStatusBar.
   4. Observe the file's row in the FileBrowser sidebar.
   5. Observe the file grouping in the FileBrowser sidebar.
-- **Expected Result**: After step 2: the ReviewStatusBar checkbox becomes filled with a green checkmark and the label changes to "Reviewed" (the checkmark is rendered inside the checkbox icon, not as label text). The file's row in the FileBrowser sidebar shows a green checkmark icon, and the file row text is muted (lower contrast/opacity). The file's row moves from the "TO REVIEW" group to the "REVIEWED" group in the FileBrowser sidebar.
+- **Expected Result**: After step 2: the ReviewStatusBar checkbox becomes filled with a green checkmark and the label changes to "Reviewed" (the checkmark is rendered inside the checkbox icon, not as label text). The file's node in the FileBrowser sidebar tree shows a green checkmark icon, and the file node text is muted (lower contrast/opacity). The file moves below unreviewed files within its directory node in the tree.
 - **Edge Cases**:
   - Marking a file with no comments as reviewed: should work identically (reviewed status is independent of comments).
   - Marking a file with comments as reviewed: the comments remain visible and editable.
@@ -1656,9 +1789,9 @@
   3. Observe the ReviewStatusBar.
   4. Observe the file's row in the FileBrowser sidebar.
   5. Observe the file grouping.
-- **Expected Result**: After step 2: the ReviewStatusBar reverts to an unchecked checkbox with label "Mark as reviewed". The file's row no longer shows a green checkmark, and the file row text returns to normal contrast. The file's row moves from the "REVIEWED" group back to the "TO REVIEW" group.
+- **Expected Result**: After step 2: the ReviewStatusBar reverts to an unchecked checkbox with label "Mark as reviewed". The file's node in the tree no longer shows a green checkmark, and the file node text returns to normal contrast. The file moves above reviewed files within its directory node (back into the unreviewed position).
 - **Edge Cases**:
-  - Unmarking the only reviewed file: the "REVIEWED" group should become empty/hidden.
+  - Unmarking the only reviewed file: all files in the directory appear in their original load order with no reviewed styling.
 
 ---
 
@@ -1673,7 +1806,7 @@
   3. Click the toggle icon on file B's row.
   4. Observe file B's row.
   5. Verify that the active file is still file A (the viewer did not switch).
-- **Expected Result**: After step 3: file B's row shows a green checkmark and muted text. File B moves to the "REVIEWED" group. The code viewer still displays file A's content (the active file did not change). The progress indicator updates to reflect one more file reviewed.
+- **Expected Result**: After step 3: file B's node in the tree shows a green checkmark and muted text. File B moves below unreviewed files within its directory node. The code viewer still displays file A's content (the active file did not change). The progress indicator updates to reflect one more file reviewed.
 - **Edge Cases**:
   - Clicking the file row text (not the toggle icon): this should switch to file B (standard file selection behavior), not toggle the reviewed status.
 
@@ -1689,51 +1822,52 @@
   2. Observe the ReviewStatusBar and the file's row in the FileBrowser sidebar.
   3. Press `Cmd+Shift+R` / `Ctrl+Shift+R` again.
   4. Observe the ReviewStatusBar and the file's row in the FileBrowser sidebar.
-- **Expected Result**: After step 1: the file is marked as reviewed (checkbox filled with green checkmark, label "Reviewed", file row shows checkmark, file row moves to "REVIEWED" group). After step 3: the file is unmarked (checkbox unchecked, label "Mark as reviewed", file row returns to normal, file row moves back to "TO REVIEW" group). The shortcut toggles the reviewed state of the currently active file.
+- **Expected Result**: After step 1: the file is marked as reviewed (checkbox filled with green checkmark, label "Reviewed", file node shows checkmark, file moves below unreviewed files within its directory node). After step 3: the file is unmarked (checkbox unchecked, label "Mark as reviewed", file node returns to normal, file moves back above reviewed files within its directory node). The shortcut toggles the reviewed state of the currently active file.
 - **Edge Cases**:
   - Pressing the shortcut with only 1 file loaded: should still toggle the reviewed status (but the progress indicator may be hidden per `TC-crp-reviewed-progress-hidden-single`).
   - Pressing `r` when the FileBrowser sidebar is focused: should also toggle reviewed status for the focused file (per design spec keyboard shortcut `r` for file-list-focused context).
 
 ---
 
-#### `TC-crp-reviewed-grouping-display`: Reviewed and unreviewed files grouped correctly
+#### `TC-crp-reviewed-grouping-display`: Reviewed files sort after unreviewed within each directory
 
 - **Type**: E2E
 - **Covers**: `AC-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-grouping`
-- **Preconditions**: 5 files are loaded (A.ts, B.ts, C.ts, D.ts, E.ts). All are initially unreviewed.
+- **Preconditions**: 5 files are loaded under `src/`: `src/A.ts`, `src/B.ts`, `src/C.ts`, `src/D.ts`, `src/E.ts`. All are initially unreviewed.
 - **Steps**:
   1. Mark A.ts and C.ts as reviewed.
-  2. Observe the FileBrowser sidebar.
-- **Expected Result**: The FileBrowser sidebar shows two groups separated by a divider. The first group is labeled "TO REVIEW" and contains B.ts, D.ts, E.ts (3 files). The second group is labeled "REVIEWED" and contains A.ts, C.ts (2 files). The "TO REVIEW" group appears first (above "REVIEWED"). Within each group, files maintain their original load order.
+  2. Observe the FileBrowser sidebar tree.
+- **Expected Result**: Within the `src/` directory node, unreviewed files appear first: B.ts, D.ts, E.ts (maintaining their original load order). Reviewed files appear after: A.ts, C.ts (maintaining their original load order). There are no separate "TO REVIEW" or "REVIEWED" group headers. Instead, ordering within each directory node separates unreviewed from reviewed. Reviewed files show a checkmark icon and muted text at their tree position.
 - **Edge Cases**:
-  - Within each group, the file order should follow the original load order (not alphabetical or review-time order).
+  - Within the unreviewed subset and reviewed subset, files maintain their original load order (not alphabetical or review-time order).
+  - Files across different directories are sorted independently within their respective directory nodes.
 
 ---
 
-#### `TC-crp-reviewed-grouping-all-reviewed`: All files reviewed hides "To Review" group
+#### `TC-crp-reviewed-grouping-all-reviewed`: All files reviewed shows all with checkmarks
 
 - **Type**: E2E
 - **Covers**: `AC-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-grouping`
-- **Preconditions**: 3 files loaded, all unreviewed.
+- **Preconditions**: 3 files loaded under `src/`: `src/A.ts`, `src/B.ts`, `src/C.ts`. All unreviewed.
 - **Steps**:
   1. Mark all 3 files as reviewed.
-  2. Observe the FileBrowser sidebar.
-- **Expected Result**: The "TO REVIEW" group is empty and hidden (no empty group label shown). The "REVIEWED" group contains all 3 files. Only the "REVIEWED" group label is visible.
+  2. Observe the FileBrowser sidebar tree.
+- **Expected Result**: All 3 files appear within the `src/` directory node, each showing a checkmark icon and muted text. The file order matches the original load order. No special grouping headers are shown. The tree structure is unchanged -- only the visual styling (checkmarks, muted text) indicates that all files are reviewed.
 - **Edge Cases**:
-  - Unmarking one file after all are reviewed: the "TO REVIEW" group reappears with that file.
+  - Unmarking one file after all are reviewed: that file's checkmark is removed, its text returns to normal contrast, and it moves above the still-reviewed files within its directory node.
 
 ---
 
-#### `TC-crp-reviewed-grouping-none-reviewed`: Default state shows all files in "To Review"
+#### `TC-crp-reviewed-grouping-none-reviewed`: Default state shows all files without checkmarks
 
 - **Type**: E2E
 - **Covers**: `AC-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-grouping`
-- **Preconditions**: 3 files loaded. No files have been marked as reviewed.
+- **Preconditions**: 3 files loaded under `src/`. No files have been marked as reviewed.
 - **Steps**:
-  1. Observe the FileBrowser sidebar.
-- **Expected Result**: All 3 files appear in the "TO REVIEW" group. The "REVIEWED" group is empty and hidden. No divider or "REVIEWED" label is shown.
+  1. Observe the FileBrowser sidebar tree.
+- **Expected Result**: All 3 files appear within the `src/` directory node in their original load order. No files show checkmark icons. All file text uses normal contrast (not muted). The tree structure looks like a plain directory listing with no reviewed/unreviewed visual distinction.
 - **Edge Cases**:
-  - With only 1 file loaded: the "TO REVIEW" group still shows, or the grouping labels are hidden entirely for single-file sessions (per design spec behavior).
+  - With only 1 file loaded: the tree still shows the directory structure (directory node with one child file).
 
 ---
 
@@ -1846,9 +1980,9 @@
   1. Remove file A (close its file row, confirm if it has comments).
   2. Observe the progress indicator.
   3. Observe the FileBrowser sidebar grouping.
-- **Expected Result**: After step 1: the progress indicator shows "1/2 reviewed" (B is still reviewed, C is unreviewed). The "REVIEWED" group shows only B. The "TO REVIEW" group shows only C. File A's reviewed status is fully discarded.
+- **Expected Result**: After step 1: the progress indicator shows "1/2 reviewed" (B is still reviewed, C is unreviewed). Within each directory node, B appears with a checkmark and muted text (reviewed), and C appears with normal text (unreviewed). File A's reviewed status is fully discarded.
 - **Edge Cases**:
-  - Removing the only reviewed file: progress shows "0/N reviewed" and the "REVIEWED" group is hidden.
+  - Removing the only reviewed file: progress shows "0/N reviewed" and all remaining files appear without checkmarks.
 
 ---
 
@@ -1862,7 +1996,7 @@
   2. Observe the new file's row in the FileBrowser sidebar.
   3. Observe the FileBrowser sidebar grouping.
   4. Observe the progress indicator.
-- **Expected Result**: The new file's row appears in the "TO REVIEW" group with no checkmark and normal (non-muted) text. The progress indicator updates to "2/3 reviewed". The new file's ReviewStatusBar shows "Mark as reviewed" (unchecked).
+- **Expected Result**: The new file's node appears in the tree at its appropriate position (under its directory node, or at root level for pasted files) with no checkmark and normal (non-muted) text. Within its directory, it appears above any reviewed files (unreviewed sort first). The progress indicator updates to "2/3 reviewed". The new file's ReviewStatusBar shows "Mark as reviewed" (unchecked).
 - **Edge Cases**:
   - Adding multiple files at once (drag-and-drop multiple): all new files should be unreviewed.
 
@@ -1912,9 +2046,9 @@
 - **Steps**:
   1. Mark the file as reviewed.
   2. Observe the ReviewStatusBar, file row, and grouping.
-- **Expected Result**: The ReviewStatusBar shows the checked state (filled green checkmark, label "Reviewed"). The file row shows a checkmark. The progress indicator is hidden (single file). Group labels are not shown in single-file mode since the FileBrowser sidebar is not visible with only one file.
+- **Expected Result**: The ReviewStatusBar shows the checked state (filled green checkmark, label "Reviewed"). The file node shows a checkmark. The progress indicator is hidden (single file). The FileBrowser sidebar is not visible with only one file, so the tree is not rendered.
 - **Edge Cases**:
-  - Unmarking the only file: reverts to unreviewed state with no grouping labels visible.
+  - Unmarking the only file: reverts to unreviewed state.
 
 ---
 
@@ -1926,7 +2060,7 @@
 - **Steps**:
   1. Add a new file.
   2. Observe the FileBrowser sidebar and progress indicator.
-- **Expected Result**: The new file appears in the "TO REVIEW" group (which was previously hidden and now reappears). The progress indicator updates to "2/3 reviewed". The "TO REVIEW" group appears above the "REVIEWED" group.
+- **Expected Result**: The new file appears in the tree at its appropriate position (under its directory node, or at root level). Within its directory, it appears above the reviewed files (unreviewed sort first). The progress indicator updates to "2/3 reviewed".
 - **Edge Cases**:
   - The new file is the active file: its ReviewStatusBar should show "Mark as reviewed" (unchecked).
 
@@ -2463,7 +2597,7 @@ Since this is a greenfield single-page application with no existing features, tr
 
 13. **Dark mode and context**: The context panel introduces new color tokens (blue for neutral, violet for review). Dark mode must provide appropriate dark-mode variants of these colors. Changes to the dark mode implementation could cause the context panel to render with light-mode colors or insufficient contrast.
 
-14. **File review tracking and FileBrowser sidebar grouping**: The file review tracking feature adds grouping ("TO REVIEW" / "REVIEWED") to the FileBrowser sidebar and a progress indicator to the FileBrowser sidebar header. Changes to FileBrowser sidebar rendering, file ordering, or file addition/removal logic could break the grouping display or cause reviewed status to be lost. The reviewed status must survive file switches but not page reloads. Changes to the clear session flow must also reset all reviewed statuses. The reviewed status is orthogonal to comments -- changes to comment add/edit/delete logic must not affect the reviewed flag.
+14. **File review tracking and tree-based ordering**: The file review tracking feature sorts unreviewed files before reviewed files within each directory node of the FileBrowser tree, and adds a progress indicator to the FileBrowser sidebar header. Changes to FileBrowser tree rendering, directory node collapse/expand logic, file ordering, or file addition/removal logic could break the within-directory ordering or cause reviewed status to be lost. The reviewed status must survive file switches but not page reloads. Changes to the clear session flow must also reset all reviewed statuses. The reviewed status is orthogonal to comments -- changes to comment add/edit/delete logic must not affect the reviewed flag.
 
 15. **Line wrapping and code viewer layout**: The line wrapping toggle changes the CSS layout of the code content area (`white-space`, `overflow-wrap`, `overflow-x`). This interacts with virtualization row height estimation (wrapped lines are taller), gutter alignment, comment bubble placement, line click targets, and range selection. Changes to the code viewer layout, TanStack Virtual configuration, or line numbering logic could break wrapped-line rendering. The wrap toggle state is a global session setting that must survive file switches but not page reloads -- changes to session state management must account for this.
 

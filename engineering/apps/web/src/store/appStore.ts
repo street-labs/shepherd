@@ -83,6 +83,7 @@ const initialState: AppState & DiffState & RenderedState = {
   sidebarTab: 'preview' as const,
   reviewedFiles: new Set<string>(),
   lineWrapEnabled: true,
+  collapsedDirs: new Set<string>(),
   comments: {},
   commentOrder: [],
   preamble: '',
@@ -280,6 +281,9 @@ interface AppActions {
 
   // File reviewed status
   toggleFileReviewed: (fileId: string) => void;
+
+  // Directory collapse state
+  toggleDirCollapsed: (dirPath: string) => void;
 
   // Rendered diff comments
   addRenderedDiffComment: (elementId: ElementId, elementType: string, diffStatus: 'added' | 'removed' | 'modified' | 'unchanged', contentPreview: string, text: string) => void;
@@ -1063,6 +1067,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (next.has(fileId)) next.delete(fileId);
     else next.add(fileId);
     set({ reviewedFiles: next });
+  },
+
+  // --- Directory collapse ---
+
+  toggleDirCollapsed: (dirPath) => {
+    const next = new Set(get().collapsedDirs);
+    if (next.has(dirPath)) next.delete(dirPath);
+    else next.add(dirPath);
+    set({ collapsedDirs: next });
   },
 
   // --- Rendered diff comments ---

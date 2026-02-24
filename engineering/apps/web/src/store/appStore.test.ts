@@ -788,6 +788,39 @@ describe('appStore', () => {
     });
   });
 
+  // ─── toggleDirCollapsed ──────────────────────────────────────
+
+  describe('toggleDirCollapsed', () => {
+    it('adds a directory path to collapsedDirs', () => {
+      useAppStore.getState().toggleDirCollapsed('src/components');
+      expect(useAppStore.getState().collapsedDirs.has('src/components')).toBe(true);
+    });
+
+    it('removes a directory path when toggled again', () => {
+      useAppStore.getState().toggleDirCollapsed('src/components');
+      expect(useAppStore.getState().collapsedDirs.has('src/components')).toBe(true);
+      useAppStore.getState().toggleDirCollapsed('src/components');
+      expect(useAppStore.getState().collapsedDirs.has('src/components')).toBe(false);
+    });
+
+    it('handles multiple directories independently', () => {
+      useAppStore.getState().toggleDirCollapsed('src');
+      useAppStore.getState().toggleDirCollapsed('lib');
+      expect(useAppStore.getState().collapsedDirs.has('src')).toBe(true);
+      expect(useAppStore.getState().collapsedDirs.has('lib')).toBe(true);
+      useAppStore.getState().toggleDirCollapsed('src');
+      expect(useAppStore.getState().collapsedDirs.has('src')).toBe(false);
+      expect(useAppStore.getState().collapsedDirs.has('lib')).toBe(true);
+    });
+
+    it('resets on clearSession', () => {
+      useAppStore.getState().toggleDirCollapsed('src');
+      useAppStore.getState().toggleDirCollapsed('lib');
+      useAppStore.getState().clearSession();
+      expect(useAppStore.getState().collapsedDirs.size).toBe(0);
+    });
+  });
+
   // ─── Multi-file: prompt generation ────────────────────────────
 
   describe('multi-file prompt generation', () => {

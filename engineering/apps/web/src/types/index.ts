@@ -90,7 +90,15 @@ export interface AppState {
   reviewedFiles: Set<string>;
   /** Whether line wrapping is enabled in the code viewer. Default: true (wrapping ON). */
   lineWrapEnabled: boolean;
+  /** Set of directory paths that are currently collapsed in the file tree. */
+  collapsedDirs: Set<string>;
 }
+
+// Implements: FR-crp-file-tree-display
+/** A node in the file browser tree: either a directory or a file leaf. */
+export type FileTreeNode =
+  | { type: 'directory'; name: string; path: string; children: FileTreeNode[] }
+  | { type: 'file'; fileId: string; name: string };
 
 /** Display items for the virtualized code viewer. */
 export type DisplayItem =

@@ -615,49 +615,54 @@ Handles all three file loading methods: paste, upload, and drag-and-drop. Implem
 
 ### FileBrowser
 
-Vertical sidebar panel listing all loaded files in the session, grouped by review status. Implements `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`. Only rendered when two or more files are loaded (see layout section for transition rules).
+Vertical sidebar panel presenting all loaded files in a nested directory tree, similar to GitHub's pull request file browser. Implements `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`. Only rendered when two or more files are loaded (see layout section for transition rules).
 
 - **Position**: Left side of the layout, next to the code viewer. Fixed width: 240px. Full height of the main content area (from below the toolbar to the bottom of the viewport). Background: `#F8FAFC`. Border-right: 1px solid `#E2E8F0`.
   - **Dark mode**: Background `#1A1D23`, border-right `#2D3139`.
 
 - **Props/Inputs**:
-  - `files: FileEntry[]` where `FileEntry = { id: string; name: string; language: string; commentCount: number; isReviewed: boolean }`
+  - `files: FileEntry[]` where `FileEntry = { id: string; name: string; language: string; commentCount: number; isReviewed: boolean }` — The `name` field contains the full relative path (e.g., `src/utils/helpers.ts`). The tree structure is derived by parsing these paths into a directory hierarchy.
   - `activeFileId: string`
   - `reviewedCount: number` — Number of files marked as reviewed (`FR-crp-file-reviewed-progress`).
+  - `collapsedDirs: Set<string>` — Set of collapsed directory paths (e.g., `"src/"`, `"src/utils/"`). Directories not in this set are expanded by default. Collapse state persists during the session (not reset on file switch).
   - `onSelectFile: (fileId: string) => void`
   - `onRemoveFile: (fileId: string) => void`
   - `onAddFile: () => void`
   - `onToggleReviewed: (fileId: string) => void`
+  - `onToggleDir: (dirPath: string) => void` — Toggles a directory between collapsed and expanded. Adds or removes the directory path from `collapsedDirs`.
 
-- **Visual Structure (with grouping, `FR-crp-file-reviewed-grouping`)**:
+- **Visual Structure (directory tree, `FR-crp-file-reviewed-grouping`)**:
 
+  Mixed reviewed/unreviewed files — within each directory, unreviewed files sort before reviewed:
   ```
   +-------------------------------+
   | FILES          3/7 reviewed   |
   | [+ Add file]                  |
   +-------------------------------+
-  | TO REVIEW                     |
-  |  > src/utils.ts          (3)  |
-  |    src/app.tsx                 |
-  |    lib/helpers.ts        (1)  |
-  +-------------------------------+
-  | REVIEWED                      |
-  |  ✓ config.json           (1)  |
-  |  ✓ README.md                  |
+  | ▾ src/                        |
+  |     app.tsx                   |
+  |   ✓ utils.ts            (3)  |
+  | ▾ lib/                        |
+  |     helpers.ts           (1)  |
+  | ✓ config.json            (1)  |
+  | ✓ README.md                   |
   +-------------------------------+
   ```
+  Note: within `src/`, unreviewed `app.tsx` sorts before reviewed `utils.ts`.
 
-  When all files are unreviewed (no group headers needed):
+  When all files are unreviewed:
   ```
   +-------------------------------+
   | FILES          0/5 reviewed   |
   | [+ Add file]                  |
   +-------------------------------+
-  |    src/utils.ts          (3)  |
-  |    src/app.tsx                 |
-  |    lib/helpers.ts        (1)  |
-  |    config.json                 |
-  |    README.md                   |
+  | ▾ src/                        |
+  |     utils.ts             (3)  |
+  |     app.tsx                   |
+  | ▾ lib/                        |
+  |     helpers.ts           (1)  |
+  |   config.json                 |
+  |   README.md                   |
   +-------------------------------+
   ```
 
@@ -667,14 +672,26 @@ Vertical sidebar panel listing all loaded files in the session, grouped by revie
   | FILES          5/5 reviewed   |
   | [+ Add file]                  |
   +-------------------------------+
-  | REVIEWED                      |
-  |  ✓ src/utils.ts          (3)  |
-  |  ✓ src/app.tsx                 |
-  |  ✓ lib/helpers.ts        (1)  |
-  |  ✓ config.json                 |
-  |  ✓ README.md                   |
+  | ▾ src/                        |
+  |   ✓ utils.ts             (3)  |
+  |   ✓ app.tsx                   |
+  | ▾ lib/                        |
+  |   ✓ helpers.ts           (1)  |
+  | ✓ config.json            (1)  |
+  | ✓ README.md                   |
   +-------------------------------+
   ```
+
+  Collapsed directory:
+  ```
+  +-------------------------------+
+  | ✓ ▸ src/             (2 files)|
+  | ▾ lib/                        |
+  |     helpers.ts           (1)  |
+  | ✓ config.json            (1)  |
+  +-------------------------------+
+  ```
+  When a directory is collapsed, its children are hidden and the directory node shows a summary "(N files)" count. When all files in a collapsed directory are reviewed, the directory node also shows a green checkmark (`✓ ▸ src/`) so the reviewed status is visible even when children are hidden.
 
   - **Header section**: Fixed at the top of the sidebar. Padding: 12px. Border-bottom: 1px solid `#E2E8F0`.
     - **Title row**: "FILES" label (11px semi-bold 600, uppercase, letter-spacing `0.05em`, color `#64748B`) on the left. Review progress indicator ("3/7 reviewed") on the right, same line. Progress style: 11px font-weight 500, color `#64748B`. When all files are reviewed, the progress text turns green (`#16A34A`; dark mode: `#4ADE80`). `FR-crp-file-reviewed-progress`, `AC-crp-file-reviewed-progress-count`.
@@ -682,20 +699,24 @@ Vertical sidebar panel listing all loaded files in the session, grouped by revie
     - **Dark mode header**: Border-bottom `#2D3139`. Title color `#8B95A5`. Progress color `#8B95A5`. Add file button: background `#21252B`, border `#2D3139`, color `#8B95A5`, hover background `#282C34`.
     - **Screen reader**: Progress indicator has `role="status"`, `aria-live="polite"`, `aria-label="N of M files reviewed"`.
 
-  - **Group headers**: "TO REVIEW" and "REVIEWED" section headers. Style: 10px semi-bold (600), uppercase, letter-spacing `0.05em`, color `#94A3B8`, padding 8px 12px 4px 12px. Group headers are only shown when both groups are non-empty, or when all files are in the "Reviewed" group (to make the reviewed state obvious). When all files are unreviewed, group headers are omitted since this is the default state and the headers would add visual noise without informational value.
-    - **Dark mode group headers**: Color `#64748B`.
+  - **Directory nodes**: Represent directories in the file tree. Style: system sans-serif, 12px, font-weight 500, color `#475569` (light) / `#A0AABB` (dark). Padding-left: `12px + (nestingLevel * 16px)`. Height: 28px. Display: flex, align-items: center. Not clickable for file selection (directories are not files). Click toggles collapse/expand.
+    - **Chevron**: 12px, color `#94A3B8`. Points right (▸) when collapsed, down (▾) when expanded. 4px right margin.
+    - **Directory name**: Includes trailing slash (e.g., `src/`, `utils/`). Followed by optional summary when collapsed: "(N files)" in 10px, color `#94A3B8`.
+    - **Nested directories**: Rendered recursively. Each level adds 16px left padding.
+    - **Fully-reviewed indicator** (`FR-crp-file-reviewed-grouping`): When all files within a directory (including nested subdirectories) are marked as reviewed, the directory node shows a green checkmark icon (12px, color `#16A34A`; dark mode: `#4ADE80`) before the directory name, and the directory name text is muted to `#94A3B8` (light) / `#64748B` (dark). This is especially important for collapsed directories — a collapsed, fully-reviewed directory with the checkmark clearly communicates that all its contents have been reviewed. When any child file is unmarked as reviewed, the directory checkmark and muted styling are immediately removed.
+    - **Dark mode directory nodes**: Directory name color `#A0AABB`. Chevron color `#64748B`.
 
-  Within each group, files maintain their original load order (`FR-crp-file-reviewed-grouping`).
+  Within each directory, unreviewed files appear before reviewed files. Among files with the same review status, load order is maintained (`FR-crp-file-reviewed-grouping`). Root-level files (those with no directory in their path) appear at the top of the tree without a parent directory node. Pasted files (which have no path information) also appear at root level.
 
-  - **File rows**: Each loaded file gets a clickable row. Height: 36px. Padding: 0 12px. Display: flex, align-items center. Cursor: pointer. The row shows:
-    - **Active indicator**: For the active file, a 3px solid `#2563EB` (blue) left border and white background (`#FFFFFF`). The left border replaces the left padding.
+  - **File nodes (leaves)**: Each loaded file gets a clickable row as a leaf in the directory tree. Height: 32px (single line). Padding-left: `12px + (nestingLevel * 16px)` where nestingLevel accounts for all parent directories (e.g., a file at `src/utils/helpers.ts` has nestingLevel 2, so padding-left is 44px). Padding-right: 12px. Padding-top/bottom: 4px. Display: flex, align-items: center. Cursor: pointer. The row shows (`FR-crp-multi-file-nav`, `AC-crp-file-path-display`, `AC-crp-file-path-single-dir`):
+    - **Active indicator**: For the active file, a 3px solid `#2563EB` (blue) left border and white background (`#FFFFFF`). The left border replaces the leftmost padding.
     - **Reviewed indicator** (`FR-crp-file-reviewed-visual`): When `isReviewed` is true, a green checkmark icon (12px, color `#16A34A`) appears before the file name with 4px right margin. The icon is always visible (not hover-gated) so the reviewed state is obvious at a glance.
       - Dark mode: Checkmark color `#4ADE80` (green-400).
-    - **File name**: Monospace font, 13px. Truncated with ellipsis if the name exceeds the available width. The 240px sidebar width (minus padding and icons) allows display of file names up to approximately 25-30 characters before truncation, significantly more than the old 200px tabs. When the file is reviewed and the row is inactive, the text color is muted to `#94A3B8` (light slate) to further distinguish reviewed files visually. Flex: 1 (takes available space).
+    - **File name**: The bare filename only (e.g., `helpers.ts`, not `src/utils/helpers.ts`), since the tree structure provides directory context. Monospace font, 13px. Truncated with ellipsis if the name exceeds the available width. When the file is reviewed and the row is inactive, the text color is muted to `#94A3B8` (light slate) to further distinguish reviewed files visually. Flex: 1 (takes available space).
     - **Comment count badge**: Small pill shown only when `commentCount > 0`. Style: background `#3B82F6`, text white, font-size 10px, border-radius 8px, min-width 16px, height 16px, padding 0 4px. Positioned inline after the file name with 6px left margin. Flex-shrink: 0.
     - **Review toggle button**: A small circle icon button (16px hit target, 12px icon). Visible on hover or when the file row is active. When unreviewed: empty circle outline (color `#94A3B8`); when reviewed: filled green checkmark circle (color `#16A34A`). Clicking this toggles the reviewed state directly from the sidebar without switching to the file (`FR-crp-file-reviewed-toggle`). `aria-label="Mark [filename] as reviewed"` or `aria-label="Unmark [filename] as reviewed"` depending on state. Flex-shrink: 0. Margin-left: 4px.
     - **Close button (X icon)**: 14px icon. Visible on hover or when the file row is active. Clicking removes the file (`FR-crp-multi-file-remove`). Hidden for the last remaining file (use Clear session instead). Flex-shrink: 0. Margin-left: 4px.
-  - **Tooltip on hover**: Shows the full file path, detected language, and review status (e.g., "helpers.ts -- TypeScript" or "config.json -- JSON -- Reviewed"). For pasted files, shows "Untitled -- Plain Text" or the user-given name.
+  - **Tooltip on hover**: Shows the full untruncated file path (e.g., `src/utils/helpers.ts`), detected language, and review status (e.g., "src/utils/helpers.ts -- TypeScript" or "config.json -- JSON -- Reviewed"). The tooltip is useful because it displays the complete path even when the filename is truncated, and provides language/review context at a glance. For pasted files, shows "Untitled -- Plain Text" or the user-given name.
 
 - **File Row States**:
 
@@ -726,20 +747,22 @@ Vertical sidebar panel listing all loaded files in the session, grouped by revie
 
 - **Keyboard Accessibility** (`NFR-crp-accessibility-keyboard`):
   - The file browser is focusable as a group. `Tab` key moves focus into the file browser from the toolbar.
-  - `ArrowUp` / `ArrowDown` moves focus between file rows within the browser (traverses across both groups seamlessly — the group headers are not focusable).
-  - `Enter` or `Space` activates (selects) the focused file row.
-  - `Delete` or `Backspace` on a focused file row removes that file (with confirmation if it has comments, per `FR-crp-multi-file-remove`).
-  - `r` on a focused file row toggles the reviewed state for that file (`FR-crp-file-reviewed-toggle`). This key only fires when focus is on a file row element, not when focus is in a text input or comment editor.
-  - `Tab` from the last file row moves focus to the "+ Add file" button. `Enter` or `Space` on the button opens the add-file modal.
+  - `ArrowUp` / `ArrowDown` moves focus between all visible nodes (both directory nodes and file nodes) in the tree, skipping children of collapsed directories.
+  - `ArrowRight` on a collapsed directory expands it. On an expanded directory, moves focus to its first child. On a file node, no effect.
+  - `ArrowLeft` on an expanded directory collapses it. On a child node (file or nested directory), moves focus to its parent directory. On a root-level file node, no effect.
+  - `Enter` or `Space` on a file node activates (selects) it. On a directory node, toggles collapse/expand.
+  - `Delete` or `Backspace` on a focused file node removes that file (with confirmation if it has comments, per `FR-crp-multi-file-remove`). These keys have no effect on directory nodes.
+  - `r` on a focused file node toggles the reviewed state for that file (`FR-crp-file-reviewed-toggle`). This key only fires when focus is on a file node element, not when focus is in a text input, comment editor, or on a directory node.
+  - `Tab` from the last visible tree node moves focus to the "+ Add file" button. `Enter` or `Space` on the button opens the add-file modal.
   - `Shift+Tab` from the file browser moves focus back to the toolbar.
 
 - **ARIA Attributes**:
-  - Container: `role="listbox"`, `aria-label="Loaded files"`, `aria-orientation="vertical"`
-  - Each file row: `role="option"`, `aria-selected="true|false"`. When the file is reviewed, the row also includes `aria-description="Reviewed"`.
-  - Close button within each file row: `aria-label="Remove [filename]"`
-  - Review toggle button within each file row: `aria-label="Mark [filename] as reviewed"` (unreviewed) or `aria-label="Unmark [filename] as reviewed"` (reviewed), `aria-pressed="true|false"`
+  - Container: `role="tree"`, `aria-label="File browser"`
+  - Directory nodes: `role="treeitem"`, `aria-expanded="true|false"`. Contains a nested `role="group"` element wrapping its children.
+  - File nodes: `role="treeitem"`, `aria-selected="true|false"`. When the file is reviewed, the node also includes `aria-description="Reviewed"`.
+  - Close button within each file node: `aria-label="Remove [filename]"`
+  - Review toggle button within each file node: `aria-label="Mark [filename] as reviewed"` (unreviewed) or `aria-label="Unmark [filename] as reviewed"` (reviewed), `aria-pressed="true|false"`
   - Add file button: `aria-label="Add another file"`
-  - Group headers: `role="presentation"` (decorative, not interactive)
 
 ---
 
@@ -1964,6 +1987,8 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-done-standalone-hidden` | Toolbar States table (Done not rendered outside slash command mode); Slash Command Mode Detection |
 | `AC-crp-multi-file-load-adds` | Flow 17 (loading a second file adds to session); FileBrowser component |
 | `AC-crp-multi-file-drop-multiple` | Flow 20 (multiple files dropped simultaneously); FileDropZone multi-drop behavior |
+| `AC-crp-file-path-display` | FileBrowser file nodes in nested directory tree (directory context provided by tree hierarchy — file path visible through parent directory nodes and indentation; tooltip shows full path) |
+| `AC-crp-file-path-single-dir` | FileBrowser directory tree (directory structure always shown via tree hierarchy even when all files share the same directory) |
 | `AC-crp-multi-file-nav-preserves-state` | Flow 18 (switching files preserves comments and scroll position); File Loaded Screen multi-file states |
 | `AC-crp-multi-file-remove-with-comments` | Flow 19 step 3 (confirmation dialog for files with comments); ConfirmationDialog (remove file variant) |
 | `AC-crp-multi-file-remove-no-comments` | Flow 19 step 4 (immediate removal without confirmation) |

@@ -336,6 +336,14 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: Code viewer panel loses 240px of horizontal width in multi-file mode. At narrower viewports (1024-1279px), the right sidebar narrows to 280px to compensate. ARIA roles change from tablist/tab to listbox/option (different semantic model). Supersedes DEC-multi-file-tab-bar.
 **Slug references**: `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-toggle`, `NFR-crp-responsive-layout`
 
+## 2026-02-24 -- Nested directory tree layout for FileBrowser sidebar
+**Context**: The FileBrowser sidebar needed to display file paths to help users identify files, especially when multiple files share the same name (e.g., `helpers.ts` in different directories). An initial design used a two-line row layout (filename on line 1, directory path on line 2). During review, the user found the two-line approach odd and requested a GitHub-style nested directory tree instead.
+**Decision**: The FileBrowser sidebar uses a nested directory tree structure, similar to GitHub's pull request file browser. Files are organized under collapsible directory nodes that show the full hierarchy. Directory nodes (28px) have chevron toggles for collapse/expand. File nodes (32px, single-line) are leaves indented under their parent directories at 16px per nesting level. Within each directory, unreviewed files sort before reviewed files. The previous "To Review" / "Reviewed" group headers are removed — review status is shown through per-file visual indicators (checkmarks, muted text) at each file's tree position.
+**Alternatives considered**: (a) Two-line file rows with directory path below filename (initially implemented, rejected by user as "odd"), (b) full path as a single line (truncates badly), (c) path prefix before filename (wastes horizontal space), (d) only showing paths when names are ambiguous (adds complexity).
+**Rationale**: The tree structure is a familiar pattern from GitHub, VS Code, and other developer tools. It naturally shows where files are without needing a separate "directory path" text field. Collapsible directories help manage large changesets. The tree replaces the flat-list grouping model with a spatial hierarchy that is more intuitive for navigating a codebase.
+**Consequences**: The FileBrowser component becomes more complex (tree rendering, collapse state management, deeper keyboard navigation). ARIA changes from `role="listbox"` to `role="tree"`. The "To Review" / "Reviewed" group headers are removed in favor of within-directory ordering. A new `buildFileTree` utility and `collapsedDirs` store state are needed. The `FR-crp-file-reviewed-grouping` requirement was updated to describe within-directory ordering instead of separate group sections.
+**Slug references**: `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-grouping`, `AC-crp-file-path-display`, `AC-crp-file-path-single-dir`
+
 <!--
 Entry template:
 
