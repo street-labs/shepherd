@@ -328,6 +328,14 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: `groupedFileOrder` derived selector returns `{ toReview: string[], reviewed: string[] }`. FileTabBar renders groups with inline labels ("TO REVIEW" / "REVIEWED") and a vertical divider. Animated transitions move tabs between groups.
 **Slug references**: `FR-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-grouping`
 
+## 2026-02-23 -- Replace horizontal FileTabBar with vertical FileBrowser sidebar
+**Context**: The CRPG's multi-file navigation used a horizontal tab bar (FileTabBar) above the code viewer. With many files, file names were truncated to ~20 characters in 120-200px tabs, making it hard to identify files. The reviewed/unreviewed file grouping was cramped in a horizontal layout.
+**Decision**: Replace the FileTabBar with a FileBrowser sidebar panel -- a 240px fixed-width vertical file list on the left side of the layout. This creates a 3-column layout (FileBrowser | Code Viewer | Prompt Sidebar) instead of the previous 2-column layout with a tab bar above.
+**Alternatives considered**: Keep the horizontal tab bar and increase tab width (truncation still occurs with many files), collapsible left sidebar that overlays the code viewer (obscures content), dropdown file selector (poor visibility of all files at once).
+**Rationale**: File names have significantly more display space (~25-30 chars vs ~20 chars). Vertical list scales naturally to many files (10+) without horizontal scrolling. Reviewed/unreviewed grouping is more natural in a vertical list with section headers. Review progress indicator moves from the toolbar to the sidebar header, co-located with the file list. The 3-column layout still fits within the 1024px minimum viewport requirement (240 + code viewer + 360 = 600px for fixed panels, leaving 424px+ for code).
+**Consequences**: Code viewer panel loses 240px of horizontal width in multi-file mode. At narrower viewports (1024-1279px), the right sidebar narrows to 280px to compensate. ARIA roles change from tablist/tab to listbox/option (different semantic model). Supersedes DEC-multi-file-tab-bar.
+**Slug references**: `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-toggle`, `NFR-crp-responsive-layout`
+
 <!--
 Entry template:
 

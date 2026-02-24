@@ -79,6 +79,7 @@ const initialState: AppState & DiffState & RenderedState = {
   serverFilePaths: {},
   reviewContext: null,
   isReviewContextCollapsed: false,
+  reviewedFiles: new Set<string>(),
   comments: {},
   commentOrder: [],
   preamble: '',
@@ -269,6 +270,9 @@ interface AppActions {
   setReviewContext: (data: ReviewContext | null) => void;
   toggleReviewContextCollapsed: () => void;
 
+  // File reviewed status
+  toggleFileReviewed: (fileId: string) => void;
+
   // Rendered diff comments
   addRenderedDiffComment: (elementId: ElementId, elementType: string, diffStatus: 'added' | 'removed' | 'modified' | 'unchanged', contentPreview: string, text: string) => void;
   updateRenderedDiffComment: (commentId: string, text: string) => void;
@@ -370,6 +374,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const newActiveFile = newFiles[newActiveId!] ?? null;
     const commentOrder = computeCommentOrder(newComments, newActiveId);
 
+    // Clean up reviewed status for removed file
+    const newReviewed = new Set(get().reviewedFiles);
+    newReviewed.delete(fileId);
+
     const newState = {
       ...get(),
       file: newActiveFile,
@@ -378,6 +386,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       activeFileId: newActiveId,
       comments: newComments,
       commentOrder,
+      reviewedFiles: newReviewed,
       focusedCommentId: null,
       selectedRange: null,
       editorState: null,
@@ -390,6 +399,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       activeFileId: newActiveId,
       comments: newComments,
       commentOrder,
+      reviewedFiles: newReviewed,
       focusedCommentId: null,
       selectedRange: null,
       editorState: null,
@@ -992,6 +1002,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   toggleReviewContextCollapsed: () => {
     set({ isReviewContextCollapsed: !get().isReviewContextCollapsed });
+  },
+
+  // --- File reviewed status ---
+
+  toggleFileReviewed: (fileId) => {
+    const next = new Set(get().reviewedFiles);
+    if (next.has(fileId)) next.delete(fileId);
+    else next.add(fileId);
+    set({ reviewedFiles: next });
   },
 
   // --- Rendered diff comments ---

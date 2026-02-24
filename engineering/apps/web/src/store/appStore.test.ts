@@ -743,6 +743,51 @@ describe('appStore', () => {
     });
   });
 
+  // ─── toggleFileReviewed ──────────────────────────────────────
+
+  describe('toggleFileReviewed', () => {
+    it('marks a file as reviewed', () => {
+      loadTestFile(useAppStore.getState());
+      const fileId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().toggleFileReviewed(fileId);
+      expect(useAppStore.getState().reviewedFiles.has(fileId)).toBe(true);
+    });
+
+    it('unmarks a reviewed file (toggle)', () => {
+      loadTestFile(useAppStore.getState());
+      const fileId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().toggleFileReviewed(fileId);
+      expect(useAppStore.getState().reviewedFiles.has(fileId)).toBe(true);
+      useAppStore.getState().toggleFileReviewed(fileId);
+      expect(useAppStore.getState().reviewedFiles.has(fileId)).toBe(false);
+    });
+
+    it('removeFile cleans up reviewedFiles', () => {
+      loadTestFile(useAppStore.getState());
+      const firstId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().toggleFileReviewed(firstId);
+      useAppStore.getState().addFile('second', 'b.ts', 'typescript');
+
+      useAppStore.getState().removeFile(firstId);
+      expect(useAppStore.getState().reviewedFiles.has(firstId)).toBe(false);
+    });
+
+    it('clearSession resets reviewedFiles', () => {
+      loadTestFile(useAppStore.getState());
+      const fileId = useAppStore.getState().activeFileId!;
+      useAppStore.getState().toggleFileReviewed(fileId);
+      useAppStore.getState().clearSession();
+      expect(useAppStore.getState().reviewedFiles.size).toBe(0);
+    });
+
+    it('addFile does not auto-review', () => {
+      loadTestFile(useAppStore.getState());
+      useAppStore.getState().addFile('second', 'b.ts', 'typescript');
+      const newId = useAppStore.getState().activeFileId!;
+      expect(useAppStore.getState().reviewedFiles.has(newId)).toBe(false);
+    });
+  });
+
   // ─── Multi-file: prompt generation ────────────────────────────
 
   describe('multi-file prompt generation', () => {

@@ -82,6 +82,8 @@ export interface AppState {
   reviewContext: ReviewContext | null;
   /** Whether the review context panel is collapsed. */
   isReviewContextCollapsed: boolean;
+  /** Set of file IDs that the user has marked as reviewed. */
+  reviewedFiles: Set<string>;
 }
 
 /** Display items for the virtualized code viewer. */

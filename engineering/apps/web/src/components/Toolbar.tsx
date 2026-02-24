@@ -96,6 +96,14 @@ export function Toolbar({ onClearRequest, onModeChange, onRefreshRequest, onRend
         return;
       }
 
+      // Cmd+Shift+R: toggle file reviewed
+      if (metaOrCtrl && e.shiftKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        const id = useAppStore.getState().activeFileId;
+        if (id) useAppStore.getState().toggleFileReviewed(id);
+        return;
+      }
+
       // Cmd+Shift+C: copy prompt
       if (metaOrCtrl && e.shiftKey && e.key === 'C') {
         e.preventDefault();

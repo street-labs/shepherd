@@ -180,7 +180,7 @@
   2. Drop the file.
 - **Expected Result**: The code viewer displays the file content with line numbers. The FileHeader displays "app.go". The language badge shows "Go".
 - **Edge Cases**:
-  - Dropping multiple files simultaneously: all files should be loaded as separate tabs per `AC-crp-multi-file-drop-multiple`.
+  - Dropping multiple files simultaneously: all files should be loaded as separate file rows in the FileBrowser sidebar per `AC-crp-multi-file-drop-multiple`.
   - Dragging a file but dropping outside the drop zone: nothing should happen, the empty state persists.
 
 ---
@@ -1077,11 +1077,11 @@
 - **Covers**: `AC-crp-multi-file-load-adds`, `FR-crp-multi-file-load`
 - **Preconditions**: A file "utils.ts" is loaded in the viewer with 2 comments.
 - **Steps**:
-  1. Click the "+" button in the File Tab Bar.
+  1. Click the "+" button in the FileBrowser sidebar header.
   2. The FileDropZone modal appears.
   3. Upload "helpers.ts".
   4. The modal closes.
-- **Expected Result**: Two tabs appear in the File Tab Bar: "utils.ts" and "helpers.ts". "helpers.ts" is the active tab (its content is displayed). The 2 comments on "utils.ts" are preserved (switching back shows them). The total comment count still shows "2 comments".
+- **Expected Result**: Two file rows appear in the FileBrowser sidebar: "utils.ts" and "helpers.ts". "helpers.ts" is the active file (its content is displayed). The 2 comments on "utils.ts" are preserved (switching back shows them). The total comment count still shows "2 comments".
 - **Edge Cases**: Loading a file with the same name as an existing file should still work (each has a unique ID).
 
 ---
@@ -1092,11 +1092,11 @@
 - **Covers**: `AC-crp-multi-file-load-adds`, `FR-crp-multi-file-load`
 - **Preconditions**: A file is already loaded.
 - **Steps**:
-  1. Click "+" in the tab bar.
+  1. Click "+" in the FileBrowser sidebar header.
   2. In the modal, click "Paste content".
   3. Paste code and enter "config.json" as the file name.
   4. Click "Load".
-- **Expected Result**: The modal closes. A new tab "config.json" appears and is active. The previous file's tab is still present.
+- **Expected Result**: The modal closes. A new file row "config.json" appears in the FileBrowser sidebar and is active. The previous file's row is still present.
 
 ---
 
@@ -1108,7 +1108,7 @@
 - **Steps**:
   1. Drag 3 text files from the filesystem onto the application window.
   2. Drop them.
-- **Expected Result**: All 3 files are loaded. The tab bar shows 4 tabs total (1 original + 3 new). The last dropped file is the active tab. An info toast shows "Loaded 3 files."
+- **Expected Result**: All 3 files are loaded. The FileBrowser sidebar shows 4 file rows total (1 original + 3 new). The last dropped file is the active file. An info toast shows "Loaded 3 files."
 
 ---
 
@@ -1120,26 +1120,26 @@
 - **Steps**:
   1. Drag 3 files: 2 text files and 1 PNG image.
   2. Drop them all.
-- **Expected Result**: The 2 text files are loaded as tabs. The PNG is rejected. A toast shows "Loaded 2 files. 1 file was skipped (binary)."
+- **Expected Result**: The 2 text files are loaded as file rows in the FileBrowser sidebar. The PNG is rejected. A toast shows "Loaded 2 files. 1 file was skipped (binary)."
 
 ---
 
-#### `TC-crp-multi-file-switch-preserves-comments`: Switching tabs preserves comments
+#### `TC-crp-multi-file-switch-preserves-comments`: Switching files preserves comments
 
 - **Type**: E2E
 - **Covers**: `AC-crp-multi-file-nav-preserves-state`, `FR-crp-multi-file-nav`
 - **Preconditions**: Two files loaded. "utils.ts" has 3 comments on lines 5, 10, and 15. "helpers.ts" has 1 comment on line 3.
 - **Steps**:
   1. Active file is "utils.ts" -- verify 3 comments visible.
-  2. Click "helpers.ts" tab.
+  2. Click "helpers.ts" row in the FileBrowser sidebar.
   3. Verify "helpers.ts" content shows with 1 comment on line 3.
-  4. Click "utils.ts" tab.
+  4. Click "utils.ts" row in the FileBrowser sidebar.
   5. Verify "utils.ts" content shows with 3 comments on lines 5, 10, and 15.
 - **Expected Result**: All comments are preserved across switches. No data loss.
 
 ---
 
-#### `TC-crp-multi-file-switch-preserves-scroll`: Switching tabs preserves scroll position
+#### `TC-crp-multi-file-switch-preserves-scroll`: Switching files preserves scroll position
 
 - **Type**: E2E
 - **Covers**: `AC-crp-multi-file-nav-preserves-state`
@@ -1152,14 +1152,14 @@
 
 ---
 
-#### `TC-crp-multi-file-tab-shows-info`: Tabs show file name and comment count
+#### `TC-crp-multi-file-tab-shows-info`: File rows show file name and comment count
 
 - **Type**: Integration
 - **Covers**: `FR-crp-multi-file-nav`
 - **Preconditions**: Three files loaded. "utils.ts" has 3 comments, "helpers.ts" has 0 comments, "config.json" has 1 comment.
 - **Steps**:
-  1. Observe the tab bar.
-- **Expected Result**: "utils.ts" tab shows a badge "3". "helpers.ts" tab shows no badge. "config.json" tab shows a badge "1". The active tab has distinct styling (white background, blue bottom border).
+  1. Observe the FileBrowser sidebar.
+- **Expected Result**: "utils.ts" file row shows a badge "3". "helpers.ts" file row shows no badge. "config.json" file row shows a badge "1". The active file row has distinct styling (highlighted background).
 
 ---
 
@@ -1167,12 +1167,12 @@
 
 - **Type**: E2E
 - **Covers**: `AC-crp-multi-file-remove-with-comments`, `FR-crp-multi-file-remove`
-- **Preconditions**: Two files loaded. "utils.ts" has 2 comments. It is the active tab.
+- **Preconditions**: Two files loaded. "utils.ts" has 2 comments. It is the active file.
 - **Steps**:
-  1. Click the close (X) button on the "utils.ts" tab.
+  1. Click the close (X) button on the "utils.ts" file row in the FileBrowser sidebar.
   2. A confirmation dialog appears.
   3. Click "Remove" (destructive button).
-- **Expected Result**: "utils.ts" and its 2 comments are removed. "helpers.ts" becomes the active tab. The tab bar shows only "helpers.ts". The total comment count decreases by 2.
+- **Expected Result**: "utils.ts" and its 2 comments are removed. "helpers.ts" becomes the active file. The FileBrowser sidebar shows only "helpers.ts". The total comment count decreases by 2.
 - **Edge Cases**: Clicking "Cancel" in the dialog preserves "utils.ts" and all its comments.
 
 ---
@@ -1194,19 +1194,19 @@
 - **Covers**: `AC-crp-multi-file-remove-no-comments`, `FR-crp-multi-file-remove`
 - **Preconditions**: Two files loaded. "helpers.ts" has 0 comments.
 - **Steps**:
-  1. Click the close (X) button on the "helpers.ts" tab.
+  1. Click the close (X) button on the "helpers.ts" file row in the FileBrowser sidebar.
 - **Expected Result**: "helpers.ts" is removed immediately. No confirmation dialog appears. The remaining file becomes active.
 
 ---
 
-#### `TC-crp-multi-file-remove-active-switches`: Removing active file switches to adjacent tab
+#### `TC-crp-multi-file-remove-active-switches`: Removing active file switches to next file in list
 
 - **Type**: E2E
 - **Covers**: `FR-crp-multi-file-remove`
 - **Preconditions**: Three files loaded in order: A.ts, B.ts, C.ts. B.ts is active and has no comments.
 - **Steps**:
   1. Remove B.ts.
-- **Expected Result**: C.ts becomes the active tab (the next tab to the right). If the rightmost tab is removed, the tab to the left becomes active.
+- **Expected Result**: C.ts becomes the active file (the next file in the list below). If the last file in the list is removed, the file above it becomes active.
 
 ---
 
@@ -1217,7 +1217,7 @@
 - **Preconditions**: Only one file loaded, no comments.
 - **Steps**:
   1. Remove the only file.
-- **Expected Result**: Application returns to the empty state. The tab bar disappears. The FileDropZone (full variant) is shown. Toolbar buttons are disabled.
+- **Expected Result**: Application returns to the empty state. The FileBrowser sidebar disappears. The FileDropZone (full variant) is shown. Toolbar buttons are disabled.
 
 ---
 
@@ -1292,7 +1292,7 @@
 - **Preconditions**: 3 files loaded with comments.
 - **Steps**:
   1. Click "Clear" -> confirm.
-- **Expected Result**: All files, comments, and preamble removed. Application returns to empty state. Tab bar gone.
+- **Expected Result**: All files, comments, and preamble removed. Application returns to empty state. FileBrowser sidebar gone.
 
 ---
 
@@ -1304,27 +1304,27 @@
 
 - **Type**: E2E
 - **Covers**: `AC-crp-context-overall-visible`, `FR-crp-review-context-receive`, `FR-crp-review-context-display`, `FR-crp-review-context-overall`
-- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data provided. At least 2 files are loaded as tabs. The context data includes overall neutral context and overall review feedback.
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data provided. At least 2 files are loaded. The context data includes overall neutral context and overall review feedback.
 - **Steps**:
   1. Open the CRPG via `/shepherd-review` (which passes context data).
   2. Look for an overall changeset context section in the CRPG UI.
   3. Verify the overall neutral context is displayed (factual description of the changeset).
   4. Verify the overall review feedback is displayed (agent's opinions and suggestions).
-  5. Switch between file tabs and verify the overall context remains visible regardless of which tab is active.
-- **Expected Result**: An overall changeset context section is visible in the CRPG. It contains two visually distinct parts: (1) neutral context with factual description (e.g., "This changeset adds a new route and refactors utility functions"), and (2) review feedback with the agent's assessment (e.g., "The route implementation follows good patterns. Consider adding error handling."). The overall context is not tied to a specific file and remains visible when switching tabs. Both sections have clear labels or headers identifying them as "neutral" / "what changed" versus "review" / "feedback."
+  5. Switch between files in the FileBrowser sidebar and verify the overall context remains visible regardless of which file is active.
+- **Expected Result**: An overall changeset context section is visible in the CRPG. It contains two visually distinct parts: (1) neutral context with factual description (e.g., "This changeset adds a new route and refactors utility functions"), and (2) review feedback with the agent's assessment (e.g., "The route implementation follows good patterns. Consider adding error handling."). The overall context is not tied to a specific file and remains visible when switching files. Both sections have clear labels or headers identifying them as "neutral" / "what changed" versus "review" / "feedback."
 - **Edge Cases**:
   - Overall context with only neutral content (no review feedback): the neutral section is shown; the review section is absent or empty.
   - Very long overall context text: the section should be scrollable or otherwise handle overflow gracefully.
 
 ---
 
-#### `TC-crp-context-per-file-visible`: Per-file context is visible for each file tab
+#### `TC-crp-context-per-file-visible`: Per-file context is visible for each file
 
 - **Type**: E2E
 - **Covers**: `AC-crp-context-per-file-visible`, `FR-crp-review-context-per-file`, `FR-crp-review-context-display`
 - **Preconditions**: The CRPG is opened via `/shepherd-review` with context data. At least 2 files are loaded. Each file has per-file neutral context and per-file review feedback in the context data.
 - **Steps**:
-  1. Select the first file tab.
+  1. Select the first file in the FileBrowser sidebar.
   2. Verify per-file neutral context is displayed alongside the diff (factual description of what changed in this file).
   3. Verify per-file review feedback is displayed alongside the diff (agent's opinions about this file).
   4. Verify the neutral and review sections have visually distinct styling.
@@ -1335,24 +1335,24 @@
 
 ---
 
-#### `TC-crp-context-per-file-switches`: Per-file context updates when switching tabs
+#### `TC-crp-context-per-file-switches`: Per-file context updates when switching files
 
 - **Type**: E2E
 - **Covers**: `AC-crp-context-per-file-switches`, `FR-crp-review-context-per-file`
 - **Preconditions**: The CRPG is opened via `/shepherd-review` with context data for files A.ts and B.ts. Both files have distinct per-file context (different neutral and review content).
 - **Steps**:
-  1. Select the A.ts tab.
+  1. Select A.ts in the FileBrowser sidebar.
   2. Read the per-file neutral context and review feedback displayed.
   3. Note the specific content (e.g., neutral says "Modified `fetchData()` function").
-  4. Switch to the B.ts tab.
+  4. Switch to B.ts in the FileBrowser sidebar.
   5. Read the per-file neutral context and review feedback.
   6. Verify the content is different from A.ts's context (e.g., neutral says "Added new `Validator` class").
   7. Switch back to A.ts.
   8. Verify A.ts's per-file context is restored.
-- **Expected Result**: When switching from A.ts to B.ts, the per-file context updates to show B.ts's context. The content is specific to B.ts and different from A.ts. Switching back to A.ts restores A.ts's context. The update happens immediately on tab switch with no stale data or flicker.
+- **Expected Result**: When switching from A.ts to B.ts, the per-file context updates to show B.ts's context. The content is specific to B.ts and different from A.ts. Switching back to A.ts restores A.ts's context. The update happens immediately on file switch with no stale data or flicker.
 - **Edge Cases**:
-  - Rapidly switching between 3+ tabs: context updates correctly for each tab without race conditions.
-  - A tab with no per-file context (e.g., a file added manually): switching to it shows no per-file context panel; switching back to a context-bearing tab restores that file's context.
+  - Rapidly switching between 3+ files: context updates correctly for each file without race conditions.
+  - A file with no per-file context (e.g., a file added manually): switching to it shows no per-file context panel; switching back to a context-bearing file restores that file's context.
 
 ---
 
@@ -1365,7 +1365,7 @@
   1. Observe the overall context section in the CRPG.
   2. Compare the visual styling of the neutral context area versus the review feedback area.
   3. Check for differences in: background color, border color, section header/label text, icons (if any).
-  4. Repeat for per-file context on any file tab.
+  4. Repeat for per-file context on any file.
 - **Expected Result**: The neutral context and review feedback are visually distinct in all of these ways:
   - **Different background/border colors**: Neutral uses informational styling (e.g., blue tones), review uses a distinct color (e.g., violet/purple tones).
   - **Different labels/headers**: Neutral is labeled something like "What changed" or "Changes"; review is labeled something like "Review feedback" or "Agent feedback."
@@ -1418,18 +1418,18 @@
 
 - **Type**: E2E
 - **Covers**: `FR-crp-review-context-display`
-- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data. At least 2 files are loaded as tabs.
+- **Preconditions**: The CRPG is opened via `/shepherd-review` with context data. At least 2 files are loaded.
 - **Steps**:
   1. Locate the context panel (overall or per-file).
   2. Click the collapse/toggle control to collapse the context panel.
   3. Verify the context content is hidden and the panel is minimized.
-  4. Switch to another file tab.
-  5. Verify the collapsed state persists (context panel remains collapsed on the new tab).
+  4. Switch to another file in the FileBrowser sidebar.
+  5. Verify the collapsed state persists (context panel remains collapsed on the new file).
   6. Click the expand/toggle control to expand the context panel.
   7. Verify the context content is visible again.
-  8. Switch tabs again.
+  8. Switch files again.
   9. Verify the expanded state persists.
-- **Expected Result**: The context panel can be collapsed to save vertical space when the reviewer wants to focus on the code. The collapsed state persists across tab switches (the collapse preference is global, not per-tab). Expanding the panel restores the full context view. The toggle control is clearly visible (e.g., a chevron icon or "Show/Hide context" label).
+- **Expected Result**: The context panel can be collapsed to save vertical space when the reviewer wants to focus on the code. The collapsed state persists across file switches (the collapse preference is global, not per-file). Expanding the panel restores the full context view. The toggle control is clearly visible (e.g., a chevron icon or "Show/Hide context" label).
 - **Edge Cases**:
   - Collapsing the panel and then reloading the page: the collapsed state may or may not persist (per `NFR-crp-no-data-persistence`, session state is not persisted across reloads).
   - Collapsing when only overall context is visible (no per-file context): the overall context collapses.
@@ -1445,7 +1445,7 @@
 - **Steps**:
   1. Enable dark mode in the CRPG (or ensure the system is set to dark mode).
   2. Observe the overall context panel (neutral and review sections).
-  3. Observe the per-file context panel on a file tab.
+  3. Observe the per-file context panel on a file.
   4. Verify the neutral vs review visual distinction is maintained in dark mode.
   5. Verify text is readable against the dark background.
   6. Toggle between light and dark mode and verify the context panel adapts.
@@ -1474,9 +1474,9 @@
   1. Locate the ReviewStatusBar in the code viewer area. It should show an unchecked checkbox with the label "Mark as reviewed".
   2. Click the checkbox or button to mark the file as reviewed.
   3. Observe the ReviewStatusBar.
-  4. Observe the file's tab in the FileTabBar.
-  5. Observe the tab grouping in the FileTabBar.
-- **Expected Result**: After step 2: the ReviewStatusBar checkbox becomes filled with a green checkmark and the label changes to "Reviewed" (the checkmark is rendered inside the checkbox icon, not as label text). The file's tab in the FileTabBar shows a green checkmark icon, and the tab text is muted (lower contrast/opacity). The file's tab moves from the "TO REVIEW" group to the "REVIEWED" group in the FileTabBar.
+  4. Observe the file's row in the FileBrowser sidebar.
+  5. Observe the file grouping in the FileBrowser sidebar.
+- **Expected Result**: After step 2: the ReviewStatusBar checkbox becomes filled with a green checkmark and the label changes to "Reviewed" (the checkmark is rendered inside the checkbox icon, not as label text). The file's row in the FileBrowser sidebar shows a green checkmark icon, and the file row text is muted (lower contrast/opacity). The file's row moves from the "TO REVIEW" group to the "REVIEWED" group in the FileBrowser sidebar.
 - **Edge Cases**:
   - Marking a file with no comments as reviewed: should work identically (reviewed status is independent of comments).
   - Marking a file with comments as reviewed: the comments remain visible and editable.
@@ -1492,28 +1492,28 @@
   1. The ReviewStatusBar shows a checked checkbox (filled green checkmark) with label "Reviewed".
   2. Click the checkbox or button to unmark the file.
   3. Observe the ReviewStatusBar.
-  4. Observe the file's tab in the FileTabBar.
-  5. Observe the tab grouping.
-- **Expected Result**: After step 2: the ReviewStatusBar reverts to an unchecked checkbox with label "Mark as reviewed". The file's tab no longer shows a green checkmark, and the tab text returns to normal contrast. The file's tab moves from the "REVIEWED" group back to the "TO REVIEW" group.
+  4. Observe the file's row in the FileBrowser sidebar.
+  5. Observe the file grouping.
+- **Expected Result**: After step 2: the ReviewStatusBar reverts to an unchecked checkbox with label "Mark as reviewed". The file's row no longer shows a green checkmark, and the file row text returns to normal contrast. The file's row moves from the "REVIEWED" group back to the "TO REVIEW" group.
 - **Edge Cases**:
   - Unmarking the only reviewed file: the "REVIEWED" group should become empty/hidden.
 
 ---
 
-#### `TC-crp-mark-reviewed-via-tab`: Mark a file as reviewed via tab bar toggle icon
+#### `TC-crp-mark-reviewed-via-tab`: Mark a file as reviewed via FileBrowser sidebar toggle icon
 
 - **Type**: E2E
 - **Covers**: `AC-crp-file-mark-reviewed`, `FR-crp-file-reviewed-toggle`
-- **Preconditions**: Multiple files are loaded. File B is unreviewed. File A is the active/visible tab.
+- **Preconditions**: Multiple files are loaded. File B is unreviewed. File A is the active/visible file.
 - **Steps**:
-  1. Hover over file B's tab in the FileTabBar (without clicking to switch to it).
+  1. Hover over file B's row in the FileBrowser sidebar (without clicking to switch to it).
   2. A small toggle icon (e.g., a circle or checkmark outline) should appear on hover.
-  3. Click the toggle icon on file B's tab.
-  4. Observe file B's tab.
+  3. Click the toggle icon on file B's row.
+  4. Observe file B's row.
   5. Verify that the active file is still file A (the viewer did not switch).
-- **Expected Result**: After step 3: file B's tab shows a green checkmark and muted text. File B moves to the "REVIEWED" group. The code viewer still displays file A's content (the active file did not change). The progress indicator updates to reflect one more file reviewed.
+- **Expected Result**: After step 3: file B's row shows a green checkmark and muted text. File B moves to the "REVIEWED" group. The code viewer still displays file A's content (the active file did not change). The progress indicator updates to reflect one more file reviewed.
 - **Edge Cases**:
-  - Clicking the tab text (not the toggle icon): this should switch to file B (standard tab behavior), not toggle the reviewed status.
+  - Clicking the file row text (not the toggle icon): this should switch to file B (standard file selection behavior), not toggle the reviewed status.
 
 ---
 
@@ -1524,13 +1524,13 @@
 - **Preconditions**: Multiple files are loaded. The active file is unreviewed.
 - **Steps**:
   1. Press `Cmd+Shift+R` (macOS) or `Ctrl+Shift+R` (other platforms).
-  2. Observe the ReviewStatusBar and the file's tab.
+  2. Observe the ReviewStatusBar and the file's row in the FileBrowser sidebar.
   3. Press `Cmd+Shift+R` / `Ctrl+Shift+R` again.
-  4. Observe the ReviewStatusBar and the file's tab.
-- **Expected Result**: After step 1: the file is marked as reviewed (checkbox filled with green checkmark, label "Reviewed", tab shows checkmark, tab moves to "REVIEWED" group). After step 3: the file is unmarked (checkbox unchecked, label "Mark as reviewed", tab returns to normal, tab moves back to "TO REVIEW" group). The shortcut toggles the reviewed state of the currently active file.
+  4. Observe the ReviewStatusBar and the file's row in the FileBrowser sidebar.
+- **Expected Result**: After step 1: the file is marked as reviewed (checkbox filled with green checkmark, label "Reviewed", file row shows checkmark, file row moves to "REVIEWED" group). After step 3: the file is unmarked (checkbox unchecked, label "Mark as reviewed", file row returns to normal, file row moves back to "TO REVIEW" group). The shortcut toggles the reviewed state of the currently active file.
 - **Edge Cases**:
   - Pressing the shortcut with only 1 file loaded: should still toggle the reviewed status (but the progress indicator may be hidden per `TC-crp-reviewed-progress-hidden-single`).
-  - Pressing `r` when the tab bar is focused: should also toggle reviewed status for the focused tab (per design spec keyboard shortcut `r` for tab-focused context).
+  - Pressing `r` when the FileBrowser sidebar is focused: should also toggle reviewed status for the focused file (per design spec keyboard shortcut `r` for file-list-focused context).
 
 ---
 
@@ -1541,10 +1541,10 @@
 - **Preconditions**: 5 files are loaded (A.ts, B.ts, C.ts, D.ts, E.ts). All are initially unreviewed.
 - **Steps**:
   1. Mark A.ts and C.ts as reviewed.
-  2. Observe the FileTabBar.
-- **Expected Result**: The FileTabBar shows two groups separated by a vertical divider. The first group is labeled "TO REVIEW" and contains B.ts, D.ts, E.ts (3 files). The second group is labeled "REVIEWED" and contains A.ts, C.ts (2 files). The "TO REVIEW" group appears first (left of "REVIEWED"). Within each group, files maintain their original load order.
+  2. Observe the FileBrowser sidebar.
+- **Expected Result**: The FileBrowser sidebar shows two groups separated by a divider. The first group is labeled "TO REVIEW" and contains B.ts, D.ts, E.ts (3 files). The second group is labeled "REVIEWED" and contains A.ts, C.ts (2 files). The "TO REVIEW" group appears first (above "REVIEWED"). Within each group, files maintain their original load order.
 - **Edge Cases**:
-  - Within each group, the tab order should follow the original load order (not alphabetical or review-time order).
+  - Within each group, the file order should follow the original load order (not alphabetical or review-time order).
 
 ---
 
@@ -1555,7 +1555,7 @@
 - **Preconditions**: 3 files loaded, all unreviewed.
 - **Steps**:
   1. Mark all 3 files as reviewed.
-  2. Observe the FileTabBar.
+  2. Observe the FileBrowser sidebar.
 - **Expected Result**: The "TO REVIEW" group is empty and hidden (no empty group label shown). The "REVIEWED" group contains all 3 files. Only the "REVIEWED" group label is visible.
 - **Edge Cases**:
   - Unmarking one file after all are reviewed: the "TO REVIEW" group reappears with that file.
@@ -1568,7 +1568,7 @@
 - **Covers**: `AC-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-grouping`
 - **Preconditions**: 3 files loaded. No files have been marked as reviewed.
 - **Steps**:
-  1. Observe the FileTabBar.
+  1. Observe the FileBrowser sidebar.
 - **Expected Result**: All 3 files appear in the "TO REVIEW" group. The "REVIEWED" group is empty and hidden. No divider or "REVIEWED" label is shown.
 - **Edge Cases**:
   - With only 1 file loaded: the "TO REVIEW" group still shows, or the grouping labels are hidden entirely for single-file sessions (per design spec behavior).
@@ -1581,14 +1581,14 @@
 - **Covers**: `AC-crp-file-reviewed-progress-count`, `FR-crp-file-reviewed-progress`
 - **Preconditions**: 4 files are loaded. All unreviewed.
 - **Steps**:
-  1. Observe the toolbar for a progress indicator.
+  1. Observe the FileBrowser sidebar header for a progress indicator.
   2. Mark the first file as reviewed.
   3. Observe the progress indicator.
   4. Mark the second file as reviewed.
   5. Observe the progress indicator.
 - **Expected Result**: Step 1: the progress indicator shows "0/4 reviewed". Step 3: "1/4 reviewed". Step 5: "2/4 reviewed". The format is "N/M reviewed" where N is the count of reviewed files and M is the total file count.
 - **Edge Cases**:
-  - The progress indicator should be a badge or inline text in the Toolbar area (per design spec).
+  - The progress indicator should be a badge or inline text in the FileBrowser sidebar header (per design spec).
 
 ---
 
@@ -1601,7 +1601,7 @@
   1. Mark A.ts as reviewed. Observe the progress indicator.
   2. Mark B.ts as reviewed. Observe.
   3. Unmark A.ts (toggle back to unreviewed). Observe.
-  4. Remove B.ts from the session (close its tab). Observe.
+  4. Remove B.ts from the session (close its file row). Observe.
   5. Add a new file D.ts. Observe.
 - **Expected Result**: Step 1: "1/3 reviewed". Step 2: "2/3 reviewed". Step 3: "1/3 reviewed" (A.ts unmarked). Step 4: "0/2 reviewed" (B.ts was reviewed and removed; denominator decreases). Step 5: "0/3 reviewed" (D.ts is added as unreviewed; denominator increases).
 - **Edge Cases**:
@@ -1615,7 +1615,7 @@
 - **Covers**: `AC-crp-file-reviewed-progress-count`, `FR-crp-file-reviewed-progress`
 - **Preconditions**: Only 1 file is loaded.
 - **Steps**:
-  1. Observe the toolbar area for a progress indicator.
+  1. Observe the FileBrowser sidebar header for a progress indicator.
 - **Expected Result**: No progress indicator ("N/M reviewed" badge) is shown. The progress indicator only appears when 2 or more files are loaded.
 - **Edge Cases**:
   - Adding a second file: the progress indicator should appear.
@@ -1623,21 +1623,21 @@
 
 ---
 
-#### `TC-crp-reviewed-survives-tab-switch`: Reviewed status persists across tab switches
+#### `TC-crp-reviewed-survives-tab-switch`: Reviewed status persists across file switches
 
 - **Type**: E2E
 - **Covers**: `AC-crp-file-reviewed-survives-tab-switch`, `FR-crp-file-reviewed-persistence`
 - **Preconditions**: 3 files loaded (A.ts, B.ts, C.ts). A.ts is marked as reviewed. B.ts and C.ts are unreviewed.
 - **Steps**:
-  1. Verify A.ts tab shows the reviewed checkmark.
-  2. Click B.ts tab to switch to it.
-  3. Observe A.ts's tab (it should still show the reviewed checkmark).
-  4. Click C.ts tab.
-  5. Click A.ts tab to switch back to it.
+  1. Verify A.ts file row shows the reviewed checkmark.
+  2. Click B.ts in the FileBrowser sidebar to switch to it.
+  3. Observe A.ts's file row (it should still show the reviewed checkmark).
+  4. Click C.ts in the FileBrowser sidebar.
+  5. Click A.ts in the FileBrowser sidebar to switch back to it.
   6. Observe the ReviewStatusBar for A.ts.
-- **Expected Result**: Throughout all tab switches, A.ts remains marked as reviewed. The tab always shows the checkmark. The ReviewStatusBar on A.ts shows the checked state (filled green checkmark, label "Reviewed") when A.ts is the active file. B.ts and C.ts remain unreviewed throughout.
+- **Expected Result**: Throughout all file switches, A.ts remains marked as reviewed. The file row always shows the checkmark. The ReviewStatusBar on A.ts shows the checked state (filled green checkmark, label "Reviewed") when A.ts is the active file. B.ts and C.ts remain unreviewed throughout.
 - **Edge Cases**:
-  - Rapidly switching between tabs (A -> B -> C -> A in quick succession): reviewed states are always consistent and never lost.
+  - Rapidly switching between files (A -> B -> C -> A in quick succession): reviewed states are always consistent and never lost.
 
 ---
 
@@ -1681,9 +1681,9 @@
 - **Covers**: `FR-crp-file-reviewed-progress`
 - **Preconditions**: 3 files loaded. Files A and B are reviewed, file C is unreviewed. Progress shows "2/3 reviewed".
 - **Steps**:
-  1. Remove file A (close its tab, confirm if it has comments).
+  1. Remove file A (close its file row, confirm if it has comments).
   2. Observe the progress indicator.
-  3. Observe the FileTabBar grouping.
+  3. Observe the FileBrowser sidebar grouping.
 - **Expected Result**: After step 1: the progress indicator shows "1/2 reviewed" (B is still reviewed, C is unreviewed). The "REVIEWED" group shows only B. The "TO REVIEW" group shows only C. File A's reviewed status is fully discarded.
 - **Edge Cases**:
   - Removing the only reviewed file: progress shows "0/N reviewed" and the "REVIEWED" group is hidden.
@@ -1697,28 +1697,28 @@
 - **Preconditions**: 2 files loaded. Both are marked as reviewed. Progress shows "2/2 reviewed".
 - **Steps**:
   1. Add a new file (via "+" button, upload, paste, or drag-and-drop).
-  2. Observe the new file's tab.
-  3. Observe the FileTabBar grouping.
+  2. Observe the new file's row in the FileBrowser sidebar.
+  3. Observe the FileBrowser sidebar grouping.
   4. Observe the progress indicator.
-- **Expected Result**: The new file's tab appears in the "TO REVIEW" group with no checkmark and normal (non-muted) text. The progress indicator updates to "2/3 reviewed". The new file's ReviewStatusBar shows "Mark as reviewed" (unchecked).
+- **Expected Result**: The new file's row appears in the "TO REVIEW" group with no checkmark and normal (non-muted) text. The progress indicator updates to "2/3 reviewed". The new file's ReviewStatusBar shows "Mark as reviewed" (unchecked).
 - **Edge Cases**:
   - Adding multiple files at once (drag-and-drop multiple): all new files should be unreviewed.
 
 ---
 
-#### `TC-crp-reviewed-visual-tab-states`: Visual distinction between reviewed and unreviewed tabs
+#### `TC-crp-reviewed-visual-tab-states`: Visual distinction between reviewed and unreviewed file rows
 
 - **Type**: E2E
 - **Covers**: `FR-crp-file-reviewed-visual`
-- **Preconditions**: 3 files loaded. File A is reviewed. Files B and C are unreviewed. File B is the active tab.
+- **Preconditions**: 3 files loaded. File A is reviewed. Files B and C are unreviewed. File B is the active file.
 - **Steps**:
-  1. Observe file A's tab (reviewed, inactive).
-  2. Observe file B's tab (unreviewed, active).
-  3. Observe file C's tab (unreviewed, inactive).
-  4. Click file A's tab to make it active.
-  5. Observe file A's tab (reviewed, active).
-  6. Observe file B's tab (unreviewed, inactive).
-- **Expected Result**: Reviewed tabs (A) have: a green checkmark icon, muted/lower-opacity text, and a subtly different background from unreviewed tabs. Unreviewed tabs (B, C) have: no checkmark icon, normal-contrast text. The active tab styling (e.g., white background, blue bottom border) applies on top of the reviewed/unreviewed styling. Specifically: file A active+reviewed is visually distinct from file B active+unreviewed. File A inactive+reviewed is visually distinct from file C inactive+unreviewed. All four combinations (active/inactive x reviewed/unreviewed) are distinguishable.
+  1. Observe file A's row (reviewed, inactive).
+  2. Observe file B's row (unreviewed, active).
+  3. Observe file C's row (unreviewed, inactive).
+  4. Click file A's row to make it active.
+  5. Observe file A's row (reviewed, active).
+  6. Observe file B's row (unreviewed, inactive).
+- **Expected Result**: Reviewed file rows (A) have: a green checkmark icon, muted/lower-opacity text, and a subtly different background from unreviewed file rows. Unreviewed file rows (B, C) have: no checkmark icon, normal-contrast text. The active file row styling (e.g., highlighted background) applies on top of the reviewed/unreviewed styling. Specifically: file A active+reviewed is visually distinct from file B active+unreviewed. File A inactive+reviewed is visually distinct from file C inactive+unreviewed. All four combinations (active/inactive x reviewed/unreviewed) are distinguishable.
 - **Edge Cases**:
   - In dark mode: the checkmark, muted text, and background differences should still be distinguishable.
 
@@ -1749,8 +1749,8 @@
 - **Preconditions**: Only 1 file is loaded. It is unreviewed.
 - **Steps**:
   1. Mark the file as reviewed.
-  2. Observe the ReviewStatusBar, tab, and grouping.
-- **Expected Result**: The ReviewStatusBar shows the checked state (filled green checkmark, label "Reviewed"). The tab shows a checkmark. The progress indicator is hidden (single file). Group labels are not shown in single-file mode since the FileTabBar is not visible with only one file.
+  2. Observe the ReviewStatusBar, file row, and grouping.
+- **Expected Result**: The ReviewStatusBar shows the checked state (filled green checkmark, label "Reviewed"). The file row shows a checkmark. The progress indicator is hidden (single file). Group labels are not shown in single-file mode since the FileBrowser sidebar is not visible with only one file.
 - **Edge Cases**:
   - Unmarking the only file: reverts to unreviewed state with no grouping labels visible.
 
@@ -1763,10 +1763,10 @@
 - **Preconditions**: 2 files loaded, both reviewed. Progress shows "2/2 reviewed".
 - **Steps**:
   1. Add a new file.
-  2. Observe the FileTabBar and progress indicator.
-- **Expected Result**: The new file appears in the "TO REVIEW" group (which was previously hidden and now reappears). The progress indicator updates to "2/3 reviewed". The "TO REVIEW" group appears above/before the "REVIEWED" group.
+  2. Observe the FileBrowser sidebar and progress indicator.
+- **Expected Result**: The new file appears in the "TO REVIEW" group (which was previously hidden and now reappears). The progress indicator updates to "2/3 reviewed". The "TO REVIEW" group appears above the "REVIEWED" group.
 - **Edge Cases**:
-  - The new file is the active tab: its ReviewStatusBar should show "Mark as reviewed" (unchecked).
+  - The new file is the active file: its ReviewStatusBar should show "Mark as reviewed" (unchecked).
 
 ---
 
@@ -2093,15 +2093,15 @@ Since this is a greenfield single-page application with no existing features, tr
 
 9. **Prompt builder refactor**: The prompt builder changes from single-file to multi-file. Existing single-file tests must still pass (the multi-file builder should produce identical output when only one file has comments).
 
-10. **Tab bar interaction with toolbar**: The tab bar introduces a new layer of navigation. Ensure toolbar actions (Copy, Clear, Done) still reference the correct aggregated state across all files, not just the active file.
+10. **FileBrowser sidebar interaction with toolbar**: The FileBrowser sidebar introduces a new layer of navigation. Ensure toolbar actions (Copy, Clear, Done) still reference the correct aggregated state across all files, not just the active file.
 
-11. **Review context display**: The context panel is a new UI element overlaid on the existing CRPG layout. Changes to the layout, sidebar, toolbar, or file tab bar could cause the context panel to overlap or be hidden. The context panel must coexist with the existing code viewer, comment bubbles, and prompt preview without layout conflicts.
+11. **Review context display**: The context panel is a new UI element overlaid on the existing CRPG layout. Changes to the layout, sidebar, toolbar, or FileBrowser sidebar could cause the context panel to overlap or be hidden. The context panel must coexist with the existing code viewer, comment bubbles, and prompt preview without layout conflicts.
 
 12. **Context data handoff mechanism**: The mechanism for receiving context data (URL parameters, file-based, API) must be backward-compatible. When no context data is provided (standalone mode, `/shepherd` single file), the CRPG must work exactly as before -- no empty context panels, no errors, no layout shifts.
 
 13. **Dark mode and context**: The context panel introduces new color tokens (blue for neutral, violet for review). Dark mode must provide appropriate dark-mode variants of these colors. Changes to the dark mode implementation could cause the context panel to render with light-mode colors or insufficient contrast.
 
-14. **File review tracking and tab bar grouping**: The file review tracking feature adds grouping ("TO REVIEW" / "REVIEWED") to the FileTabBar and a progress indicator to the Toolbar. Changes to tab bar rendering, tab ordering, or file addition/removal logic could break the grouping display or cause reviewed status to be lost. The reviewed status must survive tab switches but not page reloads. Changes to the clear session flow must also reset all reviewed statuses. The reviewed status is orthogonal to comments -- changes to comment add/edit/delete logic must not affect the reviewed flag.
+14. **File review tracking and FileBrowser sidebar grouping**: The file review tracking feature adds grouping ("TO REVIEW" / "REVIEWED") to the FileBrowser sidebar and a progress indicator to the FileBrowser sidebar header. Changes to FileBrowser sidebar rendering, file ordering, or file addition/removal logic could break the grouping display or cause reviewed status to be lost. The reviewed status must survive file switches but not page reloads. Changes to the clear session flow must also reset all reviewed statuses. The reviewed status is orthogonal to comments -- changes to comment add/edit/delete logic must not affect the reviewed flag.
 
 ### Recommended regression suite
 
@@ -2127,10 +2127,10 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-multi-file-remove-last-empty-state` (cleanup works)
 - `TC-crp-context-graceful-missing` (no context panel in standalone mode)
 - `TC-crp-context-overall-visible` (overall context displayed with context data)
-- `TC-crp-context-per-file-switches` (per-file context updates on tab switch)
+- `TC-crp-context-per-file-switches` (per-file context updates on file switch)
 - `TC-crp-context-neutral-vs-review` (neutral vs review visual distinction)
 - `TC-crp-mark-reviewed-happy` (file reviewed toggle works)
 - `TC-crp-reviewed-grouping-display` (reviewed/unreviewed grouping correct)
 - `TC-crp-reviewed-progress-updates` (progress indicator tracks correctly)
-- `TC-crp-reviewed-survives-tab-switch` (reviewed status persists across tabs)
+- `TC-crp-reviewed-survives-tab-switch` (reviewed status persists across file switches)
 - `TC-crp-reviewed-clear-session-resets` (clear session resets reviewed statuses)

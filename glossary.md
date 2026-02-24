@@ -5,7 +5,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Every agent must check this glossary before introducing a new term.** If a concept already has a name here, use it. If you need a new term, add it here first.
 
 ## Code Review Prompt Generator (CRPG)
-**Definition**: The core application of the Shepherd project. A client-side web app that lets developers load one or more source files, annotate them with inline comments, and generate a single structured prompt for AI coding assistants. Supports multiple files simultaneously in a tabbed interface. Available as a local web app and (planned) as a standalone CLI.
+**Definition**: The core application of the Shepherd project. A client-side web app that lets developers load one or more source files, annotate them with inline comments, and generate a single structured prompt for AI coding assistants. Supports multiple files simultaneously in a file browser sidebar. Available as a local web app and (planned) as a standalone CLI.
 **Also known as**: CRPG, the app
 **Not to be confused with**: The slash command (which is a launcher for the CRPG, not the CRPG itself)
 
@@ -170,7 +170,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: The tip of the base branch (which may have moved forward since the branch was created)
 
 ## Review Iteration Loop
-**Definition**: The workflow in `/shepherd-review` where the agent discovers the changeset, filters files, prints a changeset overview with per-file context, and batch-opens all reviewable files in the CRPG. The user reviews files at their own pace using the CRPG's tab interface, then clicks Done to return a unified prompt. The agent processes the feedback and presents a completion summary.
+**Definition**: The workflow in `/shepherd-review` where the agent discovers the changeset, filters files, prints a changeset overview with per-file context, and batch-opens all reviewable files in the CRPG. The user reviews files at their own pace using the CRPG's file browser, then clicks Done to return a unified prompt. The agent processes the feedback and presents a completion summary.
 **Also known as**: Review loop, batch-open loop
 **Not to be confused with**: The engineering-QA iteration loop (which is a development process, not a user-facing feature)
 
@@ -273,10 +273,10 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Definition**: A spec file with a platform suffix (e.g., `code-review-prompt.macos.md`) that documents how a feature diverges from its base spec on a particular platform. Only covers differences — shared behavior stays in the base spec.
 **Also known as**: Platform variant, suffixed spec
 **Not to be confused with**: Base spec (which covers shared or web-specific behavior)
-## File Tab Bar
-**Definition**: A horizontal tab bar displayed between the toolbar and the main content area when multiple files are loaded. Each tab shows a file name, an optional comment count badge, and a close (X) button. The "+" button at the end opens the file loading modal to add more files. Tabs are ordered by load order.
-**Also known as**: FileTabBar (component name), tab strip
-**Not to be confused with**: Browser tabs (which navigate between pages)
+## FileBrowser
+**Definition**: A vertical sidebar panel (240px fixed width) on the left side of the CRPG layout in multi-file mode. Lists all loaded files grouped by review status ("To Review" and "Reviewed" sections). Each file row shows the file name, comment count badge, review toggle, and remove button. The header contains a review progress indicator and an "Add file" button. Appears when two or more files are loaded; collapses to single-file layout when only one file remains. Replaces the former horizontal File Tab Bar component.
+**Also known as**: FileBrowser (component name), file sidebar
+**Not to be confused with**: Browser file dialogs (which are OS-native file pickers)
 
 ## Active File
 **Definition**: The currently visible file in the code viewer. In a multi-file session, only one file is active at a time. Switching the active file preserves all comments and scroll position for the previously active file. Comments can only be added to the active file.
@@ -299,19 +299,19 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Neutral context (which is purely factual), inline comments (which are user-authored)
 
 ## Review Context Panel
-**Definition**: A collapsible UI component in the CRPG that displays review context data. Positioned between the file tab bar and the code viewer. Contains two sections: overall changeset context (visible for all tabs) and per-file context (switches when the user changes tabs). Each section shows neutral context and review feedback as visually distinct sub-sections. Only visible when context data is available (slash command mode with shepherd-review).
+**Definition**: A collapsible UI component in the CRPG that displays review context data. Positioned inside the Code Viewer Panel. Contains two sections: overall changeset context (visible for all tabs) and per-file context (switches when the user changes tabs). Each section shows neutral context and review feedback as visually distinct sub-sections. Only visible when context data is available (slash command mode with shepherd-review).
 **Also known as**: ReviewContextPanel (component name), context panel
 **Not to be confused with**: Prompt Preview (which shows the generated prompt, not review context)
 
 ## Reviewed Status
-**Definition**: A per-file boolean flag indicating whether the user considers a file "reviewed." Defaults to unreviewed for all files. Toggled manually by the user — the application never auto-marks a file. Persists within the browser session but not across page reloads. Independent of whether the file has comments. Used to drive tab grouping, visual indicators, and the progress indicator.
+**Definition**: A per-file boolean flag indicating whether the user considers a file "reviewed." Defaults to unreviewed for all files. Toggled manually by the user — the application never auto-marks a file. Persists within the browser session but not across page reloads. Independent of whether the file has comments. Used to drive file grouping in the FileBrowser sidebar, visual indicators, and the progress indicator.
 **Also known as**: Review status, reviewed flag
 **Not to be confused with**: Review feedback (the AI agent's assessment), inline comments (user annotations on specific lines)
 
 ## Review Status Bar
 **Definition**: A compact horizontal bar inside the code viewer panel that provides the primary mechanism for toggling a file's reviewed status. Displays a checkbox and label ("Mark as reviewed" / "Reviewed") and a keyboard shortcut hint. Always visible when at least one file is loaded. The entire bar is clickable.
 **Also known as**: ReviewStatusBar (component name)
-**Not to be confused with**: File Tab Bar (which shows all files as tabs), Toolbar (the top-level action bar)
+**Not to be confused with**: FileBrowser (which lists all files in a sidebar), Toolbar (the top-level action bar)
 
 ## Review Progress Indicator
 **Definition**: A compact text badge in the toolbar showing the count of reviewed files versus total loaded files (e.g., "3/7 reviewed"). Only visible when two or more files are loaded. Updates immediately on mark/unmark, file add, or file remove. Turns green when all files are reviewed.
@@ -319,8 +319,8 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Comment count (which tracks inline comments, not reviewed status)
 
 ## File Grouping
-**Definition**: The organization of tabs in the File Tab Bar into two visual groups based on reviewed status: "TO REVIEW" (unreviewed files, shown first) and "REVIEWED" (reviewed files, shown second). Groups are separated by inline labels and a vertical divider. Within each group, files maintain their original load order. Group labels appear when there are files in both groups, or when all files are reviewed (only the "REVIEWED" label shows).
-**Also known as**: Tab grouping, reviewed/unreviewed grouping
+**Definition**: The organization of file rows in the FileBrowser into two visual groups based on reviewed status: "TO REVIEW" (unreviewed files, shown first) and "REVIEWED" (reviewed files, shown second). Groups are separated by inline labels and a vertical divider. Within each group, files maintain their original load order. Group labels appear when there are files in both groups, or when all files are reviewed (only the "REVIEWED" label shows).
+**Also known as**: File grouping, reviewed/unreviewed grouping
 **Not to be confused with**: File ordering (which is load order within each group)
 
 <!--

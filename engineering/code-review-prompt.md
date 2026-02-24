@@ -119,16 +119,16 @@ type EditorState =
 Several values are computed from the store rather than stored directly:
 
 - **Comment count (global)**: `Object.values(state.comments).length` — total across all files. Used by the Toolbar (`FR-crp-comment-count`).
-- **Comments per file**: `Map<string, number>` counting comments per `fileId`. Used by FileTabBar for per-file comment count badges.
+- **Comments per file**: `Map<string, number>` counting comments per `fileId`. Used by FileBrowser for per-file comment count badges.
 - **Lines with comments (active file)**: A `Map<number, string[]>` mapping each line number to the IDs of comments covering that line, filtered to only comments where `fileId === state.activeFileId`. Computed via a selector that iterates `comments`, filters by active file, and expands each `[startLine, endLine]` range.
 - **Current comment index**: Position of `focusedCommentId` within `commentOrder` (which is already filtered to the active file).
 - **commentOrder recomputation**: The `commentOrder` array is recomputed whenever the active file changes (via `setActiveFile`) or when comments are mutated (`addComment`, `updateComment`, `deleteComment`). It filters `comments` to those matching `activeFileId`, then sorts by `startLine` ascending, then `createdAt` ascending for ties.
 
 - **Per-file review context (active file)**: Derived from `state.reviewContext?.files[activeFilePath]` where `activeFilePath` is the `name` (full path) of the active file. Returns `{ neutral: string, review: string } | null`. Used by the ReviewContextPanel to display per-file context for the active tab.
 
-- **reviewedCount**: `state.reviewedFiles.size` — number of files marked as reviewed. Used by the Toolbar's review progress indicator (`FR-crp-file-reviewed-progress`).
+- **reviewedCount**: `state.reviewedFiles.size` — number of files marked as reviewed. Used by the FileBrowser sidebar header's review progress indicator (`FR-crp-file-reviewed-progress`).
 - **totalFileCount**: `state.fileOrder.length` — total number of loaded files. Used alongside `reviewedCount` for the "N/M reviewed" progress indicator.
-- **groupedFileOrder**: Derived array that partitions `fileOrder` into two groups: unreviewed files first (maintaining load order within the group), then reviewed files (maintaining load order within the group). Computed by iterating `fileOrder` and splitting based on membership in `reviewedFiles`. Used by `FileTabBar` to render tabs in "TO REVIEW" and "REVIEWED" sections (`FR-crp-file-reviewed-grouping`). The result is a structure like `{ toReview: string[]; reviewed: string[] }` so the component can render group labels and dividers between sections.
+- **groupedFileOrder**: Derived array that partitions `fileOrder` into two groups: unreviewed files first (maintaining load order within the group), then reviewed files (maintaining load order within the group). Computed by iterating `fileOrder` and splitting based on membership in `reviewedFiles`. Used by `FileBrowser` to render file rows in "TO REVIEW" and "REVIEWED" sections (`FR-crp-file-reviewed-grouping`). The result is a structure like `{ toReview: string[]; reviewed: string[] }` so the component can render group labels and dividers between sections.
 - **isActiveFileReviewed**: `state.activeFileId !== null && state.reviewedFiles.has(state.activeFileId)` — boolean for whether the currently active file is marked as reviewed. Used by the `ReviewStatusBar` component (`FR-crp-file-reviewed-toggle`).
 
 These are implemented as Zustand selectors (or derived via `useMemo` in components) to avoid redundant state.
@@ -145,13 +145,13 @@ App
  +-- MainContent
       +-- [if no files] FileDropZone (full variant)   (design: FileDropZone)
       +-- [if files loaded]
-           +-- FileTabBar                              (design: FileTabBar)
+           +-- FileBrowser (multi-file only, 240px sidebar) (design: FileBrowser)
            +-- CodeViewerPanel
-           |    +-- FileHeader (single-file only, hidden when tab bar active)
+           |    +-- FileHeader (single-file only, hidden when FileBrowser active)
            |    +-- ReviewContextPanel                 (design: ReviewContextPanel, conditional on context data)
            |    |    +-- ContextSection (neutral)       (design: ContextSection, "What Changed" variant)
            |    |    +-- ContextSection (review)        (design: ContextSection, "Agent Review" variant)
-           |    +-- ReviewStatusBar                    NEW (design: ReviewStatusBar, always visible when file loaded)
+           |    +-- ReviewStatusBar                    (design: ReviewStatusBar, always visible when file loaded)
            |    +-- CodeViewer         (design: CodeViewer)
            |         +-- VirtualRow (repeated, virtualized)
            |              +-- GutterCell
@@ -159,7 +159,7 @@ App
            |              +-- CodeContentCell
            |         +-- CommentBubble (design: CommentBubble, rendered inline between virtual rows)
            |         +-- InlineCommentEditor (design: InlineCommentEditor, rendered inline when editing)
-           +-- SidebarPanel
+           +-- SidebarPanel (360px fixed)
                 +-- PreambleInput     (design: PreambleInput)
                 +-- PromptPreview     (design: PromptPreview)
  +-- FileDropZone (modal variant, rendered via portal when adding files)
@@ -173,18 +173,18 @@ App
 Root component. Renders the top-level layout: Toolbar at top, MainContent below. Provides no context providers -- Zustand store is accessed directly by each component that needs it. Registers a global drag-and-drop listener on the entire window when files are loaded — dropping files anywhere on the app adds them to the session (calls `store.addFile()` for each valid file). This implements the design spec's "entire app window is a drop target" behavior.
 
 #### `Toolbar`
-Implements the persistent toolbar. Reads the global comment count (across all files via `Object.values(state.comments).length`), `focusedCommentId`, `commentOrder`, `activeFileId`, `reviewedCount`, and `totalFileCount` from the store to determine button states and display the review progress indicator. Dispatches actions: `copyPrompt`, `clearSession`, `navigateComment('next' | 'prev')`, `toggleFileReviewed(activeFileId)`. Registers keyboard shortcuts (`Cmd+Shift+C`, `[`, `]`, `Cmd+Shift+R`) via a `useEffect` with `keydown` listener on `document`. Prompt generation is handled automatically by the store on comment/preamble mutation, so the Toolbar does not include a Generate button.
+Implements the persistent toolbar. Reads the global comment count (across all files via `Object.values(state.comments).length`), `focusedCommentId`, `commentOrder`, and `activeFileId` from the store to determine button states. Dispatches actions: `copyPrompt`, `clearSession`, `navigateComment('next' | 'prev')`, `toggleFileReviewed(activeFileId)`. Registers keyboard shortcuts (`Cmd+Shift+C`, `[`, `]`, `Cmd+Shift+R`) via a `useEffect` with `keydown` listener on `document`. Prompt generation is handled automatically by the store on comment/preamble mutation, so the Toolbar does not include a Generate button.
 
-The **review progress indicator** is rendered as a compact text badge ("N/M reviewed") positioned between the comment count and the action buttons. It is only visible when `totalFileCount >= 2` (`FR-crp-file-reviewed-progress`). The indicator updates immediately when files are marked/unmarked, added, or removed. When `reviewedCount === totalFileCount` and `totalFileCount >= 2`, the text turns green to signal completion (`AC-crp-file-reviewed-progress-count`).
+> **Note**: The review progress indicator ("N/M reviewed") has moved from the Toolbar to the FileBrowser sidebar header (`FR-crp-file-reviewed-progress`). It is only visible when the FileBrowser is rendered (2+ files loaded). See the FileBrowser component spec for details.
 
 The `Cmd+Shift+R` / `Ctrl+Shift+R` keyboard shortcut is registered in the same `useEffect` keydown listener as other shortcuts. It is only active when at least one file is loaded (`activeFileId !== null`). It calls `toggleFileReviewed(activeFileId)` to toggle the active file's reviewed status.
 
-Maps to: `FR-crp-comment-count`, `FR-crp-comment-navigation`, `FR-crp-prompt-copy`, `FR-crp-clear-session`, `FR-crp-file-reviewed-progress`, `AC-crp-multi-file-comment-count`, `AC-crp-file-reviewed-progress-count`.
+Maps to: `FR-crp-comment-count`, `FR-crp-comment-navigation`, `FR-crp-prompt-copy`, `FR-crp-clear-session`, `AC-crp-multi-file-comment-count`.
 
 #### `FileDropZone`
 Handles all three file-loading methods: paste, upload, drag-and-drop (`FR-crp-file-load`). Supports two variants:
 - **`variant: 'full'`** — Original behavior: fills the main content area when no files are loaded. This is the empty-state drop zone.
-- **`variant: 'modal'`** — Rendered as a portal modal overlay when adding files to an existing session (triggered by the "+" button in FileTabBar or via `store.openAddFileModal()`). The existing file content remains visible behind the backdrop.
+- **`variant: 'modal'`** — Rendered as a portal modal overlay when adding files to an existing session (triggered by the "+ Add file" button in the FileBrowser sidebar or via `store.openAddFileModal()`). The existing file content remains visible behind the backdrop.
 
 Manages its own local UI state (current variant: default, drag-hover, paste-mode, loading, error). On successful load, calls the store's `addFile(content, fileName, language)` action.
 
@@ -196,25 +196,27 @@ Language detection: maps file extension to Shiki language ID using a static look
 
 Maps to: `FR-crp-file-load`, `FR-crp-multi-file-load`, `AC-crp-load-paste`, `AC-crp-load-upload`, `AC-crp-load-drag-drop`, `AC-crp-binary-file-rejected`, `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-drop-multiple`.
 
-#### `FileTabBar`
-Renders the horizontal tab bar for navigating between loaded files. Appears between the Toolbar and the code viewer panel when two or more files are loaded. Reads `files`, `activeFileId`, `reviewedFiles`, per-file comment counts, and the `groupedFileOrder` derived selector from the store. Dispatches: `setActiveFile(fileId)`, `removeFile(fileId)`, `openAddFileModal()`, `toggleFileReviewed(fileId)`.
+#### `FileBrowser`
+Renders a vertical sidebar panel (240px fixed width) on the left side of the layout for navigating between loaded files. Appears when two or more files are loaded, creating a three-column layout: `[FileBrowser 240px | Code Viewer Panel | Sidebar 360px]`. Reads `files`, `activeFileId`, `reviewedFiles`, `reviewedCount`, `totalFileCount`, per-file comment counts, and the `groupedFileOrder` derived selector from the store. Dispatches: `setActiveFile(fileId)`, `removeFile(fileId)`, `openAddFileModal()`, `toggleFileReviewed(fileId)`.
 
-Tabs are rendered in two groups based on `groupedFileOrder`: unreviewed files first ("TO REVIEW" group), then reviewed files ("REVIEWED" group), with group labels and a vertical divider between sections when both groups are non-empty. Within each group, files maintain their original load order. Group labels are inline text elements ("TO REVIEW" / "REVIEWED") rendered before each group's tabs. When all files are unreviewed (default state), group labels are omitted. When all files are reviewed, only the "REVIEWED" label is shown.
+The sidebar has a header area containing the review progress indicator ("N/M reviewed" text badge, visible only when `totalFileCount >= 2`, turns green when `reviewedCount === totalFileCount`) and a "+ Add file" button (`FR-crp-file-reviewed-progress`, `AC-crp-file-reviewed-progress-count`).
 
-Each tab displays: an optional green checkmark icon for reviewed files (`FR-crp-file-reviewed-visual`), the file name (truncated with ellipsis if needed), a comment count badge (if > 0 comments on that file), a review toggle icon button (visible on hover or when tab is active — clicking toggles `toggleFileReviewed(fileId)` without switching to the file), and a close (X) button. Reviewed files with inactive tabs display muted text color for additional visual distinction. The active tab has distinct styling (per design spec).
+Below the header, file rows are rendered in two groups based on `groupedFileOrder`: unreviewed files first ("TO REVIEW" group), then reviewed files ("REVIEWED" group), with group labels and a horizontal divider between sections when both groups are non-empty. Within each group, files maintain their original load order. Group labels are inline text elements ("TO REVIEW" / "REVIEWED") rendered before each group's file rows. When all files are unreviewed (default state), group labels are omitted. When all files are reviewed, only the "REVIEWED" label is shown.
 
-A "+" button at the end of the tab row opens the FileDropZone in modal variant for adding additional files.
+Each file row displays: an optional green checkmark icon for reviewed files (`FR-crp-file-reviewed-visual`), the file name (monospace, 13px, truncated with ellipsis if needed), a comment count badge (if > 0 comments on that file), a review toggle icon button (visible on hover or when the row is active -- clicking toggles `toggleFileReviewed(fileId)` without switching to the file), and a close (X) button (visible on hover). Reviewed files with inactive rows display muted text color (`#94A3B8`) for additional visual distinction. The active file row has a white background and blue left border (per design spec). Hovering over a file row shows a tooltip with the full file name and language.
 
-When the tab bar has only one file remaining (after removals), it collapses and the FileHeader is shown instead (single-file layout). The tab bar re-appears when a second file is loaded.
+The "+ Add file" button in the sidebar header opens the FileDropZone in modal variant for adding additional files.
 
-For pasted files named "Untitled", right-clicking the tab opens an inline rename input (matching the FileHeader's rename affordance).
+When the sidebar has only one file remaining (after removals), it collapses and the layout reverts to single-file mode with the FileHeader restored. The sidebar re-appears when a second file is loaded.
 
-Keyboard: `r` on a focused tab toggles the reviewed state for that file (only when focus is on a tab element, not in a text input).
+For pasted files named "Untitled", right-clicking the file row opens an inline rename input (matching the FileHeader's rename affordance).
 
-Maps to: `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-file-reviewed-grouping`.
+Keyboard: The file list uses `role="listbox"` with `aria-label="Loaded files"` and `aria-orientation="vertical"`. Each file row uses `role="option"` with `aria-selected="true|false"`. `ArrowUp`/`ArrowDown` moves focus between file rows (traversing across both groups seamlessly -- group headers are not focusable). `Enter` or `Space` activates the focused file. `r` on a focused file row toggles the reviewed state for that file (only when focus is on a file row element, not in a text input). `Delete` or `Backspace` on a focused file row triggers file removal (with confirmation if the file has comments).
+
+Maps to: `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-progress-count`.
 
 #### `FileHeader`
-Displays file name and language badge (`FR-crp-filename-display`). Only rendered in single-file mode (when `fileOrder.length === 1`); in multi-file mode, the FileTabBar provides this information instead. When the file was pasted without a name, renders an inline-editable text input. Calls `store.updateFileName(fileId, name)` on change.
+Displays file name and language badge (`FR-crp-filename-display`). Only rendered in single-file mode (when `fileOrder.length === 1`); in multi-file mode, the FileBrowser sidebar provides this information instead. When the file was pasted without a name, renders an inline-editable text input. Calls `store.updateFileName(fileId, name)` on change.
 
 #### `CodeViewer`
 The most complex component. Renders the virtualized list of code lines using TanStack Virtual (`NFR-crp-large-file-perf`, `AC-crp-large-file-scroll`). Each visible row is a `VirtualRow` containing the gutter, line number, and syntax-highlighted code content.
@@ -258,15 +260,15 @@ Ephemeral notification rendered via a React portal. Auto-dismisses after the con
 Maps to: `AC-crp-copy-clipboard`.
 
 #### `ReviewContextPanel`
-Collapsible panel that displays structured review context data provided by the shepherd-review command. Positioned between the FileHeader (single-file mode) or the top of the Code Viewer Panel (multi-file mode) and the CodeViewer.
+Collapsible panel that displays structured review context data provided by the shepherd-review command. Positioned between the FileHeader (single-file mode) or the top of the Code Viewer Panel (multi-file mode, where the FileBrowser sidebar replaces the FileHeader) and the CodeViewer.
 
 This component is **conditionally rendered** -- it only appears when `state.reviewContext` is non-null. When no context data is available (standalone mode, single `/shepherd`), the component is not rendered at all. There is no empty or placeholder state (`AC-crp-context-graceful-missing`).
 
 The panel has two content groups:
 1. **Overall section** ("CHANGESET OVERVIEW"): Always visible when the panel is expanded. Displays `state.reviewContext.overall.neutral` and `state.reviewContext.overall.review` via two `ContextSection` sub-components.
-2. **Per-file section** ("FILE: [filename]"): Displays the per-file context for the currently active file. Derived from `state.reviewContext.files[activeFilePath]`. When the active file has no per-file context (e.g., file added via paste/upload), the per-file section is not rendered -- only the overall section shows. When tabs switch, the per-file section updates automatically via the Zustand selector (`AC-crp-context-per-file-switches`).
+2. **Per-file section** ("FILE: [filename]"): Displays the per-file context for the currently active file. Derived from `state.reviewContext.files[activeFilePath]`. When the active file has no per-file context (e.g., file added via paste/upload), the per-file section is not rendered -- only the overall section shows. When the active file changes, the per-file section updates automatically via the Zustand selector (`AC-crp-context-per-file-switches`).
 
-Collapse/expand state is stored in `state.isReviewContextCollapsed`. Default is `false` (expanded on first load). The collapse state persists across tab switches -- it is a session-level preference, not per-file. The `clearSession` action resets it to `false`.
+Collapse/expand state is stored in `state.isReviewContextCollapsed`. Default is `false` (expanded on first load). The collapse state persists across file switches -- it is a session-level preference, not per-file. The `clearSession` action resets it to `false`.
 
 The entire panel content is read-only (`AC-crp-context-readonly`). Max-height is 40% of the Code Viewer Panel height with vertical scroll overflow.
 
@@ -375,7 +377,7 @@ interface AppStore extends AppState {
 - **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`. Also resets `reviewContext` to `null` and `isReviewContextCollapsed` to `false` (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`).
 - **`saveScrollPosition`**: Stores the given scroll offset for the specified file ID in `scrollPositions`. Called automatically by `setActiveFile` before switching.
 - **`setReviewContext`**: Sets the `reviewContext` field. Called once on mount by the `useFileFromUrl` hook after loading files, if context data is available from `GET /api/review-context`. Setting this to a non-null value causes the `ReviewContextPanel` to render.
-- **`toggleReviewContextCollapsed`**: Toggles `isReviewContextCollapsed`. This is a session-level preference — persists across tab switches.
+- **`toggleReviewContextCollapsed`**: Toggles `isReviewContextCollapsed`. This is a session-level preference — persists across file switches.
 - **`toggleFileReviewed`**: Toggles the given file's membership in `reviewedFiles`. If the file ID is currently in the set, removes it (unmark as reviewed); if not in the set, adds it (mark as reviewed). Does not change `activeFileId` or any other state — the toggle is orthogonal to file selection, comments, and scroll position (`AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-survives-tab-switch`). Triggers no prompt regeneration (reviewed status is not reflected in the generated prompt). Maps to: `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`.
 
 #### Selectors
@@ -408,7 +410,7 @@ const commentsByLine = useAppStore((s) => {
   return map;
 });
 
-// Derived: per-file comment counts for FileTabBar badges
+// Derived: per-file comment counts for FileBrowser badges
 const commentCountsByFile = useAppStore((s) => {
   const counts = new Map<string, number>();
   for (const comment of Object.values(s.comments)) {
@@ -435,7 +437,7 @@ const isActiveFileReviewed = useAppStore(
 const reviewedCount = useAppStore((s) => s.reviewedFiles.size);
 const totalFileCount = useAppStore((s) => s.fileOrder.length);
 
-// Derived: grouped file order for FileTabBar (FR-crp-file-reviewed-grouping)
+// Derived: grouped file order for FileBrowser (FR-crp-file-reviewed-grouping)
 const groupedFileOrder = useAppStore((s) => {
   const toReview: string[] = [];
   const reviewed: string[] = [];
@@ -938,7 +940,7 @@ engineering/
           appStore.ts           Zustand store definition (multi-file state)
         components/
           Toolbar.tsx
-          FileTabBar.tsx        Tab bar for multi-file navigation
+          FileBrowser.tsx        Sidebar panel for multi-file navigation
           FileDropZone.tsx      (updated: full + modal variants)
           FileHeader.tsx
           CodeViewer.tsx
@@ -968,7 +970,7 @@ engineering/
             languageDetect.test.ts
             appStore.test.ts          (includes Done action, slash command mode, and multi-file store tests)
           component/
-            FileTabBar.test.tsx       Tab bar rendering, interaction, badges
+            FileBrowser.test.tsx       Sidebar rendering, interaction, badges
             FileDropZone.test.tsx     (includes modal variant tests)
             CodeViewer.test.tsx
             CommentBubble.test.tsx
@@ -1012,11 +1014,11 @@ Components tested with mocked store state:
 
 | Component | Key Test Cases |
 |---|---|
-| `FileTabBar` | Renders tabs for all files in `fileOrder`; shows comment count badges for files with comments; active tab has correct styling; click tab calls `setActiveFile`; click X calls `removeFile`; "+" button calls `openAddFileModal`; tab for pasted file supports rename on right-click; **file-reviewed tests**: renders tabs in two groups (unreviewed first, reviewed second) via `groupedFileOrder`; shows "TO REVIEW" / "REVIEWED" group labels when both groups non-empty; hides group labels when all files unreviewed; shows green checkmark for reviewed files; mutes text color for inactive reviewed tabs; click review toggle button calls `toggleFileReviewed`; tab moves between groups on toggle; `r` key on focused tab toggles reviewed state. Validates `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-grouping`. |
+| `FileBrowser` | Renders file rows for all files in `fileOrder`; shows comment count badges for files with comments; active file row has correct styling (white background, blue left border); click file row calls `setActiveFile`; click X calls `removeFile`; "+ Add file" button calls `openAddFileModal`; file row for pasted file supports rename on right-click; sidebar header shows review progress ("N/M reviewed"); uses `role="listbox"` with `role="option"` for file rows; `ArrowUp`/`ArrowDown` moves focus between file rows; **file-reviewed tests**: renders file rows in two groups (unreviewed first, reviewed second) via `groupedFileOrder`; shows "TO REVIEW" / "REVIEWED" group labels when both groups non-empty; hides group labels when all files unreviewed; shows green checkmark for reviewed files; mutes text color for inactive reviewed file rows; click review toggle button calls `toggleFileReviewed`; file row moves between groups on toggle; `r` key on focused file row toggles reviewed state; review progress indicator turns green when all files reviewed. Validates `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`, `AC-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-progress-count`. |
 | `FileDropZone` | Renders empty state instructions (`AC-crp-empty-state`); file upload triggers `addFile` (`AC-crp-load-upload`); paste mode works (`AC-crp-load-paste`); binary file shows error (`AC-crp-binary-file-rejected`); **modal variant**: renders as overlay; multi-file drop loads all valid files (`AC-crp-multi-file-drop-multiple`); binary files in multi-drop are skipped with toast. |
 | `CodeViewer` | Renders line numbers; click on gutter opens editor (`AC-crp-add-comment-single-line`); Shift+click selects range (`AC-crp-add-comment-line-range`); keyboard navigation works (`AC-crp-keyboard-add-comment`). |
-| `Toolbar` | Copy button disabled until prompt exists (auto-generated when comments present); comment count displays correctly as global total across all files (`AC-crp-multi-file-comment-count`); no Generate button (prompt auto-generates); Done button hidden when `isSlashCommandMode` is false (`AC-crp-done-standalone-hidden`); Done button visible when `isSlashCommandMode` is true; Done button disabled when no comments (`AC-crp-done-disabled-no-comments`); Done button shows "Sending..." during send; Done button shows "Sent" after successful send (`AC-crp-done-confirmation`); Done button triggers `sendPromptToAgent`; Copy becomes secondary when Done is visible; Cmd+Shift+D keyboard shortcut fires `sendPromptToAgent` (`FR-crp-done-action`); **file-reviewed tests**: progress indicator hidden when `totalFileCount < 2`; progress indicator shows "N/M reviewed" when `totalFileCount >= 2`; progress indicator updates on toggle/add/remove; progress text turns green when all files reviewed; Cmd+Shift+R keyboard shortcut calls `toggleFileReviewed(activeFileId)` (`FR-crp-file-reviewed-progress`, `AC-crp-file-reviewed-progress-count`). |
-| `ReviewContextPanel` | Not rendered when `reviewContext` is null (`AC-crp-context-graceful-missing`); renders overall section when context data is available (`AC-crp-context-overall-visible`); renders per-file section when active file has per-file context (`AC-crp-context-per-file-visible`); hides per-file section when active file has no per-file context; updates per-file section on tab switch (`AC-crp-context-per-file-switches`); collapse/expand toggle works; collapse state persists across mock tab switches; all content is read-only (`AC-crp-context-readonly`). |
+| `Toolbar` | Copy button disabled until prompt exists (auto-generated when comments present); comment count displays correctly as global total across all files (`AC-crp-multi-file-comment-count`); no Generate button (prompt auto-generates); Done button hidden when `isSlashCommandMode` is false (`AC-crp-done-standalone-hidden`); Done button visible when `isSlashCommandMode` is true; Done button disabled when no comments (`AC-crp-done-disabled-no-comments`); Done button shows "Sending..." during send; Done button shows "Sent" after successful send (`AC-crp-done-confirmation`); Done button triggers `sendPromptToAgent`; Copy becomes secondary when Done is visible; Cmd+Shift+D keyboard shortcut fires `sendPromptToAgent` (`FR-crp-done-action`); Cmd+Shift+R keyboard shortcut calls `toggleFileReviewed(activeFileId)`. Note: review progress indicator has moved to FileBrowser sidebar -- Toolbar no longer renders it. |
+| `ReviewContextPanel` | Not rendered when `reviewContext` is null (`AC-crp-context-graceful-missing`); renders overall section when context data is available (`AC-crp-context-overall-visible`); renders per-file section when active file has per-file context (`AC-crp-context-per-file-visible`); hides per-file section when active file has no per-file context; updates per-file section on file switch (`AC-crp-context-per-file-switches`); collapse/expand toggle works; collapse state persists across mock tab switches; all content is read-only (`AC-crp-context-readonly`). |
 | `ReviewStatusBar` | Renders "Mark as reviewed" with unchecked checkbox when file is unreviewed; renders "Reviewed" with green checkmark when file is reviewed; clicking bar calls `toggleFileReviewed(activeFileId)`; keyboard Enter/Space on checkbox toggles state; displays correct keyboard shortcut hint; updates when active file changes. Validates `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`. |
 | `ContextSection` | Neutral variant renders with blue styling, info icon, and "What Changed" label; review variant renders with violet styling, sparkle icon, and "Agent Review" label (`AC-crp-context-neutral-vs-review`); hidden when content is empty; content rendered as plain text with `pre-wrap`; content is not editable. |
 | `PromptPreview` | Shows empty variant when no comments (prompt is null); shows populated variant with current prompt text when comments exist; prompt always reflects latest comments and preamble. |
@@ -1049,15 +1051,15 @@ Full user flows tested in a real browser:
 | Multi-file: clear session removes all files and comments | `AC-crp-multi-file-clear-all` |
 | Review context: context panel visible when context data exists | `FR-crp-review-context-display`, `AC-crp-context-overall-visible` |
 | Review context: context panel hidden when no context data (standalone) | `AC-crp-context-graceful-missing` |
-| Review context: per-file context switches when changing tabs | `AC-crp-context-per-file-switches`, `AC-crp-context-per-file-visible` |
+| Review context: per-file context switches when changing files | `AC-crp-context-per-file-switches`, `AC-crp-context-per-file-visible` |
 | Review context: neutral vs review sections visually distinct | `AC-crp-context-neutral-vs-review` |
-| Review context: collapse/expand persists across tab switches | `FR-crp-review-context-display` |
+| Review context: collapse/expand persists across file switches | `FR-crp-review-context-display` |
 | Review context: content is read-only (not editable) | `AC-crp-context-readonly` |
-| File reviewed: mark file as reviewed via ReviewStatusBar, verify tab visual update and group change | `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `FR-crp-file-reviewed-visual` |
-| File reviewed: unmark a reviewed file, verify tab returns to "To Review" group | `AC-crp-file-unmark-reviewed` |
-| File reviewed: tabs grouped into "To Review" and "Reviewed" sections with labels | `FR-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-grouping` |
-| File reviewed: progress indicator shows correct "N/M reviewed" count, updates on toggle/add/remove | `FR-crp-file-reviewed-progress`, `AC-crp-file-reviewed-progress-count` |
-| File reviewed: reviewed status survives tab switch | `AC-crp-file-reviewed-survives-tab-switch`, `FR-crp-file-reviewed-persistence` |
+| File reviewed: mark file as reviewed via ReviewStatusBar, verify FileBrowser visual update and group change | `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `FR-crp-file-reviewed-visual` |
+| File reviewed: unmark a reviewed file, verify file row returns to "To Review" group in FileBrowser | `AC-crp-file-unmark-reviewed` |
+| File reviewed: FileBrowser file rows grouped into "To Review" and "Reviewed" sections with labels | `FR-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-grouping` |
+| File reviewed: FileBrowser sidebar header progress indicator shows correct "N/M reviewed" count, updates on toggle/add/remove | `FR-crp-file-reviewed-progress`, `AC-crp-file-reviewed-progress-count` |
+| File reviewed: reviewed status survives file switch | `AC-crp-file-reviewed-survives-tab-switch`, `FR-crp-file-reviewed-persistence` |
 | File reviewed: marking is independent of comment presence | `AC-crp-file-reviewed-with-comments` |
 | File reviewed: clear session resets all reviewed statuses | `AC-crp-file-reviewed-clear-session` |
 | File reviewed: Cmd+Shift+R keyboard shortcut toggles active file reviewed state | `FR-crp-file-reviewed-toggle` |
@@ -1149,16 +1151,16 @@ The work is divided into four phases. Each phase produces a deployable increment
 
 1. Refactor data model: Update TypeScript types for multi-file (`FileInfo` gets `id`, `Comment` gets `fileId`, `AppState` gets `files`/`fileOrder`/`activeFileId`/`scrollPositions`).
 2. Refactor Zustand store: Replace `loadFile` with `addFile`, add `removeFile`, `setActiveFile`, `saveScrollPosition`, `openAddFileModal`/`closeAddFileModal`. Update all actions that reference `state.file` to use `state.files[state.activeFileId]`.
-3. Build `FileTabBar` component with tab rendering, close buttons, comment count badges, "+" button, and rename affordance for pasted files.
+3. Build `FileBrowser` component as a 240px fixed-width sidebar panel with file row rendering, close buttons, comment count badges, "+ Add file" button, review progress indicator in the sidebar header, and rename affordance for pasted files. Use `role="listbox"` / `role="option"` ARIA pattern with `ArrowUp`/`ArrowDown` keyboard navigation.
 4. Update `FileDropZone` to support `modal` variant (portal overlay). Update multi-file drop logic to iterate all files and call `addFile()` for each (with per-file binary detection and summary toast).
 5. Add global drop target on `App` — register drag-and-drop listener on the entire window when files are loaded so dropping files anywhere adds them to the session.
 6. Update `promptBuilder.ts` for multi-file: accept `files`, `fileOrder`, `comments`, and `preamble`. Group comments by `fileId`, filter to files with comments, order by `fileOrder`, produce combined output with per-file sections.
 7. Update `CodeViewer` to restore scroll position on file switch (read from `scrollPositions` when `activeFileId` changes).
 8. Update `Toolbar` to read global comment count across all files (`Object.values(state.comments).length`).
 9. Update `ConfirmationDialog` to handle both "clear session" (remove all files) and "remove file" (remove individual file with comments) use cases.
-10. Write unit tests for multi-file `promptBuilder` and store. Write component tests for `FileTabBar`. Write E2E tests for multi-file flows.
+10. Write unit tests for multi-file `promptBuilder` and store. Write component tests for `FileBrowser`. Write E2E tests for multi-file flows.
 
-**Delivers**: Complete multi-file workflow: load multiple files via any method, navigate between files via tab bar, add/edit/delete comments per file, generate combined prompt, remove individual files or clear entire session.
+**Delivers**: Complete multi-file workflow: load multiple files via any method, navigate between files via FileBrowser sidebar, add/edit/delete comments per file, generate combined prompt, remove individual files or clear entire session.
 
 **Slug coverage**: `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-multi-file-prompt`, `FR-crp-multi-file-prompt-format`, `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-drop-multiple`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-remove-with-comments`, `AC-crp-multi-file-remove-no-comments`, `AC-crp-multi-file-prompt-structure`, `AC-crp-multi-file-prompt-omits-uncommented`, `AC-crp-multi-file-comment-count`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`.
 
@@ -1170,11 +1172,11 @@ The work is divided into four phases. Each phase produces a deployable increment
 2. Add `ReviewContext` type and `reviewContext`/`isReviewContextCollapsed` fields to the Zustand store. Add `setReviewContext` and `toggleReviewContextCollapsed` actions. Update `clearSession` to reset these fields.
 3. Update `useFileFromUrl` hook: after loading files from URL params, fetch `GET /api/review-context`. On success, call `store.setReviewContext(data)`. On failure (404/error), silently ignore.
 4. Build `ContextSection` component with two variants: neutral ("What Changed", blue styling, info icon) and review ("Agent Review", violet styling, sparkle icon). Render content as plain text with `white-space: pre-wrap`. Hide when content is empty.
-5. Build `ReviewContextPanel` component: collapsible panel containing overall and per-file sections, each with neutral + review `ContextSection` sub-components. Position between FileHeader/FileTabBar and CodeViewer. Conditionally rendered only when `state.reviewContext` is non-null. Per-file section derived from `state.reviewContext.files[activeFilePath]` — updates on tab switch via Zustand selector. Max-height 40% of Code Viewer Panel with overflow scroll.
+5. Build `ReviewContextPanel` component: collapsible panel containing overall and per-file sections, each with neutral + review `ContextSection` sub-components. Position between FileHeader (single-file) or top of Code Viewer Panel (multi-file, where FileBrowser replaces FileHeader) and CodeViewer. Conditionally rendered only when `state.reviewContext` is non-null. Per-file section derived from `state.reviewContext.files[activeFilePath]` -- updates on file switch via Zustand selector. Max-height 40% of Code Viewer Panel with overflow scroll.
 6. Wire the ReviewContextPanel into the CodeViewerPanel layout. Verify it appears in both single-file and multi-file modes when context data is available, and is absent when not.
 7. Write unit tests for store changes. Write component tests for `ReviewContextPanel` and `ContextSection`. Write E2E tests for context loading, display, per-file switching, collapse/expand, and graceful missing.
 
-**Delivers**: When launched via `/shepherd-review`, the CRPG displays overall changeset context and per-file context alongside each diff. Neutral ("What Changed") and review ("Agent Review") sections are visually distinct. The context panel is collapsible and updates per-file context on tab switch. When launched standalone or via `/shepherd`, no context panel is shown.
+**Delivers**: When launched via `/shepherd-review`, the CRPG displays overall changeset context and per-file context alongside each diff. Neutral ("What Changed") and review ("Agent Review") sections are visually distinct. The context panel is collapsible and updates per-file context on file switch. When launched standalone or via `/shepherd`, no context panel is shown.
 
 **Slug coverage**: `FR-crp-review-context-receive`, `FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`, `AC-crp-context-overall-visible`, `AC-crp-context-per-file-visible`, `AC-crp-context-per-file-switches`, `AC-crp-context-neutral-vs-review`, `AC-crp-context-graceful-missing`, `AC-crp-context-readonly`.
 
@@ -1185,12 +1187,12 @@ The work is divided into four phases. Each phase produces a deployable increment
 1. Add `reviewedFiles: Set<string>` to the Zustand store's `AppState`. Add `toggleFileReviewed(fileId)` action. Update `clearSession` to reset `reviewedFiles` to empty set. Update `removeFile` to remove file ID from `reviewedFiles`. Verify `addFile` does NOT add to `reviewedFiles`.
 2. Add derived selectors: `reviewedCount`, `totalFileCount`, `groupedFileOrder` (partitions `fileOrder` into `{ toReview, reviewed }`), and `isActiveFileReviewed`.
 3. Build `ReviewStatusBar` component: compact bar with checkbox + label, positioned below ReviewContextPanel (or at top of code viewer area). Reads `isActiveFileReviewed`, dispatches `toggleFileReviewed(activeFileId)`. Displays keyboard shortcut hint.
-4. Update `FileTabBar` to read `groupedFileOrder` instead of `fileOrder`. Render tabs in two groups with "TO REVIEW" / "REVIEWED" labels and a divider. Add reviewed indicator (green checkmark) and review toggle icon button per tab. Apply muted text for inactive reviewed tabs.
-5. Update `Toolbar` to render review progress indicator ("N/M reviewed" badge) between comment count and action buttons, visible only when `totalFileCount >= 2`. Register `Cmd+Shift+R` / `Ctrl+Shift+R` keyboard shortcut for toggling active file's reviewed state.
-6. Write unit tests for store changes (`toggleFileReviewed`, `clearSession` reset, `removeFile` cleanup, `addFile` default). Write component tests for `ReviewStatusBar` (toggle, visual states). Update `FileTabBar` tests for grouping. Update `Toolbar` tests for progress indicator.
-7. Write E2E tests: mark/unmark files, verify grouping transitions, verify progress count updates, verify reviewed state survives tab switches, verify clear session resets.
+4. Update `FileBrowser` to read `groupedFileOrder` instead of `fileOrder`. Render file rows in two groups with "TO REVIEW" / "REVIEWED" labels and a divider. Add reviewed indicator (green checkmark) and review toggle icon button per file row. Apply muted text for inactive reviewed file rows. Add review progress indicator ("N/M reviewed") to the FileBrowser sidebar header, visible only when `totalFileCount >= 2`.
+5. Register `Cmd+Shift+R` / `Ctrl+Shift+R` keyboard shortcut in the Toolbar for toggling active file's reviewed state.
+6. Write unit tests for store changes (`toggleFileReviewed`, `clearSession` reset, `removeFile` cleanup, `addFile` default). Write component tests for `ReviewStatusBar` (toggle, visual states). Update `FileBrowser` tests for grouping and progress indicator.
+7. Write E2E tests: mark/unmark files, verify grouping transitions, verify progress count updates, verify reviewed state survives file switches, verify clear session resets.
 
-**Delivers**: Users can mark files as reviewed with a checkbox bar, keyboard shortcut, or tab bar icon. Files are visually grouped by review status. A progress indicator shows review progress. Reviewed state persists within the session and resets on clear.
+**Delivers**: Users can mark files as reviewed with a checkbox bar, keyboard shortcut, or FileBrowser sidebar icon. Files are visually grouped by review status in the FileBrowser. A progress indicator in the FileBrowser sidebar header shows review progress. Reviewed state persists within the session and resets on clear.
 
 **Slug coverage**: `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`, `FR-crp-file-reviewed-persistence`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `AC-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-progress-count`, `AC-crp-file-reviewed-survives-tab-switch`, `AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-clear-session`.
 
@@ -1218,24 +1220,24 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-prompt-copy` | `clipboard.ts`; store `copyPrompt` action; `Toolbar` Copy button; `ToastNotification` |
 | `FR-crp-prompt-format` | `promptBuilder.ts` (format assembly logic) |
 | `FR-crp-clear-session` | `ConfirmationDialog` component (clear session variant); store `clearSession` action (resets all files, comments, preamble); `Toolbar` Clear button |
-| `FR-crp-filename-display` | `FileHeader` component (single-file); `FileTabBar` component (multi-file); store `files[activeFileId].name` |
+| `FR-crp-filename-display` | `FileHeader` component (single-file); `FileBrowser` component (multi-file); store `files[activeFileId].name` |
 | `FR-crp-line-range-comment` | `CodeViewer` range selection (mouse drag, Shift+click); `InlineCommentEditor` with range anchor |
 | `FR-crp-comment-navigation` | `Toolbar` prev/next buttons; store `navigateComment` action; `CodeViewer` `scrollToIndex` |
 | `FR-crp-done-action` | `Toolbar` Done button (conditional render, state display, keyboard shortcut); store `doneState` field, `sendPromptToAgent` action, `isSlashCommandMode` field; `useFileFromUrl` hook (sets slash command mode) |
 | `FR-crp-prompt-handoff` | Store `sendPromptToAgent` action (POST to `/api/prompt-output`); Vite plugin endpoint (see `../engineering/slash-command.md`) |
 | `FR-crp-multi-file-load` | `FileDropZone` (full + modal variants); global drop target on `App`; store `addFile` action |
-| `FR-crp-multi-file-nav` | `FileTabBar` component; store `setActiveFile` action; `scrollPositions` state |
-| `FR-crp-multi-file-remove` | `FileTabBar` close button; `ConfirmationDialog` (file removal variant); store `removeFile` action |
+| `FR-crp-multi-file-nav` | `FileBrowser` component; store `setActiveFile` action; `scrollPositions` state |
+| `FR-crp-multi-file-remove` | `FileBrowser` close button; `ConfirmationDialog` (file removal variant); store `removeFile` action |
 | `FR-crp-multi-file-prompt` | `promptBuilder.ts` (multi-file mode); store auto-generation on any comment change across any file |
 | `FR-crp-multi-file-prompt-format` | `promptBuilder.ts` (multi-file format assembly with per-file sections) |
 | `FR-crp-review-context-receive` | `ReviewContextPanel` component (conditional rendering based on `state.reviewContext`); `useFileFromUrl` hook (fetches `GET /api/review-context` after loading files); Vite plugin endpoint (`GET /api/review-context` reads `~/.shepherd/review-context.json`); store `setReviewContext` action |
-| `FR-crp-review-context-display` | `ReviewContextPanel` component; `ContextSection` component (neutral/review variants); Code Viewer Panel layout (positioned between FileHeader/FileTabBar and CodeViewer) |
+| `FR-crp-review-context-display` | `ReviewContextPanel` component; `ContextSection` component (neutral/review variants); Code Viewer Panel layout (positioned between FileHeader and CodeViewer in single-file mode; at top of Code Viewer Panel in multi-file mode where FileBrowser replaces FileHeader) |
 | `FR-crp-review-context-overall` | `ReviewContextPanel` component (overall "CHANGESET OVERVIEW" section using `state.reviewContext.overall`) |
 | `FR-crp-review-context-per-file` | `ReviewContextPanel` component (per-file section derived from `state.reviewContext.files[activeFilePath]`); updates on `setActiveFile` via Zustand selector |
-| `FR-crp-file-reviewed-toggle` | `ReviewStatusBar` component (primary toggle); `FileTabBar` review toggle icon button; `Toolbar` keyboard shortcut `Cmd+Shift+R`; store `toggleFileReviewed` action; store `reviewedFiles` state |
-| `FR-crp-file-reviewed-visual` | `FileTabBar` component (green checkmark icon, muted text for inactive reviewed tabs); `ReviewStatusBar` component (checked/unchecked visual states) |
-| `FR-crp-file-reviewed-grouping` | `FileTabBar` component (reads `groupedFileOrder` selector); group labels ("TO REVIEW" / "REVIEWED"); divider between groups |
-| `FR-crp-file-reviewed-progress` | `Toolbar` component (review progress indicator badge "N/M reviewed"); `reviewedCount` and `totalFileCount` derived selectors |
+| `FR-crp-file-reviewed-toggle` | `ReviewStatusBar` component (primary toggle); `FileBrowser` review toggle icon button; `Toolbar` keyboard shortcut `Cmd+Shift+R`; store `toggleFileReviewed` action; store `reviewedFiles` state |
+| `FR-crp-file-reviewed-visual` | `FileBrowser` component (green checkmark icon, muted text for inactive reviewed file rows); `ReviewStatusBar` component (checked/unchecked visual states) |
+| `FR-crp-file-reviewed-grouping` | `FileBrowser` component (reads `groupedFileOrder` selector); group labels ("TO REVIEW" / "REVIEWED"); divider between groups |
+| `FR-crp-file-reviewed-progress` | `FileBrowser` component sidebar header (review progress indicator badge "N/M reviewed"); `reviewedCount` and `totalFileCount` derived selectors |
 | `FR-crp-file-reviewed-persistence` | Store `reviewedFiles` state (in-memory `Set<string>`); `clearSession` resets to empty set; `removeFile` removes from set; `addFile` does not add to set |
 
 ### Non-Functional Requirements
@@ -1282,7 +1284,7 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-done-standalone-hidden` | `Toolbar` conditional render (`isSlashCommandMode === false` hides Done); `useFileFromUrl` sets mode; `clearSession` resets mode |
 | `AC-crp-multi-file-load-adds` | Store `addFile` (preserves existing files and comments when adding a new file) |
 | `AC-crp-multi-file-drop-multiple` | `FileDropZone` multi-file drop handling; `App` global drop target; per-file binary detection with summary toast |
-| `AC-crp-multi-file-nav-preserves-state` | Store `setActiveFile` (preserves comments and scroll position per file); `FileTabBar` tab switching |
+| `AC-crp-multi-file-nav-preserves-state` | Store `setActiveFile` (preserves comments and scroll position per file); `FileBrowser` file row selection |
 | `AC-crp-multi-file-remove-with-comments` | `ConfirmationDialog` (file removal variant with comment count); store `removeFile` |
 | `AC-crp-multi-file-remove-no-comments` | Store `removeFile` (skips confirmation when 0 comments on file) |
 | `AC-crp-multi-file-prompt-structure` | `promptBuilder.ts` multi-file output (per-file sections with headings); unit tests |
@@ -1296,10 +1298,10 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-context-neutral-vs-review` | `ContextSection` component (two variants: neutral with blue styling/info icon/"What Changed" label, review with violet styling/sparkle icon/"Agent Review" label) |
 | `AC-crp-context-graceful-missing` | `ReviewContextPanel` not rendered when `state.reviewContext` is null; `useFileFromUrl` silently handles 404 from `GET /api/review-context`; no empty placeholder state |
 | `AC-crp-context-readonly` | `ReviewContextPanel` and `ContextSection` render content in read-only `<div>` elements with `white-space: pre-wrap`; no `contenteditable`, no input elements |
-| `AC-crp-file-mark-reviewed` | `ReviewStatusBar` component (checkbox transitions to checked/green state); `FileTabBar` (tab shows green checkmark, moves to "Reviewed" group); store `toggleFileReviewed` action |
-| `AC-crp-file-unmark-reviewed` | `ReviewStatusBar` component (checkbox transitions back to unchecked); `FileTabBar` (tab returns to "To Review" group); store `toggleFileReviewed` action |
-| `AC-crp-file-reviewed-grouping` | `FileTabBar` component (renders two groups via `groupedFileOrder` selector; group labels and divider; unreviewed first) |
-| `AC-crp-file-reviewed-progress-count` | `Toolbar` progress indicator (reads `reviewedCount` and `totalFileCount`; updates on toggle, add, remove; green text when all reviewed) |
+| `AC-crp-file-mark-reviewed` | `ReviewStatusBar` component (checkbox transitions to checked/green state); `FileBrowser` (file row shows green checkmark, moves to "Reviewed" group); store `toggleFileReviewed` action |
+| `AC-crp-file-unmark-reviewed` | `ReviewStatusBar` component (checkbox transitions back to unchecked); `FileBrowser` (file row returns to "To Review" group); store `toggleFileReviewed` action |
+| `AC-crp-file-reviewed-grouping` | `FileBrowser` component (renders two groups via `groupedFileOrder` selector; group labels and divider; unreviewed first) |
+| `AC-crp-file-reviewed-progress-count` | `FileBrowser` sidebar header progress indicator (reads `reviewedCount` and `totalFileCount`; updates on toggle, add, remove; green text when all reviewed) |
 | `AC-crp-file-reviewed-survives-tab-switch` | Store `reviewedFiles` state persists across `setActiveFile` calls; `ReviewStatusBar` re-reads `isActiveFileReviewed` on active file change |
 | `AC-crp-file-reviewed-with-comments` | Store `toggleFileReviewed` is orthogonal to comment state; no interaction between `reviewedFiles` and `comments` |
 | `AC-crp-file-reviewed-clear-session` | Store `clearSession` resets `reviewedFiles` to empty `Set` |

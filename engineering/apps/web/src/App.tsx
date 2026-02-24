@@ -6,7 +6,8 @@ import { useAppStore } from '@/store/appStore';
 import { Toolbar } from '@/components/Toolbar';
 import { FileDropZone } from '@/components/FileDropZone';
 import { FileHeader } from '@/components/FileHeader';
-import { FileTabBar } from '@/components/FileTabBar';
+import { FileBrowser } from '@/components/FileBrowser';
+import { ReviewStatusBar } from '@/components/ReviewStatusBar';
 import { CodeViewer } from '@/components/CodeViewer';
 import { DiffViewer } from '@/components/DiffViewer';
 import { DiffLoadingState } from '@/components/DiffLoadingState';
@@ -348,18 +349,22 @@ export function App() {
             onDragOver={handleGlobalDragOver}
             onDrop={(e) => void handleGlobalDrop(e)}
           >
-            {/* Left column: code viewer */}
+            {/* Left: FileBrowser (multi-file only) */}
+            {fileOrder.length >= 2 && <FileBrowser />}
+
+            {/* Center: code viewer */}
             <div className="flex-1 flex flex-col min-w-0 border-r border-border-default">
-              {fileOrder.length >= 2 ? <FileTabBar /> : <FileHeader />}
+              {fileOrder.length === 1 && <FileHeader />}
               <ReviewContextPanel />
+              <ReviewStatusBar />
               <div className="flex-1 min-h-0">
                 {renderCodePanel()}
               </div>
             </div>
 
-            {/* Right column: sidebar */}
+            {/* Right: prompt sidebar */}
             <div className={`flex-shrink-0 flex flex-col bg-surface-sidebar overflow-y-auto ${
-              windowWidth < 1280 ? 'w-72' : 'w-96'
+              windowWidth < 1280 ? 'w-[280px]' : 'w-[360px]'
             }`}>
               <ReviewContextSidebar />
               <PreambleInput />
