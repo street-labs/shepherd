@@ -58,8 +58,15 @@
 | `AC-crp-context-per-file-visible` | `TC-crp-context-per-file-visible` | Not started |
 | `AC-crp-context-per-file-switches` | `TC-crp-context-per-file-switches` | Not started |
 | `AC-crp-context-neutral-vs-review` | `TC-crp-context-neutral-vs-review` | Not started |
-| `AC-crp-context-graceful-missing` | `TC-crp-context-graceful-missing` | Not started |
+| `AC-crp-context-graceful-missing` | `TC-crp-context-graceful-missing`, `TC-crp-context-sidebar-hidden` | Not started |
 | `AC-crp-context-readonly` | `TC-crp-context-readonly` | Not started |
+| `AC-crp-context-sidebar-collapse` | `TC-crp-context-sidebar-collapse` | Not started |
+| `AC-crp-overall-comment-label` | `TC-crp-overall-comment-label` | Not started |
+| `AC-crp-overall-comment-in-prompt` | `TC-crp-overall-comment-in-prompt` | Not started |
+| `FR-crp-comment-summary` | `TC-crp-comment-summary-shows-all`, `TC-crp-comment-summary-realtime`, `TC-crp-comment-summary-empty`, `TC-crp-comment-summary-click-navigates` | Not started |
+| `AC-crp-comment-summary-shows-all` | `TC-crp-comment-summary-shows-all` | Not started |
+| `AC-crp-comment-summary-realtime` | `TC-crp-comment-summary-realtime` | Not started |
+| `AC-crp-comment-summary-empty` | `TC-crp-comment-summary-empty` | Not started |
 | `AC-crp-file-mark-reviewed` | `TC-crp-mark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard` | Not started |
 | `AC-crp-file-unmark-reviewed` | `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-keyboard` | Not started |
 | `AC-crp-file-reviewed-grouping` | `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed` | Not started |
@@ -1458,6 +1465,155 @@
 - **Edge Cases**:
   - System preference set to dark mode but CRPG manually set to light: the CRPG setting takes precedence and context renders in light mode.
   - Very long context text in dark mode: scrollbar styling should also adapt.
+
+---
+
+#### `TC-crp-context-sidebar-collapse`: Verify sidebar context collapse/expand
+
+- **Type**: Manual
+- **Covers**: `AC-crp-context-sidebar-collapse`
+- **Preconditions**: CRPG opened via `/shepherd-review` with overall changeset context data. At least 2 files loaded as tabs.
+- **Steps**:
+  1. Verify the sidebar review context section (Changeset Overview) is visible and expanded by default.
+  2. Click the collapse control (header bar).
+  3. Verify the content collapses to just a header bar.
+  4. Switch to a different file tab.
+  5. Verify the sidebar context is still collapsed.
+  6. Click the header bar again.
+  7. Verify the content expands back.
+- **Expected Result**: Collapse/expand toggles correctly. The content hides when collapsed, showing only the header bar. State persists across tab switches -- collapsing on one tab keeps it collapsed when switching to another tab, and expanding keeps it expanded across tabs.
+- **Edge Cases**:
+  - Double-clicking the collapse control rapidly: should not leave the panel in an inconsistent state.
+  - Collapsing and then reloading the page: state is not expected to persist across reloads (per `NFR-crp-no-data-persistence`).
+
+---
+
+#### `TC-crp-context-sidebar-hidden`: Verify sidebar context hidden when no context data
+
+- **Type**: Manual
+- **Covers**: `AC-crp-context-graceful-missing`
+- **Preconditions**: CRPG opened via paste/upload (no `/shepherd-review` context). At least one file loaded.
+- **Steps**:
+  1. Verify no "Changeset Overview" section appears in the sidebar.
+- **Expected Result**: No context section in the sidebar when no context data is available. The sidebar shows only the other panels (Overall Comment, file comments, etc.) without any empty placeholder or collapsed context area.
+- **Edge Cases**:
+  - Loading additional files via drag-and-drop after initial paste: still no context section appears for any file.
+
+---
+
+### Overall Comment
+
+---
+
+#### `TC-crp-overall-comment-label`: Verify "Overall Comment" label
+
+- **Type**: Manual
+- **Covers**: `AC-crp-overall-comment-label`
+- **Preconditions**: At least one file loaded in the CRPG.
+- **Steps**:
+  1. Look at the sidebar for the text input field that was formerly labeled "Preamble."
+  2. Verify it is now labeled "Overall Comment."
+  3. Click to expand it (if collapsed by default).
+  4. Verify the placeholder text indicates it applies to all files.
+- **Expected Result**: The field is labeled "Overall Comment" (not "Preamble"). The placeholder or description text communicates that the content applies to all files in the review (e.g., "Add instructions that apply to all files...").
+- **Edge Cases**:
+  - Single-file mode: the label should still say "Overall Comment" even with only one file loaded.
+  - The generated prompt should use the "## Instructions" heading (not "## Preamble") when this field has content.
+
+---
+
+#### `TC-crp-overall-comment-in-prompt`: Verify overall comment appears once in multi-file prompt
+
+- **Type**: Manual (can be automated via store test)
+- **Covers**: `AC-crp-overall-comment-in-prompt`
+- **Preconditions**: Two files loaded (fileA.ts, fileB.ts). Inline comments exist on both files.
+- **Steps**:
+  1. Type "Please review this entire changeset carefully" in the Overall Comment field.
+  2. Add an inline comment on fileA.ts.
+  3. Add an inline comment on fileB.ts.
+  4. View the prompt preview.
+  5. Verify the overall comment text appears exactly once at the top of the prompt.
+  6. Verify it is NOT duplicated per file section.
+- **Expected Result**: The generated prompt contains a single `## Instructions` section at the top with the text "Please review this entire changeset carefully." This section appears before any `## File:` sections. The overall comment is not repeated inside each file's section.
+- **Edge Cases**:
+  - Clearing the Overall Comment field after it was set: the `## Instructions` section should disappear from the prompt preview.
+  - Very long overall comment text: it should appear in full in the prompt, not truncated.
+
+---
+
+### All Comments Summary
+
+---
+
+#### `TC-crp-comment-summary-shows-all`: Verify All Comments summary shows all comments by file
+
+- **Type**: Manual
+- **Covers**: `AC-crp-comment-summary-shows-all`
+- **Preconditions**: Three files loaded (A.ts, B.ts, C.ts). A.ts has 2 inline comments, B.ts has 3 inline comments, C.ts has 0 comments.
+- **Steps**:
+  1. Switch to the "All Comments" tab in the sidebar.
+  2. Verify A.ts appears with its 2 comments listed (line reference + text).
+  3. Verify B.ts appears with its 3 comments listed (line reference + text).
+  4. Verify C.ts does NOT appear (no comments).
+  5. Verify the total count shows "5" (or "5 comments").
+- **Expected Result**: All 5 comments are shown organized under their respective file headings. Each comment entry displays the line reference (e.g., "Line 12" or "Lines 5-8") and the comment text. Zero-comment files are omitted from the list. The total comment count is displayed.
+- **Edge Cases**:
+  - A file with only range comments: line references should show the range format (e.g., "Lines 10-15").
+  - A file with a single comment: the file still appears with its one comment listed.
+
+---
+
+#### `TC-crp-comment-summary-realtime`: Verify All Comments summary updates in real-time
+
+- **Type**: Manual
+- **Covers**: `AC-crp-comment-summary-realtime`
+- **Preconditions**: Two files loaded with inline comments. The All Comments tab is accessible in the sidebar.
+- **Steps**:
+  1. View the All Comments summary (should show existing comments).
+  2. Switch to a file tab.
+  3. Add a new inline comment.
+  4. Switch back to the All Comments tab (or if it is still visible, observe directly).
+  5. Verify the new comment appears immediately.
+  6. Delete a comment.
+  7. Verify it disappears from the summary immediately.
+- **Expected Result**: The summary updates in real-time as comments are added, edited, or deleted. There is no need to refresh or re-open the tab. The total comment count updates accordingly.
+- **Edge Cases**:
+  - Editing an existing comment's text: the updated text should reflect in the summary immediately.
+  - Deleting the last comment on a file: the file heading should disappear from the summary.
+  - Adding a comment to a previously zero-comment file: the file heading should appear in the summary.
+
+---
+
+#### `TC-crp-comment-summary-empty`: Verify empty state in All Comments summary
+
+- **Type**: Manual
+- **Covers**: `AC-crp-comment-summary-empty`
+- **Preconditions**: Files loaded but no comments on any file.
+- **Steps**:
+  1. Switch to the "All Comments" tab in the sidebar.
+  2. Verify an empty state message is shown (e.g., "No comments yet").
+- **Expected Result**: An appropriate empty state message is displayed instead of an empty list. The message communicates that no comments have been added yet.
+- **Edge Cases**:
+  - All comments deleted after previously having comments: the empty state message should appear once the last comment is removed.
+  - No files loaded at all: the empty state message should still be shown (or the tab may not be visible -- verify expected behavior).
+
+---
+
+#### `TC-crp-comment-summary-click-navigates`: Verify clicking a comment navigates to it
+
+- **Type**: Manual
+- **Covers**: `FR-crp-comment-summary`
+- **Preconditions**: Multiple files loaded with inline comments on at least two different files.
+- **Steps**:
+  1. View the All Comments summary.
+  2. Click on a comment entry for a file that is NOT currently active.
+  3. Verify the file tab switches to that file.
+  4. Verify the code viewer scrolls to the commented line.
+- **Expected Result**: Clicking a comment in the All Comments summary navigates to the correct file (switching the active tab if needed) and scrolls the code viewer to the line where the comment is anchored. The comment should be visible in the viewport after navigation.
+- **Edge Cases**:
+  - Clicking a comment for the already-active file: the code viewer should scroll to the line without switching tabs.
+  - Clicking a range comment (e.g., lines 10-15): the viewer should scroll so that the start of the range is visible.
+  - Rapidly clicking different comments across files: each click should correctly navigate without race conditions.
 
 ---
 

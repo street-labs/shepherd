@@ -323,6 +323,31 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: File grouping, reviewed/unreviewed grouping
 **Not to be confused with**: File ordering (which is load order within each group)
 
+## All Comments
+**Definition**: A summary view in the sidebar that displays every inline comment across all loaded files, organized by file. Implemented as a tab in the sidebar that can be toggled between the Prompt Preview and All Comments views. The summary is read-only and updates in real-time as comments are added, edited, or deleted. Implements `FR-crp-comment-summary`.
+**Also known as**: All Comments tab, All Comments summary
+**Not to be confused with**: Comment count (which is just a number), individual inline comments (which are line-specific annotations)
+
+## Comment Summary
+**Definition**: The React component that renders the All Comments summary view in the sidebar. Reads all comments across all files and displays them grouped by file name, with line references and comment text. Clicking a comment in the summary navigates to that file and focuses the comment.
+**Also known as**: CommentSummary (component name)
+**Not to be confused with**: All Comments (the feature), prompt preview (which shows the generated prompt)
+
+## Overall Comment
+**Definition**: A user-authored optional block of high-level instructions or context that applies to the entire review session (all loaded files). Appears at the top of the generated prompt in the "Instructions" section. Also known internally as the preamble, but labeled "Overall Comment" in the UI for clarity. The field's placeholder text indicates that it applies globally to all files.
+**Also known as**: Preamble (internal name), high-level context, global comment
+**Not to be confused with**: Inline comments (which are line-specific), per-file instructions (not supported in v1)
+
+## ReviewContextSidebar
+**Definition**: A collapsible component in the right sidebar that displays the overall changeset context (neutral description of what changed and the AI agent's review feedback) provided by the shepherd-review command. Positioned at the top of the sidebar, above the Overall Comment input. Only visible when review context data is available. Per-file context is shown separately in the ReviewContextPanel within the code viewer.
+**Also known as**: ReviewContextSidebar (component name), sidebar context section
+**Not to be confused with**: ReviewContextPanel (which displays per-file context in the code viewer), Sidebar Panel (the entire right-side panel)
+
+## SidebarContentTabs
+**Definition**: A segmented tab control in the sidebar that switches between two content areas: the "Preview" tab (showing the PromptPreview component) and the "All Comments" tab (showing the CommentSummary component). Positioned below the Overall Comment input. The All Comments tab displays a count badge showing the total number of comments when comments exist.
+**Also known as**: SidebarContentTabs (component name), Preview/All Comments tabs, sidebar tabs
+**Not to be confused with**: File Tab Bar (which switches between loaded files), view mode toggle (which switches between file/diff/rendered views)
+
 <!--
 Entry template:
 

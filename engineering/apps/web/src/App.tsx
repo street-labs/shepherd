@@ -18,6 +18,8 @@ import { RenderedDiffViewer } from '@/components/RenderedDiffViewer';
 import { ReviewContextPanel } from '@/components/ReviewContextPanel';
 import { ReviewContextSidebar } from '@/components/ReviewContextSidebar';
 import { PreambleInput } from '@/components/PreambleInput';
+import { SidebarContentTabs } from '@/components/SidebarContentTabs';
+import { CommentSummary } from '@/components/CommentSummary';
 import { PromptPreview } from '@/components/PromptPreview';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { ToastNotification } from '@/components/ToastNotification';
@@ -68,6 +70,7 @@ export function App() {
   const computeRenderedDiff = useAppStore((s) => s.computeRenderedDiff);
   const isAstDiffComputing = useAppStore((s) => s.isAstDiffComputing);
   const astDiffResult = useAppStore((s) => s.astDiffResult);
+  const sidebarTab = useAppStore((s) => s.sidebarTab);
 
   const [activeDialog, setActiveDialog] = useState<DialogType>(null);
   const [pendingMode, setPendingMode] = useState<'file' | 'diff' | null>(null);
@@ -363,12 +366,15 @@ export function App() {
             </div>
 
             {/* Right: prompt sidebar */}
-            <div className={`flex-shrink-0 flex flex-col bg-surface-sidebar overflow-y-auto ${
+            <div className={`flex-shrink-0 flex flex-col bg-surface-sidebar ${
               windowWidth < 1280 ? 'w-[280px]' : 'w-[360px]'
             }`}>
               <ReviewContextSidebar />
               <PreambleInput />
-              <PromptPreview />
+              <SidebarContentTabs />
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {sidebarTab === 'preview' ? <PromptPreview /> : <CommentSummary />}
+              </div>
             </div>
 
             {/* Global drop overlay */}

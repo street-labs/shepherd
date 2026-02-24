@@ -163,6 +163,102 @@ export function buildDiffPrompt(
   return sections.join('\n\n');
 }
 
+/**
+ * Builds a multi-file diff prompt using pre-computed contextSnippet on each comment.
+ * Groups comments by file, omits files with no diff comments.
+ */
+export function buildMultiFileDiffPrompt(
+  files: Record<string, FileInfo>,
+  fileOrder: string[],
+  diffComments: Record<string, DiffComment>,
+  preamble: string,
+): string | null {
+  // Group diff comments by fileId
+  const commentsByFile = new Map<string, DiffComment[]>();
+  for (const comment of Object.values(diffComments)) {
+    const existing = commentsByFile.get(comment.fileId) ?? [];
+    existing.push(comment);
+    commentsByFile.set(comment.fileId, existing);
+  }
+
+  // Filter to files that have diff comments, in fileOrder order
+  const filesWithComments = fileOrder.filter((fid) => commentsByFile.has(fid));
+  if (filesWithComments.length === 0) return null;
+
+  // Single file — use standard single-file diff format with contextSnippet
+  if (filesWithComments.length === 1) {
+    const fid = filesWithComments[0]!;
+    const file = files[fid];
+    if (!file) return null;
+    const fileComments = commentsByFile.get(fid)!;
+    return buildSingleFileDiffPromptFromSnippets(file, fileComments, preamble);
+  }
+
+  // Multi-file format
+  const sections: string[] = [];
+
+  const trimmedPreamble = preamble.trim();
+  if (trimmedPreamble) {
+    sections.push(`## Instructions\n\n${trimmedPreamble}`);
+  }
+
+  sections.push(`## Review Feedback\n\nThe following are comments on changes between the git HEAD version and the current working copy across multiple files. Each file section shows the relevant diff context along with the reviewer's comments.`);
+
+  for (const fid of filesWithComments) {
+    const file = files[fid];
+    if (!file) continue;
+    const fileComments = commentsByFile.get(fid)!;
+
+    sections.push(`### File: ${file.name} (${file.language}) -- Diff View`);
+
+    const sorted = [...fileComments].sort((a, b) => {
+      if (a.startIndex !== b.startIndex) return a.startIndex - b.startIndex;
+      return a.createdAt.localeCompare(b.createdAt);
+    });
+
+    const changeEntries = sorted.map((c) => {
+      const label = formatDiffCommentLabel(c);
+      return `- **${label}:**\n  \`\`\`diff\n${c.contextSnippet}\n  \`\`\`\n  **Comment:** ${c.text}`;
+    });
+
+    sections.push(changeEntries.join('\n\n'));
+  }
+
+  return sections.join('\n\n');
+}
+
+/** Single-file diff prompt using pre-computed contextSnippet instead of live diffLines. */
+function buildSingleFileDiffPromptFromSnippets(
+  file: FileInfo,
+  comments: DiffComment[],
+  preamble: string,
+): string {
+  const sections: string[] = [];
+
+  const trimmedPreamble = preamble.trim();
+  if (trimmedPreamble) {
+    sections.push(`## Instructions\n\n${trimmedPreamble}`);
+  }
+
+  sections.push(`## File: ${file.name} (${file.language}) -- Diff View`);
+
+  sections.push(`## Review Feedback\n\nThe following are comments on changes between the git HEAD version and the current working copy. Each item shows the relevant diff context (lines prefixed with \`+\` are additions, \`-\` are removals, unmarked lines are unchanged) along with the reviewer's comment.`);
+
+  const sorted = [...comments].sort((a, b) => {
+    if (a.startIndex !== b.startIndex) return a.startIndex - b.startIndex;
+    return a.createdAt.localeCompare(b.createdAt);
+  });
+
+  const changeEntries = sorted.map((c) => {
+    const label = formatDiffCommentLabel(c);
+    return `- **${label}:**\n  \`\`\`diff\n${c.contextSnippet}\n  \`\`\`\n  **Comment:** ${c.text}`;
+  });
+
+  sections.push(changeEntries.join('\n\n'));
+
+  return sections.join('\n\n');
+}
+
 export function formatDiffCommentLabel(comment: DiffComment): string {
   const startLabel = formatLineRef(comment.startLineId);
   if (comment.startIndex === comment.endIndex) {

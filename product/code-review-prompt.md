@@ -46,6 +46,9 @@ This bridges the gap between a developer's code review observations and an actio
 ### US-12: Track review progress across files
 **As a** developer reviewing a multi-file changeset, **I want to** mark files as "reviewed" and see my progress through the file list, **so that** I can keep track of which files I've finished looking at and how much of the review remains.
 
+### US-13: See all comments in one place
+**As a** developer reviewing multiple files, **I want to** see a summary of all my comments across all files in one place, **so that** I can verify the complete set of feedback before sending it to the AI agent.
+
 ## Requirements
 
 ### Functional Requirements
@@ -74,8 +77,8 @@ Lines that have one or more comments attached display a distinct visual indicato
 #### `FR-crp-comment-count` -- Display total comment count
 The application displays the current total number of comments across all loaded files somewhere persistently visible (such as a toolbar or sidebar header), so the user knows how many annotations they have placed. This is a global count spanning every file in the session, not a per-file count (though per-file counts may also be shown via `FR-crp-multi-file-nav`).
 
-#### `FR-crp-prompt-preamble` -- Prompt preamble / high-level instructions
-Before generating the prompt, the user can write an optional preamble that provides high-level context or instructions (e.g., "Refactor this function to use async/await" or "Fix the security vulnerability in the authentication logic"). This preamble appears at the top of the generated prompt. A preamble consisting only of whitespace is treated as empty and will not appear in the generated prompt.
+#### `FR-crp-prompt-preamble` -- Overall Comment (formerly "Preamble")
+The user can write an optional "Overall Comment" that provides high-level context or instructions applying to the entire batch of files (e.g., "Refactor this function to use async/await" or "Fix the security vulnerability in the authentication logic"). The UI label for this field is **"Overall Comment"** (not "Preamble"). The field's placeholder or description text must make it clear that this text applies to all files in the session and will be included at the top of the generated prompt. Internally this field is still the preamble and appears in the generated prompt's "Instructions" section, unchanged in behavior. The key improvement is labeling clarity — "Preamble" was confusing because users did not understand that it applied globally or that it was included in the prompt. A value consisting only of whitespace is treated as empty and will not appear in the generated prompt.
 
 #### `FR-crp-prompt-generate` -- Automatically generated aggregated prompt
 The prompt is automatically regenerated whenever the user adds, edits, or deletes a comment on any loaded file, or modifies the preamble. There is no manual "Generate" button. The prompt updates reactively and is always current as long as at least one comment exists on any file. When all comments across all files are removed, the prompt preview clears. The automatically generated prompt is a single structured text that aggregates comments across all loaded files:
@@ -151,6 +154,12 @@ The CRPG displays an overall changeset summary (neutral context + review feedbac
 
 #### `FR-crp-review-context-per-file` -- Display per-file context
 Each file displays context specific to that file (neutral context + review feedback). When the user switches files, the context updates to show the relevant file's context. Files without context data (e.g., files loaded via paste/upload/drag-drop that were not part of the shepherd-review invocation) simply don't show the context panel — no empty or placeholder state is needed.
+
+#### `FR-crp-review-context-collapsible` -- Collapsible review context in the sidebar
+The review context sections in the right sidebar (overall changeset context) must be collapsible and expandable, similar to the per-file context panel in the code viewer area. This allows users to reclaim vertical space in the sidebar when they don't need to reference the context. The collapse state must persist during the session — it should not reset when the user switches between file tabs. Each section (neutral context and review feedback) may collapse independently, or the entire sidebar context area may collapse as a unit — this is a design decision. The collapse/expand control must be clearly visible and follow the same interaction pattern used by the per-file ReviewContextPanel.
+
+#### `FR-crp-comment-summary` -- All Comments summary view
+The CRPG provides an "All Comments" summary view that shows every comment across all loaded files, organized by file. For each comment, the summary shows: the file name, the line number(s) or element reference, and the comment text. The summary is read-only — viewing only; editing happens in the file's code viewer. The summary updates in real-time as comments are added, edited, or deleted on any file. When no comments exist, the summary shows an appropriate empty state message (e.g., "No comments yet"). The summary is accessible from the sidebar area and can be toggled or accessed alongside the prompt preview. Files with zero comments are not listed in the summary.
 
 #### `FR-crp-file-reviewed-toggle` -- Mark/unmark a file as reviewed
 The user can toggle an individual file's review status between "unreviewed" (default) and "reviewed". This is a manual action — the application never automatically marks a file as reviewed. The toggle is available for every loaded file regardless of whether the file has comments, context data, or was loaded via any particular method (paste, upload, drag-drop, slash command, shepherd-review). In a single-file session, the toggle is still available but the grouping and progress features (`FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`) may have limited utility. The toggle mechanism is a design decision (could be a checkbox in the file browser, a button in the toolbar, a keyboard shortcut, or some combination), but it must be reachable without switching away from the current file.
@@ -317,6 +326,24 @@ The application is not required to persist sessions across page reloads in this 
 
 #### `AC-crp-context-readonly` -- Context is read-only
 **Given** context is displayed (neutral or review feedback), **then** the user cannot edit the neutral context or review feedback text. They are read-only reference material.
+
+#### `AC-crp-context-sidebar-collapse` -- Sidebar review context can be collapsed and expanded
+**Given** the CRPG is opened via shepherd-review with context data, **when** the user clicks the collapse control on the sidebar review context, **then** the context content collapses to just a header bar. Clicking again expands it back. The collapse state survives tab switches — switching to another file and back does not reset the collapse state.
+
+#### `AC-crp-overall-comment-label` -- Overall Comment field labeling
+**Given** the sidebar is visible, **then** the field formerly labeled "Preamble" is now labeled "Overall Comment" with a description or placeholder text indicating that it applies to all files in the session and will be included at the top of the generated prompt.
+
+#### `AC-crp-overall-comment-in-prompt` -- Overall Comment appears once in multi-file prompt
+**Given** the user has typed text in the Overall Comment field and added inline comments on two files, **when** the prompt is generated, **then** the overall comment text appears once at the top of the prompt in the "Instructions" section, not duplicated per file.
+
+#### `AC-crp-comment-summary-shows-all` -- All Comments summary shows comments organized by file
+**Given** files A, B, and C are loaded with 2, 3, and 0 comments respectively, **when** the user views the All Comments summary, **then** all 5 comments are shown organized under file A (2 comments) and file B (3 comments). File C with no comments is not listed.
+
+#### `AC-crp-comment-summary-realtime` -- All Comments summary updates in real-time
+**Given** the All Comments summary is visible, **when** the user switches to a file tab and adds a new comment, **then** the summary immediately reflects the new comment without requiring a manual refresh.
+
+#### `AC-crp-comment-summary-empty` -- All Comments summary shows empty state when no comments exist
+**Given** no comments exist on any file, **when** the user views the All Comments summary area, **then** a message like "No comments yet" is shown instead of an empty list.
 
 #### `AC-crp-file-mark-reviewed` -- Marking a file changes its visual state
 **Given** a file is loaded and currently unreviewed, **when** the user marks it as reviewed, **then** the file's entry in the file browser sidebar immediately displays the reviewed visual treatment (e.g., checkmark, muted styling), and the file moves to the "Reviewed" group in the file browser.

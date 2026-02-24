@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useAppStore } from '@/store/appStore';
-import { isMarkdownFile } from '@/lib/markdownDetect';
 
 interface FileFromUrlState {
   loading: boolean;
@@ -25,7 +24,6 @@ export function useFileFromUrl(): FileFromUrlState {
   const setFilePath = useAppStore((s) => s.setFilePath);
   const setViewMode = useAppStore((s) => s.setViewMode);
   const setSlashCommandMode = useAppStore((s) => s.setSlashCommandMode);
-  const setRenderMode = useAppStore((s) => s.setRenderMode);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -38,7 +36,6 @@ export function useFileFromUrl(): FileFromUrlState {
 
     (async () => {
       let loadedCount = 0;
-      let lastFileName = '';
       let lastFilePath = '';
 
       // Phase 1: Load all files into tabs without side effects.
@@ -74,7 +71,6 @@ export function useFileFromUrl(): FileFromUrlState {
             setServerFilePath(activeId, filePath);
           }
 
-          lastFileName = fileName;
           lastFilePath = filePath;
           loadedCount++;
         } catch (err) {
@@ -95,17 +91,14 @@ export function useFileFromUrl(): FileFromUrlState {
       // restores fileSource/filePath/viewMode/renderMode from serverFilePaths.
       const { fileOrder, setActiveFile } = useAppStore.getState();
       if (fileOrder.length > 1) {
-        setActiveFile(fileOrder[0]);
+        setActiveFile(fileOrder[0]!);
       } else {
         // Single file — setActiveFile won't fire (already active), set manually
-        const firstPath = useAppStore.getState().serverFilePaths[fileOrder[0]] || lastFilePath;
-        const firstName = useAppStore.getState().file?.name || lastFileName;
+        const firstFileId = fileOrder[0]!;
+        const firstPath = useAppStore.getState().serverFilePaths[firstFileId] || lastFilePath;
         setFileSource('server');
         setFilePath(firstPath);
         setViewMode('diff');
-        if (isMarkdownFile(firstName)) {
-          setRenderMode('rendered');
-        }
       }
       setSlashCommandMode(true);
 

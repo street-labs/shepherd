@@ -95,9 +95,14 @@ interface AppState {
   reviewContext: ReviewContext | null;
   /** Whether the ReviewContextPanel is collapsed. Session-level preference, not per-file. */
   isReviewContextCollapsed: boolean;
+  /** Whether the ReviewContextSidebar (overall changeset context in the right sidebar) is collapsed. Separate from isReviewContextCollapsed which controls the per-file panel. Session-level preference. Default: false (expanded). */
+  isReviewContextSidebarCollapsed: boolean;
 
   /** Set of file IDs that have been marked as reviewed. Files not in this set are unreviewed (the default). Tracked as a Set<string> for O(1) lookup; Zustand serialization uses a plain object internally, but the public API exposes Set semantics. Reset on clearSession. */
   reviewedFiles: Set<string>;
+
+  /** Active tab in the sidebar content area. 'preview' shows the PromptPreview, 'comments' shows the CommentSummary. Default: 'preview'. */
+  sidebarTab: 'preview' | 'comments';
 }
 
 /** Structured review context data passed from the shepherd-review command. */
@@ -160,8 +165,11 @@ App
            |         +-- CommentBubble (design: CommentBubble, rendered inline between virtual rows)
            |         +-- InlineCommentEditor (design: InlineCommentEditor, rendered inline when editing)
            +-- SidebarPanel (360px fixed)
-                +-- PreambleInput     (design: PreambleInput)
-                +-- PromptPreview     (design: PromptPreview)
+                +-- ReviewContextSidebar             (design: ReviewContextSidebar, collapsible, conditional on context data)
+                +-- PreambleInput                    (design: PreambleInput, labeled "Overall Comment")
+                +-- SidebarContentTabs               (design: SidebarContentTabs)
+                     +-- [tab: Preview] PromptPreview   (design: PromptPreview)
+                     +-- [tab: All Comments] CommentSummary  (design: CommentSummary)
  +-- FileDropZone (modal variant, rendered via portal when adding files)
  +-- ConfirmationDialog               (design: ConfirmationDialog, rendered via portal)
  +-- ToastNotification                (design: ToastNotification, rendered via portal)
@@ -242,10 +250,20 @@ Maps to: `FR-crp-line-comment-create`, `FR-crp-line-comment-edit`, `AC-crp-add-c
 #### `PreambleInput`
 Controlled textarea bound to `store.preamble`. Supports expanded/collapsed variants as described in the design. Calls `store.setPreamble(text)` on change, which automatically triggers prompt regeneration via `buildPrompt()` if comments exist.
 
-Maps to: `FR-crp-prompt-preamble`.
+The component name remains `PreambleInput` internally for code continuity, but the **user-facing label is "Overall Comment"** per `AC-crp-overall-comment-label`. Specifically:
+- The toggle label reads "Overall Comment" (not "Preamble").
+- The placeholder text reads "Add an overall comment for all files in this review..." (not the previous AI-reviewer phrasing).
+- The collapsed preview text prefix is "Overall Comment" (not "Preamble").
+- The `aria-label` on the textarea is "Overall comment" for accessibility.
+
+No store changes are needed -- `preamble` as an internal state property name is fine for backward compatibility. No prompt builder changes are needed -- the generated prompt format remains the same (the `## Instructions` heading is kept).
+
+Maps to: `FR-crp-prompt-preamble`, `AC-crp-overall-comment-label`.
 
 #### `PromptPreview`
 Read-only display of `store.generatedPrompt` rendered inside a `<pre>` element as a text node — no markdown processing is applied. The user sees the literal markdown syntax markers as plain text. Two variants: empty (no comments exist, prompt is null) and populated (comments exist, prompt is automatically current). The prompt preview always shows the current, automatically generated prompt — there is no stale state. The inline "Copy" button calls `store.copyPrompt()`.
+
+Rendered as the content of the "Preview" tab in `SidebarContentTabs`. Visible when `sidebarTab === 'preview'`.
 
 Maps to: `FR-crp-prompt-preview`, `FR-crp-prompt-format`, `AC-crp-generate-prompt-structure`, `AC-crp-preview-matches-copy`.
 
@@ -294,6 +312,46 @@ Both variants render their `content` prop as plain text with `white-space: pre-w
 The visual distinction between the two variants is achieved through four cues: left border color (blue vs violet), background color (white vs violet tint), icon (info circle vs sparkle), and label text ("What Changed" vs "Agent Review"). These work together so even color-blind users can distinguish them via icon shape and label.
 
 Maps to: `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
+
+#### `ReviewContextSidebar`
+Collapsible section in the right sidebar that displays **overall changeset context** provided by the shepherd-review command. Positioned at the top of the Sidebar Panel, above the PreambleInput (Overall Comment).
+
+This component is **conditionally rendered** -- it only appears when `state.reviewContext` is non-null and the overall context has non-empty content. When no context data is available (standalone mode, single `/shepherd`), this component is not rendered at all. There is no empty or placeholder state (`AC-crp-context-graceful-missing`).
+
+The component has a clickable header bar with a chevron icon that toggles between collapsed and expanded states. The collapse/expand pattern mirrors `ReviewContextPanel`:
+- **Header bar**: Full-width clickable button with chevron icon (right-pointing when collapsed, down-pointing when expanded) and label "Changeset Overview". Background matches the design spec's context header styling.
+- **Expanded content**: Two `ContextSection` sub-components — one for `reviewContext.overall.neutral` ("What Changed") and one for `reviewContext.overall.review` ("Agent Review"). Max-height with vertical scroll overflow.
+- **Collapsed state**: Only the header bar is visible. Content is hidden with CSS transition for smooth animation.
+
+Collapse/expand state is stored in `state.isReviewContextSidebarCollapsed` (separate from the per-file panel's `isReviewContextCollapsed`). Default is `false` (expanded on first load). The `clearSession` action resets it to `false`.
+
+The entire section content is read-only (`AC-crp-context-readonly`).
+
+Maps to: `FR-crp-review-context-collapsible`, `FR-crp-review-context-overall`, `AC-crp-context-sidebar-collapse`, `AC-crp-context-neutral-vs-review`, `AC-crp-context-graceful-missing`, `AC-crp-context-readonly`.
+
+#### `SidebarContentTabs`
+A segmented tab control within the Sidebar Panel that switches between the Prompt Preview and the All Comments summary. Positioned below the PreambleInput (Overall Comment) and above the active tab content.
+
+- **Tabs**: Two tabs — "Preview" (default) and "All Comments". The "All Comments" tab shows a count badge with the total comment count across all files when comments exist (e.g., "All Comments (5)").
+- **State**: Reads `sidebarTab` from the store and dispatches `setSidebarTab` to switch tabs. Alternatively, tab state can be managed locally in `App.tsx` via `useState` if the tab state does not need to persist across re-renders triggered by other state changes.
+- **Rendering**: When the "Preview" tab is active, renders the `PromptPreview` component. When "All Comments" is active, renders the `CommentSummary` component.
+- **Visual**: Horizontal segmented control with two pill-shaped buttons. The active tab has a filled background. The inactive tab has text-only styling. The tab bar spans the full width of the sidebar content area.
+
+Maps to: `FR-crp-comment-summary`, `FR-crp-prompt-preview`.
+
+#### `CommentSummary`
+Read-only summary of all comments across all loaded files, displayed in the "All Comments" tab of `SidebarContentTabs`. Reads `comments`, `files`, `fileOrder` from the store.
+
+- **Data**: Groups comments by `fileId`. Filters to files that have at least one comment. Orders files by their position in `fileOrder`. Within each file group, sorts comments by `startLine` ascending, then `createdAt` ascending.
+- **Rendering**:
+  - For each file with comments, renders the file name as a section header.
+  - Under each file header, renders each comment as a compact entry showing: a line reference (e.g., "Line 5:" or "Lines 10-15:") and the comment text (truncated with ellipsis if it exceeds one line).
+  - The empty state (no comments on any file) shows a centered placeholder message: "No comments yet. Add comments to code lines to see them here."
+- **Click behavior**: Clicking a comment entry navigates to that file and comment — calls `store.setActiveFile(fileId)` (if not already the active file) then `store.setFocusedComment(commentId)`. The code viewer scrolls to the comment and briefly highlights it (same highlight animation used by comment navigation).
+- **Real-time updates**: The summary updates immediately when comments are added, edited, or deleted on any file, since it reads directly from the Zustand store. No explicit refresh is needed.
+- **Read-only**: No editing is possible within the CommentSummary — it is a navigation aid only.
+
+Maps to: `FR-crp-comment-summary`, `AC-crp-comment-summary-shows-all`, `AC-crp-comment-summary-realtime`, `AC-crp-comment-summary-empty`.
 
 ---
 
@@ -356,6 +414,10 @@ interface AppStore extends AppState {
   // Review context
   setReviewContext: (context: ReviewContext | null) => void;
   toggleReviewContextCollapsed: () => void;
+  toggleReviewContextSidebarCollapsed: () => void;
+
+  // Sidebar tabs
+  setSidebarTab: (tab: 'preview' | 'comments') => void;
 
   // File reviewed tracking
   toggleFileReviewed: (fileId: string) => void;
@@ -374,10 +436,12 @@ interface AppStore extends AppState {
 - **`navigateComment`**: Advances or retreats `focusedCommentId` within `commentOrder` (filtered to active file only), wrapping at boundaries.
 - **`setPreamble`**: Updates the preamble text. Automatically regenerates the prompt via `buildPrompt()` if comments exist on any file.
 - **`copyPrompt`**: Calls `navigator.clipboard.writeText(generatedPrompt)`. Returns a promise; the component handles success/failure UI.
-- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`. Also resets `reviewContext` to `null` and `isReviewContextCollapsed` to `false` (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`).
+- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`. Also resets `reviewContext` to `null`, `isReviewContextCollapsed` to `false`, `isReviewContextSidebarCollapsed` to `false`, and `sidebarTab` to `'preview'` (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`).
 - **`saveScrollPosition`**: Stores the given scroll offset for the specified file ID in `scrollPositions`. Called automatically by `setActiveFile` before switching.
 - **`setReviewContext`**: Sets the `reviewContext` field. Called once on mount by the `useFileFromUrl` hook after loading files, if context data is available from `GET /api/review-context`. Setting this to a non-null value causes the `ReviewContextPanel` to render.
 - **`toggleReviewContextCollapsed`**: Toggles `isReviewContextCollapsed`. This is a session-level preference — persists across file switches.
+- **`toggleReviewContextSidebarCollapsed`**: Toggles `isReviewContextSidebarCollapsed`. This controls the overall changeset context section in the right sidebar, independent of the per-file panel collapse state. Session-level preference. Maps to: `FR-crp-review-context-collapsible`, `AC-crp-context-sidebar-collapse`.
+- **`setSidebarTab`**: Sets the `sidebarTab` field to `'preview'` or `'comments'`. Controls which content is displayed in the sidebar below the PreambleInput. Default is `'preview'`. Maps to: `FR-crp-comment-summary`.
 - **`toggleFileReviewed`**: Toggles the given file's membership in `reviewedFiles`. If the file ID is currently in the set, removes it (unmark as reviewed); if not in the set, adds it (mark as reviewed). Does not change `activeFileId` or any other state — the toggle is orthogonal to file selection, comments, and scroll position (`AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-survives-tab-switch`). Triggers no prompt regeneration (reviewed status is not reflected in the generated prompt). Maps to: `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`.
 
 #### Selectors
@@ -450,6 +514,31 @@ const groupedFileOrder = useAppStore((s) => {
   }
   return { toReview, reviewed };
 }, shallow);
+
+// Derived: comments grouped by file for CommentSummary (FR-crp-comment-summary)
+const commentsByFile = useAppStore((s) => {
+  const groups: { fileId: string; fileName: string; comments: Comment[] }[] = [];
+  for (const fileId of s.fileOrder) {
+    const fileComments = Object.values(s.comments)
+      .filter((c) => c.fileId === fileId)
+      .sort((a, b) => {
+        if (a.startLine !== b.startLine) return a.startLine - b.startLine;
+        return a.createdAt.localeCompare(b.createdAt);
+      });
+    if (fileComments.length > 0) {
+      groups.push({
+        fileId,
+        fileName: s.files[fileId]?.name ?? 'Unknown',
+        comments: fileComments,
+      });
+    }
+  }
+  return groups;
+});
+
+// Derived: sidebar tab state (SidebarContentTabs)
+const sidebarTab = useAppStore((s) => s.sidebarTab);
+const setSidebarTab = useAppStore((s) => s.setSidebarTab);
 ```
 
 ### Data Flow Summary
@@ -949,6 +1038,9 @@ engineering/
           ReviewContextPanel.tsx — Collapsible panel for overall + per-file review context
           ContextSection.tsx    — Neutral/review variant sub-component
           ReviewStatusBar.tsx   NEW — Checkbox bar for toggling file reviewed status
+          ReviewContextSidebar.tsx — Collapsible overall changeset context in sidebar
+          SidebarContentTabs.tsx NEW — Tab control switching between Preview and All Comments
+          CommentSummary.tsx    NEW — All comments summary view grouped by file
           PreambleInput.tsx
           PromptPreview.tsx
           ConfirmationDialog.tsx
@@ -978,6 +1070,9 @@ engineering/
             ReviewContextPanel.test.tsx — Conditional rendering, collapse/expand, per-file switching
             ContextSection.test.tsx    — Neutral/review variant styling, empty content hiding
             ReviewStatusBar.test.tsx   NEW — Toggle state, visual states, keyboard interaction
+            ReviewContextSidebar.test.tsx — Collapse/expand, conditional rendering, content display
+            SidebarContentTabs.test.tsx NEW — Tab switching, active state, count badge
+            CommentSummary.test.tsx    NEW — Comment grouping, empty state, click navigation, real-time updates
             Toolbar.test.tsx          (includes Done button rendering/state tests)
             PromptPreview.test.tsx
           e2e/
@@ -989,6 +1084,7 @@ engineering/
             multi-file.spec.ts        Multi-file load, switch, comment, prompt, remove flows
             review-context.spec.ts    — Context loading, display, per-file switching, collapse/expand, graceful missing
             file-reviewed.spec.ts     NEW — Mark/unmark, grouping transitions, progress indicator, persistence, keyboard shortcut
+            sidebar-features.spec.ts  NEW — Sidebar collapse, preamble label, tabs, comment summary navigation
 ```
 
 > **Multi-platform note**: The `apps/` directory is structured as a pnpm workspace monorepo. Future platform targets (macOS, iOS) would be added as sibling directories to `apps/web/`. When shared logic is needed across platforms, it can be extracted into a `packages/core/` workspace package containing types, promptBuilder, binaryDetect, languageDetect, and other platform-agnostic modules.
@@ -1006,7 +1102,7 @@ Pure logic functions tested in isolation:
 | `promptBuilder.ts` | Correct format with preamble; without preamble; single-line comments; range comments; line number padding; ascending sort order; empty edge cases. **Multi-file tests**: multiple files with comments produce combined prompt; single file with comments among multiple loaded files; files without comments omitted from prompt; file ordering matches `fileOrder`; returns `null` when no comments on any file. Validates `FR-crp-prompt-format`, `FR-crp-multi-file-prompt-format`, `AC-crp-generate-prompt-structure`, `AC-crp-multi-file-prompt-structure`, `AC-crp-multi-file-prompt-omits-uncommented`. |
 | `binaryDetect.ts` | Detects null bytes; passes clean UTF-8; handles empty input; handles exactly 8,192 bytes boundary. Validates `AC-crp-binary-file-rejected`. |
 | `languageDetect.ts` | Maps all 14+ extensions correctly; returns "plaintext" for unknown; case-insensitive extension matching. Validates `FR-crp-syntax-highlight`. |
-| `appStore.ts` | `addFile` creates file with unique ID and preserves existing files; `addFile` sets new file as active; `addFile` does NOT add to `reviewedFiles`; `removeFile` removes file and its comments; `removeFile` removes file from `reviewedFiles`; `removeFile` switches active file when removed file was active; `removeFile` returns to empty state when last file removed; `setActiveFile` preserves comments on previous file; `setActiveFile` recomputes `commentOrder` for new active file; `setActiveFile` saves and restores scroll positions; `addComment` auto-sets `fileId` to active file; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment on any file removed); `navigateComment` wraps correctly within active file; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including all files, all comments, `generatedPrompt` to null, `reviewContext` to null, `isReviewContextCollapsed` to false, and `reviewedFiles` to empty set; `setSlashCommandMode` sets the flag; `sendPromptToAgent` posts to `/api/prompt-output` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false`; `setReviewContext` stores context data; `toggleReviewContextCollapsed` toggles collapse state; `toggleFileReviewed` adds file to `reviewedFiles` when unreviewed; `toggleFileReviewed` removes file from `reviewedFiles` when reviewed; `toggleFileReviewed` does not affect comments or active file. Validates store-level behavior for most FR and AC slugs including `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-clear-session`. |
+| `appStore.ts` | `addFile` creates file with unique ID and preserves existing files; `addFile` sets new file as active; `addFile` does NOT add to `reviewedFiles`; `removeFile` removes file and its comments; `removeFile` removes file from `reviewedFiles`; `removeFile` switches active file when removed file was active; `removeFile` returns to empty state when last file removed; `setActiveFile` preserves comments on previous file; `setActiveFile` recomputes `commentOrder` for new active file; `setActiveFile` saves and restores scroll positions; `addComment` auto-sets `fileId` to active file; `addComment` increments count and regenerates prompt automatically; `updateComment` regenerates prompt automatically; `deleteComment` decrements count and regenerates prompt automatically (clears prompt when last comment on any file removed); `navigateComment` wraps correctly within active file; `setPreamble` triggers prompt regeneration; `clearSession` resets everything including all files, all comments, `generatedPrompt` to null, `reviewContext` to null, `isReviewContextCollapsed` to false, and `reviewedFiles` to empty set; `setSlashCommandMode` sets the flag; `sendPromptToAgent` posts to `/api/prompt-output` and copies to clipboard; `doneState` transitions correctly through `idle` -> `sending` -> `sent`; `doneState` resets to `idle` on comment/preamble changes; `clearSession` resets `isSlashCommandMode` to `false`; `setReviewContext` stores context data; `toggleReviewContextCollapsed` toggles collapse state; `toggleReviewContextSidebarCollapsed` toggles sidebar collapse state independently of panel collapse; `setSidebarTab` switches between `'preview'` and `'comments'`; `clearSession` resets `isReviewContextSidebarCollapsed` to `false` and `sidebarTab` to `'preview'`; `toggleFileReviewed` adds file to `reviewedFiles` when unreviewed; `toggleFileReviewed` removes file from `reviewedFiles` when reviewed; `toggleFileReviewed` does not affect comments or active file. Validates store-level behavior for most FR and AC slugs including `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-multi-file-clear-all`, `AC-crp-multi-file-empty-after-remove-last`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-clear-session`, `AC-crp-context-sidebar-collapse`, `FR-crp-comment-summary`. |
 
 ### Component Tests (React Testing Library)
 
@@ -1021,6 +1117,10 @@ Components tested with mocked store state:
 | `ReviewContextPanel` | Not rendered when `reviewContext` is null (`AC-crp-context-graceful-missing`); renders overall section when context data is available (`AC-crp-context-overall-visible`); renders per-file section when active file has per-file context (`AC-crp-context-per-file-visible`); hides per-file section when active file has no per-file context; updates per-file section on file switch (`AC-crp-context-per-file-switches`); collapse/expand toggle works; collapse state persists across mock tab switches; all content is read-only (`AC-crp-context-readonly`). |
 | `ReviewStatusBar` | Renders "Mark as reviewed" with unchecked checkbox when file is unreviewed; renders "Reviewed" with green checkmark when file is reviewed; clicking bar calls `toggleFileReviewed(activeFileId)`; keyboard Enter/Space on checkbox toggles state; displays correct keyboard shortcut hint; updates when active file changes. Validates `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`. |
 | `ContextSection` | Neutral variant renders with blue styling, info icon, and "What Changed" label; review variant renders with violet styling, sparkle icon, and "Agent Review" label (`AC-crp-context-neutral-vs-review`); hidden when content is empty; content rendered as plain text with `pre-wrap`; content is not editable. |
+| `ReviewContextSidebar` | Not rendered when `reviewContext` is null; renders when overall context is available; collapse/expand toggle works via `toggleReviewContextSidebarCollapsed`; collapsed state hides content but shows header; expanded state shows both ContextSections; collapse state persists across mock tab switches; all content is read-only. Validates `FR-crp-review-context-collapsible`, `AC-crp-context-sidebar-collapse`. |
+| `PreambleInput` | Label reads "Overall Comment" (not "Preamble") (`AC-crp-overall-comment-label`); placeholder reads "Add an overall comment for all files in this review..."; collapsed preview text says "Overall Comment"; expanded textarea has correct `aria-label`. |
+| `SidebarContentTabs` | Renders two tabs "Preview" and "All Comments"; default active tab is "Preview"; clicking "All Comments" tab switches content; count badge on "All Comments" tab shows total comment count; count badge hidden when no comments. Validates `FR-crp-comment-summary`. |
+| `CommentSummary` | Shows empty state when no comments exist (`AC-crp-comment-summary-empty`); groups comments by file in `fileOrder` order; shows file names as section headers; shows line references and truncated comment text; clicking a comment entry calls `setActiveFile` and `setFocusedComment` (`AC-crp-comment-summary-shows-all`); updates immediately when comments are added/edited/deleted (`AC-crp-comment-summary-realtime`); files without comments are omitted. |
 | `PromptPreview` | Shows empty variant when no comments (prompt is null); shows populated variant with current prompt text when comments exist; prompt always reflects latest comments and preamble. |
 | `ConfirmationDialog` | Renders with correct text; confirm button triggers callback; cancel closes dialog; escape closes dialog (`AC-crp-clear-confirmation`). |
 
@@ -1063,6 +1163,12 @@ Full user flows tested in a real browser:
 | File reviewed: marking is independent of comment presence | `AC-crp-file-reviewed-with-comments` |
 | File reviewed: clear session resets all reviewed statuses | `AC-crp-file-reviewed-clear-session` |
 | File reviewed: Cmd+Shift+R keyboard shortcut toggles active file reviewed state | `FR-crp-file-reviewed-toggle` |
+| Sidebar: ReviewContextSidebar collapse/expand toggles content visibility | `FR-crp-review-context-collapsible`, `AC-crp-context-sidebar-collapse` |
+| Sidebar: PreambleInput label shows "Overall Comment", placeholder text matches spec | `FR-crp-prompt-preamble`, `AC-crp-overall-comment-label` |
+| Sidebar: Tab switching between Preview and All Comments | `FR-crp-comment-summary` |
+| Sidebar: CommentSummary shows all comments grouped by file, empty state when no comments | `FR-crp-comment-summary`, `AC-crp-comment-summary-shows-all`, `AC-crp-comment-summary-empty` |
+| Sidebar: Clicking a comment in CommentSummary navigates to the file and highlights the comment | `AC-crp-comment-summary-shows-all` |
+| Sidebar: CommentSummary updates in real time when comments are added/edited/deleted | `AC-crp-comment-summary-realtime` |
 
 ### Cross-Browser Testing (`NFR-crp-browser-support`)
 
@@ -1196,6 +1302,22 @@ The work is divided into four phases. Each phase produces a deployable increment
 
 **Slug coverage**: `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`, `FR-crp-file-reviewed-persistence`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `AC-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-progress-count`, `AC-crp-file-reviewed-survives-tab-switch`, `AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-clear-session`.
 
+### Phase 8: Sidebar Enhancements — Collapsible Context, Overall Comment, and Comment Summary (estimated 2-3 days)
+
+**Goal**: Add collapsible toggle to ReviewContextSidebar, rename "Preamble" UI labels to "Overall Comment", and add an All Comments summary view with tab navigation in the sidebar.
+
+1. Add `isReviewContextSidebarCollapsed: boolean` (default `false`) and `sidebarTab: 'preview' | 'comments'` (default `'preview'`) to the Zustand store. Add `toggleReviewContextSidebarCollapsed` and `setSidebarTab` actions. Update `clearSession` to reset both fields.
+2. Update `ReviewContextSidebar.tsx`: Read `isReviewContextSidebarCollapsed` from the store. Add a clickable header bar with chevron icon (same pattern as `ReviewContextPanel`). Conditionally render content based on collapse state. Apply CSS transition for smooth collapse/expand animation (`FR-crp-review-context-collapsible`, `AC-crp-context-sidebar-collapse`).
+3. Update `PreambleInput.tsx`: Change the toggle label from "Preamble" to "Overall Comment". Change the placeholder text to "Add an overall comment for all files in this review...". Change the collapsed preview text prefix to "Overall Comment". Update the `aria-label` to "Overall comment" (`FR-crp-prompt-preamble`, `AC-crp-overall-comment-label`). No store or prompt builder changes needed — `preamble` as an internal name is fine.
+4. Build `CommentSummary.tsx`: Read `comments`, `files`, `fileOrder` from the store. Group comments by `fileId`, filter to files that have comments, order by `fileOrder`. Render file names as section headers, then each comment with line reference and truncated text. Show empty state when no comments exist. On click, navigate to file/comment via `setActiveFile` and `setFocusedComment` (`FR-crp-comment-summary`, `AC-crp-comment-summary-shows-all`, `AC-crp-comment-summary-realtime`, `AC-crp-comment-summary-empty`).
+5. Build `SidebarContentTabs.tsx`: Two-tab segmented control — "Preview" and "All Comments" (with count badge). Reads `sidebarTab` from store, dispatches `setSidebarTab`. Renders `PromptPreview` or `CommentSummary` based on active tab.
+6. Update `App.tsx` sidebar section: Replace the direct rendering of `PreambleInput` + `PromptPreview` with `ReviewContextSidebar` + `PreambleInput` + `SidebarContentTabs` (which internally renders `PromptPreview` or `CommentSummary`).
+7. Write unit tests for new store actions. Write component tests for `ReviewContextSidebar` (collapse/expand), updated `PreambleInput` (label text), `SidebarContentTabs` (tab switching), and `CommentSummary` (grouping, click navigation, empty state, real-time updates). Write E2E tests for sidebar collapse, overall comment label, tab navigation, and comment summary navigation.
+
+**Delivers**: ReviewContextSidebar is collapsible with a toggle. PreambleInput shows "Overall Comment" labels. A new "All Comments" tab in the sidebar shows all comments across all files with click-to-navigate functionality.
+
+**Slug coverage**: `FR-crp-review-context-collapsible`, `FR-crp-prompt-preamble`, `FR-crp-comment-summary`, `AC-crp-context-sidebar-collapse`, `AC-crp-overall-comment-label`, `AC-crp-overall-comment-in-prompt`, `AC-crp-comment-summary-shows-all`, `AC-crp-comment-summary-realtime`, `AC-crp-comment-summary-empty`.
+
 ---
 
 ## Requirement Traceability
@@ -1214,7 +1336,7 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-line-comment-delete` | `CommentBubble` delete button; store `deleteComment` action |
 | `FR-crp-comment-indicator` | `CodeViewer` gutter rendering (blue dot for commented lines) |
 | `FR-crp-comment-count` | `Toolbar` component (reads global `commentCount` across all files from store) |
-| `FR-crp-prompt-preamble` | `PreambleInput` component; store `preamble` state and `setPreamble` action |
+| `FR-crp-prompt-preamble` | `PreambleInput` component (labeled "Overall Comment"); store `preamble` state and `setPreamble` action |
 | `FR-crp-prompt-generate` | `promptBuilder.ts`; Zustand store auto-generation on comment/preamble mutation |
 | `FR-crp-prompt-preview` | `PromptPreview` component (reads `generatedPrompt` from store) |
 | `FR-crp-prompt-copy` | `clipboard.ts`; store `copyPrompt` action; `Toolbar` Copy button; `ToastNotification` |
@@ -1232,7 +1354,9 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-multi-file-prompt-format` | `promptBuilder.ts` (multi-file format assembly with per-file sections) |
 | `FR-crp-review-context-receive` | `ReviewContextPanel` component (conditional rendering based on `state.reviewContext`); `useFileFromUrl` hook (fetches `GET /api/review-context` after loading files); Vite plugin endpoint (`GET /api/review-context` reads `~/.shepherd/review-context.json`); store `setReviewContext` action |
 | `FR-crp-review-context-display` | `ReviewContextPanel` component; `ContextSection` component (neutral/review variants); Code Viewer Panel layout (positioned between FileHeader and CodeViewer in single-file mode; at top of Code Viewer Panel in multi-file mode where FileBrowser replaces FileHeader) |
-| `FR-crp-review-context-overall` | `ReviewContextPanel` component (overall "CHANGESET OVERVIEW" section using `state.reviewContext.overall`) |
+| `FR-crp-review-context-overall` | `ReviewContextPanel` component (overall "CHANGESET OVERVIEW" section using `state.reviewContext.overall`); `ReviewContextSidebar` component (overall changeset context in sidebar) |
+| `FR-crp-review-context-collapsible` | `ReviewContextSidebar` component (collapsible header bar with chevron toggle); store `isReviewContextSidebarCollapsed` state and `toggleReviewContextSidebarCollapsed` action |
+| `FR-crp-comment-summary` | `CommentSummary` component (all comments grouped by file); `SidebarContentTabs` component ("All Comments" tab); store `sidebarTab` state and `setSidebarTab` action |
 | `FR-crp-review-context-per-file` | `ReviewContextPanel` component (per-file section derived from `state.reviewContext.files[activeFilePath]`); updates on `setActiveFile` via Zustand selector |
 | `FR-crp-file-reviewed-toggle` | `ReviewStatusBar` component (primary toggle); `FileBrowser` review toggle icon button; `Toolbar` keyboard shortcut `Cmd+Shift+R`; store `toggleFileReviewed` action; store `reviewedFiles` state |
 | `FR-crp-file-reviewed-visual` | `FileBrowser` component (green checkmark icon, muted text for inactive reviewed file rows); `ReviewStatusBar` component (checked/unchecked visual states) |
@@ -1305,3 +1429,9 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-file-reviewed-survives-tab-switch` | Store `reviewedFiles` state persists across `setActiveFile` calls; `ReviewStatusBar` re-reads `isActiveFileReviewed` on active file change |
 | `AC-crp-file-reviewed-with-comments` | Store `toggleFileReviewed` is orthogonal to comment state; no interaction between `reviewedFiles` and `comments` |
 | `AC-crp-file-reviewed-clear-session` | Store `clearSession` resets `reviewedFiles` to empty `Set` |
+| `AC-crp-context-sidebar-collapse` | `ReviewContextSidebar` component (clickable header bar with chevron toggle); store `isReviewContextSidebarCollapsed` and `toggleReviewContextSidebarCollapsed` action; `clearSession` resets to `false` |
+| `AC-crp-overall-comment-label` | `PreambleInput` component (label "Overall Comment", placeholder "Add an overall comment for all files in this review...", collapsed preview "Overall Comment", `aria-label` "Overall comment") |
+| `AC-crp-overall-comment-in-prompt` | `promptBuilder.ts` — no change needed (the `## Instructions` heading is preserved); the preamble content appears at the top of the generated prompt unchanged |
+| `AC-crp-comment-summary-shows-all` | `CommentSummary` component (groups comments by file in `fileOrder` order; shows file name headers, line references, truncated comment text; clicking navigates to file/comment) |
+| `AC-crp-comment-summary-realtime` | `CommentSummary` component (reads directly from Zustand store; updates immediately on comment add/edit/delete) |
+| `AC-crp-comment-summary-empty` | `CommentSummary` component (centered placeholder message "No comments yet. Add comments to code lines to see them here." when no comments exist on any file) |

@@ -1,4 +1,4 @@
-// Implements: FR-rc-overall-context
+// Implements: FR-rc-overall-context, FR-sb-collapse-toggle
 
 import { useAppStore } from '@/store/appStore';
 import { ContextSection } from '@/components/ContextSection';
@@ -10,6 +10,8 @@ import { ContextSection } from '@/components/ContextSection';
  */
 export function ReviewContextSidebar() {
   const reviewContext = useAppStore((s) => s.reviewContext);
+  const isCollapsed = useAppStore((s) => s.isReviewContextSidebarCollapsed);
+  const toggleCollapsed = useAppStore((s) => s.toggleReviewContextSidebarCollapsed);
 
   if (!reviewContext) return null;
 
@@ -19,20 +21,46 @@ export function ReviewContextSidebar() {
 
   return (
     <div
-      className="border-b px-4 py-3 space-y-2"
+      className="border-b"
       style={{
         borderColor: 'var(--color-border)',
         backgroundColor: 'var(--color-context-panel-bg)',
       }}
     >
-      <h4
-        className="text-[10px] font-bold uppercase tracking-widest"
-        style={{ color: 'var(--color-context-section-label)' }}
+      {/* Header bar */}
+      <button
+        onClick={toggleCollapsed}
+        className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium cursor-pointer select-none hover:opacity-80"
+        style={{
+          backgroundColor: 'var(--color-context-header-bg)',
+          color: 'var(--color-text-secondary)',
+        }}
       >
-        Changeset Overview
-      </h4>
-      <ContextSection variant="neutral" content={reviewContext.overall.neutral} />
-      <ContextSection variant="review" content={reviewContext.overall.review} />
+        <span
+          className="transition-transform duration-150"
+          style={{
+            color: 'var(--color-context-chevron)',
+            display: 'inline-block',
+            transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)',
+          }}
+        >
+          &#9656;
+        </span>
+        <span
+          className="text-[10px] font-bold uppercase tracking-widest"
+          style={{ color: 'var(--color-context-section-label)' }}
+        >
+          Changeset Overview
+        </span>
+      </button>
+
+      {/* Collapsible content */}
+      {!isCollapsed && (
+        <div className="px-4 py-3 space-y-2">
+          <ContextSection variant="neutral" content={reviewContext.overall.neutral} />
+          <ContextSection variant="review" content={reviewContext.overall.review} />
+        </div>
+      )}
     </div>
   );
 }

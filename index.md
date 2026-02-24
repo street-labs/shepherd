@@ -1568,7 +1568,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/code-review-prompt.md`
 - **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-graceful-missing`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-graceful-missing`, `TC-crp-context-sidebar-hidden`
 
 ### `AC-crp-context-readonly`
 - **Defined in**: `product/code-review-prompt.md`
@@ -1647,6 +1647,54 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/code-review-prompt.md`
 - **Engineering**: `engineering/code-review-prompt.md`
 - **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-clear-session-resets`
+
+### `FR-crp-review-context-collapsible`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**:
+
+### `AC-crp-context-sidebar-collapse`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-sidebar-collapse`
+
+### `AC-crp-overall-comment-label`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-overall-comment-label`
+
+### `AC-crp-overall-comment-in-prompt`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-overall-comment-in-prompt`
+
+### `FR-crp-comment-summary`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-shows-all`, `TC-crp-comment-summary-realtime`, `TC-crp-comment-summary-empty`, `TC-crp-comment-summary-click-navigates`
+
+### `AC-crp-comment-summary-shows-all`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-shows-all`
+
+### `AC-crp-comment-summary-realtime`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-realtime`
+
+### `AC-crp-comment-summary-empty`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-empty`
 
 <!--
 Entry template -- copy this when adding a new slug:

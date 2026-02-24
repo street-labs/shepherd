@@ -1,4 +1,4 @@
-// Implements: FR-crp-prompt-preamble
+// Implements: FR-crp-prompt-preamble, FR-sb-preamble-rename
 
 import { useAppStore } from '@/store/appStore';
 import { useState } from 'react';
@@ -15,7 +15,7 @@ export function PreambleInput() {
         className="flex items-center gap-1 text-xs font-medium text-text-secondary hover:text-text-primary w-full"
       >
         <span className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▸</span>
-        <span>Preamble</span>
+        <span>Overall Comment</span>
         {preamble.trim() && !isExpanded && (
           <span className="text-text-tertiary ml-1 truncate">— {preamble.trim().slice(0, 50)}</span>
         )}
@@ -24,9 +24,9 @@ export function PreambleInput() {
         <textarea
           value={preamble}
           onChange={(e) => setPreamble(e.target.value)}
-          placeholder="Optional: Add high-level instructions for the AI reviewer..."
+          placeholder="Add an overall comment for all files in this review..."
           className="w-full mt-2 min-h-[80px] p-2 text-sm border border-border-default rounded resize-y focus:outline-none focus:ring-1 focus:ring-primary-500"
-          aria-label="Preamble instructions"
+          aria-label="Overall comment"
         />
       )}
     </div>

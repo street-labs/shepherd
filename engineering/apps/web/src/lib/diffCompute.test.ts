@@ -224,11 +224,13 @@ describe('buildDiffDisplayItems', () => {
     const lines = makeSampleDiffLines();
     const comment: DiffComment = {
       id: 'dc1',
+      fileId: 'f1',
       startLineId: { lineType: 'added', oldLine: null, newLine: 2 },
       endLineId: { lineType: 'added', oldLine: null, newLine: 2 },
       startIndex: 2,
       endIndex: 2,
       text: 'A comment',
+      contextSnippet: '  + new line',
       createdAt: '2026-01-01T00:00:00Z',
     };
     const items = buildDiffDisplayItems(lines, [], new Set(), { dc1: comment }, ['dc1'], null);

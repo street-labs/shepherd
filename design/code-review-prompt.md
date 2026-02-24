@@ -10,7 +10,7 @@ This is a single-page application with one primary view that transitions through
 |---|---|
 | **Empty State** | No file loaded. Shows drop zone and file loading instructions. |
 | **File Loaded State (Single File)** | One file is loaded and displayed in the code viewer. User can add, edit, delete comments. The prompt auto-generates when comments exist. When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears between the FileHeader and the code viewer (`FR-crp-review-context-display`). |
-| **File Loaded State (Multi-File)** | Two or more files are loaded. A FileBrowser sidebar panel appears on the left side of the layout, listing all loaded files grouped by review status ("To Review" and "Reviewed" sections with `FR-crp-file-reviewed-grouping`), with per-file comment counts. The active file is displayed in the code viewer. User can switch between files, add/remove files, mark files as reviewed, and annotate each independently. A review progress indicator in the FileBrowser sidebar header shows "N/M reviewed" (`FR-crp-file-reviewed-progress`). When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears inside the Code Viewer Panel, showing overall changeset context and per-file context for the active file (`FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`). Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`. |
+| **File Loaded State (Multi-File)** | Two or more files are loaded. A FileBrowser sidebar panel appears on the left side of the layout, listing all loaded files grouped by review status ("To Review" and "Reviewed" sections with `FR-crp-file-reviewed-grouping`), with per-file comment counts. The active file is displayed in the code viewer. User can switch between files, add/remove files, mark files as reviewed, and annotate each independently. A review progress indicator in the FileBrowser sidebar header shows "N/M reviewed" (`FR-crp-file-reviewed-progress`). When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears inside the Code Viewer Panel showing per-file context for the active file (`FR-crp-review-context-display`, `FR-crp-review-context-per-file`), and a collapsible ReviewContextSidebar appears in the right sidebar showing overall changeset context (`FR-crp-review-context-overall`, `FR-crp-review-context-collapsible`). Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`. |
 | **Prompt Preview State** | The auto-generated prompt is displayed in a preview panel alongside the code viewer. Active whenever >= 1 comment exists on any loaded file. When multiple files have comments, the prompt aggregates all files (`FR-crp-multi-file-prompt`). |
 
 Within the File Loaded State (both single and multi-file), the application has several sub-states depending on user activity (editing a comment, selecting a line range, etc.). These are described in detail below.
@@ -74,7 +74,7 @@ When review context data is available (shepherd-review mode), a Review Context P
 ```
 
 - **Code Viewer Panel**: Takes remaining width after the sidebar. Contains the FileHeader, the Review Context Panel (when context data is available, `FR-crp-review-context-display`), the code viewer with line numbers, gutter, and inline comments. Scrolls vertically independently.
-- **Sidebar Panel**: Fixed width of 360px on the right side. Contains the preamble input and the prompt preview (auto-populated when comments exist). Scrolls vertically independently.
+- **Sidebar Panel**: Fixed width of 360px on the right side. Contains the ReviewContextSidebar (when context data is available), the Overall Comment input, and a tabbed area with Preview / All Comments tabs (auto-populated when comments exist). Scrolls vertically independently.
 - **Review Context Panel**: Conditionally visible only when review context data is available (`AC-crp-context-graceful-missing`). See ReviewContextPanel component spec for details.
 
 ### Main Content Area — File Loaded State (Multi-File)
@@ -106,7 +106,7 @@ When review context data is available (shepherd-review mode), a Review Context P
 ```
 
 - **FileBrowser**: Fixed width of 240px on the left side. Full height of the main content area (below toolbar to bottom of viewport). Lists all loaded files grouped by review status, with an "Add file" button and review progress indicator. See FileBrowser component spec for details. The FileBrowser replaces the FileHeader — file name and language info are shown in the file row (with full details in a tooltip on hover).
-- **Review Context Panel**: Conditionally visible only when review context data is available (`AC-crp-context-graceful-missing`). Displays overall changeset context and per-file context for the active file. The per-file context updates when the active file changes (`AC-crp-context-per-file-switches`). See ReviewContextPanel component spec for details.
+- **Review Context Panel**: Conditionally visible only when review context data is available and the active file has per-file context (`AC-crp-context-graceful-missing`). Displays per-file context for the active file only (overall changeset context is in the ReviewContextSidebar). The per-file context updates when the active file changes (`AC-crp-context-per-file-switches`). See ReviewContextPanel component spec for details.
 - **Code Viewer Panel**: Same as single-file layout, but the FileHeader is no longer rendered (its information is in the FileBrowser sidebar). The code viewer displays the content of the currently active file.
 - **Sidebar Panel**: Same as single-file layout. The prompt preview aggregates comments across all files.
 
@@ -114,13 +114,14 @@ When review context data is available (shepherd-review mode), a Review Context P
 
 ### Main Content Area — Prompt Preview Active
 
-The layout remains the same two-column structure. The sidebar panel switches from showing only the preamble input to showing both the preamble input (collapsed to a summary line) and the prompt preview below it.
+The layout remains the same two-column structure. The sidebar panel switches from showing only the Overall Comment input to showing the Overall Comment input (collapsed to a summary line) and the tabbed Preview / All Comments area below it.
 
 ```
 +----------------------------------------------+-------------------+
-|                                               | Preamble (summary)|
+|                                               | Context (collapse)|
+|                                               | Overall Comment   |
 |  Code Viewer Panel                            |-------------------|
-|                                               |                   |
+|                                               | [Preview] [All]   |
 |                                               | Prompt Preview    |
 |                                               | (scrollable)      |
 |                                               |                   |
@@ -163,7 +164,7 @@ The entire main content area is a single centered drop zone.
 
 ### File Loaded Screen
 
-- **Purpose**: Display the loaded file(s) with line numbers, allow the user to add/edit/delete inline comments, write a preamble, and view the auto-generated prompt. When multiple files are loaded, provide file browser navigation between them (`FR-crp-multi-file-nav`).
+- **Purpose**: Display the loaded file(s) with line numbers, allow the user to add/edit/delete inline comments, write an Overall Comment, and view the auto-generated prompt. When multiple files are loaded, provide file browser navigation between them (`FR-crp-multi-file-nav`).
 - **Entry points**: Successfully loading a file from the Empty State; loading an additional file via the "+" button in the FileBrowser sidebar.
 
 #### Layout
@@ -182,7 +183,7 @@ Contains the following from top to bottom:
    - If the file was pasted and no name was provided, shows an inline editable text field with placeholder "Untitled -- click to name". File names from upload/drag-and-drop are displayed as read-only text and cannot be renamed.
    - **In multi-file mode**, the FileHeader is not rendered. File name, language badge, and rename affordance (for pasted files) move into the FileBrowser sidebar. Hovering over a file row shows a tooltip with the full file name and language. Right-clicking a file row for a pasted file opens the rename input inline.
 
-2. **ReviewContextPanel** (conditional): Visible only when review context data is available (`FR-crp-review-context-receive`). Positioned between the FileHeader (single-file mode) or the top of the Code Viewer Panel (multi-file mode, since the FileHeader is replaced by the FileBrowser sidebar) and the CodeViewer. Shows overall changeset context and per-file context for the active file. Collapsible to maximize code viewing space. See ReviewContextPanel component spec for full details. When no context data is available (standalone mode, single `/shepherd`), this component is not rendered at all (`AC-crp-context-graceful-missing`).
+2. **ReviewContextPanel** (conditional): Visible only when review context data is available (`FR-crp-review-context-receive`) and the active file has per-file context. Positioned between the FileHeader (single-file mode) or the top of the Code Viewer Panel (multi-file mode, since the FileHeader is replaced by the FileBrowser sidebar) and the CodeViewer. Shows per-file context only for the active file (overall changeset context is now in the ReviewContextSidebar in the sidebar). Collapsible to maximize code viewing space. See ReviewContextPanel component spec for full details. When no context data is available (standalone mode, single `/shepherd`), or the active file has no per-file context, this component is not rendered at all (`AC-crp-context-graceful-missing`).
 
 3. **ReviewStatusBar** (file-reviewed feature): A compact horizontal bar at the top of the code viewer area (below the ReviewContextPanel if present, or below the FileHeader in single-file mode / at the top of the Code Viewer Panel in multi-file mode). Shows the reviewed state of the active file with a toggle button. Implements `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`. See ReviewStatusBar component spec for full details.
 
@@ -194,8 +195,11 @@ Contains the following from top to bottom:
 
 Contains the following from top to bottom:
 
-1. **PreambleInput**: A text area for the prompt preamble (`FR-crp-prompt-preamble`). See Component Specs.
-2. **PromptPreview**: Appears below the preamble input once comments exist (`FR-crp-prompt-preview`). See Component Specs. Before any comments are added, this area shows a placeholder message: "Add comments to the code to generate your AI prompt."
+1. **ReviewContextSidebar** (conditional): Visible only when review context data is available (`FR-crp-review-context-receive`). A collapsible section showing the overall changeset context (neutral + review). Implements `FR-crp-review-context-collapsible`, `FR-crp-review-context-overall`. See ReviewContextSidebar component spec for full details. When no context data is available, this component is not rendered.
+2. **PreambleInput**: A text area for the Overall Comment (`FR-crp-prompt-preamble`). See Component Specs.
+3. **Sidebar Content Tabs**: A two-tab segmented control below the Overall Comment input, with tabs **"Preview"** and **"All Comments"**:
+   - **Preview** tab (default): Shows the **PromptPreview** component. Appears below the Overall Comment input once comments exist (`FR-crp-prompt-preview`). Before any comments are added, this area shows a placeholder message: "Add comments to the code to generate your AI prompt." See PromptPreview component spec.
+   - **All Comments** tab: Shows the **CommentSummary** component. Displays all comments across all loaded files, organized by file (`FR-crp-comment-summary`). See CommentSummary component spec.
 
 #### Toolbar (File Loaded state)
 
@@ -214,13 +218,13 @@ All toolbar items update to their active states:
 
 | State | Trigger | Appearance |
 |---|---|---|
-| **Populated, no comments** | File(s) loaded, zero comments on any file | Code viewer shows the active file. Sidebar shows empty preamble input and placeholder message in preview area. |
+| **Populated, no comments** | File(s) loaded, zero comments on any file | Code viewer shows the active file. Sidebar shows ReviewContextSidebar (if context data available), empty Overall Comment input, and placeholder message in the Preview tab. |
 | **Populated, with comments** | One or more comments exist on any loaded file | Code viewer shows the active file with comment indicators in the gutter. Prompt preview updates automatically (aggregating all files with comments). Comment navigation enabled. Copy button enabled. In multi-file mode, the FileBrowser sidebar shows per-file comment count badges. |
 | **Comment editing** | User opens the inline comment editor | InlineCommentEditor is inserted below the target line(s) in the code viewer. Rest of the code is pushed down. |
 | **Line range selection** | User is selecting a range of lines (`FR-crp-line-range-comment`) | Selected lines are highlighted with a blue background (`#DBEAFE`). Selection indicator shows "Lines N-M selected". |
 | **Prompt copied** | User clicks Copy | A toast notification appears: "Copied to clipboard" for 3 seconds. The Copy button briefly changes label to "Copied!" with a checkmark icon, then reverts after 2 seconds. `AC-crp-copy-clipboard` |
 | **Prompt sent (auto-close)** | User clicks Done in app-mode window (`AC-crp-done-auto-close`) | Done button transitions: "Done" -> "Sending..." (with spinner). On success, `window.close()` is called and the window closes. The user never sees the "Sent" state because the window is gone. |
-| **Prompt sent (fallback)** | User clicks Done but `window.close()` fails (not app-mode) (`AC-crp-done-confirmation`) | Done button transitions: "Done" -> "Sending..." (with spinner) -> "Sent" (green checkmark, disabled). A toast notification appears: "Prompt sent to agent! Switch back to your terminal." The "Sent" state persists until the user modifies comments or preamble, at which point the button resets to "Done". |
+| **Prompt sent (fallback)** | User clicks Done but `window.close()` fails (not app-mode) (`AC-crp-done-confirmation`) | Done button transitions: "Done" -> "Sending..." (with spinner) -> "Sent" (green checkmark, disabled). A toast notification appears: "Prompt sent to agent! Switch back to your terminal." The "Sent" state persists until the user modifies comments or the Overall Comment, at which point the button resets to "Done". |
 | **Prompt send failed** | Done POST request fails (`AC-crp-done-fallback-clipboard`) | Done button reverts from "Sending..." to "Done". A toast notification appears: "Could not send to agent. Prompt copied to clipboard -- paste it manually." The prompt is still available on the clipboard. |
 | **Large file warning** | File exceeds 10,000 lines (`NFR-crp-large-file-perf`) | A dismissible yellow banner appears at the top of the code viewer: "This file has N lines. Performance may be affected for very large files." Dismissing sets a per-file session flag. If a different large file is activated, its warning is independent. |
 | **Multi-file: file switching** | User clicks a different file row in the FileBrowser sidebar (`FR-crp-multi-file-nav`) | The code viewer transitions to the newly active file. The previous file's state (comments, scroll position, reviewed status) is preserved in memory. The new file's scroll position is restored. The active file indicator updates in the sidebar. The ReviewStatusBar updates to reflect the new file's reviewed state. `AC-crp-multi-file-nav-preserves-state`, `AC-crp-file-reviewed-survives-tab-switch` |
@@ -241,7 +245,7 @@ All toolbar items update to their active states:
 5. An optional text input labeled "File name (optional)" appears below the text area.
 6. User clicks "Load" button.
 7. Application transitions to File Loaded state: code viewer appears with the pasted content, line numbers starting at 1. If a file name was provided, it appears in the FileHeader. If not, "Untitled" is shown with option to click and name it.
-8. Sidebar appears with empty preamble input.
+8. Sidebar appears with empty Overall Comment input.
 
 ### Flow 2: Load File via Upload (`AC-crp-load-upload`)
 
@@ -303,26 +307,26 @@ All toolbar items update to their active states:
 3. The CommentBubble is immediately removed (no confirmation dialog for individual comment deletion). The gutter indicator is removed if no other comments remain on that line. The toolbar comment count decrements by 1.
 4. The prompt preview automatically updates to reflect the removal. If no comments remain, the prompt preview reverts to the placeholder message and the Copy button becomes disabled.
 
-### Flow 8: Write a Preamble (`FR-crp-prompt-preamble`)
+### Flow 8: Write an Overall Comment (`FR-crp-prompt-preamble`)
 
-1. In the sidebar, the user sees the PreambleInput text area with placeholder text: "Add high-level instructions for the AI (optional). Example: Refactor this function to use async/await."
-2. User clicks the text area and types their preamble.
-3. The preamble is stored in application state. No explicit save action is needed.
-4. If comments exist, the prompt automatically regenerates to include the updated preamble. The preamble appears at the top of the output.
+1. In the sidebar, the user sees the PreambleInput text area labeled "Overall Comment" with placeholder text: "Add an overall comment for all files in this review..."
+2. User clicks the text area and types their overall comment.
+3. The overall comment is stored in application state. No explicit save action is needed.
+4. If comments exist, the prompt automatically regenerates to include the updated overall comment. The overall comment appears at the top of the output in the "Instructions" section (`AC-crp-overall-comment-in-prompt`).
 
 ### Flow 9: Automatic Prompt Generation (`FR-crp-prompt-generate`, `AC-crp-generate-prompt-structure`)
 
-1. The prompt is automatically generated (and regenerated) whenever any of the following occur: a comment is added, a comment is edited, a comment is deleted, or the preamble text changes. There is no manual Generate button.
+1. The prompt is automatically generated (and regenerated) whenever any of the following occur: a comment is added, a comment is edited, a comment is deleted, or the Overall Comment text changes. There is no manual Generate button.
 2. As soon as the first comment is added, the application assembles the prompt per `FR-crp-prompt-format`:
-   - Preamble (if provided)
+   - Overall Comment (if provided) — appears once in the "Instructions" section (`AC-crp-overall-comment-in-prompt`)
    - File name and detected language
    - Full file content with line numbers
    - "Requested Changes" section with all comments in ascending line order
-3. The prompt preview panel in the sidebar populates with the generated prompt text. The prompt preview always reflects the current state of comments and preamble — there is no stale prompt concept.
-4. The preamble input collapses automatically to a single summary line when the first comment is added (showing the first ~80 characters of the preamble with "..." if truncated, or "No preamble" in muted text if empty). The user can click the summary to expand and re-edit.
+3. The prompt preview panel in the sidebar (Preview tab) populates with the generated prompt text. The prompt preview always reflects the current state of comments and Overall Comment — there is no stale prompt concept.
+4. The Overall Comment input collapses automatically to a single summary line when the first comment is added (showing the first ~80 characters of the text with "..." if truncated, or "No overall comment" in muted text if empty). The user can click the summary to expand and re-edit.
 5. The Copy button in the toolbar becomes enabled as soon as any comment exists.
 
-   **Preamble collapse/expand behavior**: The preamble collapses automatically when the first comment is added. After expanding to edit, the preamble remains in the user's chosen state (expanded or collapsed) until the user toggles it. Editing the preamble triggers an automatic prompt regeneration.
+   **Overall Comment collapse/expand behavior**: The Overall Comment collapses automatically when the first comment is added. After expanding to edit, the Overall Comment remains in the user's chosen state (expanded or collapsed) until the user toggles it. Editing the Overall Comment triggers an automatic prompt regeneration.
 6. If all comments are deleted, the prompt preview reverts to the placeholder message and the Copy button becomes disabled.
 7. Prompt generation must complete within 300ms (`NFR-crp-prompt-gen-time`). No loading spinner is shown for this operation since it is expected to be near-instant.
 
@@ -347,10 +351,10 @@ All toolbar items update to their active states:
 1. User clicks the "Clear" button in the toolbar.
 2. **If comments exist on any file** (`AC-crp-clear-confirmation`): A confirmation dialog (modal) appears with:
    - Title: "Clear session?"
-   - Body (single file): "This will remove the loaded file, all N comments, and the preamble. This action cannot be undone."
-   - Body (multi-file): "This will remove all M loaded files, all N comments, and the preamble. This action cannot be undone." (`AC-crp-multi-file-clear-all`)
+   - Body (single file): "This will remove the loaded file, all N comments, and the overall comment. This action cannot be undone."
+   - Body (multi-file): "This will remove all M loaded files, all N comments, and the overall comment. This action cannot be undone." (`AC-crp-multi-file-clear-all`)
    - Buttons: "Cancel" (secondary, left) and "Clear session" (destructive/red, right).
-   - If user clicks "Clear session", ALL loaded files, ALL comments across all files, the preamble, and all reviewed statuses are removed (`AC-crp-file-reviewed-clear-session`). The application resets to the Empty State. The FileBrowser sidebar disappears. The review progress indicator disappears.
+   - If user clicks "Clear session", ALL loaded files, ALL comments across all files, the overall comment, and all reviewed statuses are removed (`AC-crp-file-reviewed-clear-session`). The application resets to the Empty State. The FileBrowser sidebar disappears. The review progress indicator disappears.
    - If user clicks "Cancel" or presses `Escape`, the dialog closes and nothing changes.
 3. **If no comments exist on any file** (`AC-crp-clear-no-confirm-empty`): The session clears immediately without a dialog. All loaded files are removed. The application returns to the Empty State.
 
@@ -387,7 +391,7 @@ All toolbar items update to their active states:
    c. **If the window closes** (app-mode): Done. The user is back at the terminal -- the last active window before the CRPG opened. The agent has received the prompt via the file watcher (see `design/slash-command.md`, Flow 10).
    d. **If the window does NOT close** (not in app-mode, or browser security restrictions prevent it): Fall back to the confirmation UI. The Done button transitions to its "Sent" state: label changes to "Sent" with a green checkmark icon. The button becomes disabled (no further clicks). A toast notification appears (success variant): "Prompt sent to agent! Switch back to your terminal." Auto-dismisses after 5 seconds (longer than the standard 3 seconds, since the user needs to read the instruction).
 6. If the fallback confirmation UI is shown (step 5d), the user manually switches back to their terminal.
-7. If the user returns to the CRPG and modifies any comment (add, edit, delete) or changes the preamble, the Done button resets from "Sent" to its normal "Done" state, ready to send again.
+7. If the user returns to the CRPG and modifies any comment (add, edit, delete) or changes the Overall Comment, the Done button resets from "Sent" to its normal "Done" state, ready to send again.
 
 ### Flow 16: Done -- Error Fallback (`AC-crp-done-fallback-clipboard`)
 
@@ -802,7 +806,7 @@ The persistent toolbar at the top of the application. Always visible.
   - `commentCount: number` — Total number of comments **across all loaded files** (`FR-crp-comment-count`, `AC-crp-multi-file-comment-count`). This is a global aggregate, not per-file.
   - `currentCommentIndex: number | null` — Index of the currently focused comment (for navigation display). When navigating comments across multiple files, the index spans all files in file browser order (load order).
   - `hasFile: boolean` — Whether **at least one** file is loaded. True when one or more files exist in the session.
-  - `fileCount: number` — Number of loaded files. Used to adjust the clear confirmation message (e.g., "This will remove all 3 loaded files, all 5 comments, and the preamble.").
+  - `fileCount: number` — Number of loaded files. Used to adjust the clear confirmation message (e.g., "This will remove all 3 loaded files, all 5 comments, and the overall comment.").
   - `isSlashCommandMode: boolean` — Whether the CRPG was launched via the slash command. Controls Done button visibility.
   - `doneState: 'idle' | 'sending' | 'sent'` — Current state of the Done button.
   - `onDone: () => void` — Callback when Done is clicked.
@@ -838,7 +842,7 @@ The persistent toolbar at the top of the application. Always visible.
   | **sent** | "Sent" | Green checkmark | Success (filled green `#16A34A`, white text) | No | _(Fallback only -- in app-mode, the window closes via `window.close()` before this state is shown. This state is only visible when auto-close fails.)_ |
   | **disabled** | "Done" | Checkmark (muted) | Primary (reduced opacity 0.5) | No |
 
-  The Done button resets from `sent` to `idle` whenever the user adds, edits, or deletes a comment, or modifies the preamble.
+  The Done button resets from `sent` to `idle` whenever the user adds, edits, or deletes a comment, or modifies the Overall Comment.
 
 - **States**:
 
@@ -1016,41 +1020,33 @@ The input form for creating or editing a comment. Appears inline within the code
 
 ### ReviewContextPanel
 
-Collapsible panel that displays review context data provided by the shepherd-review command. Implements `FR-crp-review-context-display`, `FR-crp-review-context-overall`, `FR-crp-review-context-per-file`, `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
+Collapsible panel that displays **per-file** review context data provided by the shepherd-review command. Implements `FR-crp-review-context-display`, `FR-crp-review-context-per-file`, `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
 
-This component is **conditionally rendered** — it only appears when the CRPG receives review context data from the agent (`FR-crp-review-context-receive`). When no context data is available (standalone mode, single `/shepherd`), this component is not rendered at all. There is no empty or placeholder state (`AC-crp-context-graceful-missing`).
+> **Note**: Overall changeset context is displayed in the **ReviewContextSidebar** component in the right sidebar, not in this panel. This panel only shows context specific to the currently active file.
+
+This component is **conditionally rendered** — it only appears when the CRPG receives review context data from the agent (`FR-crp-review-context-receive`) **and** the active file has per-file context. When no context data is available (standalone mode, single `/shepherd`), or the active file has no per-file context (e.g., file added via paste/upload), this component is not rendered at all. There is no empty or placeholder state (`AC-crp-context-graceful-missing`).
 
 - **Position**: Inside the Code Viewer Panel, between the FileHeader (single-file mode) or the top of the panel (multi-file mode, since the FileHeader is replaced by the FileBrowser sidebar) and the CodeViewer. The panel spans the full width of the Code Viewer Panel (does not extend into the Sidebar Panel).
 
 - **Props/Inputs**:
-  - `overallContext: { neutral: string; review: string } | null` — Overall changeset context. Both fields may be empty strings.
   - `perFileContext: { neutral: string; review: string } | null` — Per-file context for the currently active file. Null when the active file has no per-file context (e.g., file added via paste/upload, not part of the shepherd-review invocation).
   - `isCollapsed: boolean` — Whether the panel is in its collapsed state.
   - `onToggleCollapse: () => void` — Callback to toggle collapse/expand.
-  - `activeFileName: string` — Name of the currently active file (used in the per-file section header).
+  - `activeFileName: string` — Name of the currently active file (used in the section header).
 
 - **States**:
 
   | State | Trigger | Appearance |
   |---|---|---|
-  | **Expanded (overall + per-file)** | Default when context data is available and the active file has per-file context | Full panel showing both the overall changeset section and per-file section, each with neutral and review sub-sections. |
-  | **Expanded (overall only)** | Context data is available but the active file has no per-file context | Panel shows only the overall changeset section. The per-file section is not rendered (no empty placeholder). |
+  | **Expanded** | Default when the active file has per-file context | Panel showing the per-file context section with neutral and review sub-sections. |
   | **Collapsed** | User has collapsed the panel | Single-line indicator bar showing a collapsed state. |
-  | **Absent / Hidden** | No context data available at all (`AC-crp-context-graceful-missing`) | Component is not rendered. No DOM element, no empty space. |
+  | **Absent / Hidden** | No context data available, or the active file has no per-file context (`AC-crp-context-graceful-missing`) | Component is not rendered. No DOM element, no empty space. |
 
-- **Visual Structure (expanded, both sections)**:
+- **Visual Structure (expanded)**:
   ```
   +--------------------------------------------------------------+
-  | [v] Review Context                                            |
+  | [v] File Context: utils.ts                                    |
   |--------------------------------------------------------------|
-  | CHANGESET OVERVIEW                                            |
-  |                                                               |
-  | [ContextSection: "What Changed" — neutral styling]            |
-  | [ContextSection: "Agent Review" — review styling]             |
-  |                                                               |
-  |--------------------------------------------------------------|
-  | FILE: utils.ts                                                |
-  |                                                               |
   | [ContextSection: "What Changed" — neutral styling]            |
   | [ContextSection: "Agent Review" — review styling]             |
   +--------------------------------------------------------------+
@@ -1059,7 +1055,7 @@ This component is **conditionally rendered** — it only appears when the CRPG r
 - **Visual Structure (collapsed)**:
   ```
   +--------------------------------------------------------------+
-  | [>] Review Context                                            |
+  | [>] File Context: utils.ts                                    |
   +--------------------------------------------------------------+
   ```
 
@@ -1068,15 +1064,10 @@ This component is **conditionally rendered** — it only appears when the CRPG r
   - **Dark mode**: Background: `#1A1D23`. Border-bottom: 1px solid `#2D3139`.
   - **Header bar**: Height: 36px. Padding: 0 16px. Background: `#F1F5F9`. Border-bottom: 1px solid `#E2E8F0`. Display: flex, align-items center. Cursor: pointer (entire header is the collapse/expand toggle).
     - Chevron icon: 14px, color `#64748B`. Points down when expanded (`v`), right when collapsed (`>`). Rotates with a 150ms CSS transition.
-    - Label: "Review Context" in 12px semi-bold (600), color `#475569`, uppercase tracking (`letter-spacing: 0.05em`).
+    - Label: "File Context: [filename]" in 12px semi-bold (600), color `#475569`. The "File Context:" portion uses uppercase tracking (`letter-spacing: 0.05em`). The filename uses its original casing.
     - Dark mode header: Background: `#21252B`. Border-bottom: 1px solid `#2D3139`. Chevron: `#8B95A5`. Label: `#A0AABB`.
-  - **Overall section**: Padding: 12px 16px. Border-bottom: 1px solid `#E2E8F0` (only if per-file section follows).
-    - Section label: "CHANGESET OVERVIEW" in 11px semi-bold, color `#64748B`, uppercase, letter-spacing `0.05em`, margin-bottom 8px.
-    - Dark mode section label: color `#8B95A5`.
-    - Dark mode border-bottom: 1px solid `#2D3139`.
-  - **Per-file section**: Padding: 12px 16px. No border-bottom (last section).
-    - Section label: "FILE: [filename]" in 11px semi-bold, color `#64748B`, uppercase, letter-spacing `0.05em`, margin-bottom 8px. The filename portion is not uppercased — it uses its original casing.
-    - Dark mode section label: color `#8B95A5`.
+  - **Per-file section**: Padding: 12px 16px. No border-bottom.
+    - Dark mode section: inherits container dark mode styles.
 
 - **Styling (collapsed)**:
   - **Container**: Full width. Height: 36px. Background: `#F1F5F9`. Border-bottom: 1px solid `#E2E8F0`. Cursor: pointer.
@@ -1089,7 +1080,7 @@ This component is **conditionally rendered** — it only appears when the CRPG r
   - **Persistence across file switches**: The collapse/expand state is maintained when the user switches between files in the FileBrowser. If the panel is collapsed, it stays collapsed when switching to another file. This is a session-level preference, not per-file.
   - **Reset**: The collapse state resets to expanded if the session is cleared and re-populated with context data.
 
-- **Content Rendering**: Each section (overall and per-file) contains two ContextSection sub-components: one for neutral context ("What Changed") and one for review feedback ("Agent Review"). See the ContextSection component spec below.
+- **Content Rendering**: The per-file section contains two ContextSection sub-components: one for neutral context ("What Changed") and one for review feedback ("Agent Review"). See the ContextSection component spec below.
 
 - **Keyboard Accessibility** (`NFR-crp-accessibility-keyboard`):
   - The header bar is focusable (`tabindex="0"`).
@@ -1099,16 +1090,14 @@ This component is **conditionally rendered** — it only appears when the CRPG r
 
 - **ARIA Attributes**:
   - Header bar: `role="button"`, `aria-expanded="true|false"`, `aria-controls="review-context-content"`.
-  - Panel content: `id="review-context-content"`, `role="region"`, `aria-label="Review context"`.
-  - Overall section: `role="group"`, `aria-label="Changeset overview"`.
-  - Per-file section: `role="group"`, `aria-label="File context for [filename]"`.
+  - Panel content: `id="review-context-content"`, `role="region"`, `aria-label="File context for [filename]"`.
   - All text content within the panel: read-only, not editable (`AC-crp-context-readonly`). No `contenteditable`, no input elements for the context text.
 
 ---
 
 ### ContextSection
 
-A single section within the ReviewContextPanel that displays either neutral context ("What Changed") or review feedback ("Agent Review"). Used twice within each group (overall and per-file) — once for the neutral variant and once for the review variant. Implements `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
+A single section within the ReviewContextPanel or ReviewContextSidebar that displays either neutral context ("What Changed") or review feedback ("Agent Review"). Used in pairs — once for the neutral variant and once for the review variant — within each context group (overall changeset in the sidebar, per-file in the code viewer panel). Implements `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
 
 - **Variants**:
   - `neutral` — Displays factual/neutral context ("What Changed"). Uses informational styling.
@@ -1198,13 +1187,132 @@ A single section within the ReviewContextPanel that displays either neutral cont
 
 ---
 
+### ReviewContextSidebar
+
+Collapsible section in the right sidebar that displays **overall changeset context** provided by the shepherd-review command. Implements `FR-crp-review-context-collapsible`, `FR-crp-review-context-overall`, `AC-crp-context-sidebar-collapse`, `AC-crp-context-neutral-vs-review`, `AC-crp-context-readonly`.
+
+> **Note**: Per-file context is displayed in the **ReviewContextPanel** component inside the Code Viewer Panel, not in this sidebar section. This component only shows the overall changeset context that applies to the entire review session.
+
+This component is **conditionally rendered** — it only appears when the CRPG receives review context data with overall context from the agent (`FR-crp-review-context-receive`). When no context data is available (standalone mode, single `/shepherd`), this component is not rendered at all. There is no empty or placeholder state (`AC-crp-context-graceful-missing`).
+
+- **Position**: Inside the Sidebar Panel, at the top — above the PreambleInput (Overall Comment). The section spans the full width of the Sidebar Panel.
+
+- **Props/Inputs**:
+  - `overallContext: { neutral: string; review: string } | null` — Overall changeset context. Both fields may be empty strings. Null when no overall context is available.
+  - `isCollapsed: boolean` — Whether the section is in its collapsed state.
+  - `onToggleCollapse: () => void` — Callback to toggle collapse/expand.
+
+- **States**:
+
+  | State | Trigger | Appearance |
+  |---|---|---|
+  | **Expanded** | Default on first load when overall context data is available | Full section showing the overall changeset context with neutral and review sub-sections. |
+  | **Collapsed** | User has collapsed the section (`AC-crp-context-sidebar-collapse`) | Single-line header bar. Content is hidden. |
+  | **Absent / Hidden** | No overall context data available (`AC-crp-context-graceful-missing`) | Component is not rendered. No DOM element, no empty space. |
+
+- **Visual Structure (expanded)**:
+  ```
+  +----------------------------------------------------------+
+  | [v] Changeset Overview                                    |
+  |----------------------------------------------------------|
+  |                                                           |
+  | [ContextSection: "What Changed" — neutral styling]        |
+  | [ContextSection: "Agent Review" — review styling]         |
+  |                                                           |
+  +----------------------------------------------------------+
+  ```
+
+- **Visual Structure (collapsed)**:
+  ```
+  +----------------------------------------------------------+
+  | [>] Changeset Overview                                    |
+  +----------------------------------------------------------+
+  ```
+
+- **Styling (expanded)**:
+  - **Container**: Full width of the Sidebar Panel. Background: `#FAFBFC`. Border-bottom: 1px solid `#E2E8F0`. Padding: 0 (internal sections provide their own padding). Max-height: 40% of the Sidebar Panel height (to prevent the context from consuming too much space and pushing the Overall Comment and Preview/All Comments tabs off-screen). Overflows vertically with scrolling when content exceeds the max-height.
+  - **Dark mode**: Background: `#1A1D23`. Border-bottom: 1px solid `#2D3139`.
+  - **Header bar**: Height: 36px. Padding: 0 12px. Background: `#F1F5F9`. Border-bottom: 1px solid `#E2E8F0`. Display: flex, align-items center. Cursor: pointer (entire header is the collapse/expand toggle).
+    - Chevron icon: 14px, color `#64748B`. Points down when expanded (`v`), right when collapsed (`>`). Rotates with a 150ms CSS transition.
+    - Label: "Changeset Overview" in 12px semi-bold (600), color `#475569`, uppercase tracking (`letter-spacing: 0.05em`).
+    - Dark mode header: Background: `#21252B`. Border-bottom: 1px solid `#2D3139`. Chevron: `#8B95A5`. Label: `#A0AABB`.
+  - **Content area**: Padding: 12px.
+    - Contains two ContextSection sub-components: one for neutral context ("What Changed") and one for review feedback ("Agent Review"). Same ContextSection component used in ReviewContextPanel.
+
+- **Styling (collapsed)**:
+  - **Container**: Full width. Height: 36px. Background: `#F1F5F9`. Border-bottom: 1px solid `#E2E8F0`. Cursor: pointer. Margin-bottom: 0 (the PreambleInput below provides its own top spacing).
+  - Dark mode collapsed: Background: `#21252B`. Border-bottom: 1px solid `#2D3139`.
+  - The collapsed state matches the header bar styling from the expanded state. Clicking anywhere on the collapsed bar expands the section.
+
+- **Collapse/Expand Behavior**:
+  - Default state on first load: **expanded**. The user should see the changeset overview when the CRPG first opens with review data.
+  - Toggle: Clicking the header bar toggles between collapsed and expanded. The expand/collapse is animated with a 200ms CSS transition on `max-height` and `opacity`.
+  - **Persistence across tab switches** (`AC-crp-context-sidebar-collapse`): The collapse/expand state is maintained when the user switches between file tabs. If the section is collapsed, it stays collapsed when switching to another file. This is a session-level preference, not per-file.
+  - **Reset**: The collapse state resets to expanded if the session is cleared and re-populated with context data.
+
+- **Content Rendering**: The section contains two ContextSection sub-components: one for neutral context ("What Changed") and one for review feedback ("Agent Review"). See the ContextSection component spec.
+
+- **Keyboard Accessibility** (`NFR-crp-accessibility-keyboard`):
+  - The header bar is focusable (`tabindex="0"`).
+  - `Enter` or `Space` toggles collapse/expand.
+  - `Tab` from the header bar moves focus into the section content (when expanded) or to the PreambleInput below (when collapsed).
+  - Screen reader: The header bar has `aria-expanded="true|false"` and `aria-controls` pointing to the section content ID.
+
+- **ARIA Attributes**:
+  - Header bar: `role="button"`, `aria-expanded="true|false"`, `aria-controls="sidebar-context-content"`.
+  - Section content: `id="sidebar-context-content"`, `role="region"`, `aria-label="Changeset overview"`.
+  - All text content within the section: read-only, not editable (`AC-crp-context-readonly`). No `contenteditable`, no input elements for the context text.
+
+---
+
+### SidebarContentTabs
+
+Segmented tab control within the Sidebar Panel that switches between the Prompt Preview and the All Comments summary. Positioned below the PreambleInput (Overall Comment).
+
+- **Tabs**:
+  - **"Preview"** (default) — Renders the PromptPreview component.
+  - **"All Comments"** — Renders the CommentSummary component.
+
+- **Visual Structure**:
+  ```
+  +----------------------------------------------------------+
+  | [ Preview ]  [ All Comments (5) ]                         |
+  |----------------------------------------------------------|
+  |                                                           |
+  |  [Active tab content — PromptPreview or CommentSummary]   |
+  |                                                           |
+  +----------------------------------------------------------+
+  ```
+
+- **Styling**:
+  - **Tab bar**: Height: 32px. Background: `#F8FAFC`. Border-bottom: 1px solid `#E2E8F0`. Display: flex, padding: 0 12px, gap: 0.
+  - **Tab button**: Padding: 6px 12px. Font: 12px semi-bold (600). Color: `#64748B` (inactive), `#1E293B` (active). Border-bottom: 2px solid transparent (inactive), 2px solid `#3B82F6` (active). Cursor: pointer. Transition: color 150ms, border-color 150ms.
+  - **"All Comments" tab badge**: When comments exist, the tab label shows the total comment count in parentheses: "All Comments (N)". The count updates in real-time.
+  - **Dark mode**: Tab bar background: `#1A1D23`. Border-bottom: 1px solid `#2D3139`. Inactive text: `#8B95A5`. Active text: `#E2E8F0`. Active border: `#60A5FA`.
+  - **Content area**: Below the tab bar. Takes remaining height of the sidebar. Scrolls independently.
+
+- **Behavior**:
+  - The active tab state is session-level — it persists across file tab switches.
+  - Default tab on session start: "Preview".
+  - Switching tabs does not affect the content of either view — both are always up to date in the background.
+
+- **Keyboard Accessibility** (`NFR-crp-accessibility-keyboard`):
+  - Tab buttons are focusable.
+  - `Arrow Left` / `Arrow Right` moves between tab buttons.
+  - `Enter` or `Space` activates the focused tab.
+  - Screen reader: `role="tablist"` on the tab bar, `role="tab"` on each button with `aria-selected`, `role="tabpanel"` on the content area.
+
+---
+
 ### PreambleInput
 
-Text area for the optional prompt preamble. Implements `FR-crp-prompt-preamble`.
+Text area for the optional Overall Comment. Implements `FR-crp-prompt-preamble`, `AC-crp-overall-comment-label`.
+
+> **Note**: The component name remains `PreambleInput` internally for code continuity, but the user-facing label is "Overall Comment" per `AC-crp-overall-comment-label`.
 
 - **Variants**:
   - `expanded` — Full text area visible and editable (default when no comments exist).
-  - `collapsed` — Shows a single-line summary of the preamble. Used after the first comment is added to save space for the prompt preview.
+  - `collapsed` — Shows a single-line summary of the overall comment. Used after the first comment is added to save space for the prompt preview.
 
 - **Props/Inputs**:
   - `value: string`
@@ -1214,24 +1322,24 @@ Text area for the optional prompt preamble. Implements `FR-crp-prompt-preamble`.
 
 - **Visual Structure (expanded)**:
   ```
-  Preamble (optional)
+  Overall Comment
   +----------------------------------------------------------+
   |                                                            |
-  |  [Add high-level instructions for the AI (optional)...]    |
+  |  [Add an overall comment for all files in this review...]  |
   |                                                            |
   +----------------------------------------------------------+
   ```
-  - Label: "Preamble (optional)" in 13px semi-bold, color `#475569`.
-  - Text area: min-height 80px, max-height 200px (then scrolls). Standard font (not monospace). Placeholder as shown.
-  - Bottom margin: 16px separating it from the preview area below.
+  - Label: "Overall Comment" in 13px semi-bold, color `#475569`.
+  - Text area: min-height 80px, max-height 200px (then scrolls). Standard font (not monospace). Placeholder: "Add an overall comment for all files in this review..."
+  - Bottom margin: 16px separating it from the tabbed area below.
 
 - **Visual Structure (collapsed)**:
   ```
   +----------------------------------------------------------+
-  | [v] Preamble: "Refactor this function to use asy..."      |
+  | [v] Overall Comment: "Refactor this function to u..."     |
   +----------------------------------------------------------+
   ```
-  - Single line. Clickable to expand. Chevron icon indicates collapse state. Shows truncated preamble text (or "No preamble" in muted text if empty). Background: `#F8FAFC`. Padding: 8px 12px.
+  - Single line. Clickable to expand. Chevron icon indicates collapse state. Shows truncated overall comment text (or "No overall comment" in muted text if empty). Background: `#F8FAFC`. Padding: 8px 12px.
 
 ---
 
@@ -1318,13 +1426,88 @@ Read-only display of the generated prompt. Implements `FR-crp-prompt-preview`, `
 
 ---
 
+### CommentSummary
+
+Read-only summary of all comments across all loaded files. Displayed in the "All Comments" tab of the SidebarContentTabs. Implements `FR-crp-comment-summary`, `AC-crp-comment-summary-shows-all`, `AC-crp-comment-summary-realtime`, `AC-crp-comment-summary-empty`.
+
+- **Variants**:
+  - `empty` — No comments exist on any loaded file. Shows an empty state message.
+  - `populated` — Displays all comments organized by file. Updates in real-time as comments are added, edited, or deleted on any file.
+
+- **Props/Inputs**:
+  - `commentsByFile: Array<{ fileName: string; comments: Array<{ lineRef: string; text: string; fileId: string; commentId: string }> }>` — All comments grouped by file. Only files with at least one comment are included. Each comment includes a line reference (e.g., "Line 5" or "Lines 10-15"), the comment text, and IDs for navigation.
+  - `onCommentClick: (fileId: string, commentId: string) => void` — Callback when a comment entry is clicked. Navigates to that file and scrolls to the comment.
+
+- **States**:
+
+  | State | Trigger | Appearance |
+  |---|---|---|
+  | **Empty** | No comments exist on any loaded file (`AC-crp-comment-summary-empty`) | Centered muted message. |
+  | **Populated** | One or more comments exist across loaded files (`AC-crp-comment-summary-shows-all`) | Comments listed by file, updating in real-time (`AC-crp-comment-summary-realtime`). |
+
+- **Visual Structure (empty variant)**:
+  ```
+  +----------------------------------------------------------+
+  |                                                            |
+  |  No comments yet -- add comments to files to see them     |
+  |  here.                                                     |
+  |                                                            |
+  +----------------------------------------------------------+
+  ```
+  - Centered muted text, color `#94A3B8`. Font: 13px. Padding: 24px 16px.
+
+- **Visual Structure (populated variant)**:
+  ```
+  +----------------------------------------------------------+
+  | utils.ts                                                   |
+  |   Line 5: "Rename this variable"                          |
+  |   Lines 10-15: "Extract this to a helper function"         |
+  |                                                            |
+  | helpers.ts                                                 |
+  |   Line 3: "Add error handling here"                       |
+  |   Line 20: "This could be simplified"                     |
+  |   Line 45: "Remove this unused import"                    |
+  +----------------------------------------------------------+
+  ```
+
+- **Styling**:
+  - **Container**: Full width of the sidebar content area. Padding: 0. Scrolls vertically when content exceeds available height.
+  - **File group**: Margin-bottom: 16px (between file groups). Last group has no bottom margin.
+    - **File name header**: Font: 13px semi-bold (600), color `#1E293B`. Padding: 8px 12px. Background: `#F8FAFC`. Border-bottom: 1px solid `#E2E8F0`. Sticky to the top of the scroll container within its group.
+    - Dark mode file name: color `#E2E8F0`. Background: `#21252B`. Border-bottom: 1px solid `#2D3139`.
+  - **Comment entry**: Padding: 6px 12px 6px 24px (indented under file header). Border-bottom: 1px solid `#F1F5F9`. Cursor: pointer. Hover: background `#F8FAFC`.
+    - **Line reference**: Font: 12px, color `#64748B`, font-style: normal. Displayed inline before the comment text. E.g., "Line 5:" or "Lines 10-15:".
+    - **Comment text**: Font: 12px, color `#334155`. Displayed after the line reference on the same line. Truncated with ellipsis if it exceeds one line (single-line display per comment entry). Full text shown in a tooltip on hover.
+    - Dark mode: Line reference color `#8B95A5`. Comment text color `#CBD5E1`. Hover background: `#1E2129`. Border-bottom: 1px solid `#2D3139`.
+  - **Total count**: Not shown directly on the component (the count is displayed on the "All Comments" tab label in SidebarContentTabs).
+
+- **Click Behavior**:
+  - Clicking a comment entry fires `onCommentClick`, which switches to the file's tab (if not already active) and scrolls the code viewer to the commented line. The clicked comment's CommentBubble is briefly highlighted (same highlight used by comment navigation).
+  - This is a read-only navigation aid — no editing is possible within the CommentSummary.
+
+- **Real-time Updates** (`AC-crp-comment-summary-realtime`):
+  - The summary updates immediately when a comment is added, edited, or deleted on any file.
+  - When a comment's text is edited, the corresponding entry in the summary reflects the new text without delay.
+  - When a file's last comment is deleted, the file group disappears from the summary.
+  - When a new file gets its first comment, a new file group appears.
+  - Ordering within each file group: comments are listed in ascending line order (same as prompt generation order).
+  - File group ordering: files are listed in the same order as the FileBrowser sidebar.
+
+- **Keyboard Accessibility** (`NFR-crp-accessibility-keyboard`):
+  - Comment entries are focusable (`tabindex="0"`).
+  - `Enter` on a focused entry navigates to that comment (same as click).
+  - `Tab` moves between comment entries in document order.
+  - Screen reader: The component has `role="list"`, each file group has `role="group"` with `aria-label="Comments for [filename]"`, each comment entry has `role="listitem"`.
+
+---
+
 ### ConfirmationDialog
 
 Modal dialog used for destructive confirmations. Implements `AC-crp-clear-confirmation`, `AC-crp-multi-file-remove-with-comments`.
 
 The dialog now handles two use cases:
 
-1. **Clear session** (`FR-crp-clear-session`): Removes all loaded files, all comments, and the preamble.
+1. **Clear session** (`FR-crp-clear-session`): Removes all loaded files, all comments, and the overall comment.
 2. **Remove single file** (`FR-crp-multi-file-remove`): Removes one file and its comments from the session.
 
 - **Props/Inputs**:
@@ -1341,7 +1524,7 @@ The dialog now handles two use cases:
   |  Clear session?                          [X]   |
   |                                                 |
   |  This will remove all 3 loaded files, all 5    |
-  |  comments, and the preamble. This action        |
+  |  comments, and the overall comment. This action  |
   |  cannot be undone.                              |
   |                                                 |
   |                        [Cancel] [Clear session] |
@@ -1364,8 +1547,8 @@ The dialog now handles two use cases:
 
   | Use Case | Title | Body | Confirm Label |
   |---|---|---|---|
-  | Clear session (1 file) | "Clear session?" | "This will remove the loaded file, all N comments, and the preamble. This action cannot be undone." | "Clear session" |
-  | Clear session (multi-file) | "Clear session?" | "This will remove all N loaded files, all M comments, and the preamble. This action cannot be undone." | "Clear session" |
+  | Clear session (1 file) | "Clear session?" | "This will remove the loaded file, all N comments, and the overall comment. This action cannot be undone." | "Clear session" |
+  | Clear session (multi-file) | "Clear session?" | "This will remove all N loaded files, all M comments, and the overall comment. This action cannot be undone." | "Clear session" |
   | Remove file (with comments) | "Remove file?" | "Remove \"[filename]\"? This will remove the file and its N comments. This cannot be undone." | "Remove" |
 
   Note: Remove file without comments does not trigger a dialog (`AC-crp-multi-file-remove-no-comments`).
@@ -1422,7 +1605,7 @@ The generated prompt follows this exact structure when a single file has comment
 ```
 ## Instructions
 
-[Preamble text, if provided. This entire section is omitted if no preamble was entered.]
+[Overall Comment text, if provided. This entire section is omitted if no overall comment was entered.]
 
 ## File: [filename] ([language])
 
@@ -1448,7 +1631,7 @@ When multiple files have comments, the format extends to include multiple file s
 ```
 ## Instructions
 
-[Preamble text, if provided. This entire section is omitted if no preamble was entered.]
+[Overall Comment text, if provided. This entire section is omitted if no overall comment was entered.]
 
 ## File: utils.ts (TypeScript)
 
@@ -1481,11 +1664,11 @@ Add error handling here
 - Comments are paired with code snippets (the actual source code the comment references), not line numbers. This ensures the prompt remains accurate even if line numbers shift during editing.
 - Each comment is formatted as a fenced code block containing the relevant source lines, followed by the comment text on the next line.
 - Comments within each file are listed in ascending source order.
-- If no preamble is provided, the "Instructions" section is omitted entirely (not left empty). A preamble consisting only of whitespace is treated as empty.
+- If no overall comment is provided, the "Instructions" section is omitted entirely (not left empty). An overall comment consisting only of whitespace is treated as empty.
 - If the file name is unknown, use "Untitled" as the filename.
 - If the language is unknown, use "Plain Text".
 - For multi-file prompts:
-  - The "Instructions" section appears once at the top (global preamble), not per-file.
+  - The "Instructions" section appears once at the top (global Overall Comment), not per-file (`AC-crp-overall-comment-in-prompt`).
   - Each file with comments gets its own `## File` heading with a `### Requested Changes` subsection.
   - Files appear in the order they are listed in the file browser (load order).
   - Files without comments are omitted entirely (`AC-crp-multi-file-prompt-omits-uncommented`).
@@ -1691,8 +1874,10 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-line-comment-delete` | CommentBubble component (Delete action); Flow 7 |
 | `FR-crp-comment-indicator` | CodeViewer gutter (blue dot indicator); CommentBubble |
 | `FR-crp-comment-count` | Toolbar component (global comment count across all files); FileBrowser (per-file comment count badges) |
-| `FR-crp-prompt-preamble` | PreambleInput component; Flow 8 |
-| `FR-crp-prompt-generate` | Automatic prompt generation on comment/preamble change; Flow 9; Prompt Output Format section |
+| `FR-crp-prompt-preamble` | PreambleInput component (labeled "Overall Comment"); Flow 8 |
+| `FR-crp-prompt-generate` | Automatic prompt generation on comment/Overall Comment change; Flow 9; Prompt Output Format section |
+| `FR-crp-review-context-collapsible` | ReviewContextSidebar component (collapsible overall context in sidebar); Sidebar Panel layout |
+| `FR-crp-comment-summary` | CommentSummary component; Sidebar Panel layout (All Comments tab) |
 | `FR-crp-prompt-preview` | PromptPreview component (populated variant — single and multi-file) |
 | `FR-crp-prompt-copy` | Toolbar Copy button; PromptPreview Copy button; Flow 10; ToastNotification |
 | `FR-crp-prompt-format` | Prompt Output Format section (single-file format); PromptPreview component |
@@ -1707,9 +1892,9 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-multi-file-remove` | FileBrowser (close button on file rows); ConfirmationDialog (remove file variant); Flow 19 |
 | `FR-crp-multi-file-prompt` | PromptPreview component (multi-file populated variant); Prompt Output Format section (multi-file format); Flow 9 |
 | `FR-crp-multi-file-prompt-format` | Prompt Output Format section (multi-file format rules) |
-| `FR-crp-review-context-receive` | ReviewContextPanel component (conditional rendering based on data availability); Code Viewer Panel layout (item 2) |
-| `FR-crp-review-context-display` | ReviewContextPanel component; ContextSection component; Application Layout (single-file and multi-file with context panel); Code Viewer Panel layout; Flow 18 step 6 |
-| `FR-crp-review-context-overall` | ReviewContextPanel component (overall section); Application Layout diagrams; Flow 18 step 6 |
+| `FR-crp-review-context-receive` | ReviewContextPanel component (conditional rendering for per-file context); ReviewContextSidebar component (conditional rendering for overall context); Code Viewer Panel layout (item 2); Sidebar Panel layout (item 1) |
+| `FR-crp-review-context-display` | ReviewContextPanel component (per-file); ReviewContextSidebar component (overall); ContextSection component; Application Layout (single-file and multi-file with context panel); Code Viewer Panel layout; Sidebar Panel layout |
+| `FR-crp-review-context-overall` | ReviewContextSidebar component (overall changeset context in sidebar); Application Layout diagrams |
 | `FR-crp-review-context-per-file` | ReviewContextPanel component (per-file section); Flow 18 step 6 (per-file context updates on file switch) |
 | `FR-crp-file-reviewed-toggle` | ReviewStatusBar component (primary toggle); FileBrowser review toggle button; Toolbar keyboard shortcut `Cmd+Shift+R`; Flow 21; Flow 22 |
 | `FR-crp-file-reviewed-visual` | FileBrowser file row states (green checkmark, muted text for reviewed files); ReviewStatusBar styling (reviewed variant) |
@@ -1782,3 +1967,9 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-file-reviewed-survives-tab-switch` | File Loaded Screen "multi-file: file switching" state; Flow 18 (reviewed status preserved) |
 | `AC-crp-file-reviewed-with-comments` | Flow 21 step 7 (reviewed status is orthogonal to comments); ReviewStatusBar (available regardless of comment state) |
 | `AC-crp-file-reviewed-clear-session` | Flow 12 (all reviewed statuses cleared with session) |
+| `AC-crp-context-sidebar-collapse` | ReviewContextSidebar component (collapse/expand behavior, persists across tab switches) |
+| `AC-crp-overall-comment-label` | PreambleInput component (label "Overall Comment", placeholder text); Flow 8 |
+| `AC-crp-overall-comment-in-prompt` | Flow 9 (Overall Comment appears once in Instructions section); Prompt Output Format section |
+| `AC-crp-comment-summary-shows-all` | CommentSummary component (comments organized by file, files without comments omitted) |
+| `AC-crp-comment-summary-realtime` | CommentSummary component (real-time updates) |
+| `AC-crp-comment-summary-empty` | CommentSummary component (empty state message) |

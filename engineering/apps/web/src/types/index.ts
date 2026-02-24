@@ -82,6 +82,10 @@ export interface AppState {
   reviewContext: ReviewContext | null;
   /** Whether the review context panel is collapsed. */
   isReviewContextCollapsed: boolean;
+  /** Whether the review context sidebar (changeset overview) is collapsed. */
+  isReviewContextSidebarCollapsed: boolean;
+  /** Which tab is active in the sidebar content area. */
+  sidebarTab: 'preview' | 'comments';
   /** Set of file IDs that the user has marked as reviewed. */
   reviewedFiles: Set<string>;
 }
@@ -144,6 +148,8 @@ export interface CollapsedSection {
 export interface DiffComment {
   /** Unique identifier. Generated via crypto.randomUUID(). */
   id: string;
+  /** The file this comment belongs to. Links to FileInfo.id. */
+  fileId: string;
   /** The diff line identifier for the start of the commented range. */
   startLineId: DiffLineId;
   /** The diff line identifier for the end of the commented range. Same as startLineId for single-line comments. */
@@ -154,6 +160,8 @@ export interface DiffComment {
   endIndex: number;
   /** The user's comment text. */
   text: string;
+  /** Pre-computed diff snippet with surrounding context lines. Stored at creation time so the prompt can be built without needing the live diffLines array. */
+  contextSnippet: string;
   /** ISO-8601 timestamp of creation. Used for stable ordering when positions are equal. */
   createdAt: string;
 }

@@ -32,11 +32,13 @@ function makeDiffLineId(type: 'added' | 'removed' | 'context', oldLine: number |
 function makeDiffComment(overrides: Partial<DiffComment> = {}): DiffComment {
   return {
     id: 'dc1',
+    fileId: 'f1',
     startLineId: makeDiffLineId('added', null, 5),
     endLineId: makeDiffLineId('added', null, 5),
     startIndex: 4,
     endIndex: 4,
     text: 'Diff comment',
+    contextSnippet: '  + added line',
     createdAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
