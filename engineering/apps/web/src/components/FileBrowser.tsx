@@ -1,9 +1,11 @@
 // Implements: FR-crp-file-reviewed-toggle, FR-crp-file-reviewed-visual,
 // FR-crp-file-reviewed-progress, FR-crp-file-tree-display,
+// FR-crp-panel-resize, FR-crp-file-tooltip,
 // FR-mf-tab-bar, FR-mf-tab-switch, FR-mf-tab-close
 
 import { useAppStore } from '@/store/appStore';
 import { ConfirmationDialog } from './ConfirmationDialog';
+import { ResizeHandle } from './ResizeHandle';
 import { buildFileTree } from '@/lib/buildFileTree';
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { FileTreeNode } from '@/types';
@@ -33,6 +35,7 @@ export function FileBrowser() {
   const reviewedFiles = useAppStore((s) => s.reviewedFiles);
   const serverFilePaths = useAppStore((s) => s.serverFilePaths);
   const collapsedDirs = useAppStore((s) => s.collapsedDirs);
+  const fileBrowserWidth = useAppStore((s) => s.fileBrowserWidth);
   const setActiveFile = useAppStore((s) => s.setActiveFile);
   const removeFile = useAppStore((s) => s.removeFile);
   const openAddFileModal = useAppStore((s) => s.openAddFileModal);
@@ -223,6 +226,18 @@ export function FileBrowser() {
     }
   }, [activeFileId]);
 
+  const buildTooltip = useCallback(
+    (fileId: string) => {
+      const f = files[fileId];
+      if (!f) return '';
+      const path = serverFilePaths[fileId] || f.name;
+      const lang = f.language || 'Plain Text';
+      const reviewed = reviewedFiles.has(fileId);
+      return reviewed ? `${path} — ${lang} — Reviewed` : `${path} — ${lang}`;
+    },
+    [files, serverFilePaths, reviewedFiles],
+  );
+
   const renderFileNode = (node: FileTreeNode & { type: 'file' }, depth: number) => {
     const file = files[node.fileId];
     if (!file) return null;
@@ -236,6 +251,7 @@ export function FileBrowser() {
         role="treeitem"
         aria-selected={isActive}
         data-file-id={node.fileId}
+        title={buildTooltip(node.fileId)}
         onClick={() => setActiveFile(node.fileId)}
         style={{ paddingLeft: `${12 + depth * 16}px` }}
         className={`group flex items-center gap-1.5 pr-2 h-8 cursor-pointer text-sm font-mono flex-shrink-0 ${
@@ -352,7 +368,8 @@ export function FileBrowser() {
   return (
     <>
       <div
-        className="w-60 flex flex-col border-r border-border-default bg-surface-secondary flex-shrink-0 h-full"
+        className="relative flex flex-col border-r border-border-default bg-surface-secondary flex-shrink-0 h-full"
+        style={{ width: `${fileBrowserWidth}px` }}
         role="tree"
         aria-label="File browser"
         onKeyDown={handleKeyDown}
@@ -378,6 +395,9 @@ export function FileBrowser() {
         <div className="flex-1 overflow-y-auto min-h-0" ref={listRef}>
           {tree.map((node) => renderTreeNode(node, 0))}
         </div>
+
+        {/* Resize handle */}
+        <ResizeHandle />
       </div>
 
       {confirmRemoveId && (

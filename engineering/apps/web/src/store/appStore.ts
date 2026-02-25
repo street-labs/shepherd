@@ -85,6 +85,7 @@ const initialState: AppState & DiffState & RenderedState = {
   lineWrapEnabled: true,
   collapsedDirs: new Set<string>(),
   sessionId: null,
+  fileBrowserWidth: 240,
   comments: {},
   commentOrder: [],
   preamble: '',
@@ -288,6 +289,10 @@ interface AppActions {
 
   // Directory collapse state
   toggleDirCollapsed: (dirPath: string) => void;
+
+  // FileBrowser resize (FR-crp-panel-resize)
+  setFileBrowserWidth: (width: number) => void;
+  resetFileBrowserWidth: () => void;
 
   // Rendered diff comments
   addRenderedDiffComment: (elementId: ElementId, elementType: string, diffStatus: 'added' | 'removed' | 'modified' | 'unchanged', contentPreview: string, text: string) => void;
@@ -1088,6 +1093,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (next.has(dirPath)) next.delete(dirPath);
     else next.add(dirPath);
     set({ collapsedDirs: next });
+  },
+
+  // --- FileBrowser resize (FR-crp-panel-resize) ---
+
+  setFileBrowserWidth: (width) => {
+    const maxWidth = Math.min(window.innerWidth * 0.5, 600);
+    const clamped = Math.round(Math.max(180, Math.min(maxWidth, width)));
+    set({ fileBrowserWidth: clamped });
+  },
+
+  resetFileBrowserWidth: () => {
+    set({ fileBrowserWidth: 240 });
   },
 
   // --- Rendered diff comments ---

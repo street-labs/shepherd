@@ -111,6 +111,9 @@ interface AppState {
 
   /** Whether line wrapping is enabled in the CodeViewer. When true, long lines wrap visually instead of scrolling horizontally. Default: true (on). Session-level preference — applies to all files. */
   lineWrapEnabled: boolean;
+
+  /** Current width of the FileBrowser sidebar in pixels. Default: 240. Min: 180. Max: min(50vw, 600px). Persists within session. Reset on clearSession. */
+  fileBrowserWidth: number;
 }
 
 /** Structured review context data passed from the shepherd-review command. */
@@ -148,6 +151,8 @@ Several values are computed from the store rather than stored directly:
 - **totalFileCount**: `state.fileOrder.length` — total number of loaded files. Used alongside `reviewedCount` for the "N/M reviewed" progress indicator.
 - **fileTree**: Derived tree structure that organizes files from `fileOrder` into a nested directory hierarchy. Built by parsing each file's `FileInfo.name` into path segments, grouping files under shared directory prefixes, and sorting within each directory so that unreviewed files appear before reviewed files (maintaining load order within each status group). The result is a recursive tree: `FileTreeNode[]` where each node is either `{ type: 'directory'; name: string; path: string; children: FileTreeNode[] }` or `{ type: 'file'; fileId: string; name: string }`. Root-level files (no directory component) and pasted files appear as top-level file nodes. Computed via `buildFileTree(files, fileOrder, reviewedFiles)` utility function. Used by `FileBrowser` to render the directory tree (`FR-crp-file-reviewed-grouping`, `AC-crp-file-path-display`).
 - **isActiveFileReviewed**: `state.activeFileId !== null && state.reviewedFiles.has(state.activeFileId)` — boolean for whether the currently active file is marked as reviewed. Used by the `ReviewStatusBar` component (`FR-crp-file-reviewed-toggle`).
+- **activeFilePath**: Derived from `state.serverFilePaths[state.activeFileId]` (if present) or `state.files[state.activeFileId]?.name`. Returns the full file path for the currently active file. Used by the `ActiveFilePath` component (`FR-crp-active-file-path`) and the `ReviewContextPanel` for per-file context matching.
+- **fileTooltip(fileId)**: Not a global selector — computed inline per file row in `FileBrowser`. Built as `${path} -- ${language}` or `${path} -- ${language} -- Reviewed` depending on `reviewedFiles.has(fileId)`. Used for the `title` attribute on each file row (`FR-crp-file-tooltip`).
 
 These are implemented as Zustand selectors (or derived via `useMemo` in components) to avoid redundant state.
 
@@ -163,8 +168,10 @@ App
  +-- MainContent
       +-- [if no files] FileDropZone (full variant)   (design: FileDropZone)
       +-- [if files loaded]
-           +-- FileBrowser (multi-file only, 240px sidebar) (design: FileBrowser)
+           +-- FileBrowser (multi-file only, dynamic width sidebar) (design: FileBrowser)
+           |    +-- ResizeHandle                       (design: ResizeHandle, drag handle on right edge)
            +-- CodeViewerPanel
+           |    +-- ActiveFilePath (multi-file only, 2+ files)  (design: ActiveFilePath)
            |    +-- FileHeader (single-file only, hidden when FileBrowser active)
            |    +-- ReviewContextPanel                 (design: ReviewContextPanel, conditional on context data)
            |    |    +-- ContextSection (neutral)       (design: ContextSection, "What Changed" variant)
@@ -220,7 +227,7 @@ Language detection: maps file extension to Shiki language ID using a static look
 Maps to: `FR-crp-file-load`, `FR-crp-multi-file-load`, `AC-crp-load-paste`, `AC-crp-load-upload`, `AC-crp-load-drag-drop`, `AC-crp-binary-file-rejected`, `AC-crp-multi-file-load-adds`, `AC-crp-multi-file-drop-multiple`.
 
 #### `FileBrowser`
-Renders a vertical sidebar panel (240px fixed width) on the left side of the layout for navigating between loaded files. Appears when two or more files are loaded, creating a three-column layout: `[FileBrowser 240px | Code Viewer Panel | Sidebar 360px]`. Reads `files`, `activeFileId`, `reviewedFiles`, `reviewedCount`, `totalFileCount`, `collapsedDirs`, per-file comment counts, and the `fileTree` derived selector from the store. Dispatches: `setActiveFile(fileId)`, `removeFile(fileId)`, `openAddFileModal()`, `toggleFileReviewed(fileId)`, `toggleDirCollapsed(dirPath)`.
+Renders a vertical sidebar panel on the left side of the layout for navigating between loaded files. The sidebar width is controlled by `state.fileBrowserWidth` (default 240px, user-resizable via the `ResizeHandle` component on its right edge — see `FR-crp-panel-resize`). Appears when two or more files are loaded, creating a three-column layout: `[FileBrowser {fileBrowserWidth}px | Code Viewer Panel | Sidebar 360px]`. The FileBrowser applies its width via `style={{ width: fileBrowserWidth }}` instead of a fixed Tailwind class, and the parent layout uses dynamic `grid-template-columns` or flex basis based on `fileBrowserWidth`. Reads `files`, `activeFileId`, `reviewedFiles`, `reviewedCount`, `totalFileCount`, `collapsedDirs`, `fileBrowserWidth`, per-file comment counts, and the `fileTree` derived selector from the store. Dispatches: `setActiveFile(fileId)`, `removeFile(fileId)`, `openAddFileModal()`, `toggleFileReviewed(fileId)`, `toggleDirCollapsed(dirPath)`.
 
 The sidebar has a header area containing the review progress indicator ("N/M reviewed" text badge, visible only when `totalFileCount >= 2`, turns green when `reviewedCount === totalFileCount`) and a "+ Add file" button (`FR-crp-file-reviewed-progress`, `AC-crp-file-reviewed-progress-count`).
 
@@ -231,7 +238,7 @@ Below the header, the FileBrowser renders a **nested directory tree** derived fr
 
 Within each directory, unreviewed files sort before reviewed files; among files with the same review status, the original load order (position in `fileOrder`) is maintained (`FR-crp-file-reviewed-grouping`). There are no "TO REVIEW" / "REVIEWED" group headers -- the sorting is implicit within each directory.
 
-Root-level files (those with no directory component in their path) and pasted files (named "Untitled") appear at the top level of the tree, outside any directory node. For pasted files, the display name is "Untitled" (shown in italics). Reviewed files with inactive rows display muted text color (`#94A3B8`) for additional visual distinction. The active file row has a white background and blue left border (per design spec). Hovering over a file row shows a tooltip with the full file path and language.
+Root-level files (those with no directory component in their path) and pasted files (named "Untitled") appear at the top level of the tree, outside any directory node. For pasted files, the display name is "Untitled" (shown in italics). Reviewed files with inactive rows display muted text color (`#94A3B8`) for additional visual distinction. The active file row has a white background and blue left border (per design spec). Each file row has a `title` attribute providing a tooltip on hover (`FR-crp-file-tooltip`). The tooltip string is built from the file's full path (`serverFilePaths[fileId]` for server-loaded files, or `files[fileId].name` for pasted/uploaded), the detected language (`files[fileId].language`), and the review status. Format: `<path> -- <language>` for unreviewed files, or `<path> -- <language> -- Reviewed` for reviewed files. This uses the browser's native `title` attribute — no custom tooltip component is needed.
 
 The collapse state for directories is stored in the Zustand store as `collapsedDirs: Set<string>`. When a directory is collapsed, its child nodes (both nested directories and files) are hidden. The `toggleDirCollapsed(dirPath)` action toggles membership in the set. All directories default to expanded (not in the set). The `clearSession` action resets `collapsedDirs` to an empty set.
 
@@ -243,7 +250,31 @@ For pasted files named "Untitled", right-clicking the file row opens an inline r
 
 Keyboard: The tree container uses `role="tree"` with `aria-label="Loaded files"`. Directory nodes use `role="treeitem"` with `aria-expanded="true|false"`. File nodes use `role="treeitem"` with `aria-selected="true|false"`. `ArrowUp`/`ArrowDown` moves focus between visible nodes (skipping hidden children of collapsed directories). `ArrowRight` on a collapsed directory expands it; on an expanded directory, moves focus to the first child; on a file node, does nothing. `ArrowLeft` on an expanded directory collapses it; on a child node, moves focus to the parent directory; on a root-level node, does nothing. `Enter` or `Space` on a file node activates it (calls `setActiveFile`); on a directory node, toggles expand/collapse. `r` on a focused file row toggles the reviewed state for that file (only when focus is on a file row element, not in a text input). `Delete` or `Backspace` on a focused file row triggers file removal (with confirmation if the file has comments).
 
-Maps to: `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-progress-count`, `AC-crp-file-path-display`, `AC-crp-file-path-single-dir`.
+Maps to: `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`, `FR-crp-panel-resize`, `FR-crp-file-tooltip`, `AC-crp-multi-file-nav-preserves-state`, `AC-crp-file-reviewed-grouping`, `AC-crp-file-reviewed-progress-count`, `AC-crp-file-path-display`, `AC-crp-file-path-single-dir`, `AC-crp-file-tooltip-full-path`.
+
+#### `ResizeHandle`
+A thin interactive drag handle rendered on the right edge of the `FileBrowser` sidebar (`FR-crp-panel-resize`). Allows the user to resize the FileBrowser width by dragging.
+
+**Hit target and visuals**: The handle is a 6px-wide `<div>` positioned absolutely on the right border of the FileBrowser. The cursor changes to `col-resize` on hover and during drag. On hover, a 3px-wide blue line appears (centered in the 6px hit target); this blue line persists during the drag operation.
+
+**Drag interaction**: Uses the `onMouseDown` → document `mousemove`/`mouseup` pattern. On `mouseDown`, the component sets a `dragging` local ref/state and attaches `mousemove` and `mouseup` listeners to `document` (not the handle itself — this ensures drag continues even if the cursor leaves the handle). During `mousemove`, the handler calculates the new width from `event.clientX`, clamps it to `[180, min(50vw, 600)]`, and dispatches `store.setFileBrowserWidth(newWidth)`. The resize update is wrapped in `requestAnimationFrame` to avoid layout thrash — only one `setFileBrowserWidth` call per animation frame. On `mouseUp`, the listeners are removed and the `dragging` state is cleared. A cleanup function in a `useEffect` ensures listeners are removed if the component unmounts during a drag.
+
+**Double-click reset**: A `onDoubleClick` handler on the resize handle calls `store.resetFileBrowserWidth()`, which resets the width to the 240px default. The FileBrowser applies a 150ms `ease-out` CSS transition on `width` when the reset occurs (but NOT during drag — the transition class is conditionally applied only during the double-click reset, then removed after the transition completes).
+
+**Keyboard accessibility**: The handle has `role="separator"`, `aria-orientation="vertical"`, `aria-valuenow={fileBrowserWidth}`, `aria-valuemin={180}`, `aria-valuemax={maxWidth}`, and `tabindex="0"`. `ArrowLeft` decreases width by 10px, `ArrowRight` increases by 10px (both clamped). `Home` sets to min (180px), `End` sets to max (`min(50vw, 600)`).
+
+Maps to: `FR-crp-panel-resize`, `AC-crp-panel-resize-drag`, `AC-crp-panel-resize-bounds`, `AC-crp-panel-resize-double-click`, `AC-crp-panel-resize-keyboard`.
+
+#### `ActiveFilePath`
+Displays the full file path of the currently active file at the top of the Code Viewer Panel (`FR-crp-active-file-path`). Only rendered when `fileOrder.length >= 2` (multi-file mode with 2+ files). Positioned above the ReviewContextPanel (or FileHeader, though FileHeader is hidden in multi-file mode).
+
+The path is derived from `serverFilePaths[activeFileId]` for server-loaded files, or `files[activeFileId].name` for pasted/uploaded files. Pasted files display "Untitled".
+
+**Styling**: 32px height, monospace font at 12px, muted text color, subtle background matching the FileHeader background. Long paths are left-truncated using CSS `direction: rtl; text-overflow: ellipsis; overflow: hidden; white-space: nowrap` — this ensures the filename at the end of the path remains visible when the path is truncated.
+
+**Accessibility**: `role="status"` and `aria-live="polite"` so screen readers announce the path when the active file changes.
+
+Maps to: `FR-crp-active-file-path`, `AC-crp-active-file-path-visible`, `AC-crp-active-file-path-switches`, `AC-crp-active-file-path-single-file`.
 
 #### `FileHeader`
 Displays file name and language badge (`FR-crp-filename-display`). Only rendered in single-file mode (when `fileOrder.length === 1`); in multi-file mode, the FileBrowser sidebar provides this information instead. When the file was pasted without a name, renders an inline-editable text input. Calls `store.updateFileName(fileId, name)` on change.
@@ -454,6 +485,10 @@ interface AppStore extends AppState {
 
   // Directory collapse (FileBrowser tree)
   toggleDirCollapsed: (dirPath: string) => void;
+
+  // FileBrowser sidebar resize (FR-crp-panel-resize)
+  setFileBrowserWidth: (width: number) => void;
+  resetFileBrowserWidth: () => void;
 }
 ```
 
@@ -469,7 +504,7 @@ interface AppStore extends AppState {
 - **`navigateComment`**: Advances or retreats `focusedCommentId` within `commentOrder` (filtered to active file only), wrapping at boundaries.
 - **`setPreamble`**: Updates the preamble text. Automatically regenerates the prompt via `buildPrompt()` if comments exist on any file.
 - **`copyPrompt`**: Calls `navigator.clipboard.writeText(generatedPrompt)`. Returns a promise; the component handles success/failure UI.
-- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`, `collapsedDirs` to an empty `Set`, `sessionId` to `null`. Also resets `reviewContext` to `null`, `isReviewContextCollapsed` to `false`, `isReviewContextSidebarCollapsed` to `false`, `sidebarTab` to `'preview'`, and `lineWrapEnabled` to `true`. Resets `document.title` to the default ("Shepherd") (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`, `AC-crp-line-wrap-default-on`).
+- **`clearSession`**: Resets the entire store to its initial state — removes all files, all comments, preamble, and clears `generatedPrompt` to `null`. Resets `activeFileId` to `null`, `fileOrder` to `[]`, `files` to `{}`, `scrollPositions` to `{}`, `reviewedFiles` to an empty `Set`, `collapsedDirs` to an empty `Set`, `sessionId` to `null`. Also resets `reviewContext` to `null`, `isReviewContextCollapsed` to `false`, `isReviewContextSidebarCollapsed` to `false`, `sidebarTab` to `'preview'`, `lineWrapEnabled` to `true`, and `fileBrowserWidth` to `240`. Resets `document.title` to the default ("Shepherd") (`AC-crp-multi-file-clear-all`, `AC-crp-file-reviewed-clear-session`, `AC-crp-line-wrap-default-on`).
 - **`saveScrollPosition`**: Stores the given scroll offset for the specified file ID in `scrollPositions`. Called automatically by `setActiveFile` before switching.
 - **`setReviewContext`**: Sets the `reviewContext` field. Called once on mount by the `useFileFromUrl` hook after loading files, if context data is available from `GET /api/review-context`. Setting this to a non-null value causes the `ReviewContextPanel` to render.
 - **`toggleReviewContextCollapsed`**: Toggles `isReviewContextCollapsed`. This is a session-level preference — persists across file switches.
@@ -478,6 +513,8 @@ interface AppStore extends AppState {
 - **`toggleFileReviewed`**: Toggles the given file's membership in `reviewedFiles`. If the file ID is currently in the set, removes it (unmark as reviewed); if not in the set, adds it (mark as reviewed). Does not change `activeFileId` or any other state — the toggle is orthogonal to file selection, comments, and scroll position (`AC-crp-file-reviewed-with-comments`, `AC-crp-file-reviewed-survives-tab-switch`). Triggers no prompt regeneration (reviewed status is not reflected in the generated prompt). Maps to: `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`.
 - **`toggleLineWrap`**: Toggles `lineWrapEnabled` between `true` and `false`. After toggling, the CodeViewer component detects the change via its Zustand subscription and calls `virtualizer.measure()` in a `useEffect` to invalidate the virtualizer's size cache and force re-measurement of all visible rows. The toggle does not affect scroll position, comments, or any other state — it is purely a display preference. The preference persists for the session but is reset on `clearSession` (`AC-crp-line-wrap-default-on`, `AC-crp-line-wrap-persists-session`). Maps to: `FR-crp-line-wrap`, `AC-crp-line-wrap-toggle`.
 - **`toggleDirCollapsed`**: Toggles the given directory path's membership in `collapsedDirs`. If the path is currently in the set, removes it (expand); if not in the set, adds it (collapse). Used by the FileBrowser tree to show/hide children of directory nodes. Does not affect file selection or any other state.
+- **`setFileBrowserWidth`**: Sets `fileBrowserWidth` to the given value, clamped to `[180, min(window.innerWidth * 0.5, 600)]`. Called by the `ResizeHandle` during drag. The clamping is applied in the action, not the component, so all consumers get consistent behavior. Maps to: `FR-crp-panel-resize`, `AC-crp-panel-resize-bounds`.
+- **`resetFileBrowserWidth`**: Resets `fileBrowserWidth` to the default value (240). Called by `ResizeHandle` on double-click. Maps to: `FR-crp-panel-resize`, `AC-crp-panel-resize-double-click`.
 
 #### Selectors
 
@@ -575,6 +612,11 @@ const setSidebarTab = useAppStore((s) => s.setSidebarTab);
 // Line wrap state (CodeViewer, Toolbar)
 const lineWrapEnabled = useAppStore((s) => s.lineWrapEnabled);
 const toggleLineWrap = useAppStore((s) => s.toggleLineWrap);
+
+// FileBrowser sidebar width (FileBrowser, ResizeHandle, App layout)
+const fileBrowserWidth = useAppStore((s) => s.fileBrowserWidth);
+const setFileBrowserWidth = useAppStore((s) => s.setFileBrowserWidth);
+const resetFileBrowserWidth = useAppStore((s) => s.resetFileBrowserWidth);
 ```
 
 ### Data Flow Summary
@@ -1094,7 +1136,9 @@ engineering/
           appStore.ts           Zustand store definition (multi-file state)
         components/
           Toolbar.tsx
-          FileBrowser.tsx        Sidebar panel with nested directory tree for multi-file navigation
+          FileBrowser.tsx        Sidebar panel with nested directory tree for multi-file navigation (resizable)
+          ResizeHandle.tsx      NEW — Drag handle for resizing FileBrowser sidebar (FR-crp-panel-resize)
+          ActiveFilePath.tsx    NEW — Active file path header in Code Viewer Panel (FR-crp-active-file-path)
           FileDropZone.tsx      (updated: full + modal variants)
           FileHeader.tsx
           CodeViewer.tsx
@@ -1129,7 +1173,9 @@ engineering/
             languageDetect.test.ts
             appStore.test.ts          (includes Done action, slash command mode, and multi-file store tests)
           component/
-            FileBrowser.test.tsx       Sidebar rendering, interaction, badges
+            FileBrowser.test.tsx       Sidebar rendering, interaction, badges, resize, tooltip
+            ResizeHandle.test.tsx     NEW — Drag, clamp, double-click reset, keyboard accessibility
+            ActiveFilePath.test.tsx   NEW — Path display, truncation, conditional rendering
             FileDropZone.test.tsx     (includes modal variant tests)
             CodeViewer.test.tsx
             CommentBubble.test.tsx
@@ -1152,6 +1198,8 @@ engineering/
             review-context.spec.ts    — Context loading, display, per-file switching, collapse/expand, graceful missing
             file-reviewed.spec.ts     NEW — Mark/unmark, grouping transitions, progress indicator, persistence, keyboard shortcut
             sidebar-features.spec.ts  NEW — Sidebar collapse, preamble label, tabs, comment summary navigation
+            panel-resize.spec.ts      NEW — FileBrowser sidebar resize drag, limits, double-click reset, keyboard
+            active-file-path.spec.ts  NEW — Active file path display, truncation, file switch, untitled
 ```
 
 > **Multi-platform note**: The `apps/` directory is structured as a pnpm workspace monorepo. Future platform targets (macOS, iOS) would be added as sibling directories to `apps/web/`. When shared logic is needed across platforms, it can be extracted into a `packages/core/` workspace package containing types, promptBuilder, binaryDetect, languageDetect, and other platform-agnostic modules.
@@ -1402,6 +1450,23 @@ The work is divided into four phases. Each phase produces a deployable increment
 
 **Slug coverage**: `FR-crp-line-wrap`, `AC-crp-line-wrap-toggle`, `AC-crp-line-wrap-preserves-line-numbers`, `AC-crp-line-wrap-comment-target`, `AC-crp-line-wrap-default-on`, `AC-crp-line-wrap-persists-session`.
 
+### Phase 10: Panel Resize, Active File Path, and File Tooltip (estimated 2-3 days)
+
+**Goal**: Resizable FileBrowser sidebar, active file path header in the code viewer, and file row tooltips.
+
+1. Add `fileBrowserWidth: number` (default `240`), `setFileBrowserWidth(width)`, and `resetFileBrowserWidth()` to the Zustand store. `setFileBrowserWidth` clamps to `[180, min(50vw, 600)]`. `resetFileBrowserWidth` sets to `240`. Update `clearSession` to reset `fileBrowserWidth` to `240`.
+2. Build `ResizeHandle.tsx` component: 6px hit-target `<div>` positioned on the right edge of the FileBrowser. Implement the `onMouseDown` → document `mousemove`/`mouseup` drag pattern. Wrap `setFileBrowserWidth` calls in `requestAnimationFrame` during drag. Implement double-click detection via `onDoubleClick` calling `resetFileBrowserWidth()` with a 150ms `ease-out` CSS transition on the FileBrowser width. Add `role="separator"` keyboard support: `ArrowLeft`/`ArrowRight` ±10px, `Home`/`End` for min/max (`FR-crp-panel-resize`, `AC-crp-panel-resize-drag`, `AC-crp-panel-resize-bounds`, `AC-crp-panel-resize-double-click`, `AC-crp-panel-resize-keyboard`).
+3. Update `FileBrowser.tsx`: Replace fixed `w-60` class with `style={{ width: fileBrowserWidth }}`. Read `fileBrowserWidth` from the store. Render `ResizeHandle` as a child positioned on the right edge.
+4. Update `App.tsx` main layout: Use `fileBrowserWidth` from the store to set dynamic `grid-template-columns` (e.g., `${fileBrowserWidth}px 1fr 360px`) or equivalent flex basis instead of a fixed 240px column. The CodeViewer's `ResizeObserver` (added in Phase 9 for line wrapping) will automatically detect the width change and call `virtualizer.measure()`.
+5. Build `ActiveFilePath.tsx` component: Reads `activeFileId`, `serverFilePaths`, `files`, and `fileOrder` from the store. Only renders when `fileOrder.length >= 2`. Derives path from `serverFilePaths[activeFileId]` or `files[activeFileId].name`. Applies CSS `direction: rtl` for left-truncation. 32px height, monospace 12px, muted color, subtle background. `role="status"` and `aria-live="polite"` (`FR-crp-active-file-path`, `AC-crp-active-file-path-visible`, `AC-crp-active-file-path-switches`, `AC-crp-active-file-path-single-file`).
+6. Wire `ActiveFilePath` into `App.tsx` Code Viewer Panel layout: render above `ReviewContextPanel` when `fileOrder.length >= 2`.
+7. Update `FileBrowser.tsx` file rows: Add `title` attribute to each file row `<div>`. Build tooltip string from `serverFilePaths[fileId]` (or `files[fileId].name`), `files[fileId].language`, and `reviewedFiles.has(fileId)`. Format: `<path> -- <language>` or `<path> -- <language> -- Reviewed` (`FR-crp-file-tooltip`, `AC-crp-file-tooltip-full-path`).
+8. Write unit tests for new store actions (`setFileBrowserWidth` clamping, `resetFileBrowserWidth`, `clearSession` reset). Write component tests for `ResizeHandle` (drag simulation, clamp boundaries, double-click reset, keyboard navigation). Write component tests for `ActiveFilePath` (path display, truncation, conditional rendering, untitled files). Update `FileBrowser` tests for tooltip attribute and dynamic width. Write E2E tests for resize drag, double-click reset, active file path display, and tooltip content.
+
+**Delivers**: Users can resize the FileBrowser sidebar by dragging its right edge, double-click to reset to default width. The active file's full path is displayed at the top of the code viewer in multi-file mode. File rows show a tooltip with full path, language, and review status on hover.
+
+**Slug coverage**: `FR-crp-panel-resize`, `FR-crp-active-file-path`, `FR-crp-file-tooltip`, `AC-crp-panel-resize-drag`, `AC-crp-panel-resize-bounds`, `AC-crp-panel-resize-double-click`, `AC-crp-panel-resize-persists`, `AC-crp-active-file-path-visible`, `AC-crp-active-file-path-switches`, `AC-crp-active-file-path-single-file`, `AC-crp-file-tooltip-full-path`, `AC-crp-file-tooltip-reviewed`.
+
 ---
 
 ## Requirement Traceability
@@ -1448,6 +1513,9 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `FR-crp-file-reviewed-progress` | `FileBrowser` component sidebar header (review progress indicator badge "N/M reviewed"); `reviewedCount` and `totalFileCount` derived selectors |
 | `FR-crp-file-reviewed-persistence` | Store `reviewedFiles` state (in-memory `Set<string>`); `clearSession` resets to empty set; `removeFile` removes from set; `addFile` does not add to set |
 | `FR-crp-line-wrap` | `Toolbar` wrap toggle icon button and `Alt+Z` keyboard shortcut; store `lineWrapEnabled` state and `toggleLineWrap` action; `CodeViewer` CSS switching (`pre` vs `pre-wrap`), line number/gutter `align-self: start`, `virtualizer.measure()` on toggle, `ResizeObserver` for width changes |
+| `FR-crp-panel-resize` | `ResizeHandle` component (drag handle on FileBrowser right edge); store `fileBrowserWidth` state, `setFileBrowserWidth` and `resetFileBrowserWidth` actions; `FileBrowser` dynamic `style={{ width: fileBrowserWidth }}`; `App.tsx` dynamic `grid-template-columns` layout |
+| `FR-crp-active-file-path` | `ActiveFilePath` component (rendered in Code Viewer Panel when `fileOrder.length >= 2`); reads `serverFilePaths[activeFileId]` or `files[activeFileId].name`; CSS `direction: rtl` for left-truncation; `role="status"` with `aria-live="polite"` |
+| `FR-crp-file-tooltip` | `FileBrowser` file row `title` attribute; tooltip string built from `serverFilePaths[fileId]`, `files[fileId].language`, and `reviewedFiles.has(fileId)` |
 
 ### Non-Functional Requirements
 
@@ -1527,3 +1595,11 @@ This section maps every requirement and acceptance criterion to the engineering 
 | `AC-crp-line-wrap-comment-target` | `CodeViewer` click handler targets logical line number regardless of visual wrapping; no change to comment creation logic |
 | `AC-crp-line-wrap-default-on` | Store `lineWrapEnabled` initialized to `true`; `clearSession` resets to `true` |
 | `AC-crp-line-wrap-persists-session` | Store `lineWrapEnabled` persists in Zustand for the session lifetime; not reset on file switch or file add/remove |
+| `AC-crp-panel-resize-drag` | `ResizeHandle` `onMouseDown` → document `mousemove`/`mouseup` pattern; `requestAnimationFrame` throttling; store `setFileBrowserWidth` |
+| `AC-crp-panel-resize-bounds` | Store `setFileBrowserWidth` clamps to `[180, min(50vw, 600)]`; `ResizeHandle` enforces limits during drag and keyboard |
+| `AC-crp-panel-resize-double-click` | `ResizeHandle` `onDoubleClick` → store `resetFileBrowserWidth()` (240px); 150ms `ease-out` transition on FileBrowser width |
+| `AC-crp-panel-resize-keyboard` | `ResizeHandle` `role="separator"` with `ArrowLeft`/`ArrowRight` ±10px, `Home`/`End` for min/max; ARIA value attributes |
+| `AC-crp-active-file-path-visible` | `ActiveFilePath` component rendered above CodeViewer when `fileOrder.length >= 2`; reads path from store; CSS `direction: rtl` for left-truncation; `role="status"` and `aria-live="polite"` |
+| `AC-crp-active-file-path-switches` | `ActiveFilePath` derives path from `serverFilePaths[activeFileId]` or `files[activeFileId].name`; reactively updates when `activeFileId` changes in the store |
+| `AC-crp-active-file-path-single-file` | `ActiveFilePath` conditionally rendered only when `fileOrder.length >= 2`; hidden in single-file mode where `FileHeader` is shown instead |
+| `AC-crp-file-tooltip-full-path` | `FileBrowser` file row `title` attribute: `<path> -- <language>` or `<path> -- <language> -- Reviewed`; uses native browser tooltip |

@@ -10,7 +10,7 @@ This is a single-page application with one primary view that transitions through
 |---|---|
 | **Empty State** | No file loaded. Shows drop zone and file loading instructions. |
 | **File Loaded State (Single File)** | One file is loaded and displayed in the code viewer. User can add, edit, delete comments. The prompt auto-generates when comments exist. When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears between the FileHeader and the code viewer (`FR-crp-review-context-display`). |
-| **File Loaded State (Multi-File)** | Two or more files are loaded. A FileBrowser sidebar panel appears on the left side of the layout, listing all loaded files grouped by review status ("To Review" and "Reviewed" sections with `FR-crp-file-reviewed-grouping`), with per-file comment counts. The active file is displayed in the code viewer. User can switch between files, add/remove files, mark files as reviewed, and annotate each independently. A review progress indicator in the FileBrowser sidebar header shows "N/M reviewed" (`FR-crp-file-reviewed-progress`). When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears inside the Code Viewer Panel showing per-file context for the active file (`FR-crp-review-context-display`, `FR-crp-review-context-per-file`), and a collapsible ReviewContextSidebar appears in the right sidebar showing overall changeset context (`FR-crp-review-context-overall`, `FR-crp-review-context-collapsible`). Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`. |
+| **File Loaded State (Multi-File)** | Two or more files are loaded. A resizable FileBrowser sidebar panel appears on the left side of the layout (`FR-crp-panel-resize`), listing all loaded files grouped by review status ("To Review" and "Reviewed" sections with `FR-crp-file-reviewed-grouping`), with per-file comment counts and hover tooltips showing full path and metadata (`FR-crp-file-tooltip`). An ActiveFilePath bar at the top of the Code Viewer Panel shows the full path of the active file (`FR-crp-active-file-path`). The active file is displayed in the code viewer. User can switch between files, add/remove files, mark files as reviewed, and annotate each independently. A review progress indicator in the FileBrowser sidebar header shows "N/M reviewed" (`FR-crp-file-reviewed-progress`). When review context data is available (shepherd-review mode), a collapsible Review Context Panel appears inside the Code Viewer Panel showing per-file context for the active file (`FR-crp-review-context-display`, `FR-crp-review-context-per-file`), and a collapsible ReviewContextSidebar appears in the right sidebar showing overall changeset context (`FR-crp-review-context-overall`, `FR-crp-review-context-collapsible`). Implements `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-toggle`, `FR-crp-file-reviewed-visual`. |
 | **Prompt Preview State** | The auto-generated prompt is displayed in a preview panel alongside the code viewer. Active whenever >= 1 comment exists on any loaded file. When multiple files have comments, the prompt aggregates all files (`FR-crp-multi-file-prompt`). |
 
 Within the File Loaded State (both single and multi-file), the application has several sub-states depending on user activity (editing a comment, selecting a line range, etc.). These are described in detail below.
@@ -79,35 +79,37 @@ When review context data is available (shepherd-review mode), a Review Context P
 
 ### Main Content Area — File Loaded State (Multi-File)
 
-When two or more files are loaded, a **FileBrowser sidebar** appears on the left side of the layout, creating a three-column layout. Implements `FR-crp-multi-file-nav`.
+When two or more files are loaded, a **FileBrowser sidebar** appears on the left side of the layout, creating a three-column layout. Implements `FR-crp-multi-file-nav`. The FileBrowser is user-resizable by dragging its right edge (`FR-crp-panel-resize`).
 
 ```
 +------------------------------------------------------------------+
 |  Toolbar                                                          |
-+----------+-------------------------------+-------------------+
-|           |                               |                   |
-| FileBrowser|  Code Viewer Panel            |  Sidebar Panel    |
-| (240px)   |  (flexible width)             |  (360px fixed)    |
-|           |                               |                   |
-+----------+-------------------------------+-------------------+
++----------+|+-------------------------------+-------------------+
+|           |‖|                               |                   |
+| FileBrowser|‖|  Code Viewer Panel            |  Sidebar Panel    |
+| (240px    |‖|  (flexible width)             |  (360px fixed)    |
+|  default) |‖|                               |                   |
++----------+|+-------------------------------+-------------------+
+             ↕ resize handle (drag left/right)
 ```
 
-When review context data is available (shepherd-review mode), a Review Context Panel appears inside the Code Viewer Panel:
+When review context data is available (shepherd-review mode), a Review Context Panel appears inside the Code Viewer Panel. An **ActiveFilePath** bar also appears at the top of the Code Viewer Panel showing the full path of the active file (`FR-crp-active-file-path`):
 
 ```
 +------------------------------------------------------------------+
 |  Toolbar                                                          |
-+----------+-------------------------------+-------------------+
-|           |  Review Context Panel         |                   |
-| FileBrowser|  (collapsible)               |  Sidebar Panel    |
-| (240px)   |  Code Viewer (scrollable)     |  (360px fixed)    |
-|           |                               |                   |
-+----------+-------------------------------+-------------------+
++----------+|+-------------------------------+-------------------+
+|           |‖| ActiveFilePath                |                   |
+| FileBrowser|‖| Review Context Panel         |  Sidebar Panel    |
+| (resizable)|‖| (collapsible)               |  (360px fixed)    |
+|           |‖| Code Viewer (scrollable)      |                   |
++----------+|+-------------------------------+-------------------+
 ```
 
-- **FileBrowser**: Fixed width of 240px on the left side. Full height of the main content area (below toolbar to bottom of viewport). Lists all loaded files grouped by review status, with an "Add file" button and review progress indicator. See FileBrowser component spec for details. The FileBrowser replaces the FileHeader — file name and language info are shown in the file row (with full details in a tooltip on hover).
+- **FileBrowser**: Default width of 240px on the left side, user-resizable via a drag handle on its right edge (`FR-crp-panel-resize`). Minimum width: 180px. Maximum width: `min(50vw, 600px)`. Full height of the main content area (below toolbar to bottom of viewport). Lists all loaded files grouped by review status, with an "Add file" button and review progress indicator. See FileBrowser component spec for details. The FileBrowser replaces the FileHeader — file name and language info are shown in the file row (with full details in a tooltip on hover, `FR-crp-file-tooltip`). Double-clicking the resize handle resets the width to the 240px default (`AC-crp-panel-resize-double-click`). The resized width persists within the session (`AC-crp-panel-resize-persists`).
+- **ActiveFilePath**: A compact bar at the top of the Code Viewer Panel showing the full relative file path of the active file. Only rendered in multi-file mode (2+ files loaded). Updates when the active file changes. See ActiveFilePath component spec for details. Implements `FR-crp-active-file-path`, `AC-crp-active-file-path-visible`, `AC-crp-active-file-path-switches`.
 - **Review Context Panel**: Conditionally visible only when review context data is available and the active file has per-file context (`AC-crp-context-graceful-missing`). Displays per-file context for the active file only (overall changeset context is in the ReviewContextSidebar). The per-file context updates when the active file changes (`AC-crp-context-per-file-switches`). See ReviewContextPanel component spec for details.
-- **Code Viewer Panel**: Same as single-file layout, but the FileHeader is no longer rendered (its information is in the FileBrowser sidebar). The code viewer displays the content of the currently active file.
+- **Code Viewer Panel**: Same as single-file layout, but the FileHeader is no longer rendered (its information is in the FileBrowser sidebar). In multi-file mode, the ActiveFilePath bar appears at the top of the panel, followed by the ReviewContextPanel (if present), then the ReviewStatusBar, then the CodeViewer. The code viewer displays the content of the currently active file.
 - **Sidebar Panel**: Same as single-file layout. The prompt preview aggregates comments across all files.
 
 > **Note**: The FileBrowser sidebar appears as soon as the second file is loaded and remains visible until only one file remains, at which point it collapses back to the single-file two-column layout with the FileHeader restored.
@@ -181,15 +183,17 @@ Contains the following from top to bottom:
    - File name displayed in a monospace font, truncated with ellipsis if too long.
    - Language badge: a small pill-shaped label (e.g., "TypeScript", "Python"). If language is unknown, shows "Plain Text".
    - If the file was pasted and no name was provided, shows an inline editable text field with placeholder "Untitled -- click to name". File names from upload/drag-and-drop are displayed as read-only text and cannot be renamed.
-   - **In multi-file mode**, the FileHeader is not rendered. File name, language badge, and rename affordance (for pasted files) move into the FileBrowser sidebar. Hovering over a file row shows a tooltip with the full file name and language. Right-clicking a file row for a pasted file opens the rename input inline.
+   - **In multi-file mode**, the FileHeader is not rendered. File name, language badge, and rename affordance (for pasted files) move into the FileBrowser sidebar. Hovering over a file row shows a tooltip with the full file name and language (`FR-crp-file-tooltip`). Right-clicking a file row for a pasted file opens the rename input inline.
 
-2. **ReviewContextPanel** (conditional): Visible only when review context data is available (`FR-crp-review-context-receive`) and the active file has per-file context. Positioned between the FileHeader (single-file mode) or the top of the Code Viewer Panel (multi-file mode, since the FileHeader is replaced by the FileBrowser sidebar) and the CodeViewer. Shows per-file context only for the active file (overall changeset context is now in the ReviewContextSidebar in the sidebar). Collapsible to maximize code viewing space. See ReviewContextPanel component spec for full details. When no context data is available (standalone mode, single `/shepherd`), or the active file has no per-file context, this component is not rendered at all (`AC-crp-context-graceful-missing`).
+2. **ActiveFilePath** (multi-file mode only): A compact bar displaying the full relative file path of the active file (`FR-crp-active-file-path`). Positioned at the top of the Code Viewer Panel, replacing the FileHeader in multi-file mode. Only rendered when 2+ files are loaded (same visibility condition as the FileBrowser sidebar). Updates when the active file changes (`AC-crp-active-file-path-switches`). Not rendered in single-file mode (`AC-crp-active-file-path-single-file`). See ActiveFilePath component spec for full details.
 
-3. **ReviewStatusBar** (file-reviewed feature): A compact horizontal bar at the top of the code viewer area (below the ReviewContextPanel if present, or below the FileHeader in single-file mode / at the top of the Code Viewer Panel in multi-file mode). Shows the reviewed state of the active file with a toggle button. Implements `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`. See ReviewStatusBar component spec for full details.
+3. **ReviewContextPanel** (conditional): Visible only when review context data is available (`FR-crp-review-context-receive`) and the active file has per-file context. Positioned below the ActiveFilePath (multi-file mode) or below the FileHeader (single-file mode). Shows per-file context only for the active file (overall changeset context is now in the ReviewContextSidebar in the sidebar). Collapsible to maximize code viewing space. See ReviewContextPanel component spec for full details. When no context data is available (standalone mode, single `/shepherd`), or the active file has no per-file context, this component is not rendered at all (`AC-crp-context-graceful-missing`).
 
-4. **CodeViewer**: The main scrollable code display area. See Component Specs for full details. Implements `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`. In multi-file mode, the CodeViewer displays the content of the currently active file only. When the user switches files via the FileBrowser sidebar, the CodeViewer swaps to the new file's content, restoring that file's scroll position and rendering its comments.
+4. **ReviewStatusBar** (file-reviewed feature): A compact horizontal bar at the top of the code viewer area (below the ReviewContextPanel if present, or below the ActiveFilePath in multi-file mode / below the FileHeader in single-file mode). Shows the reviewed state of the active file with a toggle button. Implements `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`. See ReviewStatusBar component spec for full details.
 
-5. **InlineCommentEditor**: Appears inline within the CodeViewer when the user is creating or editing a comment. See Component Specs.
+5. **CodeViewer**: The main scrollable code display area. See Component Specs for full details. Implements `FR-crp-file-display`, `FR-crp-syntax-highlight`, `FR-crp-comment-indicator`. In multi-file mode, the CodeViewer displays the content of the currently active file only. When the user switches files via the FileBrowser sidebar, the CodeViewer swaps to the new file's content, restoring that file's scroll position and rendering its comments.
+
+6. **InlineCommentEditor**: Appears inline within the CodeViewer when the user is creating or editing a comment. See Component Specs.
 
 #### Sidebar Panel
 
@@ -442,7 +446,7 @@ The title is set via `document.title` on app initialization when the `?session=`
 
 1. User sees multiple file rows in the FileBrowser sidebar. One file is active (highlighted with a white background and blue left border).
 2. User clicks on an inactive file row (or focuses the file browser with keyboard, uses `ArrowUp`/`ArrowDown` to navigate, and presses `Enter` or `Space`).
-3. The code viewer transitions to display the selected file's content. The transition is instant (no loading spinner) since all file content is held in memory.
+3. The code viewer transitions to display the selected file's content. The transition is instant (no loading spinner) since all file content is held in memory. The ActiveFilePath bar at the top of the Code Viewer Panel updates to show the newly active file's full path (`AC-crp-active-file-path-switches`).
 4. All comments for the selected file are rendered in the code viewer. The scroll position is restored to where the user last was in that file.
 5. The previously active file retains its full state (comments, scroll position, any in-progress line range selection is discarded). If the user had an InlineCommentEditor open on the previous file, it is closed without saving (same as pressing Escape).
 6. If the Review Context Panel is visible (`FR-crp-review-context-display`), the per-file context section updates to show the newly active file's context (`AC-crp-context-per-file-switches`). If the newly active file has no per-file context (e.g., it was added via paste/upload and was not part of the shepherd-review invocation), the per-file section is hidden; only the overall context remains visible. The overall changeset context is unaffected by file switches (`FR-crp-review-context-overall`). The Review Context Panel's collapse/expand state is preserved across file switches — it does not reset.
@@ -465,7 +469,7 @@ The title is set via `document.title` on app initialization when the `?session=`
    - If no files remain (`AC-crp-multi-file-empty-after-remove-last`): The application returns to the Empty State. The FileBrowser sidebar disappears.
 7. If the removed file was not the active file: The active file remains unchanged. The sidebar adjusts to close the gap.
 8. The toolbar comment count updates to reflect the new total across all remaining files. The prompt preview regenerates, omitting the removed file's section. If no comments remain on any file, the prompt preview reverts to the placeholder.
-9. If only one file remains after removal, the FileBrowser sidebar collapses and the layout reverts to the single-file two-column layout with the FileHeader restored.
+9. If only one file remains after removal, the FileBrowser sidebar collapses, the ActiveFilePath bar disappears, and the layout reverts to the single-file two-column layout with the FileHeader restored (`AC-crp-active-file-path-single-file`).
 
 ### Flow 20: Drag-and-Drop Additional Files (`FR-crp-multi-file-load`, `AC-crp-multi-file-drop-multiple`)
 
@@ -631,8 +635,22 @@ Handles all three file loading methods: paste, upload, and drag-and-drop. Implem
 
 Vertical sidebar panel presenting all loaded files in a nested directory tree, similar to GitHub's pull request file browser. Implements `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-visual`, `FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`. Only rendered when two or more files are loaded (see layout section for transition rules).
 
-- **Position**: Left side of the layout, next to the code viewer. Fixed width: 240px. Full height of the main content area (from below the toolbar to the bottom of the viewport). Background: `#F8FAFC`. Border-right: 1px solid `#E2E8F0`.
+- **Position**: Left side of the layout, next to the code viewer. Default width: 240px, user-resizable (`FR-crp-panel-resize`). Full height of the main content area (from below the toolbar to the bottom of the viewport). Background: `#F8FAFC`. Border-right: 1px solid `#E2E8F0`.
   - **Dark mode**: Background `#1A1D23`, border-right `#2D3139`.
+
+- **Resize Handle** (`FR-crp-panel-resize`, `AC-crp-panel-resize-drag`, `AC-crp-panel-resize-bounds`, `AC-crp-panel-resize-double-click`, `AC-crp-panel-resize-persists`):
+  - **Position**: Attached to the right edge of the FileBrowser panel. A vertical strip overlaying the border-right area — 6px wide hit target (3px on each side of the 1px border), full height of the panel.
+  - **Visual affordance (idle)**: No visible indicator beyond the existing 1px border-right. The resize handle is invisible until the user hovers.
+  - **Visual affordance (hover)**: The 1px border widens to a 3px solid `#3B82F6` (blue) line, providing a clear signal the boundary is draggable. Cursor changes to `col-resize`.
+    - **Dark mode hover**: 3px solid `#3B82F6`.
+  - **Visual affordance (dragging)**: The 3px blue line persists while dragging. Cursor remains `col-resize`. A subtle semi-transparent overlay (`rgba(59, 130, 246, 0.05)`) covers the code viewer panel during the drag to prevent text selection and provide visual feedback that a resize is in progress.
+  - **Drag behavior**: On `mousedown` (or `pointerdown`), begin tracking horizontal mouse movement. The FileBrowser width updates in real-time following the pointer. The code viewer panel adjusts its width inversely. Uses `requestAnimationFrame` for smooth updates with no layout jank.
+  - **Minimum width**: 180px. If the user drags below 180px, the panel clamps at 180px.
+  - **Maximum width**: `min(50vw, 600px)` — whichever is smaller. This ensures the code viewer always retains at least 50% of the viewport (minus the right sidebar).
+  - **Double-click to reset**: Double-clicking the resize handle resets the FileBrowser width to the 240px default with a 150ms ease-out transition (`AC-crp-panel-resize-double-click`).
+  - **Session persistence**: The resized width is stored in component state (not localStorage). When the user switches files, adds/removes files, or interacts with other parts of the UI, the FileBrowser remains at the user-chosen width. On page reload, the width resets to 240px (`NFR-crp-no-data-persistence`). `AC-crp-panel-resize-persists`.
+  - **Touch support**: The resize handle responds to touch events (`touchstart`, `touchmove`, `touchend`) in addition to mouse events, for trackpad and touch-screen users.
+  - **Keyboard accessibility**: The resize handle is focusable (`tabindex="0"`, `role="separator"`, `aria-orientation="vertical"`, `aria-valuenow` set to current width, `aria-valuemin="180"`, `aria-valuemax` set to computed max). When focused, `ArrowLeft` decreases width by 10px, `ArrowRight` increases width by 10px. `Home` sets to minimum, `End` sets to maximum.
 
 - **Props/Inputs**:
   - `files: FileEntry[]` where `FileEntry = { id: string; name: string; language: string; commentCount: number; isReviewed: boolean }` — The `name` field contains the full relative path (e.g., `src/utils/helpers.ts`). The tree structure is derived by parsing these paths into a directory hierarchy.
@@ -644,6 +662,9 @@ Vertical sidebar panel presenting all loaded files in a nested directory tree, s
   - `onAddFile: () => void`
   - `onToggleReviewed: (fileId: string) => void`
   - `onToggleDir: (dirPath: string) => void` — Toggles a directory between collapsed and expanded. Adds or removes the directory path from `collapsedDirs`.
+  - `width: number` — Current width of the FileBrowser panel in pixels (default: 240). Controlled by the parent layout via the resize handle (`FR-crp-panel-resize`).
+  - `onResize: (newWidth: number) => void` — Called during drag to update the panel width. The parent clamps the value to the min/max range.
+  - `onResetWidth: () => void` — Called on double-click of the resize handle to reset to default width.
 
 - **Visual Structure (directory tree, `FR-crp-file-reviewed-grouping`)**:
 
@@ -730,7 +751,7 @@ Vertical sidebar panel presenting all loaded files in a nested directory tree, s
     - **Comment count badge**: Small pill shown only when `commentCount > 0`. Style: background `#3B82F6`, text white, font-size 10px, border-radius 8px, min-width 16px, height 16px, padding 0 4px. Positioned inline after the file name with 6px left margin. Flex-shrink: 0.
     - **Review toggle button**: A small circle icon button (16px hit target, 12px icon). Visible on hover or when the file row is active. When unreviewed: empty circle outline (color `#94A3B8`); when reviewed: filled green checkmark circle (color `#16A34A`). Clicking this toggles the reviewed state directly from the sidebar without switching to the file (`FR-crp-file-reviewed-toggle`). `aria-label="Mark [filename] as reviewed"` or `aria-label="Unmark [filename] as reviewed"` depending on state. Flex-shrink: 0. Margin-left: 4px.
     - **Close button (X icon)**: 14px icon. Visible on hover or when the file row is active. Clicking removes the file (`FR-crp-multi-file-remove`). Hidden for the last remaining file (use Clear session instead). Flex-shrink: 0. Margin-left: 4px.
-  - **Tooltip on hover**: Shows the full untruncated file path (e.g., `src/utils/helpers.ts`), detected language, and review status (e.g., "src/utils/helpers.ts -- TypeScript" or "config.json -- JSON -- Reviewed"). The tooltip is useful because it displays the complete path even when the filename is truncated, and provides language/review context at a glance. For pasted files, shows "Untitled -- Plain Text" or the user-given name.
+  - **Tooltip on hover** (`FR-crp-file-tooltip`, `AC-crp-file-tooltip-full-path`, `AC-crp-file-tooltip-reviewed`): Shows the full untruncated file path (e.g., `src/utils/helpers.ts`), detected language, and review status (e.g., "src/utils/helpers.ts — TypeScript" or "config.json — JSON — Reviewed"). The tooltip is useful because it displays the complete path even when the filename is truncated, and provides language/review context at a glance. For pasted files, shows "Untitled — Plain Text" or the user-given name. The tooltip uses a standard browser tooltip (`title` attribute) for simplicity. The format is: `<full-path> — <language>` for unreviewed files and `<full-path> — <language> — Reviewed` for reviewed files. The tooltip appears after the default browser delay (~400ms hover). It includes the review status so the user can confirm a file's state without needing to parse the visual indicators.
 
 - **File Row States**:
 
@@ -777,6 +798,45 @@ Vertical sidebar panel presenting all loaded files in a nested directory tree, s
   - Close button within each file node: `aria-label="Remove [filename]"`
   - Review toggle button within each file node: `aria-label="Mark [filename] as reviewed"` (unreviewed) or `aria-label="Unmark [filename] as reviewed"` (reviewed), `aria-pressed="true|false"`
   - Add file button: `aria-label="Add another file"`
+  - Resize handle: `role="separator"`, `aria-orientation="vertical"`, `aria-valuenow="[current width]"`, `aria-valuemin="180"`, `aria-valuemax="[computed max]"`, `aria-label="Resize file browser"`. Focusable (`tabindex="0"`).
+
+---
+
+### ActiveFilePath
+
+A compact, read-only bar that displays the full relative file path of the currently active file at the top of the Code Viewer Panel in multi-file mode. Provides persistent context about which file the user is viewing without requiring them to look at the FileBrowser sidebar. Implements `FR-crp-active-file-path`, `AC-crp-active-file-path-visible`, `AC-crp-active-file-path-switches`.
+
+- **Position**: Top of the Code Viewer Panel, spanning its full width. Only rendered when 2+ files are loaded (same condition as the FileBrowser sidebar, `AC-crp-active-file-path-single-file`). In single-file mode, the FileHeader serves this purpose instead, so the ActiveFilePath is not rendered. Positioned above the ReviewContextPanel (if present) and above the ReviewStatusBar.
+
+- **Props/Inputs**:
+  - `filePath: string` — The full relative file path of the active file (e.g., `src/components/FileBrowser.tsx`). For pasted files with no name, this is `"Untitled"`. For pasted files the user has named, this is the user-given name.
+  - `activeFileId: string` — Used to detect file switches and trigger the path update.
+
+- **Visual Structure**:
+  ```
+  +--------------------------------------------------------------+
+  |  src/components/FileBrowser.tsx                               |
+  +--------------------------------------------------------------+
+  ```
+
+- **Styling (light mode)**:
+  - **Container**: Full width of the Code Viewer Panel. Height: 32px. Background: `#F8FAFC` (same as FileHeader). Border-bottom: 1px solid `#E2E8F0`. Padding: 0 16px. Display: flex, align-items: center.
+  - **Path text**: Monospace font stack (`ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`), 12px, font-weight 400, color `#64748B` (muted text). `text-overflow: ellipsis`, `overflow: hidden`, `white-space: nowrap`. The path is truncated from the left if it exceeds the available width (CSS `direction: rtl; text-align: left;` technique) so the deepest directory and filename remain visible.
+
+- **Styling (dark mode)**:
+  - **Container**: Background: `#1A1D23`. Border-bottom: 1px solid `#2D3139`.
+  - **Path text**: Color: `#8B95A5`.
+
+- **Behavior**:
+  - The path updates immediately when the active file changes (no transition animation — instant text swap).
+  - The component is read-only and non-interactive (no click, edit, or copy affordance on the path itself).
+  - When a pasted file has no name, displays "Untitled" in the same style.
+  - When a pasted file has been renamed by the user, displays the user-given name.
+  - The ActiveFilePath appears and disappears with the FileBrowser sidebar (appears when the 2nd file is added, disappears when files are reduced to 1).
+
+- **Keyboard Accessibility**:
+  - Not focusable (purely informational, read-only).
+  - Screen reader: `role="status"`, `aria-live="polite"`, `aria-label="Active file: [filePath]"`. The `aria-live="polite"` ensures screen readers announce the new file path when it changes due to a file switch, without interrupting the user.
 
 ---
 
@@ -784,7 +844,7 @@ Vertical sidebar panel presenting all loaded files in a nested directory tree, s
 
 A compact horizontal bar that displays the reviewed/unreviewed status of the currently active file and provides the primary mechanism for toggling it. Implements `FR-crp-file-reviewed-toggle`, `AC-crp-file-mark-reviewed`, `AC-crp-file-unmark-reviewed`, `FR-crp-file-reviewed-persistence`.
 
-- **Position**: Inside the Code Viewer Panel, below the ReviewContextPanel (if present) or below the FileHeader (single-file mode) / at the top of the Code Viewer Panel (multi-file mode, since the FileHeader is replaced by the FileBrowser sidebar). Spans the full width of the Code Viewer Panel. Height: 36px. The bar is always visible when at least one file is loaded, regardless of whether context data is available.
+- **Position**: Inside the Code Viewer Panel, below the ReviewContextPanel (if present), or below the ActiveFilePath (multi-file mode) / below the FileHeader (single-file mode). Spans the full width of the Code Viewer Panel. Height: 36px. The bar is always visible when at least one file is loaded, regardless of whether context data is available.
 
 - **Props/Inputs**:
   - `isReviewed: boolean` — Whether the currently active file is marked as reviewed.
@@ -1738,13 +1798,14 @@ Implements `NFR-crp-responsive-layout`.
 
 | Breakpoint | Behavior |
 |---|---|
-| **>= 1280px** | Full layout as described. FileBrowser (when visible): 240px. Right sidebar: 360px. Code viewer: remaining width. |
-| **1024px - 1279px** | Right sidebar narrows to 280px. FileBrowser remains 240px. This yields: 240px (file browser) + 280px (right sidebar) = 520px for fixed panels, leaving a minimum of 504px for the code viewer at 1024px. In single-file mode (no file browser): code viewer gets 1024px - 280px = 744px. Toolbar title abbreviates. Font sizes remain the same. |
+| **>= 1280px** | Full layout as described. FileBrowser (when visible): default 240px, resizable 180px–min(50vw, 600px) (`FR-crp-panel-resize`). Right sidebar: 360px. Code viewer: remaining width. |
+| **1024px - 1279px** | Right sidebar narrows to 280px. FileBrowser default remains 240px, resizable 180px–min(50vw, 600px). The maximum width is dynamically clamped so that the code viewer never falls below ~300px (i.e., `max = viewportWidth - 280px (right sidebar) - 300px (min code viewer)`). This yields at 1024px: max FileBrowser width = 1024 - 280 - 300 = 444px. In single-file mode (no file browser): code viewer gets 1024px - 280px = 744px. Toolbar title abbreviates. Font sizes remain the same. |
 | **< 1024px** | A full-screen overlay message appears: "This application is designed for viewports 1024px and wider. Please resize your browser window or use a device with a larger screen." The application content is hidden behind the overlay. |
 
 ### Panel Resizing
 
-The boundary between the code viewer panel and the sidebar panel is **not** user-resizable in v1. The sidebar has a fixed width and the code viewer takes the remaining space.
+- **Left boundary (FileBrowser ↔ Code Viewer)**: User-resizable (`FR-crp-panel-resize`). The FileBrowser sidebar's right edge has a drag handle that allows the user to resize the sidebar from its default 240px width. Min: 180px, max: `min(50vw, 600px)`. Double-click resets to 240px. See the FileBrowser component spec "Resize Handle" section for full visual and interaction details.
+- **Right boundary (Code Viewer ↔ Sidebar Panel)**: **Not** user-resizable. The right sidebar has a fixed width (360px at >= 1280px, 280px at 1024-1279px) and the code viewer takes the remaining space. This boundary remains fixed to keep the design simple and ensure the prompt preview area has a consistent width.
 
 ### Horizontal Overflow
 
@@ -1776,6 +1837,7 @@ All core workflows are achievable via keyboard:
 | **Copy prompt** | `Cmd+Shift+C` / `Ctrl+Shift+C` |
 | **Send prompt (Done)** | `Cmd+Shift+D` / `Ctrl+Shift+D` (slash command mode only) |
 | **Clear session** | `Tab` to Clear button, `Enter` |
+| **Resize file browser** | `Tab` to resize handle, `ArrowLeft`/`ArrowRight` to adjust width by 10px, `Home` for minimum, `End` for maximum |
 
 ### Focus Management
 
@@ -1813,6 +1875,8 @@ All core workflows are achievable via keyboard:
 | Review context panel content | `role="region"`, `aria-label="Review context"` |
 | Context section (neutral) | `role="note"`, `aria-label="What Changed"` |
 | Context section (review) | `role="note"`, `aria-label="Agent Review"` |
+| ActiveFilePath container | `role="status"`, `aria-live="polite"`, `aria-label="Active file: [filePath]"` |
+| FileBrowser resize handle | `role="separator"`, `aria-orientation="vertical"`, `aria-valuenow="[width]"`, `aria-valuemin="180"`, `aria-valuemax="[max]"`, `aria-label="Resize file browser"` |
 
 ### Color and Contrast
 
@@ -1876,6 +1940,12 @@ All core workflows are achievable via keyboard:
 | FileBrowser group header text | Muted | `#94A3B8` |
 | FileBrowser active row background | White | `#FFFFFF` |
 | FileBrowser active row border | Blue | `#2563EB` |
+| FileBrowser resize handle (hover/drag) | Blue | `#3B82F6` |
+| FileBrowser resize overlay | Blue tint | `rgba(59, 130, 246, 0.05)` |
+| ActiveFilePath background (light) | Near-white | `#F8FAFC` |
+| ActiveFilePath background (dark) | Dark | `#1A1D23` |
+| ActiveFilePath text (light) | Muted | `#64748B` |
+| ActiveFilePath text (dark) | Muted | `#8B95A5` |
 
 ---
 
@@ -1905,6 +1975,7 @@ All core workflows are achievable via keyboard:
 | FileBrowser group header | System sans-serif | 10px | 600 | 16px |
 | FileBrowser file name | Monospace stack | 13px | 400 (inactive) / 600 (active) | 20px |
 | Review status bar label | System sans-serif | 13px | 400 (unreviewed) / 600 (reviewed) | 20px |
+| ActiveFilePath text | Monospace stack | 12px | 400 | 18px |
 
 System sans-serif stack: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`
 
@@ -1957,6 +2028,9 @@ This section maps every product requirement and acceptance criterion to where it
 | `FR-crp-file-reviewed-persistence` | ReviewStatusBar behavior (session-level state); Flow 19 step 5 (discarded on removal); Flow 12 (cleared on session clear); File Loaded Screen "multi-file: file switching" state |
 | `FR-crp-line-wrap` | CodeViewer component (Line Wrapping Mode section); Toolbar component (Wrap toggle button, props, states, keyboard shortcut `Alt+Z`); Horizontal Overflow section |
 | `FR-crp-session-identity` | Window Title section (document.title set based on session context and project name) |
+| `FR-crp-panel-resize` | FileBrowser component (Resize Handle section — position, visual affordance, drag behavior, min/max bounds, double-click reset, session persistence, keyboard accessibility); Application Layout (Multi-File diagrams); Panel Resizing section; Responsive Behavior breakpoints |
+| `FR-crp-active-file-path` | ActiveFilePath component; Code Viewer Panel layout (item 2); Application Layout (Multi-File diagrams) |
+| `FR-crp-file-tooltip` | FileBrowser component (Tooltip on hover — full path, language, review status); Code Viewer Panel layout (FileHeader multi-file note) |
 
 ### Non-Functional Requirements
 
@@ -2036,3 +2110,12 @@ This section maps every product requirement and acceptance criterion to where it
 | `AC-crp-line-wrap-comment-target` | CodeViewer component (Line Wrapping Mode — click handling targets logical line number across all visual rows) |
 | `AC-crp-line-wrap-default-on` | CodeViewer component (Line Wrapping Mode — default state is on, wrapping enabled) |
 | `AC-crp-line-wrap-persists-session` | CodeViewer component (Line Wrapping Mode — state persistence within session, reset on clear) |
+| `AC-crp-panel-resize-drag` | FileBrowser component (Resize Handle — drag behavior, real-time width updates, code viewer adjusts inversely) |
+| `AC-crp-panel-resize-bounds` | FileBrowser component (Resize Handle — min 180px, max min(50vw, 600px), clamping behavior) |
+| `AC-crp-panel-resize-double-click` | FileBrowser component (Resize Handle — double-click resets to 240px default with 150ms transition) |
+| `AC-crp-panel-resize-persists` | FileBrowser component (Resize Handle — session persistence in component state, resets on page reload) |
+| `AC-crp-active-file-path-visible` | ActiveFilePath component (rendered in multi-file mode, shows full relative path at top of Code Viewer Panel) |
+| `AC-crp-active-file-path-switches` | ActiveFilePath component (path updates immediately on file switch) |
+| `AC-crp-active-file-path-single-file` | ActiveFilePath component (not rendered when only 1 file loaded; FileHeader shown instead) |
+| `AC-crp-file-tooltip-full-path` | FileBrowser component (Tooltip on hover — full untruncated path and detected language) |
+| `AC-crp-file-tooltip-reviewed` | FileBrowser component (Tooltip on hover — includes "Reviewed" suffix for reviewed files) |

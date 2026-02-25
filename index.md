@@ -1797,6 +1797,78 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/slash-command.md`
 - **Engineering**: `engineering/slash-command.md`
 - **QA**: `qa/slash-command.md` -> `TC-sc-session-output-isolation`
+
+### `FR-crp-panel-resize`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-drag`, `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`, `TC-crp-panel-resize-double-click-reset`, `TC-crp-panel-resize-persists-file-switch`, `TC-crp-panel-resize-keyboard`
+
+### `FR-crp-active-file-path`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-active-file-path-visible`, `TC-crp-active-file-path-switches`, `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-pasted-file`, `TC-crp-active-file-path-transition`
+
+### `FR-crp-file-tooltip`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-reviewed-status`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name`
+
+### `AC-crp-panel-resize-drag`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-drag`
+
+### `AC-crp-panel-resize-bounds`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`
+
+### `AC-crp-panel-resize-double-click`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-double-click-reset`
+
+### `AC-crp-panel-resize-persists`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-persists-file-switch`
+
+### `AC-crp-active-file-path-visible`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-active-file-path-visible`
+
+### `AC-crp-active-file-path-switches`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-active-file-path-switches`
+
+### `AC-crp-active-file-path-single-file`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-transition`
+
+### `AC-crp-file-tooltip-full-path`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name`
+
+### `AC-crp-file-tooltip-reviewed`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/code-review-prompt.md`
+- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
+- **QA**: `qa/code-review-prompt.md` -> `TC-crp-file-tooltip-reviewed-status`
 <!--
 Entry template -- copy this when adding a new slug:
 

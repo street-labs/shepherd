@@ -88,6 +88,18 @@
 | `AC-crp-file-path-display` | `TC-crp-file-path-disambiguates-same-name`, `TC-crp-file-path-root-file`, `TC-crp-file-path-truncation`, `TC-crp-file-tree-collapse-expand`, `TC-crp-file-tree-keyboard-nav` | Not started |
 | `AC-crp-file-path-single-dir` | `TC-crp-file-path-always-shown`, `TC-crp-file-path-pasted-file`, `TC-crp-file-tree-collapse-expand` | Not started |
 | `FR-crp-session-identity` | `TC-crp-session-identity-window-title`, `TC-crp-session-identity-standalone` | Not started |
+| `FR-crp-panel-resize` | `TC-crp-panel-resize-drag`, `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`, `TC-crp-panel-resize-double-click-reset`, `TC-crp-panel-resize-persists-file-switch`, `TC-crp-panel-resize-keyboard` | Not started |
+| `AC-crp-panel-resize-drag` | `TC-crp-panel-resize-drag` | Not started |
+| `AC-crp-panel-resize-bounds` | `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound` | Not started |
+| `AC-crp-panel-resize-double-click` | `TC-crp-panel-resize-double-click-reset` | Not started |
+| `AC-crp-panel-resize-persists` | `TC-crp-panel-resize-persists-file-switch` | Not started |
+| `FR-crp-active-file-path` | `TC-crp-active-file-path-visible`, `TC-crp-active-file-path-switches`, `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-pasted-file`, `TC-crp-active-file-path-transition` | Not started |
+| `AC-crp-active-file-path-visible` | `TC-crp-active-file-path-visible` | Not started |
+| `AC-crp-active-file-path-switches` | `TC-crp-active-file-path-switches` | Not started |
+| `AC-crp-active-file-path-single-file` | `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-transition` | Not started |
+| `FR-crp-file-tooltip` | `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-reviewed-status`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name` | Not started |
+| `AC-crp-file-tooltip-full-path` | `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name` | Not started |
+| `AC-crp-file-tooltip-reviewed` | `TC-crp-file-tooltip-reviewed-status` | Not started |
 
 ---
 
@@ -2298,6 +2310,281 @@
 
 ---
 
+### Panel Resize
+
+---
+
+#### `TC-crp-panel-resize-drag`: Drag resize handle to widen and narrow the sidebar
+
+- **Type**: E2E
+- **Covers**: `AC-crp-panel-resize-drag`, `FR-crp-panel-resize`
+- **Preconditions**: Two or more files are loaded so the FileBrowser sidebar is visible at its default width (240px).
+- **Steps**:
+  1. Locate the vertical resize handle on the right edge of the FileBrowser sidebar.
+  2. Mouse down on the resize handle.
+  3. Drag the mouse to the right by 100px.
+  4. Release the mouse.
+  5. Observe the sidebar width and code viewer layout.
+  6. Mouse down on the resize handle again.
+  7. Drag the mouse to the left by 150px.
+  8. Release the mouse.
+  9. Observe the sidebar width and code viewer layout.
+- **Expected Result**: After step 4: the sidebar width increases to approximately 340px. The code viewer shrinks horizontally to accommodate the wider sidebar. The resize is smooth (no jumping or flickering). After step 8: the sidebar width decreases to approximately 190px. The code viewer expands to fill the reclaimed space. The layout adjusts fluidly during the drag (not only on mouse release).
+- **Edge Cases**:
+  - Rapid drag back and forth: sidebar width should track the cursor position smoothly without lag or jitter.
+  - Dragging while the sidebar contains many files with long names: file name truncation should update dynamically as the sidebar narrows or widens.
+
+---
+
+#### `TC-crp-panel-resize-min-bound`: Drag below minimum width is clamped to 180px
+
+- **Type**: E2E
+- **Covers**: `AC-crp-panel-resize-bounds`, `FR-crp-panel-resize`
+- **Preconditions**: Two or more files are loaded. The FileBrowser sidebar is visible at its default width (240px).
+- **Steps**:
+  1. Mouse down on the resize handle.
+  2. Drag the mouse to the left aggressively (e.g., 300px to the left, well past the sidebar's left edge).
+  3. Observe the sidebar width during the drag.
+  4. Release the mouse.
+  5. Measure the sidebar width (via dev tools or visual inspection).
+- **Expected Result**: The sidebar width does not go below 180px. During the drag, once the cursor would cause the width to drop below 180px, the sidebar stays at 180px and does not collapse or disappear. After release, the sidebar is exactly 180px wide. The code viewer occupies the remaining horizontal space.
+- **Edge Cases**:
+  - Dragging to the left starting from a sidebar already at 180px: no visual change, the sidebar remains at 180px.
+  - Releasing the mouse while the cursor is far to the left of the sidebar: the sidebar stays at 180px (clamped, not snapped).
+
+---
+
+#### `TC-crp-panel-resize-max-bound`: Drag beyond maximum width is clamped
+
+- **Type**: E2E
+- **Covers**: `AC-crp-panel-resize-bounds`, `FR-crp-panel-resize`
+- **Preconditions**: Two or more files are loaded. The FileBrowser sidebar is visible. The viewport is 1280px wide.
+- **Steps**:
+  1. Mouse down on the resize handle.
+  2. Drag the mouse to the right aggressively (e.g., 800px to the right).
+  3. Observe the sidebar width during the drag.
+  4. Release the mouse.
+  5. Measure the sidebar width.
+- **Expected Result**: The sidebar width does not exceed `min(50vw, 600px)`. At a 1280px viewport, the maximum is 600px. The sidebar is clamped at 600px and does not grow further. The code viewer retains at least half the viewport width.
+- **Edge Cases**:
+  - At a viewport of 1000px wide, the maximum should be 500px (50vw), not 600px.
+  - Resizing the browser window after setting the sidebar to maximum: if the viewport shrinks below `2 * sidebarWidth`, the sidebar should re-clamp to the new `50vw` maximum.
+
+---
+
+#### `TC-crp-panel-resize-double-click-reset`: Double-click resize handle resets to default width
+
+- **Type**: E2E
+- **Covers**: `AC-crp-panel-resize-double-click`, `FR-crp-panel-resize`
+- **Preconditions**: Two or more files are loaded. The sidebar has been manually resized to a non-default width (e.g., 400px via dragging).
+- **Steps**:
+  1. Confirm the sidebar is not at its default 240px width (e.g., it is 400px).
+  2. Double-click the resize handle.
+  3. Observe the sidebar width.
+- **Expected Result**: The sidebar width resets to 240px (the default) with a smooth 150ms ease-out transition. The code viewer adjusts to fill the reclaimed space.
+- **Edge Cases**:
+  - Double-clicking when the sidebar is already at 240px: no visible change.
+  - Double-clicking when the sidebar is at the minimum (180px): sidebar resets to 240px.
+  - Double-clicking when the sidebar is at the maximum: sidebar resets to 240px.
+  - A single click followed by a delayed second click (not a true double-click): should not trigger the reset — it should initiate a drag instead.
+
+---
+
+#### `TC-crp-panel-resize-persists-file-switch`: Resize width persists across file switches
+
+- **Type**: E2E
+- **Covers**: `AC-crp-panel-resize-persists`, `FR-crp-panel-resize`
+- **Preconditions**: Three files are loaded (e.g., `a.ts`, `b.ts`, `c.ts`). File `a.ts` is active. The sidebar is at its default width (240px).
+- **Steps**:
+  1. Drag the resize handle to set the sidebar to 350px.
+  2. Click on `b.ts` in the FileBrowser to switch files.
+  3. Observe the sidebar width.
+  4. Click on `c.ts` to switch files again.
+  5. Observe the sidebar width.
+  6. Reload the page.
+  7. Load the same files again.
+  8. Observe the sidebar width.
+- **Expected Result**: After steps 2-5: the sidebar remains at 350px through all file switches. The custom width is a session-level setting, not per-file. After step 7: the sidebar is back at the default 240px (width does not persist across page reloads).
+- **Edge Cases**:
+  - Adding a new file after resizing: the sidebar width should remain at the custom 350px.
+  - Removing files until only one remains (sidebar hides): if files are added again to show the sidebar, it should return to the last custom width (350px) within the same session.
+
+---
+
+#### `TC-crp-panel-resize-keyboard`: Keyboard resize via ArrowLeft/ArrowRight on resize handle
+
+- **Type**: E2E
+- **Covers**: `FR-crp-panel-resize`
+- **Preconditions**: Two or more files are loaded. The FileBrowser sidebar is visible at default width (240px).
+- **Steps**:
+  1. Tab to the resize handle so it receives keyboard focus (or click on it to focus it).
+  2. Press `ArrowRight` 5 times.
+  3. Observe the sidebar width.
+  4. Press `ArrowLeft` 10 times.
+  5. Observe the sidebar width.
+- **Expected Result**: After step 2: the sidebar width increases by 10px for each `ArrowRight` press (resulting in approximately 290px after 5 presses from default 240px). After step 4: the sidebar width decreases by 10px per `ArrowLeft` press. The resize handle has a visible focus indicator (focus ring) when focused.
+- **Edge Cases**:
+  - Pressing `ArrowLeft` repeatedly past the minimum: the width clamps at 180px and does not go lower.
+  - Pressing `ArrowRight` repeatedly past the maximum: the width clamps at the maximum and does not exceed it.
+  - Pressing `Home` on the focused handle: sets the width to the minimum (180px).
+  - Pressing `End` on the focused handle: sets the width to the maximum (min(50vw, 600px)).
+
+---
+
+### Active File Path Header
+
+---
+
+#### `TC-crp-active-file-path-visible`: Full file path shown in multi-file mode
+
+- **Type**: E2E
+- **Covers**: `AC-crp-active-file-path-visible`, `FR-crp-active-file-path`
+- **Preconditions**: Two files are loaded: `src/utils/helpers.ts` and `src/components/App.tsx`. `helpers.ts` is the active file.
+- **Steps**:
+  1. Observe the top of the code viewer area (above the code content, below the toolbar).
+  2. Inspect the path header text.
+- **Expected Result**: A path header is visible at the top of the code viewer showing `src/utils/helpers.ts` (the full path of the active file). The path is displayed in a distinct bar/header area that is visually separated from the code content below it.
+- **Edge Cases**:
+  - File with a very long path (e.g., `src/components/features/dashboard/widgets/chart/utils/formatters.ts`): the path should be visible, potentially truncated with an ellipsis at the beginning or middle if it exceeds the available width.
+  - File loaded from a deep nested directory structure: the full path is shown.
+
+---
+
+#### `TC-crp-active-file-path-switches`: Path updates when user switches files
+
+- **Type**: E2E
+- **Covers**: `AC-crp-active-file-path-switches`, `FR-crp-active-file-path`
+- **Preconditions**: Two files are loaded: `src/utils/helpers.ts` and `src/components/App.tsx`. `helpers.ts` is active.
+- **Steps**:
+  1. Observe the path header — it should show `src/utils/helpers.ts`.
+  2. Click on `App.tsx` in the FileBrowser sidebar.
+  3. Observe the path header.
+- **Expected Result**: After step 2: the path header updates to show `src/components/App.tsx`. The update is immediate (no delay or animation needed). The code viewer content also switches to show `App.tsx`.
+- **Edge Cases**:
+  - Rapidly switching between files: the path header should always match the currently active file with no stale state.
+  - Switching to a file and back: the path header correctly returns to the original file's path.
+
+---
+
+#### `TC-crp-active-file-path-hidden-single`: Path header not shown in single-file mode
+
+- **Type**: E2E
+- **Covers**: `AC-crp-active-file-path-single-file`, `FR-crp-active-file-path`
+- **Preconditions**: Exactly one file is loaded (`example.py`).
+- **Steps**:
+  1. Observe the top of the code viewer area.
+  2. Look for any path header bar above the code content.
+- **Expected Result**: No path header is shown. The existing FileHeader (showing file name and language badge) is visible instead. The code content starts at its normal vertical position without an extra header row.
+- **Edge Cases**:
+  - Loading a single file via paste (no file name): the FileHeader shows "Untitled" and no path header appears.
+  - Loading a single file via upload: the FileHeader shows the file name and no path header appears.
+
+---
+
+#### `TC-crp-active-file-path-pasted-file`: Path header shows "Untitled" for pasted files without names
+
+- **Type**: E2E
+- **Covers**: `AC-crp-active-file-path-visible`, `FR-crp-active-file-path`
+- **Preconditions**: Two files are loaded: one uploaded file (`src/app.ts`) and one pasted file (no file name provided).
+- **Steps**:
+  1. Click on the pasted file entry in the FileBrowser sidebar.
+  2. Observe the path header.
+- **Expected Result**: The path header shows "Untitled" (or the placeholder name assigned to pasted files without a name). It does not show an empty string or cause a layout shift.
+- **Edge Cases**:
+  - Pasted file with a user-provided name (e.g., "utils.ts"): the path header shows "utils.ts".
+  - Multiple pasted files without names: each shows "Untitled" in the path header when active (they may be disambiguated by the FileBrowser, e.g., "Untitled", "Untitled (2)").
+
+---
+
+#### `TC-crp-active-file-path-transition`: Path header appears when 2nd file added, disappears when reverted to 1 file
+
+- **Type**: E2E
+- **Covers**: `AC-crp-active-file-path-single-file`, `FR-crp-active-file-path`
+- **Preconditions**: One file is loaded (`app.ts`). The path header is not visible.
+- **Steps**:
+  1. Confirm no path header is shown (single-file mode).
+  2. Load a second file (`utils.ts`) via upload or paste.
+  3. Observe the top of the code viewer.
+  4. Remove `utils.ts` from the FileBrowser (click its remove button).
+  5. Observe the top of the code viewer.
+- **Expected Result**: After step 2: the path header appears showing the active file's full path (either `app.ts` or `utils.ts` depending on which is active). The FileBrowser sidebar also becomes visible. After step 4: the path header disappears. The view returns to single-file mode with the original FileHeader showing the file name. The transition in both directions is smooth with no layout jank.
+- **Edge Cases**:
+  - Adding a third file then removing two: the path header should persist while 2+ files exist and disappear only when returning to exactly 1 file.
+  - Removing all files: the empty state appears (no path header, no FileHeader).
+
+---
+
+### File Row Tooltip
+
+---
+
+#### `TC-crp-file-tooltip-shows-path`: Tooltip shows full path and language on hover
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-tooltip-full-path`, `FR-crp-file-tooltip`
+- **Preconditions**: Two or more files are loaded in the FileBrowser sidebar, including `src/components/App.tsx`.
+- **Steps**:
+  1. Hover the mouse cursor over the `App.tsx` file row in the FileBrowser sidebar.
+  2. Wait for the tooltip to appear (standard tooltip delay).
+  3. Read the tooltip content.
+- **Expected Result**: A tooltip appears showing the full file path (`src/components/App.tsx`) and the detected language (`TypeScript`). The tooltip is positioned near the file row (following standard tooltip placement conventions — above or below, not obscuring the row).
+- **Edge Cases**:
+  - Moving the mouse away before the tooltip appears: no tooltip is shown (standard tooltip behavior).
+  - Moving the mouse from one file row to another: the tooltip updates to show the new file's information (or disappears and reappears).
+  - File with a very long path: the tooltip should display the full path without truncation (tooltips can be wider than the sidebar).
+
+---
+
+#### `TC-crp-file-tooltip-reviewed-status`: Tooltip includes "Reviewed" status for reviewed files
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-tooltip-reviewed`, `FR-crp-file-tooltip`
+- **Preconditions**: Two or more files are loaded. `App.tsx` has been marked as reviewed (via the review toggle).
+- **Steps**:
+  1. Hover over the `App.tsx` file row in the FileBrowser sidebar.
+  2. Wait for the tooltip to appear.
+  3. Read the tooltip content.
+  4. Hover over a different file that has NOT been marked as reviewed.
+  5. Read that tooltip content.
+- **Expected Result**: The tooltip for `App.tsx` shows the full path, language, and a "Reviewed" indicator (e.g., "Reviewed" label or checkmark). The tooltip for the unreviewed file shows only the full path and language — no "Reviewed" indicator.
+- **Edge Cases**:
+  - Unmarking a file as reviewed and hovering again: the "Reviewed" indicator should disappear from the tooltip.
+  - Marking a file as reviewed while the tooltip is visible: the tooltip should update on next hover (or immediately if supported).
+
+---
+
+#### `TC-crp-file-tooltip-pasted-file`: Tooltip for pasted file without a name
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-tooltip-full-path`, `FR-crp-file-tooltip`
+- **Preconditions**: Two or more files are loaded, including one pasted file with no file name provided.
+- **Steps**:
+  1. Hover over the pasted file row in the FileBrowser sidebar.
+  2. Wait for the tooltip to appear.
+  3. Read the tooltip content.
+- **Expected Result**: The tooltip shows "Untitled" (or the placeholder name) as the path, and the detected language (e.g., "Plain Text" if no extension was inferred). The tooltip does not show an empty path or cause an error.
+- **Edge Cases**:
+  - Pasted file with a user-provided name and extension (e.g., "script.py"): the tooltip shows "script.py" and "Python".
+
+---
+
+#### `TC-crp-file-tooltip-truncated-name`: Tooltip shows full path even when file name is truncated in sidebar
+
+- **Type**: E2E
+- **Covers**: `AC-crp-file-tooltip-full-path`, `FR-crp-file-tooltip`
+- **Preconditions**: Two or more files are loaded. One file has a very long name or deep path (e.g., `src/components/features/very-long-component-name.test.tsx`) that is truncated with an ellipsis in the FileBrowser sidebar.
+- **Steps**:
+  1. Observe that the file name is visually truncated in the sidebar (ellipsis visible).
+  2. Hover over the truncated file row.
+  3. Wait for the tooltip to appear.
+  4. Read the tooltip content.
+- **Expected Result**: The tooltip displays the full, untruncated file path (`src/components/features/very-long-component-name.test.tsx`) and the language (`TypeScript`). The tooltip serves as the way for users to see the complete path when the sidebar is too narrow to display it.
+- **Edge Cases**:
+  - File name that is barely truncated (just a few characters cut off): tooltip still shows the full path.
+  - Resizing the sidebar wider so the name is no longer truncated: the tooltip still shows the full path and language (tooltip is always available regardless of truncation state).
+
+---
+
 ## Edge Cases & Error Scenarios
 
 This section covers additional edge cases and error conditions not directly mapped to a single AC slug but important for comprehensive coverage.
@@ -2633,6 +2920,12 @@ Since this is a greenfield single-page application with no existing features, tr
 
 15. **Line wrapping and code viewer layout**: The line wrapping toggle changes the CSS layout of the code content area (`white-space`, `overflow-wrap`, `overflow-x`). This interacts with virtualization row height estimation (wrapped lines are taller), gutter alignment, comment bubble placement, line click targets, and range selection. Changes to the code viewer layout, TanStack Virtual configuration, or line numbering logic could break wrapped-line rendering. The wrap toggle state is a global session setting that must survive file switches but not page reloads -- changes to session state management must account for this.
 
+16. **Panel resize and layout interactions**: The resizable FileBrowser sidebar introduces a drag interaction on the sidebar's right edge. Changes to the FileBrowser sidebar layout, CSS flex/grid properties, or the code viewer's width calculation could break the resize behavior. The resize handle must coexist with file row click targets and the file tree without intercepting clicks meant for files. The clamped min/max bounds depend on the viewport width (`50vw`), so changes to the overall layout or viewport-responsive breakpoints could affect the maximum. The resize width is a session-level state — changes to Zustand store structure or session state management must preserve it across file switches but reset on page reload.
+
+17. **Active file path header and layout shifts**: The active file path header appears conditionally (only when 2+ files are loaded) above the code viewer. Changes to the code viewer's vertical layout, the toolbar, or the FileHeader could cause the path header to overlap or shift content. The path header must not appear in single-file mode — changes to file count tracking or the transition between single-file and multi-file mode could cause the header to appear or disappear incorrectly. The path header text depends on the active file's path, so changes to file selection or file metadata could cause stale or missing paths.
+
+18. **File row tooltips and hover interactions**: File row tooltips display on hover over FileBrowser sidebar entries. Changes to the FileBrowser file row component, CSS overflow/truncation, or the tooltip library could break tooltip positioning or content. The tooltip includes the file's reviewed status, so changes to the review tracking feature must keep the tooltip in sync. The tooltip must not interfere with click or drag interactions on file rows — changes to event handling could cause the tooltip to block mouse events.
+
 ### Recommended regression suite
 
 Run the following test cases as a minimum regression suite before any release:
@@ -2670,3 +2963,13 @@ Run the following test cases as a minimum regression suite before any release:
 - `TC-crp-line-wrap-persists-file-switch` (wrap preference persists across file switches)
 - `TC-crp-session-identity-window-title` (window title shows project name in slash command mode)
 - `TC-crp-session-identity-standalone` (window title is generic in standalone mode)
+- `TC-crp-panel-resize-drag` (sidebar resize works)
+- `TC-crp-panel-resize-min-bound` (resize minimum bound enforced)
+- `TC-crp-panel-resize-double-click-reset` (double-click resets to default)
+- `TC-crp-panel-resize-persists-file-switch` (resize width persists across file switches)
+- `TC-crp-active-file-path-visible` (file path header shown in multi-file mode)
+- `TC-crp-active-file-path-switches` (path updates on file switch)
+- `TC-crp-active-file-path-hidden-single` (path header hidden in single-file mode)
+- `TC-crp-active-file-path-transition` (path header appears/disappears at file count boundary)
+- `TC-crp-file-tooltip-shows-path` (file row tooltip shows full path and language)
+- `TC-crp-file-tooltip-reviewed-status` (tooltip includes reviewed status)

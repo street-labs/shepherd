@@ -167,6 +167,15 @@ The review context sections in the right sidebar (overall changeset context) mus
 #### `FR-crp-comment-summary` -- All Comments summary view
 The CRPG provides an "All Comments" summary view that shows every comment across all loaded files, organized by file. For each comment, the summary shows: the file name, the line number(s) or element reference, and the comment text. The summary is read-only — viewing only; editing happens in the file's code viewer. The summary updates in real-time as comments are added, edited, or deleted on any file. When no comments exist, the summary shows an appropriate empty state message (e.g., "No comments yet"). The summary is accessible from the sidebar area and can be toggled or accessed alongside the prompt preview. Files with zero comments are not listed in the summary.
 
+#### `FR-crp-panel-resize` -- Resizable file browser sidebar
+The file browser sidebar panel (which presents loaded files in a directory tree) must be user-resizable by dragging its right edge. This allows the user to widen the panel to see longer file paths and directory names, or narrow it to give more space to the code viewer. The resize handle is positioned at the boundary between the file browser and the code viewer panel. The panel has a minimum width (to remain usable) and a maximum width (to ensure the code viewer retains enough space). The resize preference persists within the current session (consistent with `NFR-crp-no-data-persistence`). Double-clicking the resize handle resets the panel to its default width. The resize interaction must be smooth with no visible layout jank.
+
+#### `FR-crp-active-file-path` -- Display active file path at top of code viewer
+When multiple files are loaded (multi-file mode), the full path of the currently active file is displayed at the top of the code viewer panel. This provides persistent context about which file the user is viewing and commenting on, without requiring them to look at the file browser sidebar. The path updates immediately when the user switches files. In single-file mode, the existing FileHeader already provides this context. The path display is read-only and non-interactive (not editable). When a file was loaded via paste with no file name, the path display shows "Untitled" (or the user-given name if one was provided).
+
+#### `FR-crp-file-tooltip` -- File row tooltip with full path and metadata
+When the user hovers over a file row in the file browser sidebar, a tooltip displays the full untruncated file path, the detected language, and the review status. This ensures the user can always read the complete path even when file names are truncated due to the sidebar width. For pasted files, the tooltip shows "Untitled" or the user-given name. This tooltip is essential because the sidebar has limited width and file names are commonly truncated.
+
 #### `FR-crp-file-reviewed-toggle` -- Mark/unmark a file as reviewed
 The user can toggle an individual file's review status between "unreviewed" (default) and "reviewed". This is a manual action — the application never automatically marks a file as reviewed. The toggle is available for every loaded file regardless of whether the file has comments, context data, or was loaded via any particular method (paste, upload, drag-drop, slash command, shepherd-review). In a single-file session, the toggle is still available but the grouping and progress features (`FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`) may have limited utility. The toggle mechanism is a design decision (could be a checkbox in the file browser, a button in the toolbar, a keyboard shortcut, or some combination), but it must be reachable without switching away from the current file.
 
@@ -377,6 +386,33 @@ The application is not required to persist sessions across page reloads in this 
 
 #### `AC-crp-file-reviewed-clear-session` -- Clear session resets reviewed statuses
 **Given** 3 files are marked as reviewed, **when** the user clears the session (per `FR-crp-clear-session`), **then** all files are removed and all reviewed statuses are discarded. If the user then loads new files, they all start as unreviewed.
+
+#### `AC-crp-panel-resize-drag` -- File browser sidebar can be resized by dragging
+**Given** two or more files are loaded and the file browser sidebar is visible, **when** the user clicks and drags the right edge of the file browser, **then** the sidebar width changes smoothly following the mouse, and the code viewer panel adjusts to fill the remaining space.
+
+#### `AC-crp-panel-resize-bounds` -- Resize respects minimum and maximum width
+**Given** the user is dragging the file browser resize handle, **when** they drag below the minimum width, **then** the sidebar stops shrinking and stays at the minimum. **When** they drag beyond the maximum width, **then** the sidebar stops growing and stays at the maximum. The code viewer always retains enough width to be usable.
+
+#### `AC-crp-panel-resize-double-click` -- Double-click resets to default width
+**Given** the file browser sidebar has been resized to a non-default width, **when** the user double-clicks the resize handle, **then** the sidebar returns to its default width (240px).
+
+#### `AC-crp-panel-resize-persists` -- Resize preference persists within the session
+**Given** the user resizes the file browser to 350px, **when** they switch between files, **then** the file browser remains at 350px. Consistent with `NFR-crp-no-data-persistence`, the width resets to default on page reload.
+
+#### `AC-crp-active-file-path-visible` -- Active file path is displayed at top of code viewer in multi-file mode
+**Given** two or more files are loaded and the user is viewing `src/components/FileBrowser.tsx`, **then** the full path `src/components/FileBrowser.tsx` is displayed at the top of the code viewer panel, above the code content.
+
+#### `AC-crp-active-file-path-switches` -- File path updates when switching files
+**Given** the active file path shows `src/utils/helpers.ts`, **when** the user clicks on a different file in the file browser, **then** the path immediately updates to show the new file's path.
+
+#### `AC-crp-active-file-path-single-file` -- File path header not shown in single-file mode
+**Given** only one file is loaded, **then** the existing FileHeader is shown (not the new path header). The active file path header only appears in multi-file mode (when two or more files are loaded).
+
+#### `AC-crp-file-tooltip-full-path` -- Hovering over a file row shows full path in tooltip
+**Given** a file `src/components/deeply/nested/VeryLongComponentName.tsx` is loaded, **when** the user hovers over its row in the file browser sidebar, **then** a tooltip appears showing the full path, detected language, and review status (e.g., "src/components/deeply/nested/VeryLongComponentName.tsx — TypeScript").
+
+#### `AC-crp-file-tooltip-reviewed` -- Tooltip reflects review status
+**Given** a file is marked as reviewed, **when** the user hovers over its file row, **then** the tooltip includes the review status (e.g., "src/utils.ts — TypeScript — Reviewed").
 
 #### `AC-crp-line-wrap-toggle` -- Enabling line wrapping removes horizontal scrollbar
 **Given** a file with long lines is loaded, **when** the user enables line wrapping, **then** long lines wrap within the code content area and no horizontal scrollbar appears for the code.

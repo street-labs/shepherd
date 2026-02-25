@@ -94,6 +94,8 @@ export interface AppState {
   collapsedDirs: Set<string>;
   /** Session ID from ?session= URL param. Null in standalone mode. */
   sessionId: string | null;
+  /** Width of the FileBrowser sidebar in pixels. Default 240. Implements: FR-crp-panel-resize */
+  fileBrowserWidth: number;
 }
 
 // Implements: FR-crp-file-tree-display

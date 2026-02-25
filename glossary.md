@@ -285,8 +285,8 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Session (which is the working state identified by the session ID), process ID (PID, used in server lock files)
 
 ## FileBrowser
-**Definition**: A vertical sidebar panel (240px fixed width) on the left side of the CRPG layout in multi-file mode. Lists all loaded files grouped by review status ("To Review" and "Reviewed" sections). Each file row shows the file name, comment count badge, review toggle, and remove button. The header contains a review progress indicator and an "Add file" button. Appears when two or more files are loaded; collapses to single-file layout when only one file remains. Replaces the former horizontal File Tab Bar component.
-**Also known as**: FileBrowser (component name), file sidebar
+**Definition**: A vertical sidebar panel (default 240px, user-resizable via `FR-crp-panel-resize`) on the left side of the CRPG layout in multi-file mode. Presents all loaded files in a nested directory tree (similar to GitHub's pull request file browser). Within each directory, unreviewed files appear before reviewed files. Each file row shows the file name, comment count badge, review toggle, and remove button. Hovering a file row shows a tooltip with the full path, language, and review status (`FR-crp-file-tooltip`). The header contains a review progress indicator and an "Add file" button. Appears when two or more files are loaded; collapses to single-file layout when only one file remains.
+**Also known as**: FileBrowser (component name), file sidebar, file browser panel
 **Not to be confused with**: Browser file dialogs (which are OS-native file pickers)
 
 ## Active File
@@ -325,14 +325,29 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: FileBrowser (which lists all files in a sidebar), Toolbar (the top-level action bar)
 
 ## Review Progress Indicator
-**Definition**: A compact text badge in the toolbar showing the count of reviewed files versus total loaded files (e.g., "3/7 reviewed"). Only visible when two or more files are loaded. Updates immediately on mark/unmark, file add, or file remove. Turns green when all files are reviewed.
+**Definition**: A compact text badge in the FileBrowser sidebar header showing the count of reviewed files versus total loaded files (e.g., "3/7 reviewed"). Only visible when two or more files are loaded (since the FileBrowser is only rendered in multi-file mode). Updates immediately on mark/unmark, file add, or file remove. Turns green when all files are reviewed.
 **Also known as**: Progress indicator, reviewed count
 **Not to be confused with**: Comment count (which tracks inline comments, not reviewed status)
 
 ## File Grouping
-**Definition**: The organization of file rows in the FileBrowser into two visual groups based on reviewed status: "TO REVIEW" (unreviewed files, shown first) and "REVIEWED" (reviewed files, shown second). Groups are separated by inline labels and a vertical divider. Within each group, files maintain their original load order. Group labels appear when there are files in both groups, or when all files are reviewed (only the "REVIEWED" label shows).
-**Also known as**: File grouping, reviewed/unreviewed grouping
-**Not to be confused with**: File ordering (which is load order within each group)
+**Definition**: The organization of file rows within each directory in the FileBrowser's nested directory tree. Within each directory, unreviewed files are listed before reviewed files (so unreviewed files remain prominent). Reviewed files display visual indicators (green checkmark, muted text) at their tree position. The directory tree structure is the primary organizational axis; review status is a secondary visual layer. There are no separate "To Review" / "Reviewed" section headers — the directory tree with per-file reviewed indicators replaces the previous flat-list grouping model. When all files in a directory are reviewed, the directory node itself shows a reviewed indicator.
+**Also known as**: File grouping, reviewed/unreviewed ordering
+**Not to be confused with**: File ordering (which is load order within each review-status group within a directory)
+
+## Resize Handle
+**Definition**: A thin interactive drag handle (6px hit target) rendered on the right edge of the FileBrowser sidebar. Allows the user to resize the FileBrowser width by clicking and dragging horizontally. Shows a `col-resize` cursor on hover and a 3px blue visual indicator during hover/drag. Supports keyboard accessibility via `role="separator"` with `ArrowLeft`/`ArrowRight` (±10px) and `Home`/`End` (min/max). Double-clicking resets the FileBrowser to its default 240px width. Implements `FR-crp-panel-resize`.
+**Also known as**: ResizeHandle (component name), drag handle, panel resizer
+**Not to be confused with**: Browser window resize handles, CSS `resize` property
+
+## Active File Path
+**Definition**: A compact bar displayed at the top of the Code Viewer Panel in multi-file mode (when 2+ files are loaded). Shows the full relative file path (e.g., `src/components/FileBrowser.tsx`) of the currently active file, providing persistent context about which file is being viewed. Updates immediately when the user switches files. Uses CSS `direction: rtl` truncation so the filename (rightmost part) remains visible when the path is truncated. Only rendered in multi-file mode; in single-file mode, the FileHeader serves this purpose. Implements `FR-crp-active-file-path`.
+**Also known as**: ActiveFilePath (component name), file path header, path bar
+**Not to be confused with**: FileHeader (which is the single-file mode header), file breadcrumb (a different UI pattern with clickable path segments)
+
+## File Tooltip
+**Definition**: A tooltip that appears when the user hovers over a file row in the FileBrowser sidebar. Shows the full untruncated file path, detected language, and review status (e.g., "src/utils/helpers.ts -- TypeScript" or "config.json -- JSON -- Reviewed"). Uses the native browser `title` attribute. Essential because the sidebar has limited width and file names are commonly truncated. Implements `FR-crp-file-tooltip`.
+**Also known as**: File row tooltip
+**Not to be confused with**: Comment tooltips (which show comment text), button tooltips (which show keyboard shortcuts)
 
 ## All Comments
 **Definition**: A summary view in the sidebar that displays every inline comment across all loaded files, organized by file. Implemented as a tab in the sidebar that can be toggled between the Prompt Preview and All Comments views. The summary is read-only and updates in real-time as comments are added, edited, or deleted. Implements `FR-crp-comment-summary`.
