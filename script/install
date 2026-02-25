@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# SUMMARY: Install or update Shepherd CRPG skills for Claude Code
+
+set -e
+
+# Colors (sq run semantic messaging compatible)
+ERROR="${ERROR:-ERROR:}"
+INFO="${INFO:-INFO:}"
+SUCCESS="${SUCCESS:-SUCCESS:}"
+C_ERROR="${C_ERROR:-\033[0;31m}"
+C_INFO="${C_INFO:-\033[0;36m}"
+C_SUCCESS="${C_SUCCESS:-\033[0;32m}"
+C_RESET="${C_RESET:-\033[0m}"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+COMMANDS_DIR="$HOME/.claude/commands"
+SHEPHERD_HOME="$HOME/.shepherd"
+
+echo ""
+echo "  Shepherd — Code Review Prompt Generator"
+echo "  ----------------------------------------"
+echo ""
+
+# --- 1. Install skill command files ---
+
+mkdir -p "$COMMANDS_DIR"
+
+for cmd in shepherd.md shepherd-review.md; do
+  src="$REPO_DIR/.claude/commands/$cmd"
+  dest="$COMMANDS_DIR/$cmd"
+
+  if [ ! -f "$src" ]; then
+    echo -e "${C_ERROR}${ERROR} Missing $src${C_RESET}"
+    exit 1
+  fi
+
+  # Remove existing (file or symlink) before creating fresh symlink
+  rm -f "$dest"
+  ln -s "$src" "$dest"
+  echo -e "${C_INFO}${INFO} Linked /$cmd → $src${C_RESET}"
+done
+
+# --- 2. Store repo location for the launch script ---
+
+mkdir -p "$SHEPHERD_HOME"
+echo "$REPO_DIR" > "$SHEPHERD_HOME/repo-path"
+echo -e "${C_INFO}${INFO} Repo path saved to $SHEPHERD_HOME/repo-path${C_RESET}"
+
+# --- 3. Install web app dependencies ---
+
+WEB_APP="$REPO_DIR/engineering/apps/web"
+
+if [ -f "$WEB_APP/package.json" ]; then
+  echo ""
+  echo -e "${C_INFO}${INFO} Installing CRPG web app dependencies...${C_RESET}"
+
+  if command -v npm &>/dev/null; then
+    (cd "$WEB_APP" && npm install --silent)
+    echo -e "${C_SUCCESS}${SUCCESS} Dependencies installed${C_RESET}"
+  else
+    echo -e "${C_ERROR}${ERROR} npm not found — install Node.js to use the CRPG${C_RESET}"
+    exit 1
+  fi
+else
+  echo -e "${C_ERROR}${ERROR} Web app not found at $WEB_APP${C_RESET}"
+  echo "  Make sure you're running with --full-clone"
+  exit 1
+fi
+
+# --- Done ---
+
+echo ""
+echo -e "${C_SUCCESS}${SUCCESS} Shepherd installed successfully${C_RESET}"
+echo ""
+echo "  Skills available:"
+echo "    /shepherd <filepath>        — Open a file in the CRPG"
+echo "    /shepherd-review            — Review current branch's changeset"
+echo ""
+echo "  To update later:"
+echo "    sq run personal-lstreet-shepherd install --full-clone"
+echo ""
