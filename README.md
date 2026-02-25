@@ -49,6 +49,16 @@ Opens the CRPG in your browser with the file already loaded. Supports diff view 
 
 ## Install
 
+### Quick install (via `sq run`)
+
+```bash
+sq run personal-lstreet-shepherd install --full-clone
+```
+
+This clones the repo, installs dependencies, and symlinks the `/shepherd` and `/shepherd-review` slash commands into `~/.claude/commands/` so they're available in any repo.
+
+### Manual install
+
 ```bash
 # Clone the repo
 git clone <repo-url>
