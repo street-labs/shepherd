@@ -189,18 +189,17 @@ function handlePromptOutput(req: IncomingMessage, res: ServerResponse, url: URL)
     return jsonError(res, 400, 'Invalid session ID format');
   }
 
+  if (!session) {
+    return jsonError(res, 400, 'Missing required query parameter: session');
+  }
+
   const chunks: Buffer[] = [];
   req.on('data', (chunk: Buffer) => chunks.push(chunk));
   req.on('end', () => {
     const body = Buffer.concat(chunks).toString('utf-8');
 
     const homeDir = os.homedir();
-    let outputDir: string;
-    if (session) {
-      outputDir = path.join(homeDir, '.shepherd', 'sessions', session);
-    } else {
-      outputDir = path.join(homeDir, '.shepherd');
-    }
+    const outputDir = path.join(homeDir, '.shepherd', 'sessions', session);
     const outputPath = path.join(outputDir, 'prompt-output.md');
 
     try {
@@ -219,32 +218,19 @@ function handlePromptOutput(req: IncomingMessage, res: ServerResponse, url: URL)
 // Implements: FR-rc-api-endpoint
 function handleReviewContext(_req: IncomingMessage, res: ServerResponse, url: URL) {
   const session = url.searchParams.get('session');
-  const homeDir = os.homedir();
-
-  // Try session-scoped path first, fall back to global for backward compat
-  let contextPath: string;
-  if (session) {
-    contextPath = path.join(homeDir, '.shepherd', 'sessions', session, 'review-context.json');
-  } else {
-    contextPath = path.join(homeDir, '.shepherd', 'review-context.json');
+  if (!session) {
+    return jsonError(res, 400, 'Missing required query parameter: session');
   }
+
+  const homeDir = os.homedir();
+  const contextPath = path.join(homeDir, '.shepherd', 'sessions', session, 'review-context.json');
 
   let content: string;
   try {
     content = fs.readFileSync(contextPath, 'utf-8');
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      // If session path not found, try global fallback
-      if (session) {
-        const fallbackPath = path.join(homeDir, '.shepherd', 'review-context.json');
-        try {
-          content = fs.readFileSync(fallbackPath, 'utf-8');
-        } catch {
-          return jsonError(res, 404, 'No review context available');
-        }
-      } else {
-        return jsonError(res, 404, 'No review context available');
-      }
+      return jsonError(res, 404, 'No review context available');
     } else {
       return jsonError(res, 500, `Failed to read review context: ${(err as Error).message}`);
     }

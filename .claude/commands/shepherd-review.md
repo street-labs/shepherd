@@ -34,7 +34,7 @@ Then stop.
 
 ---
 
-### Step 2: Get repository root and parse arguments
+### Step 2: Get repository root, locate Shepherd, and parse arguments
 
 Run:
 
@@ -42,7 +42,26 @@ Run:
 git rev-parse --show-toplevel
 ```
 
-Store the result as REPO_ROOT.
+Store the result as REPO_ROOT (the repo being reviewed).
+
+Next, resolve the Shepherd repo root. This skill may be invoked from any repo via a global symlink, so we cannot assume REPO_ROOT contains the launch script. Try these in order:
+
+1. **Saved repo path** (set by `sq run ... install`):
+```bash
+SHEPHERD_ROOT="$(cat ~/.shepherd/repo-path 2>/dev/null)"
+```
+
+2. **Symlink resolution** (if installed via manual symlink):
+```bash
+[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" ] && SHEPHERD_ROOT="$(cd "$(dirname "$(readlink -f "$(echo ~/.claude/commands/shepherd-review.md)")")"/../.. && pwd)"
+```
+
+3. **Current repo fallback** (if running from within the Shepherd repo):
+```bash
+[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" ] && SHEPHERD_ROOT="$REPO_ROOT"
+```
+
+If `$SHEPHERD_ROOT/scripts/shepherd-launch.sh` still doesn't exist, output: "Could not find shepherd-launch.sh. Run `sq run personal-lstreet-shepherd install --full-clone` to set up Shepherd." and stop.
 
 Parse the argument: `$ARGUMENTS`
 
@@ -214,7 +233,7 @@ rm -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md
 Build the command with all absolute file paths and invoke the launch script:
 
 ```bash
-bash <REPO_ROOT>/scripts/shepherd-launch.sh <absolute-path-1> <absolute-path-2> ... <absolute-path-N>
+bash $SHEPHERD_ROOT/scripts/shepherd-launch.sh <absolute-path-1> <absolute-path-2> ... <absolute-path-N>
 ```
 
 Use the absolute paths (`REPO_ROOT/<relative-path>`) for each file in the prioritized list, space-separated. Quote each path properly.

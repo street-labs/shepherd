@@ -178,7 +178,7 @@ else
 
   # Start dev server in background, capturing stderr for diagnostics
   SERVER_LOG=$(mktemp)
-  (cd "$WEB_DIR" && pnpm dev --port "$PORT" 2>"$SERVER_LOG" &)
+  (cd "$WEB_DIR" && exec pnpm dev --port "$PORT" 2>"$SERVER_LOG") &
   SERVER_PID=$!
 
   # Write lock file: port on line 1, PID on line 2
