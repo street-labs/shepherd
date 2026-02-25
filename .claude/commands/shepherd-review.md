@@ -12,19 +12,21 @@ You are orchestrating a guided code review. The user has invoked `/shepherd-revi
 
 You provide context up front: a changeset overview with per-file summaries, then open all files in one go. After the user finishes reviewing in the CRPG, you collect the prompt output and present feedback options.
 
+**Efficiency rule: Do not comment on changeset size.** Never say the changeset is "huge", "large", or "significant", and never deliberate about whether to narrow the scope. Apply the filtering rules mechanically and proceed. The filtering step handles noise reduction — your job is to execute, not editorialize about volume.
+
 Follow these steps in order.
 
 ---
 
-### Step 1: Verify git repository
+### Step 1: Verify git repo, get root, find merge base, locate Shepherd, and parse arguments
 
-Run:
+Run a single command to verify the repo, get the root, and find the merge base:
 
 ```bash
-git rev-parse --is-inside-work-tree 2>/dev/null
+git rev-parse --is-inside-work-tree 2>/dev/null && git rev-parse --show-toplevel && git merge-base HEAD main 2>/dev/null
 ```
 
-If this fails (non-zero exit), output exactly:
+If `--is-inside-work-tree` fails (non-zero exit on the first command), output exactly:
 
 ```
 Not a git repository. /shepherd-review must be run from within a git repo.
@@ -32,17 +34,7 @@ Not a git repository. /shepherd-review must be run from within a git repo.
 
 Then stop.
 
----
-
-### Step 2: Get repository root, locate Shepherd, and parse arguments
-
-Run:
-
-```bash
-git rev-parse --show-toplevel
-```
-
-Store the result as REPO_ROOT (the repo being reviewed).
+Store the second line as REPO_ROOT (the repo being reviewed). Store the third line as MERGE_BASE. If `merge-base` fails (no third line), that's OK for `unstaged` scope — but for `all` or `staged` scope, output: `No changes found relative to main.` and stop.
 
 Next, resolve the Shepherd repo root. This skill may be invoked from any repo via a global symlink, so we cannot assume REPO_ROOT contains the launch script. Try these in order:
 
@@ -81,21 +73,9 @@ Scopes:
   --unstaged    Only unstaged changes and untracked files
 ```
 
----
+### Step 2: Find changeset
 
-### Step 3: Find changeset
-
-**3a. Find the merge base** (needed for `all` and `staged` scopes):
-
-If SCOPE is `all` or `staged`, run:
-
-```bash
-git merge-base HEAD main 2>/dev/null
-```
-
-If this fails, output: `No changes found relative to main.` and stop. Store the result as MERGE_BASE.
-
-**3b. Get changed files based on scope:**
+**2a. Get changed files based on scope:**
 
 | Scope | Diff command | Also include untracked? |
 |---|---|---|
@@ -111,7 +91,7 @@ Merge diff output with untracked files (if applicable), deduplicating by path. U
 
 If the combined output is empty, output: `No changes found relative to main.` and stop.
 
-**3c. Parse the diff output.**
+**2b. Parse the diff output.**
 
 - `M` = modified. `A` = added. `D` = deleted (exclude, count as filtered). `R` = renamed (use new path). `C` = added. `T` = modified.
 
@@ -119,7 +99,7 @@ For untracked files, add as `added` unless already present.
 
 ---
 
-### Step 4: Filter files
+### Step 3: Filter files
 
 A file is excluded if it matches **any** exclusion rule. **Exclusion rules take precedence over inclusion rules.**
 
@@ -139,26 +119,26 @@ If zero files remain after filtering, output: `No reviewable files found. All <N
 
 ---
 
-### Step 5: Read file diffs and generate structured context
+### Step 4: Read all diffs in one batch, generate context, and proceed
 
-For each reviewable file, get its diff so you can provide context. Run:
+Get diffs for **all** reviewable files in a single command. Separate modified/renamed files (which have diffs) from new/untracked files (which don't).
+
+For files that have diffs, run **one** command with all paths:
 
 ```bash
-git diff $MERGE_BASE -- <path>
+git diff $MERGE_BASE -- <path1> <path2> <path3> ...
 ```
 
-(For `unstaged` scope, use `git diff -- <path>`. For new/untracked files, there is no diff — note them as entirely new.)
+(For `unstaged` scope, use `git diff -- <path1> <path2> ...`.)
 
-Read each diff output. You will use this to:
-1. Rank files by importance (Step 6).
-2. Generate structured review context JSON (Step 6).
-3. Display a brief summary (Step 6).
+For new/untracked files, read their contents using the Read tool (they have no diff to compare against — note them as entirely new).
 
----
+This gives you all the information you need in one Bash call plus Read calls for new files only. Use this to:
+1. Rank files by importance.
+2. Generate structured review context JSON.
+3. Display a brief summary.
 
-### Step 6: Generate context, display summary, and proceed
-
-**6a. Prioritize files by review importance.**
+**4a. Prioritize files by review importance.**
 
 Rank files using these heuristics (highest priority first):
 1. **Core source code** (application logic, components, business logic) — most important to review
@@ -169,7 +149,7 @@ Rank files using these heuristics (highest priority first):
 
 Within each tier, rank by the size/significance of the change (larger diffs first). Use your judgment — the goal is that the reviewer sees the most important files first.
 
-**6b. Derive the session ID.**
+**4b. Derive the session ID.**
 
 Compute the session ID the same way the launch script does:
 
@@ -177,7 +157,7 @@ Compute the session ID the same way the launch script does:
 SESSION_ID=$(basename "$(git rev-parse --show-toplevel)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')
 ```
 
-**6c. Generate structured review context JSON.**
+**4c. Generate structured review context JSON.**
 
 Build a JSON object with the following structure and write it to `~/.shepherd/sessions/$SESSION_ID/review-context.json` using the Write tool (create the directory first with `mkdir -p ~/.shepherd/sessions/$SESSION_ID`):
 
@@ -202,7 +182,7 @@ The `review` fields contain your agent assessment — what looks good, what migh
 
 Use **absolute file paths** as keys in the `files` object (these must match the paths passed to `shepherd-launch.sh` so the CRPG can correlate them with loaded files).
 
-**6d. Display a brief summary and proceed immediately.**
+**4d. Display a brief summary and proceed immediately.**
 
 Output a brief summary (no per-file details — those are now in the CRPG):
 
@@ -214,21 +194,21 @@ Opening <N> files for review.
 
 Where `<scope-label>` is: `all changes vs main`, `staged changes only`, or `unstaged changes only`.
 
-The "excluded" line is omitted if zero files were filtered. **Do not use `AskUserQuestion` here — proceed directly to Step 7.**
+The "excluded" line is omitted if zero files were filtered. **Do not use `AskUserQuestion` here — proceed directly to Step 5.**
 
 ---
 
-### Step 7: Open all files in CRPG and wait for review
+### Step 5: Open all files in CRPG and wait for review
 
-**7a. Clean stale prompt output.**
+**5a. Clean stale prompt output.**
 
-Remove any previous prompt output file so we can detect a fresh one (do NOT remove `review-context.json` — it was just freshly written in Step 6):
+Remove any previous prompt output file so we can detect a fresh one (do NOT remove `review-context.json` — it was just freshly written in Step 4):
 
 ```bash
 rm -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md
 ```
 
-**7b. Launch all files in the CRPG.**
+**5b. Launch all files in the CRPG.**
 
 Build the command with all absolute file paths and invoke the launch script:
 
@@ -244,7 +224,7 @@ After launching, output:
 Opened <N> files in the CRPG. Review them in your browser, then come back here when you're done.
 ```
 
-**7c. Ask the user about their review.**
+**5c. Ask the user about their review.**
 
 Use `AskUserQuestion` to present the user with these options:
 
@@ -255,14 +235,14 @@ Use `AskUserQuestion` to present the user with these options:
 Based on the response:
 
 - **"Added comments"**: Read `~/.shepherd/sessions/$SESSION_ID/prompt-output.md` with the Read tool. Store the contents as PROMPT_OUTPUT. If the file does not exist, tell the user "Could not find prompt output. Make sure you clicked 'Done' in the CRPG." and re-ask.
-- **"Reviewed, no comments"**: Set PROMPT_OUTPUT to empty. Proceed to Step 8.
-- **"Cancel"**: Output "Review session cancelled." and stop. Do not proceed to Step 8.
+- **"Reviewed, no comments"**: Set PROMPT_OUTPUT to empty. Proceed to Step 6.
+- **"Cancel"**: Output "Review session cancelled." and stop. Do not proceed to Step 6.
 
 ---
 
-### Step 8: Summary and feedback actions
+### Step 6: Summary and feedback actions
 
-**8a. Display the review summary.**
+**6a. Display the review summary.**
 
 ```
 Review complete.
@@ -272,7 +252,7 @@ Review complete.
 
 Right-align numbers. The "filtered out" line is omitted if zero.
 
-**8b. Display prompt output (if available).**
+**6b. Display prompt output (if available).**
 
 If PROMPT_OUTPUT was collected, display it:
 
@@ -286,13 +266,13 @@ Prompt output from CRPG:
 ---
 ```
 
-**8c. Clean up session directory.**
+**6c. Clean up session directory.**
 
 ```bash
 rm -rf ~/.shepherd/sessions/$SESSION_ID
 ```
 
-**8d. Ask what to do with the feedback.**
+**6d. Ask what to do with the feedback.**
 
 Use `AskUserQuestion` to let the user choose:
 
