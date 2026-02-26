@@ -1,10 +1,10 @@
-Orchestrate a guided, multi-file code review of the current branch's changeset using the CRPG.
+Orchestrate a guided, multi-file code review of uncommitted changes using the CRPG.
 
 Allowed tools: Bash, Read, Write
 
 Arguments: $ARGUMENTS
 
-Suggested arguments: [--staged | --unstaged]
+Suggested arguments: [--staged | --unstaged | <commit-or-branch>]
 
 ## Instructions
 
@@ -12,18 +12,20 @@ You are orchestrating a guided code review. The user has invoked `/shepherd-revi
 
 You provide context up front: a changeset overview with per-file summaries, then open all files in one go. After the user finishes reviewing in the CRPG, you collect the prompt output and present feedback options.
 
-**Efficiency rule: Do not comment on changeset size.** Never say the changeset is "huge", "large", or "significant", and never deliberate about whether to narrow the scope. Apply the filtering rules mechanically and proceed. The filtering step handles noise reduction — your job is to execute, not editorialize about volume.
+**Efficiency rule: Do not comment on changeset size.** Never say the changeset is "huge", "large", or "significant", and never deliberate about whether to narrow the scope or use a different git strategy. Apply the filtering rules mechanically and proceed. The steps below handle noise reduction — your job is to execute them exactly, not editorialize about volume or improvise alternative approaches.
+
+**CWD rule:** All git commands MUST use `git -C "$REPO_ROOT"` to ensure they run from the repository root, regardless of your current working directory. This prevents silent failures in monorepos where the CWD may be a subdirectory.
 
 Follow these steps in order.
 
 ---
 
-### Step 1: Verify git repo, get root, find merge base, locate Shepherd, and parse arguments
+### Step 1: Verify git repo, get root, locate Shepherd, and parse arguments
 
-Run a single command to verify the repo, get the root, and find the merge base:
+Run a single command to verify the repo and get the root:
 
 ```bash
-git rev-parse --is-inside-work-tree 2>/dev/null && git rev-parse --show-toplevel && git merge-base HEAD main 2>/dev/null
+git rev-parse --is-inside-work-tree 2>/dev/null && git rev-parse --show-toplevel
 ```
 
 If `--is-inside-work-tree` fails (non-zero exit on the first command), output exactly:
@@ -34,7 +36,7 @@ Not a git repository. /shepherd-review must be run from within a git repo.
 
 Then stop.
 
-Store the second line as REPO_ROOT (the repo being reviewed). Store the third line as MERGE_BASE. If `merge-base` fails (no third line), that's OK for `unstaged` scope — but for `all` or `staged` scope, output: `No changes found relative to main.` and stop.
+Store the second line as REPO_ROOT.
 
 Next, resolve the Shepherd repo root. This skill may be invoked from any repo via a global symlink, so we cannot assume REPO_ROOT contains the launch script. Try these in order:
 
@@ -57,41 +59,67 @@ If `$SHEPHERD_ROOT/scripts/shepherd-launch.sh` still doesn't exist, output: "Cou
 
 Parse the argument: `$ARGUMENTS`
 
-- If empty or blank → SCOPE = `all` (default)
+- If empty or blank → SCOPE = `working` (default: all uncommitted changes)
 - If `--staged` → SCOPE = `staged`
 - If `--unstaged` → SCOPE = `unstaged`
-- Anything else → output the following usage message and stop:
+- Otherwise → treat the argument as a git ref (commit, branch, tag). Verify it resolves:
+  ```bash
+  git -C "$REPO_ROOT" rev-parse --verify "$ARGUMENTS" 2>/dev/null
+  ```
+  If it resolves → SCOPE = `ref`, DIFF_REF = the resolved value.
+  If it does NOT resolve → output the usage message below and stop.
 
 ```
-Usage: /shepherd-review [--staged | --unstaged]
+Usage: /shepherd-review [--staged | --unstaged | <ref>]
 
-Guided review of changed files in the CRPG.
+Review uncommitted changes in the CRPG.
 
 Scopes:
-  (default)     All changes relative to main (committed + staged + unstaged + untracked)
-  --staged      Only staged changes (what will be committed)
+  (default)     All uncommitted changes (staged + unstaged + untracked)
+  --staged      Only staged changes
   --unstaged    Only unstaged changes and untracked files
+  <ref>         Diff working tree against a commit, branch, or tag
 ```
+
+---
 
 ### Step 2: Find changeset
 
-**2a. Get changed files based on scope:**
+This tool reviews the **working copy** — what's dirty right now. No branch comparison logic.
 
-| Scope | Diff command | Also include untracked? |
-|---|---|---|
-| `all` | `git diff --name-status $MERGE_BASE` | Yes: `git ls-files --others --exclude-standard` |
-| `staged` | `git diff --name-status --cached $MERGE_BASE` | No |
-| `unstaged` | `git diff --name-status` | Yes: `git ls-files --others --exclude-standard` |
+Run the appropriate git commands based on SCOPE. All commands use `git -C "$REPO_ROOT"`.
 
-For `all`: NO dots, NO `...HEAD` — compares merge base to working tree.
-For `staged`: `--cached` shows only staged content relative to merge base.
-For `unstaged`: no commit ref — unstaged modifications relative to index.
+**SCOPE = `working`** (default):
 
-Merge diff output with untracked files (if applicable), deduplicating by path. Untracked files get change type `added`.
+```bash
+git -C "$REPO_ROOT" diff HEAD --name-status && git -C "$REPO_ROOT" diff --cached --name-status && git -C "$REPO_ROOT" ls-files --others --exclude-standard
+```
 
-If the combined output is empty, output: `No changes found relative to main.` and stop.
+This captures staged changes, unstaged changes, and untracked files in a single command chain.
 
-**2b. Parse the diff output.**
+**SCOPE = `staged`**:
+
+```bash
+git -C "$REPO_ROOT" diff --cached --name-status
+```
+
+**SCOPE = `unstaged`**:
+
+```bash
+git -C "$REPO_ROOT" diff --name-status && git -C "$REPO_ROOT" ls-files --others --exclude-standard
+```
+
+**SCOPE = `ref`**:
+
+```bash
+git -C "$REPO_ROOT" diff "$DIFF_REF" --name-status && git -C "$REPO_ROOT" ls-files --others --exclude-standard
+```
+
+Merge and deduplicate all output by path. Untracked files (from `ls-files`) get change type `added`.
+
+If the combined output is empty, output: `No changes found.` and stop.
+
+**Parse statuses:**
 
 - `M` = modified. `A` = added. `D` = deleted (exclude, count as filtered). `R` = renamed (use new path). `C` = added. `T` = modified.
 
@@ -123,13 +151,14 @@ If zero files remain after filtering, output: `No reviewable files found. All <N
 
 Get diffs for **all** reviewable files in a single command. Separate modified/renamed files (which have diffs) from new/untracked files (which don't).
 
-For files that have diffs, run **one** command with all paths:
+For files that have diffs, run **one** command with all paths, using the same diff base as Step 2:
 
-```bash
-git diff $MERGE_BASE -- <path1> <path2> <path3> ...
-```
-
-(For `unstaged` scope, use `git diff -- <path1> <path2> ...`.)
+| SCOPE | Diff command |
+|---|---|
+| `working` | `git -C "$REPO_ROOT" diff HEAD -- <path1> <path2> ...` |
+| `staged` | `git -C "$REPO_ROOT" diff --cached -- <path1> <path2> ...` |
+| `unstaged` | `git -C "$REPO_ROOT" diff -- <path1> <path2> ...` |
+| `ref` | `git -C "$REPO_ROOT" diff "$DIFF_REF" -- <path1> <path2> ...` |
 
 For new/untracked files, read their contents using the Read tool (they have no diff to compare against — note them as entirely new).
 
@@ -154,7 +183,7 @@ Within each tier, rank by the size/significance of the change (larger diffs firs
 Compute the session ID the same way the launch script does:
 
 ```bash
-SESSION_ID=$(basename "$(git rev-parse --show-toplevel)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')
+SESSION_ID=$(basename "$REPO_ROOT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')
 ```
 
 **4c. Generate structured review context JSON.**
@@ -192,7 +221,7 @@ Opening <N> files for review.
 <M> files excluded (lockfiles, generated, binary).
 ```
 
-Where `<scope-label>` is: `all changes vs main`, `staged changes only`, or `unstaged changes only`.
+Where `<scope-label>` is: `all uncommitted changes`, `staged changes only`, `unstaged changes only`, or `changes vs <ref>`.
 
 The "excluded" line is omitted if zero files were filtered. **Do not use `AskUserQuestion` here — proceed directly to Step 5.**
 
