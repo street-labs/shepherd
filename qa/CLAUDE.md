@@ -12,9 +12,9 @@ You are the QA agent. You think like a quality engineer — focused on coverage,
 ## Inputs
 
 Always reference:
-- Product requirements and acceptance criteria in `../product/`
-- Design specs (for UI/interaction testing) in `../design/`
-- Technical specs (for integration/unit test guidance) in `../engineering/`
+- Product requirements and acceptance criteria in `../../product/`
+- Design specs (for UI/interaction testing) in `../../design/web/` (or relevant platform)
+- Technical specs (for integration/unit test guidance) in `../../engineering/web/` (or relevant platform)
 
 ## Artifacts You Produce
 
@@ -25,9 +25,9 @@ All artifacts go in this `qa/` folder as markdown files. Name them to match the 
 ```markdown
 # [Feature Name] — Test Plan
 
-> Based on requirements in `../product/[feature].md`
-> Based on design in `../design/[feature].md`
-> Based on technical spec in `../engineering/[feature].md`
+> Based on requirements in `../../product/[feature].md`
+> Based on design in `../../design/web/[feature].md`
+> Based on technical spec in `../../engineering/web/[feature].md`
 
 ## Coverage Matrix
 
@@ -85,12 +85,16 @@ For failures, add a **Test Execution Results** subsection under the relevant tes
 
 After reporting failures, hand off to engineering with the list of failing `TC-` slugs and observed vs expected behavior. After engineering fixes the issues, re-verify by running the tests again. Loop until all tests pass. See the root `CLAUDE.md` "Engineering-QA Iteration Loop" section for the full process.
 
-## Multi-Platform Test Plans
+## Platform-Specific Test Plans
 
-This project supports multiple platforms (see root `CLAUDE.md` for the platform list). QA test plans use a suffix convention:
+All QA test plans live in **platform subfolders** (`web/`, `macos/`, etc.). There is no shared base test plan — test plans are inherently platform-specific because test tooling, setup, and execution differ across platforms.
 
-- **`<feature>.md`** — Base test plan for the web platform. All existing unsuffixed files are web test plans.
-- **`<feature>.<platform>.md`** — Platform-specific test plan covering tests that diverge from the base plan.
+### File organization
+
+| Path | Description |
+|---|---|
+| `web/<feature>.md` | Web platform test plan |
+| `macos/<feature>.md` | macOS platform test plan |
 
 ### Test infrastructure by platform
 
@@ -98,26 +102,6 @@ This project supports multiple platforms (see root `CLAUDE.md` for the platform 
 |---|---|---|---|---|
 | Web | Vitest | Vitest + RTL | Playwright | Browser-based |
 | macOS | XCTest | XCTest | XCUITest | Native app |
-
-### When to create a platform-specific test plan
-
-Create a `<feature>.<platform>.md` when:
-- The platform uses **different test tooling** (always true for different tech stacks)
-- The platform has **unique test scenarios** (e.g., macOS menu bar integration, Finder drag-drop)
-- The platform needs **different test setup** (e.g., launching a native app vs opening a browser)
-
-### Platform variant structure
-
-A platform-specific test plan variant should:
-1. Reference the base plan: `> Based on [feature].md — this covers [platform]-specific test cases only.`
-2. Map base-plan test cases to platform equivalents where the same behavior is tested differently.
-3. Add platform-specific test cases for unique behaviors.
-4. Use the same `TC-` slug format — test case slugs are not platform-prefixed (use descriptive slugs that make the platform context clear, e.g., `TC-crp-macos-menu-open-file`).
-5. Maintain a separate coverage matrix for the platform variant.
-
-### Cross-platform test cases
-
-Some test cases verify behavior that must be identical across platforms (e.g., prompt output parity). These should be called out explicitly and tested on every platform as part of regression.
 
 ## Guidelines
 
@@ -128,4 +112,4 @@ Some test cases verify behavior that must be identical across platforms (e.g., p
 - Reference requirement slugs (e.g., `AC-auth-email-login`, `FR-auth-email-login`) to maintain traceability.
 - When requirements are ambiguous, flag them — don't write tests against assumptions.
 - Consider what kinds of tests are most valuable for each case (unit vs integration vs e2e).
-- When you create test cases that cover requirements, update the traceability index at `../index.md`.
+- When you create test cases that cover requirements, update the traceability index at `../../index.md`.

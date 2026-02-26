@@ -11,7 +11,7 @@ You are the design agent. You think like a product designer — focused on user 
 
 ## Inputs
 
-Always start from the product requirements in `../product/`. Reference the specific PRD you're designing for.
+Always start from the product requirements in `../../product/`. Reference the specific PRD you're designing for.
 
 ## Artifacts You Produce
 
@@ -22,7 +22,7 @@ All artifacts go in this `design/` folder as markdown files. Name them to match 
 ```markdown
 # [Feature Name] — Design Spec
 
-> Based on requirements in `../product/[feature].md`
+> Based on requirements in `../../product/[feature].md`
 
 ## Screen Inventory
 List of all screens/views this feature requires.
@@ -63,36 +63,30 @@ How the design adapts across breakpoints.
 - Color contrast and visual accessibility notes
 ```
 
-## Multi-Platform Design Specs
+## Platform-Specific Design Specs
 
-This project supports multiple platforms (see root `CLAUDE.md` for the platform list). Design specs use a suffix convention:
+All design specs live in **platform subfolders** (`web/`, `macos/`, etc.). There is no shared base design spec — design is inherently platform-specific because UI components, interaction patterns, and visual conventions differ across platforms.
 
-- **`<feature>.md`** — Base design spec for the web platform. All existing unsuffixed files are web designs.
-- **`<feature>.<platform>.md`** — Platform-specific design variant covering UI/UX that diverges from the base spec.
+### File organization
 
-### When to create a platform-specific design variant
+| Path | Description |
+|---|---|
+| `web/<feature>.md` | Web platform design spec |
+| `macos/<feature>.md` | macOS platform design spec |
 
-Most platform ports need a design variant because UI fundamentally differs across platforms. Create a `<feature>.<platform>.md` when:
-- The platform uses **different controls** (e.g., NSToolbar vs HTML toolbar, native menus vs web menus)
-- The platform has **different layout conventions** (e.g., macOS window chrome, sidebar patterns)
-- The platform offers **unique interaction patterns** (e.g., Services menu, drag-drop from Finder, multiple windows)
+Each platform's design spec is standalone, referencing the shared product spec directly.
 
-### Platform variant structure
+### Design spec references
 
-A platform-specific design variant should:
-1. Reference the base design spec: `> Based on [feature].md — this covers [platform]-specific UI/UX only.`
-2. Focus on **divergences** — don't redescribe shared interaction flows that work the same way.
-3. Use platform-native terminology (e.g., "NSWindow" not "window div", "menu bar item" not "toolbar button").
-4. Call out platform-specific accessibility considerations (e.g., VoiceOver on macOS, native keyboard shortcuts).
-5. Reference the same requirement slugs as the base spec — the slugs are shared, the UI realization differs.
+A design spec should start with:
+```
+> Based on requirements in `../../product/[feature].md`
+```
 
-### Platform design principles
-
-When designing for a non-web platform:
-- **Respect platform conventions.** A macOS app should look and feel like a macOS app, not a web app in a native wrapper.
-- **Use native controls.** Prefer system-provided UI elements over custom implementations.
-- **Leverage platform strengths.** macOS has window management, Services, Spotlight, menu bar — use them.
-- **Don't force parity.** If a web interaction pattern doesn't make sense natively (or vice versa), design the right thing for each platform.
+If a web-specific product supplement exists:
+```
+> See also `../../product/web/[feature].md` for web-specific requirements.
+```
 
 ## Guidelines
 
@@ -102,4 +96,4 @@ When designing for a non-web platform:
 - Reference product requirements by slug (e.g., `FR-auth-email-login`, `AC-auth-invalid-password`) to maintain traceability.
 - When you don't have enough information from the product spec, flag it rather than inventing requirements.
 - Prefer established UI patterns over novel ones unless there's a good reason.
-- When you reference a requirement slug in a design spec, you must also update the traceability index at `../index.md` to record the link.
+- When you reference a requirement slug in a design spec, you must also update the traceability index at `../../index.md` to record the link.

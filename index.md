@@ -17,1864 +17,1864 @@ Each entry lists a requirement slug and every artifact that references it:
 
 ### `FR-crp-file-load`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-load-paste-happy`, `TC-crp-load-upload-happy`, `TC-crp-load-drag-drop-happy`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-paste-happy`, `TC-crp-load-upload-happy`, `TC-crp-load-drag-drop-happy`
 
 ### `FR-crp-file-display`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edge-file-with-empty-lines`, `TC-crp-edge-file-with-very-long-lines`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-file-with-empty-lines`, `TC-crp-edge-file-with-very-long-lines`
 
 ### `FR-crp-syntax-highlight`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/languageDetect.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-syntax-highlight-typescript`, `TC-crp-syntax-highlight-unknown-fallback`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/languageDetect.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-syntax-highlight-typescript`, `TC-crp-syntax-highlight-unknown-fallback`
 
 ### `FR-crp-line-comment-create`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-add-comment-single-line-happy`, `TC-crp-add-comment-line-range-happy`, `TC-crp-edge-multiple-comments-same-line`, `TC-crp-edge-very-long-comment-text`, `TC-crp-edge-rapid-successive-comments`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-single-line-happy`, `TC-crp-add-comment-line-range-happy`, `TC-crp-edge-multiple-comments-same-line`, `TC-crp-edge-very-long-comment-text`, `TC-crp-edge-rapid-successive-comments`
 
 ### `FR-crp-line-comment-edit`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edit-comment-happy`, `TC-crp-edit-comment-stays-on-line`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edit-comment-happy`, `TC-crp-edit-comment-stays-on-line`
 
 ### `FR-crp-line-comment-delete`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-delete-comment-happy`, `TC-crp-delete-comment-gutter-clears`, `TC-crp-delete-comment-count-decrements`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-delete-comment-happy`, `TC-crp-delete-comment-gutter-clears`, `TC-crp-delete-comment-count-decrements`
 
 ### `FR-crp-comment-indicator`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-add-comment-gutter-indicator`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-delete-comment-gutter-clears`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-gutter-indicator`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-delete-comment-gutter-clears`
 
 ### `FR-crp-comment-count`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-add-comment-count-increments`, `TC-crp-delete-comment-count-decrements`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-count-increments`, `TC-crp-delete-comment-count-decrements`
 
 ### `FR-crp-prompt-preamble`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`
 
 ### `FR-crp-prompt-generate`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-no-comments-disabled`, `TC-crp-edge-prompt-gen-performance`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-no-comments-disabled`, `TC-crp-edge-prompt-gen-performance`
 
 ### `FR-crp-prompt-preview`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-preview-matches-copy-exact`, `TC-crp-edge-stale-prompt-indicator`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-preview-matches-copy-exact`, `TC-crp-edge-stale-prompt-indicator`
 
 ### `FR-crp-prompt-copy`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/clipboard.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-copy-clipboard-happy`, `TC-crp-copy-clipboard-toast`, `TC-crp-edge-clipboard-permission-denied`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/clipboard.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-copy-clipboard-happy`, `TC-crp-copy-clipboard-toast`, `TC-crp-edge-clipboard-permission-denied`
 
 ### `FR-crp-prompt-format`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`, `TC-crp-generate-prompt-structure-line-order`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-edge-special-characters-in-comments`, `TC-crp-edge-untitled-file-prompt`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`, `TC-crp-generate-prompt-structure-line-order`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-edge-special-characters-in-comments`, `TC-crp-edge-untitled-file-prompt`
 
 ### `FR-crp-clear-session`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-clear-confirmation-shows-dialog`, `TC-crp-clear-confirmation-cancel-preserves`, `TC-crp-clear-confirmation-confirm-clears`, `TC-crp-clear-no-confirm-empty-happy`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-clear-confirmation-shows-dialog`, `TC-crp-clear-confirmation-cancel-preserves`, `TC-crp-clear-confirmation-confirm-clears`, `TC-crp-clear-no-confirm-empty-happy`
 
 ### `FR-crp-filename-display`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-load-paste-with-filename`, `TC-crp-load-upload-shows-filename`, `TC-crp-edge-untitled-file-prompt`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-paste-with-filename`, `TC-crp-load-upload-shows-filename`, `TC-crp-edge-untitled-file-prompt`
 
 ### `FR-crp-line-range-comment`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-add-comment-line-range-happy`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-keyboard-range-select`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-line-range-happy`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-keyboard-range-select`
 
 ### `FR-crp-comment-navigation`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-navigation-next-happy`, `TC-crp-comment-navigation-prev-happy`, `TC-crp-comment-navigation-wrap-around`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-navigation-next-happy`, `TC-crp-comment-navigation-prev-happy`, `TC-crp-comment-navigation-wrap-around`
 
 ### `NFR-crp-large-file-perf`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-large-file-scroll-no-jank`, `TC-crp-large-file-scroll-warning-banner`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-large-file-scroll-no-jank`, `TC-crp-large-file-scroll-warning-banner`
 
 ### `NFR-crp-render-time`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edge-initial-render-time`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-initial-render-time`
 
 ### `NFR-crp-prompt-gen-time`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edge-prompt-gen-performance`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-prompt-gen-performance`
 
 ### `NFR-crp-client-only`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edge-client-side-only`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-client-side-only`
 
 ### `NFR-crp-browser-support`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edge-cross-browser-clipboard`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-cross-browser-clipboard`
 
 ### `NFR-crp-responsive-layout`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edge-responsive-below-1024`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-responsive-below-1024`
 
 ### `NFR-crp-accessibility-keyboard`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-keyboard-add-comment-happy`, `TC-crp-keyboard-range-select`, `TC-crp-edge-focus-management-editor`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-keyboard-add-comment-happy`, `TC-crp-keyboard-range-select`, `TC-crp-edge-focus-management-editor`
 
 ### `NFR-crp-no-data-persistence`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edge-no-data-persistence`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-no-data-persistence`
 
 ### `AC-crp-load-paste`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-load-paste-happy`, `TC-crp-load-paste-with-filename`, `TC-crp-load-paste-empty-rejected`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-paste-happy`, `TC-crp-load-paste-with-filename`, `TC-crp-load-paste-empty-rejected`
 
 ### `AC-crp-load-upload`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-load-upload-happy`, `TC-crp-load-upload-shows-filename`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-upload-happy`, `TC-crp-load-upload-shows-filename`
 
 ### `AC-crp-load-drag-drop`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-load-drag-drop-happy`, `TC-crp-load-drag-drop-hover-state`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-drag-drop-happy`, `TC-crp-load-drag-drop-hover-state`
 
 ### `AC-crp-syntax-highlight-detected`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-syntax-highlight-typescript`, `TC-crp-syntax-highlight-unknown-fallback`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-syntax-highlight-typescript`, `TC-crp-syntax-highlight-unknown-fallback`
 
 ### `AC-crp-add-comment-single-line`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-add-comment-single-line-happy`, `TC-crp-add-comment-gutter-indicator`, `TC-crp-add-comment-count-increments`, `TC-crp-edge-multiple-comments-same-line`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-single-line-happy`, `TC-crp-add-comment-gutter-indicator`, `TC-crp-add-comment-count-increments`, `TC-crp-edge-multiple-comments-same-line`
 
 ### `AC-crp-add-comment-line-range`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-add-comment-line-range-happy`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-keyboard-range-select`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-line-range-happy`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-keyboard-range-select`
 
 ### `AC-crp-edit-comment`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-edit-comment-happy`, `TC-crp-edit-comment-stays-on-line`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edit-comment-happy`, `TC-crp-edit-comment-stays-on-line`
 
 ### `AC-crp-delete-comment`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-delete-comment-happy`, `TC-crp-delete-comment-gutter-clears`, `TC-crp-delete-comment-count-decrements`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-delete-comment-happy`, `TC-crp-delete-comment-gutter-clears`, `TC-crp-delete-comment-count-decrements`
 
 ### `AC-crp-generate-prompt-structure`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`, `TC-crp-generate-prompt-structure-line-order`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`, `TC-crp-generate-prompt-structure-line-order`
 
 ### `AC-crp-generate-prompt-no-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-generate-prompt-no-comments-disabled`, `TC-crp-generate-prompt-no-comments-after-delete-all`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-no-comments-disabled`, `TC-crp-generate-prompt-no-comments-after-delete-all`
 
 ### `AC-crp-copy-clipboard`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/clipboard.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-copy-clipboard-happy`, `TC-crp-copy-clipboard-toast`, `TC-crp-edge-clipboard-permission-denied`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/clipboard.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-copy-clipboard-happy`, `TC-crp-copy-clipboard-toast`, `TC-crp-edge-clipboard-permission-denied`
 
 ### `AC-crp-preview-matches-copy`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-preview-matches-copy-exact`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-preview-matches-copy-exact`
 
 ### `AC-crp-clear-confirmation`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-clear-confirmation-shows-dialog`, `TC-crp-clear-confirmation-cancel-preserves`, `TC-crp-clear-confirmation-confirm-clears`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-clear-confirmation-shows-dialog`, `TC-crp-clear-confirmation-cancel-preserves`, `TC-crp-clear-confirmation-confirm-clears`
 
 ### `AC-crp-clear-no-confirm-empty`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-clear-no-confirm-empty-happy`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-clear-no-confirm-empty-happy`
 
 ### `AC-crp-empty-state`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-empty-state-instructions`, `TC-crp-empty-state-buttons-disabled`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-empty-state-instructions`, `TC-crp-empty-state-buttons-disabled`
 
 ### `AC-crp-large-file-scroll`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-large-file-scroll-no-jank`, `TC-crp-large-file-scroll-warning-banner`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-large-file-scroll-no-jank`, `TC-crp-large-file-scroll-warning-banner`
 
 ### `AC-crp-comment-navigation-next`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-navigation-next-happy`, `TC-crp-comment-navigation-prev-happy`, `TC-crp-comment-navigation-wrap-around`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-navigation-next-happy`, `TC-crp-comment-navigation-prev-happy`, `TC-crp-comment-navigation-wrap-around`
 
 ### `AC-crp-keyboard-add-comment`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-keyboard-add-comment-happy`, `TC-crp-keyboard-range-select`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-keyboard-add-comment-happy`, `TC-crp-keyboard-range-select`
 
 ### `AC-crp-binary-file-rejected`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/lib/binaryDetect.test.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-binary-file-rejected-upload`, `TC-crp-binary-file-rejected-drag-drop`, `TC-crp-binary-file-rejected-no-crash`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/binaryDetect.test.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-binary-file-rejected-upload`, `TC-crp-binary-file-rejected-drag-drop`, `TC-crp-binary-file-rejected-no-crash`
 
 ### `FR-sc-invoke-command`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-help-flag`, `TC-sc-install-claude-code-command`, `TC-sc-edge-exit-codes`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-help-flag`, `TC-sc-install-claude-code-command`, `TC-sc-edge-exit-codes`
 
 ### `FR-sc-file-resolution`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-absolute-path-inrepo`, `TC-sc-absolute-path-standalone`, `TC-sc-resolve-relative-path`, `TC-sc-resolve-symlink`, `TC-sc-edge-spaces-in-path`, `TC-sc-edge-unicode-filename`, `TC-sc-edge-very-long-path`, `TC-sc-path-handling-windows`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-absolute-path-inrepo`, `TC-sc-absolute-path-standalone`, `TC-sc-resolve-relative-path`, `TC-sc-resolve-symlink`, `TC-sc-edge-spaces-in-path`, `TC-sc-edge-unicode-filename`, `TC-sc-edge-very-long-path`, `TC-sc-path-handling-windows`
 
 ### `FR-sc-file-validation`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`, `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-file-not-found-cli`, `TC-sc-binary-rejected-cli`, `TC-sc-permission-denied-cli`, `TC-sc-directory-rejected-cli`, `TC-sc-large-file-warning-cli`, `TC-sc-output-errors-stderr`, `TC-sc-edge-empty-file`, `TC-sc-edge-file-with-only-null-bytes`, `TC-sc-edge-symlink-to-directory`, `TC-sc-edge-file-deleted-after-validation`, `TC-sc-edge-exit-codes`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-file-not-found-cli`, `TC-sc-binary-rejected-cli`, `TC-sc-permission-denied-cli`, `TC-sc-directory-rejected-cli`, `TC-sc-large-file-warning-cli`, `TC-sc-output-errors-stderr`, `TC-sc-edge-empty-file`, `TC-sc-edge-file-with-only-null-bytes`, `TC-sc-edge-symlink-to-directory`, `TC-sc-edge-file-deleted-after-validation`, `TC-sc-edge-exit-codes`
 
 ### `FR-sc-app-serve`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-server-starts-available-port`, `TC-sc-server-serves-static-assets`, `TC-sc-server-reuse-lockfile`, `TC-sc-edge-port-in-use`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-server-starts-available-port`, `TC-sc-server-serves-static-assets`, `TC-sc-server-reuse-lockfile`, `TC-sc-edge-port-in-use`
 
 ### `FR-sc-browser-open`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-browser-open-url`, `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-edge-browser-open-fails`, `TC-sc-app-window-chrome`, `TC-sc-app-window-browser-fallback`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-browser-open-url`, `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-edge-browser-open-fails`, `TC-sc-app-window-chrome`, `TC-sc-app-window-browser-fallback`
 
 ### `FR-sc-auto-load-file`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/apps/web/src/App.tsx`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-auto-load-from-url-param`, `TC-sc-auto-load-clears-url-param`, `TC-sc-auto-load-error-state`, `TC-sc-auto-load-no-param`, `TC-sc-session-clear-on-new-file`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/apps/web/src/App.tsx`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-auto-load-from-url-param`, `TC-sc-auto-load-clears-url-param`, `TC-sc-auto-load-error-state`, `TC-sc-auto-load-no-param`, `TC-sc-session-clear-on-new-file`
 
 ### `FR-sc-file-api`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-api-200-valid-file`, `TC-sc-api-400-missing-param`, `TC-sc-api-403-permission`, `TC-sc-api-403-non-localhost`, `TC-sc-api-404-not-found`, `TC-sc-api-404-directory`, `TC-sc-api-415-binary`, `TC-sc-api-headers`, `TC-sc-api-path-traversal`, `TC-sc-edge-api-concurrent-requests`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-api-200-valid-file`, `TC-sc-api-400-missing-param`, `TC-sc-api-403-permission`, `TC-sc-api-403-non-localhost`, `TC-sc-api-404-not-found`, `TC-sc-api-404-directory`, `TC-sc-api-415-binary`, `TC-sc-api-headers`, `TC-sc-api-path-traversal`, `TC-sc-edge-api-concurrent-requests`
 
 ### `FR-sc-install`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
-- **QA**: `qa/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`, `TC-sc-install-claude-code-command`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`, `TC-sc-install-claude-code-command`
 
 ### `FR-sc-server-shutdown`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-lockfile-write`, `TC-sc-lockfile-stale-cleanup`, `TC-sc-idle-shutdown-fires`, `TC-sc-idle-shutdown-resets`, `TC-sc-explicit-stop-running`, `TC-sc-explicit-stop-not-running`, `TC-sc-signal-handler-cleanup`, `TC-sc-server-reuse-lockfile`, `TC-sc-edge-concurrent-invocations`, `TC-sc-edge-lockfile-directory-missing`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-lockfile-write`, `TC-sc-lockfile-stale-cleanup`, `TC-sc-idle-shutdown-fires`, `TC-sc-idle-shutdown-resets`, `TC-sc-explicit-stop-running`, `TC-sc-explicit-stop-not-running`, `TC-sc-signal-handler-cleanup`, `TC-sc-server-reuse-lockfile`, `TC-sc-edge-concurrent-invocations`, `TC-sc-edge-lockfile-directory-missing`
 
 ### `FR-sc-output-feedback`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-output-success-format`, `TC-sc-output-reuse-note`, `TC-sc-output-errors-stderr`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-output-success-format`, `TC-sc-output-reuse-note`, `TC-sc-output-errors-stderr`
 
 ### `FR-sc-launcher-script`
 - **Defined in**: `product/slash-command.md`
 - **Design**: N/A (no visual changes)
-- **Engineering**: `engineering/slash-command.md` -> `scripts/shepherd-launch.sh`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`, `TC-sc-single-tool-call`, `TC-sc-launcher-script-validation`, `TC-sc-launcher-server-start`
+- **Engineering**: `engineering/web/slash-command.md` -> `scripts/shepherd-launch.sh`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`, `TC-sc-single-tool-call`, `TC-sc-launcher-script-validation`, `TC-sc-launcher-server-start`
 
 ### `NFR-sc-launch-speed`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launch-speed-cold`, `TC-sc-launch-speed-warm`, `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-speed-cold`, `TC-sc-launch-speed-warm`, `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`
 
 ### `NFR-sc-no-global-deps`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-install-global`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-install-global`
 
 ### `NFR-sc-cross-platform`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-path-handling-windows`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-path-handling-windows`
 
 ### `NFR-sc-localhost-only`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-server-binds-localhost`, `TC-sc-api-403-non-localhost`, `TC-sc-api-path-traversal`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-server-binds-localhost`, `TC-sc-api-403-non-localhost`, `TC-sc-api-path-traversal`
 
 ### `NFR-sc-no-telemetry`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-no-outbound-network`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-no-outbound-network`
 
 ### `NFR-sc-minimal-footprint`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-package-size`, `TC-sc-server-memory`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-package-size`, `TC-sc-server-memory`
 
 ### `AC-sc-launch-happy-path`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/apps/web/src/App.tsx`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-launch-happy-standalone`, `TC-sc-auto-load-from-url-param`, `TC-sc-api-200-valid-file`, `TC-sc-output-success-format`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/apps/web/src/App.tsx`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-launch-happy-standalone`, `TC-sc-auto-load-from-url-param`, `TC-sc-api-200-valid-file`, `TC-sc-output-success-format`
 
 ### `AC-sc-absolute-path`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-absolute-path-inrepo`, `TC-sc-absolute-path-standalone`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-absolute-path-inrepo`, `TC-sc-absolute-path-standalone`
 
 ### `AC-sc-file-not-found`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-file-not-found-cli`, `TC-sc-file-not-found-api`, `TC-sc-api-404-not-found`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-file-not-found-cli`, `TC-sc-file-not-found-api`, `TC-sc-api-404-not-found`
 
 ### `AC-sc-binary-file-rejected`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-binary-rejected-cli`, `TC-sc-binary-rejected-api`, `TC-sc-api-415-binary`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-binary-rejected-cli`, `TC-sc-binary-rejected-api`, `TC-sc-api-415-binary`
 
 ### `AC-sc-permission-denied`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-permission-denied-cli`, `TC-sc-permission-denied-api`, `TC-sc-api-403-permission`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-permission-denied-cli`, `TC-sc-permission-denied-api`, `TC-sc-api-403-permission`
 
 ### `AC-sc-directory-rejected`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-directory-rejected-cli`, `TC-sc-directory-rejected-api`, `TC-sc-api-404-directory`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-directory-rejected-cli`, `TC-sc-directory-rejected-api`, `TC-sc-api-404-directory`
 
 ### `AC-sc-no-args-usage`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-no-args-usage`, `TC-sc-help-flag`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-no-args-usage`, `TC-sc-help-flag`
 
 ### `AC-sc-large-file-warning`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-large-file-warning-cli`, `TC-sc-large-file-warning-e2e`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-large-file-warning-cli`, `TC-sc-large-file-warning-e2e`
 
 ### `AC-sc-server-reuse`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-server-reuse-lockfile`, `TC-sc-server-reuse-output`, `TC-sc-output-reuse-note`, `TC-sc-edge-concurrent-invocations`, `TC-sc-server-reuse-same-worktree`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-server-reuse-lockfile`, `TC-sc-server-reuse-output`, `TC-sc-output-reuse-note`, `TC-sc-edge-concurrent-invocations`, `TC-sc-server-reuse-same-worktree`
 
 ### `AC-sc-server-manual-stop`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-explicit-stop-running`, `TC-sc-explicit-stop-not-running`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-explicit-stop-running`, `TC-sc-explicit-stop-not-running`
 
 ### `AC-sc-install-global`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
-- **QA**: `qa/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`
 
 ### `AC-sc-session-clear-on-new-file`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-session-clear-on-new-file`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-clear-on-new-file`
 
 ### `AC-sc-cross-platform-open`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`
 
 ### `AC-sc-standalone-window`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-app-window-chrome`, `TC-sc-app-window-chromium-fallback`, `TC-sc-app-window-browser-fallback`, `TC-sc-app-window-subsequent`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-app-window-chrome`, `TC-sc-app-window-chromium-fallback`, `TC-sc-app-window-browser-fallback`, `TC-sc-app-window-subsequent`
 
 ### `AC-sc-warm-launch-2s`
 - **Defined in**: `product/slash-command.md`
 - **Design**: N/A (no visual changes)
-- **Engineering**: `engineering/slash-command.md` -> `scripts/shepherd-launch.sh`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launcher-warm-launch`
+- **Engineering**: `engineering/web/slash-command.md` -> `scripts/shepherd-launch.sh`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launcher-warm-launch`
 
 ### `AC-sc-cold-launch-8s`
 - **Defined in**: `product/slash-command.md`
 - **Design**: N/A (no visual changes)
-- **Engineering**: `engineering/slash-command.md` -> `scripts/shepherd-launch.sh`
-- **QA**: `qa/slash-command.md` -> `TC-sc-launcher-cold-launch`
+- **Engineering**: `engineering/web/slash-command.md` -> `scripts/shepherd-launch.sh`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-launcher-cold-launch`
 
 ### `AC-sc-single-tool-call`
 - **Defined in**: `product/slash-command.md`
 - **Design**: N/A (no visual changes)
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/shepherd-launch.sh`
-- **QA**: `qa/slash-command.md` -> `TC-sc-single-tool-call`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/shepherd-launch.sh`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-single-tool-call`
 
 
 ### `FR-diff-mode-toggle`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-keyboard-toggle-modes`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-keyboard-toggle-modes`
 
 ### `FR-diff-mode-availability`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-paste-disabled`, `TC-diff-upload-disabled`, `TC-diff-drag-drop-disabled`, `TC-diff-disabled-tooltip`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-paste-disabled`, `TC-diff-upload-disabled`, `TC-diff-drag-drop-disabled`, `TC-diff-disabled-tooltip`
 
 ### `FR-diff-baseline-fetch`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-loading-state`, `TC-diff-api-head-happy`, `TC-diff-api-head-untracked-404`, `TC-diff-api-head-not-git-repo`, `TC-diff-api-head-binary-415`, `TC-diff-api-head-missing-path`, `TC-diff-api-head-git-unavailable`, `TC-diff-api-routing-no-collision`, `TC-diff-error-network-failure`, `TC-diff-error-git-unavailable`, `TC-diff-error-file-outside-git`, `TC-diff-no-git-history-all-added`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-loading-state`, `TC-diff-api-head-happy`, `TC-diff-api-head-untracked-404`, `TC-diff-api-head-not-git-repo`, `TC-diff-api-head-binary-415`, `TC-diff-api-head-missing-path`, `TC-diff-api-head-git-unavailable`, `TC-diff-api-routing-no-collision`, `TC-diff-error-network-failure`, `TC-diff-error-git-unavailable`, `TC-diff-error-file-outside-git`, `TC-diff-no-git-history-all-added`
 
 ### `FR-diff-compute`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
-- **QA**: `qa/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`, `TC-diff-compute-all-removed`, `TC-diff-compute-every-line-changed`, `TC-diff-compute-no-newline-at-end`, `TC-diff-compute-performance-10k`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`, `TC-diff-compute-all-removed`, `TC-diff-compute-every-line-changed`, `TC-diff-compute-no-newline-at-end`, `TC-diff-compute-performance-10k`
 
 ### `FR-diff-display`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-line-numbers-added`, `TC-diff-line-numbers-removed`, `TC-diff-line-numbers-context`, `TC-diff-syntax-highlight-happy`, `TC-diff-syntax-highlight-removed-lines`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-line-numbers-added`, `TC-diff-line-numbers-removed`, `TC-diff-line-numbers-context`, `TC-diff-syntax-highlight-happy`, `TC-diff-syntax-highlight-removed-lines`
 
 ### `FR-diff-collapse`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
-- **QA**: `qa/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`, `TC-diff-no-git-history-no-collapse`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`, `TC-diff-no-git-history-no-collapse`
 
 ### `FR-diff-expand`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-expand-then-comment-happy`, `TC-diff-keyboard-expand-section`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-expand-then-comment-happy`, `TC-diff-keyboard-expand-section`
 
 ### `FR-diff-comment-create`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`, `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`, `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`, `TC-diff-keyboard-add-comment`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/store/appStore.test.ts`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`, `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`, `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`, `TC-diff-keyboard-add-comment`
 
 ### `FR-diff-comment-on-range`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-comment-range-same-type`, `TC-diff-comment-range-mixed-types`, `TC-diff-comment-range-blocked-by-collapsed`, `TC-diff-keyboard-range-select`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-range-same-type`, `TC-diff-comment-range-mixed-types`, `TC-diff-comment-range-blocked-by-collapsed`, `TC-diff-keyboard-range-select`
 
 ### `FR-diff-prompt-format`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
-- **QA**: `qa/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
 
 ### `FR-diff-empty-state`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-no-changes-empty-state`, `TC-diff-no-changes-switch-to-file`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-no-changes-empty-state`, `TC-diff-no-changes-switch-to-file`
 
 ### `FR-diff-refresh`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-refresh-happy`, `TC-diff-refresh-with-comments-confirm`, `TC-diff-refresh-with-comments-cancel`, `TC-diff-refresh-no-comments`, `TC-diff-error-file-deleted-refresh`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-refresh-happy`, `TC-diff-refresh-with-comments-confirm`, `TC-diff-refresh-with-comments-cancel`, `TC-diff-refresh-no-comments`, `TC-diff-error-file-deleted-refresh`
 
 ### `NFR-diff-compute-perf`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
-- **QA**: `qa/diff-view.md` -> `TC-diff-compute-performance-10k`, `TC-diff-compute-perf-large-file`, `TC-diff-compute-every-line-changed`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-compute-performance-10k`, `TC-diff-compute-perf-large-file`, `TC-diff-compute-every-line-changed`
 
 ### `NFR-diff-render-perf`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-render-perf-scroll`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-render-perf-scroll`
 
 ### `NFR-diff-client-compute`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`
 
 ### `NFR-diff-baseline-fetch-speed`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-api-head-happy`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-api-head-happy`
 
 ### `NFR-diff-accessibility`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-keyboard`, `TC-diff-expand-section-keyboard`, `TC-diff-keyboard-toggle-modes`, `TC-diff-keyboard-navigate-lines`, `TC-diff-keyboard-add-comment`, `TC-diff-keyboard-range-select`, `TC-diff-keyboard-comment-navigation`, `TC-diff-keyboard-expand-section`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-diff-keyboard`, `TC-diff-expand-section-keyboard`, `TC-diff-keyboard-toggle-modes`, `TC-diff-keyboard-navigate-lines`, `TC-diff-keyboard-add-comment`, `TC-diff-keyboard-range-select`, `TC-diff-keyboard-comment-navigation`, `TC-diff-keyboard-expand-section`
 
 ### `AC-diff-toggle-to-diff`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-diff-loading-state`, `TC-diff-keyboard-toggle-modes`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-diff-loading-state`, `TC-diff-keyboard-toggle-modes`
 
 ### `AC-diff-toggle-to-file`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-keyboard-toggle-modes`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-keyboard-toggle-modes`
 
 ### `AC-diff-collapse-default`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`
 
 ### `AC-diff-expand-section`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-keyboard-expand-section`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-keyboard-expand-section`
 
 ### `AC-diff-comment-added-line`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`
 
 ### `AC-diff-comment-removed-line`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`
 
 ### `AC-diff-comment-context-line`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`
 
 ### `AC-diff-prompt-includes-diff`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
-- **QA**: `qa/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
 
 ### `AC-diff-no-git-history`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-no-git-history-all-added`, `TC-diff-no-git-history-no-collapse`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-no-git-history-all-added`, `TC-diff-no-git-history-no-collapse`
 
 ### `AC-diff-no-changes`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-no-changes-empty-state`, `TC-diff-no-changes-switch-to-file`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-no-changes-empty-state`, `TC-diff-no-changes-switch-to-file`
 
 ### `AC-diff-paste-upload-disabled`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-paste-disabled`, `TC-diff-upload-disabled`, `TC-diff-drag-drop-disabled`, `TC-diff-disabled-tooltip`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-paste-disabled`, `TC-diff-upload-disabled`, `TC-diff-drag-drop-disabled`, `TC-diff-disabled-tooltip`
 
 ### `AC-diff-line-numbers`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-line-numbers-added`, `TC-diff-line-numbers-removed`, `TC-diff-line-numbers-context`, `TC-diff-compute-correct-hunks`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-line-numbers-added`, `TC-diff-line-numbers-removed`, `TC-diff-line-numbers-context`, `TC-diff-compute-correct-hunks`
 
 ### `AC-diff-syntax-highlight`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-syntax-highlight-happy`, `TC-diff-syntax-highlight-removed-lines`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-syntax-highlight-happy`, `TC-diff-syntax-highlight-removed-lines`
 
 ### `AC-diff-refresh-updates`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-refresh-happy`, `TC-diff-refresh-with-comments-confirm`, `TC-diff-refresh-with-comments-cancel`, `TC-diff-refresh-no-comments`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-refresh-happy`, `TC-diff-refresh-with-comments-confirm`, `TC-diff-refresh-with-comments-cancel`, `TC-diff-refresh-no-comments`
 
 ### `AC-diff-switch-clears-comments`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-toggle-to-file-no-comments`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-toggle-to-file-no-comments`
 
 ### `AC-diff-comment-range`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-comment-range-same-type`, `TC-diff-comment-range-mixed-types`, `TC-diff-comment-range-blocked-by-collapsed`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-range-same-type`, `TC-diff-comment-range-mixed-types`, `TC-diff-comment-range-blocked-by-collapsed`
 
 ### `AC-diff-expand-then-comment`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/diff-view.md`
-- **Engineering**: `engineering/diff-view.md`
-- **QA**: `qa/diff-view.md` -> `TC-diff-expand-then-comment-happy`, `TC-diff-expand-then-comment-gutter-hover`
+- **Design**: `design/web/diff-view.md`
+- **Engineering**: `engineering/web/diff-view.md`
+- **QA**: `qa/web/diff-view.md` -> `TC-diff-expand-then-comment-happy`, `TC-diff-expand-then-comment-gutter-hover`
 
 ### `FR-sr-changeset-detection`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files`
 
 ### `FR-sr-file-filtering`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-filters-lockfiles`, `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`, `TC-sr-filters-binary`, `TC-sr-filters-ide-files`, `TC-sr-filters-snapshot-files`, `TC-sr-includes-config-files`, `TC-sr-unknown-file-included`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-lockfiles`, `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`, `TC-sr-filters-binary`, `TC-sr-filters-ide-files`, `TC-sr-filters-snapshot-files`, `TC-sr-includes-config-files`, `TC-sr-unknown-file-included`
 
 ### `FR-sr-file-list-display`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-file-list-format`, `TC-sr-sorted-file-list`, `TC-sr-file-list-exclusion-count`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-file-list-format`, `TC-sr-sorted-file-list`, `TC-sr-file-list-exclusion-count`
 
 ### `FR-sr-iteration-loop`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-tab-order-matches-priority`, `TC-sr-implicit-skip`, `TC-sr-done-at-any-point`, `TC-sr-unified-prompt-return`, `TC-sr-no-comments-done`, `TC-sr-interactive-prompt-options`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-tab-order-matches-priority`, `TC-sr-implicit-skip`, `TC-sr-done-at-any-point`, `TC-sr-unified-prompt-return`, `TC-sr-no-comments-done`, `TC-sr-interactive-prompt-options`
 
 ### `FR-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`
 
 ### `FR-sr-command-file`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-command-file-exists`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-command-file-exists`
 
 ### `FR-sr-install`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `scripts/install-command.sh`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-install-global-symlink`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `scripts/install-command.sh`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-install-global-symlink`
 
 ### `FR-sr-scope-argument`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-scope-staged`, `TC-sr-scope-unstaged`, `TC-sr-scope-invalid`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-scope-staged`, `TC-sr-scope-unstaged`, `TC-sr-scope-invalid`
 
 ### `FR-sr-multi-file-launch`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `scripts/shepherd-launch.sh`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-batch-launch-all-files`, `TC-sr-batch-open-all-tabs`, `TC-sr-multi-file-url-params`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `scripts/shepherd-launch.sh`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-launch-all-files`, `TC-sr-batch-open-all-tabs`, `TC-sr-multi-file-url-params`
 
 ### `FR-sr-per-file-context`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
 
 ### `FR-sr-changeset-overview`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
 
 ### `FR-sr-priority-ordering`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`
 
 ### `FR-sr-feedback-collection`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-unified-prompt-return`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`, `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-unified-prompt-return`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`, `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`
 
 ### `FR-sr-git-required`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-not-git-repo`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-not-git-repo`
 
 ### `NFR-sr-startup-speed`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-startup-speed`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-startup-speed`
 
 ### `NFR-sr-no-dependencies`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-no-external-dependencies`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-no-external-dependencies`
 
 ### `NFR-sr-agent-native`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`
 
 ### `NFR-sr-cross-platform`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-cross-platform-git-commands`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-cross-platform-git-commands`
 
 ### `AC-sr-happy-path`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-happy-path-batch-open`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`
 
 ### `AC-sr-filters-lockfiles`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-filters-lockfiles`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-lockfiles`
 
 ### `AC-sr-filters-generated`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`
 
 ### `AC-sr-filters-binary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-filters-binary`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-binary`
 
 ### `AC-sr-includes-config`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-includes-config-files`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-includes-config-files`
 
 ### `AC-sr-excludes-deleted`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-excludes-deleted-files`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-excludes-deleted-files`
 
 ### `AC-sr-skip-file`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-implicit-skip`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-implicit-skip`
 
 ### `AC-sr-quit-early`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-done-at-any-point`, `TC-sr-interactive-prompt-cancel`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-done-at-any-point`, `TC-sr-interactive-prompt-cancel`
 
 ### `AC-sr-no-changes`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`
 
 ### `AC-sr-all-filtered`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-all-filtered`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-all-filtered`
 
 ### `AC-sr-not-git-repo`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-not-git-repo`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-not-git-repo`
 
 ### `AC-sr-invokes-shepherd`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-batch-launch-all-files`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-launch-all-files`
 
 ### `AC-sr-list-command`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
 
 ### `AC-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`
 
 ### `AC-sr-sorted-file-list`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`
 
 ### `AC-sr-batch-open`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-batch-open-all-tabs`, `TC-sr-batch-launch-all-files`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-open-all-tabs`, `TC-sr-batch-launch-all-files`
 
 ### `AC-sr-unified-prompt`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-unified-prompt-return`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-unified-prompt-return`
 
 ### `AC-sr-install-global`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-install-global-symlink`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-install-global-symlink`
 
 ### `FR-crp-done-action`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-reset-on-comment-add`, `TC-crp-done-reset-on-comment-edit`, `TC-crp-done-reset-on-comment-delete`, `TC-crp-done-reset-on-preamble-change`, `TC-crp-done-resend-after-failure`, `TC-crp-done-rapid-double-click`, `TC-crp-done-copy-still-works`, `TC-crp-done-auto-close-app-mode`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-reset-on-comment-add`, `TC-crp-done-reset-on-comment-edit`, `TC-crp-done-reset-on-comment-delete`, `TC-crp-done-reset-on-preamble-change`, `TC-crp-done-resend-after-failure`, `TC-crp-done-rapid-double-click`, `TC-crp-done-copy-still-works`, `TC-crp-done-auto-close-app-mode`
 
 ### `FR-crp-prompt-handoff`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/slash-command.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-happy`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/web/slash-command.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-happy`
 
 ### `AC-crp-done-sends-prompt`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-clipboard-parallel`, `TC-crp-done-auto-close-clipboard`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-clipboard-parallel`, `TC-crp-done-auto-close-clipboard`
 
 ### `AC-crp-done-confirmation`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-auto-close-fallback`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-auto-close-fallback`
 
 ### `AC-crp-done-auto-close`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-auto-close-app-mode`, `TC-crp-done-auto-close-fallback`, `TC-crp-done-auto-close-clipboard`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-auto-close-app-mode`, `TC-crp-done-auto-close-fallback`, `TC-crp-done-auto-close-clipboard`
 
 ### `AC-crp-done-fallback-clipboard`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/lib/clipboard.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-fallback-clipboard`, `TC-crp-done-resend-after-failure`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/lib/clipboard.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-fallback-clipboard`, `TC-crp-done-resend-after-failure`
 
 ### `AC-crp-done-disabled-no-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/Toolbar.tsx`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-disabled-no-comments`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/Toolbar.tsx`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-disabled-no-comments`
 
 ### `AC-crp-done-standalone-hidden`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/apps/web/src/store/appStore.ts`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-done-hidden-standalone`, `TC-crp-done-hidden-after-clear`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/apps/web/src/store/appStore.ts`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-hidden-standalone`, `TC-crp-done-hidden-after-clear`
 
 ### `FR-sc-prompt-receive`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-detects-file`, `TC-sc-watcher-deletes-after-read`, `TC-sc-feedback-loop-e2e`, `TC-sc-feedback-loop-resend`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-detects-file`, `TC-sc-watcher-deletes-after-read`, `TC-sc-feedback-loop-e2e`, `TC-sc-feedback-loop-resend`
 
 ### `FR-sc-prompt-output-api`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-prompt-api-write-happy`, `TC-sc-prompt-api-creates-dir`, `TC-sc-prompt-api-overwrites`, `TC-sc-prompt-api-localhost-only`, `TC-sc-prompt-api-method-check`, `TC-sc-prompt-api-no-collision`, `TC-sc-feedback-loop-e2e`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-prompt-api-write-happy`, `TC-sc-prompt-api-creates-dir`, `TC-sc-prompt-api-overwrites`, `TC-sc-prompt-api-localhost-only`, `TC-sc-prompt-api-method-check`, `TC-sc-prompt-api-no-collision`, `TC-sc-feedback-loop-e2e`
 
 ### `FR-sc-prompt-cleanup`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-cleanup-stale`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-cleanup-stale`
 
 ### `NFR-sc-watcher-low-overhead`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-timeout`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-timeout`
 
 ### `AC-sc-prompt-received`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-detects-file`, `TC-sc-feedback-loop-e2e`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-detects-file`, `TC-sc-feedback-loop-e2e`
 
 ### `AC-sc-prompt-watcher-timeout`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-timeout`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-timeout`
 
 ### `AC-sc-prompt-cleanup-stale`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-watcher-cleanup-stale`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-cleanup-stale`
 
 ### `AC-sc-prompt-output-api-success`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-prompt-api-write-happy`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-prompt-api-write-happy`
 
 ### `AC-sc-prompt-output-api-localhost-only`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/slash-command.md` -> `TC-sc-prompt-api-localhost-only`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-prompt-api-localhost-only`
 
 ### `FR-mdr-detect-markdown`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-detect-md-ext`, `TC-mdr-detect-mdx-ext`, `TC-mdr-detect-markdown-ext`, `TC-mdr-detect-mdown-ext`, `TC-mdr-detect-mkdn-ext`, `TC-mdr-detect-mkd-ext`, `TC-mdr-detect-uppercase-ext`, `TC-mdr-detect-non-md-hidden`, `TC-mdr-detect-no-extension`, `TC-mdr-detect-md-in-directory`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-detect-md-ext`, `TC-mdr-detect-mdx-ext`, `TC-mdr-detect-markdown-ext`, `TC-mdr-detect-mdown-ext`, `TC-mdr-detect-mkdn-ext`, `TC-mdr-detect-mkd-ext`, `TC-mdr-detect-uppercase-ext`, `TC-mdr-detect-non-md-hidden`, `TC-mdr-detect-no-extension`, `TC-mdr-detect-md-in-directory`
 
 ### `FR-mdr-render-toggle`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-toggle-click-rendered`, `TC-mdr-toggle-click-raw`, `TC-mdr-toggle-keyboard`, `TC-mdr-toggle-default-raw`, `TC-mdr-toggle-persists-session`, `TC-mdr-toggle-resets-new-file`, `TC-mdr-toggle-independent-file-diff`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-toggle-click-rendered`, `TC-mdr-toggle-click-raw`, `TC-mdr-toggle-keyboard`, `TC-mdr-toggle-default-raw`, `TC-mdr-toggle-persists-session`, `TC-mdr-toggle-resets-new-file`, `TC-mdr-toggle-independent-file-diff`
 
 ### `FR-mdr-render-commonmark`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-render-headings`, `TC-mdr-render-paragraphs-bold-italic`, `TC-mdr-render-links`, `TC-mdr-render-unordered-lists`, `TC-mdr-render-ordered-lists`, `TC-mdr-render-nested-lists`, `TC-mdr-render-blockquotes`, `TC-mdr-render-horizontal-rules`, `TC-mdr-render-images`, `TC-mdr-render-images-broken`, `TC-mdr-render-inline-code`, `TC-mdr-render-html-blocks-safe`, `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`, `TC-mdr-render-gfm-autolinks`, `TC-mdr-render-code-blocks-highlighted`, `TC-mdr-render-code-blocks-no-lang`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-render-headings`, `TC-mdr-render-paragraphs-bold-italic`, `TC-mdr-render-links`, `TC-mdr-render-unordered-lists`, `TC-mdr-render-ordered-lists`, `TC-mdr-render-nested-lists`, `TC-mdr-render-blockquotes`, `TC-mdr-render-horizontal-rules`, `TC-mdr-render-images`, `TC-mdr-render-images-broken`, `TC-mdr-render-inline-code`, `TC-mdr-render-html-blocks-safe`, `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`, `TC-mdr-render-gfm-autolinks`, `TC-mdr-render-code-blocks-highlighted`, `TC-mdr-render-code-blocks-no-lang`
 
 ### `FR-mdr-render-styling`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-style-body-typography`, `TC-mdr-style-heading-hierarchy`, `TC-mdr-style-code-block-theme`, `TC-mdr-style-table-styling`, `TC-mdr-style-max-width`, `TC-mdr-style-blockquote`, `TC-mdr-style-links`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-style-body-typography`, `TC-mdr-style-heading-hierarchy`, `TC-mdr-style-code-block-theme`, `TC-mdr-style-table-styling`, `TC-mdr-style-max-width`, `TC-mdr-style-blockquote`, `TC-mdr-style-links`
 
 ### `FR-mdr-element-id`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-element-id-deterministic`, `TC-mdr-element-id-positional`, `TC-mdr-element-id-all-block-types`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-element-id-deterministic`, `TC-mdr-element-id-positional`, `TC-mdr-element-id-all-block-types`
 
 ### `FR-mdr-rendered-comment-create`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-comment-paragraph`, `TC-mdr-comment-heading`, `TC-mdr-comment-list-item`, `TC-mdr-comment-code-block`, `TC-mdr-comment-table`, `TC-mdr-comment-blockquote`, `TC-mdr-comment-multiple-same-element`, `TC-mdr-comment-hover-affordance`, `TC-mdr-comment-cmd-click`, `TC-mdr-comment-bubble-label`, `TC-mdr-comment-count-increments`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-comment-paragraph`, `TC-mdr-comment-heading`, `TC-mdr-comment-list-item`, `TC-mdr-comment-code-block`, `TC-mdr-comment-table`, `TC-mdr-comment-blockquote`, `TC-mdr-comment-multiple-same-element`, `TC-mdr-comment-hover-affordance`, `TC-mdr-comment-cmd-click`, `TC-mdr-comment-bubble-label`, `TC-mdr-comment-count-increments`
 
 ### `FR-mdr-rendered-comment-prompt`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-prompt-raw-source-lines`, `TC-mdr-prompt-element-type`, `TC-mdr-prompt-format-structure`, `TC-mdr-prompt-multiple-comments-order`, `TC-mdr-prompt-no-preamble`, `TC-mdr-prompt-with-preamble`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-prompt-raw-source-lines`, `TC-mdr-prompt-element-type`, `TC-mdr-prompt-format-structure`, `TC-mdr-prompt-multiple-comments-order`, `TC-mdr-prompt-no-preamble`, `TC-mdr-prompt-with-preamble`
 
 ### `FR-mdr-switch-comments`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-switch-with-comments-confirm`, `TC-mdr-switch-with-comments-cancel`, `TC-mdr-switch-no-comments-immediate`, `TC-mdr-switch-preamble-preserved`, `TC-mdr-switch-raw-to-rendered`, `TC-mdr-switch-rendered-to-raw`, `TC-mdr-switch-rendered-file-to-rendered-diff`, `TC-mdr-switch-rendered-diff-to-rendered-file`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-switch-with-comments-confirm`, `TC-mdr-switch-with-comments-cancel`, `TC-mdr-switch-no-comments-immediate`, `TC-mdr-switch-preamble-preserved`, `TC-mdr-switch-raw-to-rendered`, `TC-mdr-switch-rendered-to-raw`, `TC-mdr-switch-rendered-file-to-rendered-diff`, `TC-mdr-switch-rendered-diff-to-rendered-file`
 
 ### `FR-mdr-raw-diff-unchanged`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-raw-file-identical`, `TC-mdr-raw-diff-identical`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-raw-file-identical`, `TC-mdr-raw-diff-identical`
 
 ### `FR-mdr-rendered-diff-display`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-added-block`, `TC-mdr-rdiff-removed-block`, `TC-mdr-rdiff-modified-block-word-diff`, `TC-mdr-rdiff-unchanged-block`, `TC-mdr-rdiff-no-changes`, `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-fallback-dismiss`, `TC-mdr-rdiff-loading-spinner`, `TC-mdr-rdiff-timeout-fallback`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-added-block`, `TC-mdr-rdiff-removed-block`, `TC-mdr-rdiff-modified-block-word-diff`, `TC-mdr-rdiff-unchanged-block`, `TC-mdr-rdiff-no-changes`, `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-fallback-dismiss`, `TC-mdr-rdiff-loading-spinner`, `TC-mdr-rdiff-timeout-fallback`
 
 ### `FR-mdr-rendered-diff-comment`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-comment-added`, `TC-mdr-rdiff-comment-removed`, `TC-mdr-rdiff-comment-modified`, `TC-mdr-rdiff-comment-unchanged`, `TC-mdr-rdiff-comment-anchor-qualifier`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-comment-added`, `TC-mdr-rdiff-comment-removed`, `TC-mdr-rdiff-comment-modified`, `TC-mdr-rdiff-comment-unchanged`, `TC-mdr-rdiff-comment-anchor-qualifier`
 
 ### `FR-mdr-rendered-diff-prompt`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-prompt-modified-old-new`, `TC-mdr-rdiff-prompt-added-new-only`, `TC-mdr-rdiff-prompt-removed-old-only`, `TC-mdr-rdiff-prompt-heading-format`, `TC-mdr-rdiff-prompt-document-order`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-prompt-modified-old-new`, `TC-mdr-rdiff-prompt-added-new-only`, `TC-mdr-rdiff-prompt-removed-old-only`, `TC-mdr-rdiff-prompt-heading-format`, `TC-mdr-rdiff-prompt-document-order`
 
 ### `NFR-mdr-render-perf`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-perf-render-5k`, `TC-mdr-perf-render-10k`, `TC-mdr-perf-render-ui-block`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-perf-render-5k`, `TC-mdr-perf-render-10k`, `TC-mdr-perf-render-ui-block`
 
 ### `NFR-mdr-render-scroll-perf`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-perf-scroll-smooth`, `TC-mdr-perf-scroll-content-visibility`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-perf-scroll-smooth`, `TC-mdr-perf-scroll-content-visibility`
 
 ### `NFR-mdr-rendered-diff-perf`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-perf-rdiff-5k`, `TC-mdr-perf-rdiff-10k`, `TC-mdr-perf-rdiff-timeout`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-perf-rdiff-5k`, `TC-mdr-perf-rdiff-10k`, `TC-mdr-perf-rdiff-timeout`
 
 ### `NFR-mdr-xss-safety`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-xss-script-tag`, `TC-mdr-xss-event-handler`, `TC-mdr-xss-javascript-url`, `TC-mdr-xss-iframe`, `TC-mdr-xss-svg-script`, `TC-mdr-xss-data-url`, `TC-mdr-xss-safe-html-preserved`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-xss-script-tag`, `TC-mdr-xss-event-handler`, `TC-mdr-xss-javascript-url`, `TC-mdr-xss-iframe`, `TC-mdr-xss-svg-script`, `TC-mdr-xss-data-url`, `TC-mdr-xss-safe-html-preserved`
 
 ### `NFR-mdr-client-only`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-client-only-no-requests`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-client-only-no-requests`
 
 ### `NFR-mdr-accessibility`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-a11y-keyboard-nav`, `TC-mdr-a11y-keyboard-comment`, `TC-mdr-a11y-screen-reader-elements`, `TC-mdr-a11y-screen-reader-diff`, `TC-mdr-a11y-focus-on-mode-switch`, `TC-mdr-a11y-aria-toggle`, `TC-mdr-a11y-aria-rendered-content`, `TC-mdr-a11y-aria-diff-annotations`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-a11y-keyboard-nav`, `TC-mdr-a11y-keyboard-comment`, `TC-mdr-a11y-screen-reader-elements`, `TC-mdr-a11y-screen-reader-diff`, `TC-mdr-a11y-focus-on-mode-switch`, `TC-mdr-a11y-aria-toggle`, `TC-mdr-a11y-aria-rendered-content`, `TC-mdr-a11y-aria-diff-annotations`
 
 ### `AC-mdr-toggle-appears`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-toggle-click-rendered`, `TC-mdr-toggle-default-raw`, `TC-mdr-detect-md-ext`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-toggle-click-rendered`, `TC-mdr-toggle-default-raw`, `TC-mdr-detect-md-ext`
 
 ### `AC-mdr-toggle-hidden-non-md`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-detect-non-md-hidden`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-detect-non-md-hidden`
 
 ### `AC-mdr-render-basic`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-render-headings`, `TC-mdr-render-paragraphs-bold-italic`, `TC-mdr-render-links`, `TC-mdr-render-unordered-lists`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-render-headings`, `TC-mdr-render-paragraphs-bold-italic`, `TC-mdr-render-links`, `TC-mdr-render-unordered-lists`
 
 ### `AC-mdr-render-gfm`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`
 
 ### `AC-mdr-render-code-blocks`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-render-code-blocks-highlighted`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-render-code-blocks-highlighted`
 
 ### `AC-mdr-raw-unchanged`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-raw-file-identical`, `TC-mdr-raw-diff-identical`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-raw-file-identical`, `TC-mdr-raw-diff-identical`
 
 ### `AC-mdr-comment-rendered-element`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-comment-paragraph`, `TC-mdr-comment-hover-affordance`, `TC-mdr-comment-bubble-label`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-comment-paragraph`, `TC-mdr-comment-hover-affordance`, `TC-mdr-comment-bubble-label`
 
 ### `AC-mdr-comment-heading`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-comment-heading`, `TC-mdr-prompt-raw-source-lines`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-comment-heading`, `TC-mdr-prompt-raw-source-lines`
 
 ### `AC-mdr-comment-prompt-format`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-prompt-raw-source-lines`, `TC-mdr-prompt-format-structure`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-prompt-raw-source-lines`, `TC-mdr-prompt-format-structure`
 
 ### `AC-mdr-switch-clears-comments`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-switch-with-comments-confirm`, `TC-mdr-switch-with-comments-cancel`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-switch-with-comments-confirm`, `TC-mdr-switch-with-comments-cancel`
 
 ### `AC-mdr-switch-no-comments`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-switch-no-comments-immediate`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-switch-no-comments-immediate`
 
 ### `AC-mdr-rendered-diff-additions`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-added-block`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-added-block`
 
 ### `AC-mdr-rendered-diff-removals`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-removed-block`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-removed-block`
 
 ### `AC-mdr-rendered-diff-modifications`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-modified-block-word-diff`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-modified-block-word-diff`
 
 ### `AC-mdr-rendered-diff-comment`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-comment-added`, `TC-mdr-rdiff-comment-modified`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-comment-added`, `TC-mdr-rdiff-comment-modified`
 
 ### `AC-mdr-rendered-diff-prompt`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-prompt-modified-old-new`, `TC-mdr-rdiff-prompt-added-new-only`, `TC-mdr-rdiff-prompt-removed-old-only`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-prompt-modified-old-new`, `TC-mdr-rdiff-prompt-added-new-only`, `TC-mdr-rdiff-prompt-removed-old-only`
 
 ### `AC-mdr-html-sanitized`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-xss-script-tag`, `TC-mdr-xss-event-handler`, `TC-mdr-xss-javascript-url`, `TC-mdr-xss-iframe`, `TC-mdr-xss-svg-script`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-xss-script-tag`, `TC-mdr-xss-event-handler`, `TC-mdr-xss-javascript-url`, `TC-mdr-xss-iframe`, `TC-mdr-xss-svg-script`
 
 ### `AC-mdr-large-file-renders`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-perf-render-5k`, `TC-mdr-perf-scroll-smooth`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-perf-render-5k`, `TC-mdr-perf-scroll-smooth`
 
 ### `AC-mdr-keyboard-comment`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-a11y-keyboard-comment`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-a11y-keyboard-comment`
 
 ### `AC-mdr-diff-fallback`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/markdown-render.md`
-- **Engineering**: `engineering/markdown-render.md`
-- **QA**: `qa/markdown-render.md` -> `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-timeout-fallback`
+- **Design**: `design/web/markdown-render.md`
+- **Engineering**: `engineering/web/markdown-render.md`
+- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-timeout-fallback`
 
 ### `FR-dm-system-preference`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-system-dark-default`, `TC-dm-system-light-default`, `TC-dm-system-no-preference`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-system-dark-default`, `TC-dm-system-light-default`, `TC-dm-system-no-preference`
 
 ### `FR-dm-manual-toggle`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-to-dark`, `TC-dm-toggle-to-light`, `TC-dm-toggle-to-system`, `TC-dm-toggle-keyboard`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-to-dark`, `TC-dm-toggle-to-light`, `TC-dm-toggle-to-system`, `TC-dm-toggle-keyboard`
 
 ### `FR-dm-persistence`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-persist-dark-reload`, `TC-dm-persist-system-reload`, `TC-dm-persist-no-localstorage`, `TC-dm-persist-corrupt-value`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-persist-dark-reload`, `TC-dm-persist-system-reload`, `TC-dm-persist-no-localstorage`, `TC-dm-persist-corrupt-value`
 
 ### `FR-dm-realtime-tracking`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-realtime-os-dark-to-light`, `TC-dm-realtime-manual-ignores-os`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-realtime-os-dark-to-light`, `TC-dm-realtime-manual-ignores-os`
 
 ### `FR-dm-full-surface-coverage`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`, `TC-dm-surface-drop-zone`, `TC-dm-surface-diff-view`, `TC-dm-surface-dialogs`, `TC-dm-surface-toasts`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`, `TC-dm-surface-drop-zone`, `TC-dm-surface-diff-view`, `TC-dm-surface-dialogs`, `TC-dm-surface-toasts`
 
 ### `FR-dm-css-custom-properties`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`
 
 ### `NFR-dm-no-fouc`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-no-fouc-dark`, `TC-dm-no-fouc-system`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-no-fouc-dark`, `TC-dm-no-fouc-system`
 
 ### `NFR-dm-smooth-transition`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-transition-smooth`, `TC-dm-transition-no-initial`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-transition-smooth`, `TC-dm-transition-no-initial`
 
 ### `NFR-dm-syntax-highlight-both-themes`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-syntax-dark-readable`, `TC-dm-syntax-light-readable`, `TC-dm-syntax-no-reparse`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-syntax-dark-readable`, `TC-dm-syntax-light-readable`, `TC-dm-syntax-no-reparse`
 
 ### `NFR-dm-contrast-ratios`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-a11y-contrast-light`, `TC-dm-a11y-contrast-dark`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-a11y-contrast-light`, `TC-dm-a11y-contrast-dark`
 
 ### `NFR-dm-no-performance-impact`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-perf-no-regression`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-perf-no-regression`
 
 ### `AC-dm-default-respects-system`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-system-dark-default`, `TC-dm-no-fouc-dark`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-system-dark-default`, `TC-dm-no-fouc-dark`
 
 ### `AC-dm-default-light-system`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-system-light-default`, `TC-dm-system-no-preference`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-system-light-default`, `TC-dm-system-no-preference`
 
 ### `AC-dm-toggle-to-dark`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-to-dark`, `TC-dm-transition-smooth`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-to-dark`, `TC-dm-transition-smooth`
 
 ### `AC-dm-toggle-to-light`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-to-light`, `TC-dm-transition-smooth`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-to-light`, `TC-dm-transition-smooth`
 
 ### `AC-dm-toggle-to-system`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-to-system`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-to-system`
 
 ### `AC-dm-persistence-survives-reload`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-persist-dark-reload`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-persist-dark-reload`
 
 ### `AC-dm-persistence-system-survives-reload`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-persist-system-reload`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-persist-system-reload`
 
 ### `AC-dm-realtime-os-change`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-realtime-os-dark-to-light`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-realtime-os-dark-to-light`
 
 ### `AC-dm-manual-ignores-os`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-realtime-manual-ignores-os`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-realtime-manual-ignores-os`
 
 ### `AC-dm-syntax-highlight-dark`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-syntax-dark-readable`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-syntax-dark-readable`
 
 ### `AC-dm-syntax-highlight-light`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-syntax-light-readable`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-syntax-light-readable`
 
 ### `AC-dm-all-surfaces-themed`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`, `TC-dm-surface-drop-zone`, `TC-dm-surface-diff-view`, `TC-dm-surface-dialogs`, `TC-dm-surface-toasts`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`, `TC-dm-surface-drop-zone`, `TC-dm-surface-diff-view`, `TC-dm-surface-dialogs`, `TC-dm-surface-toasts`
 
 ### `AC-dm-diff-view-themed`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-diff-view`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-diff-view`
 
 ### `AC-dm-drop-zone-themed`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-drop-zone`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-drop-zone`
 
 ### `AC-dm-dialog-themed`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-surface-dialogs`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-dialogs`
 
 ### `AC-dm-no-fouc`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-no-fouc-dark`, `TC-dm-no-fouc-system`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-no-fouc-dark`, `TC-dm-no-fouc-system`
 
 ### `AC-dm-localstorage-unavailable`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-persist-no-localstorage`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-persist-no-localstorage`
 
 ### `AC-dm-keyboard-toggle`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/dark-mode.md`
-- **Engineering**: `engineering/dark-mode.md`
-- **QA**: `qa/dark-mode.md` -> `TC-dm-toggle-keyboard`, `TC-dm-a11y-toggle-aria`
+- **Design**: `design/web/dark-mode.md`
+- **Engineering**: `engineering/web/dark-mode.md`
+- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-keyboard`, `TC-dm-a11y-toggle-aria`
 
 ### `FR-crp-multi-file-load`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`, `TC-crp-multi-file-drop-multiple-happy`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`, `TC-crp-multi-file-drop-multiple-happy`
 
 ### `FR-crp-multi-file-nav`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-tab-shows-info`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-tab-shows-info`
 
 ### `FR-crp-multi-file-remove`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-no-comments-immediate`, `TC-crp-multi-file-remove-active-switches`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-no-comments-immediate`, `TC-crp-multi-file-remove-active-switches`
 
 ### `FR-crp-multi-file-prompt`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`
 
 ### `FR-crp-multi-file-prompt-format`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`, `TC-crp-multi-file-prompt-order`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`, `TC-crp-multi-file-prompt-order`
 
 ### `AC-crp-multi-file-load-adds`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`
 
 ### `AC-crp-multi-file-drop-multiple`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-drop-multiple-happy`, `TC-crp-multi-file-drop-mixed-binary`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-drop-multiple-happy`, `TC-crp-multi-file-drop-mixed-binary`
 
 ### `AC-crp-multi-file-nav-preserves-state`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-switch-preserves-scroll`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-switch-preserves-scroll`
 
 ### `AC-crp-multi-file-remove-with-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-with-comments-cancel`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-with-comments-cancel`
 
 ### `AC-crp-multi-file-remove-no-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-no-comments-immediate`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-remove-no-comments-immediate`
 
 ### `AC-crp-multi-file-prompt-structure`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`
 
 ### `AC-crp-multi-file-prompt-omits-uncommented`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-prompt-omits-uncommented`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-prompt-omits-uncommented`
 
 ### `AC-crp-multi-file-comment-count`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-comment-count-global`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-comment-count-global`
 
 ### `AC-crp-multi-file-clear-all`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-clear-all-confirm`, `TC-crp-multi-file-clear-all-resets`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-clear-all-confirm`, `TC-crp-multi-file-clear-all-resets`
 
 ### `AC-crp-multi-file-empty-after-remove-last`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-multi-file-remove-last-empty-state`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-remove-last-empty-state`
 
 ### `AC-crp-file-path-display`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md`
 
 ### `AC-crp-file-path-single-dir`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md`
 
 ### `FR-sr-context-handoff`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-context-handoff`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-context-handoff`
 
 ### `AC-sr-context-in-crpg`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-context-in-crpg`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-context-in-crpg`
 
 ### `AC-sr-auto-open`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-auto-open`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-auto-open`
 
 ### `AC-sr-interactive-prompt`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/shepherd-review.md`
-- **Engineering**: `engineering/shepherd-review.md`
-- **QA**: `qa/shepherd-review.md` -> `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`
+- **Design**: `design/web/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`
 
 ### `FR-crp-review-context-receive`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-graceful-missing`, `TC-crp-context-overall-visible`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-graceful-missing`, `TC-crp-context-overall-visible`
 
 ### `FR-crp-review-context-display`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-overall-visible`, `TC-crp-context-per-file-visible`, `TC-crp-context-neutral-vs-review`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-overall-visible`, `TC-crp-context-per-file-visible`, `TC-crp-context-neutral-vs-review`
 
 ### `FR-crp-review-context-overall`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-overall-visible`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-overall-visible`
 
 ### `FR-crp-review-context-per-file`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-per-file-visible`, `TC-crp-context-per-file-switches`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-per-file-visible`, `TC-crp-context-per-file-switches`
 
 ### `AC-crp-context-overall-visible`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-overall-visible`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-overall-visible`
 
 ### `AC-crp-context-per-file-visible`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-per-file-visible`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-per-file-visible`
 
 ### `AC-crp-context-per-file-switches`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-per-file-switches`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-per-file-switches`
 
 ### `AC-crp-context-neutral-vs-review`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-neutral-vs-review`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-neutral-vs-review`
 
 ### `AC-crp-context-graceful-missing`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-graceful-missing`, `TC-crp-context-sidebar-hidden`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-graceful-missing`, `TC-crp-context-sidebar-hidden`
 
 ### `AC-crp-context-readonly`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-readonly`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-readonly`
 
 ### `FR-crp-file-reviewed-toggle`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard`, `TC-crp-reviewed-edge-rapid-toggle`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard`, `TC-crp-reviewed-edge-rapid-toggle`
 
 ### `FR-crp-file-reviewed-visual`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-reviewed-visual-tab-states`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-reviewed-visual-tab-states`
 
 ### `FR-crp-file-reviewed-grouping`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-reviewed-new-file-unreviewed`, `TC-crp-reviewed-edge-single-file-reviewed`, `TC-crp-reviewed-edge-add-after-all-reviewed`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-reviewed-new-file-unreviewed`, `TC-crp-reviewed-edge-single-file-reviewed`, `TC-crp-reviewed-edge-add-after-all-reviewed`
 
 ### `FR-crp-file-reviewed-progress`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`, `TC-crp-reviewed-remove-file-discards`, `TC-crp-reviewed-edge-add-after-all-reviewed`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`, `TC-crp-reviewed-remove-file-discards`, `TC-crp-reviewed-edge-add-after-all-reviewed`
 
 ### `FR-crp-file-reviewed-persistence`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-survives-tab-switch`, `TC-crp-reviewed-clear-session-resets`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-survives-tab-switch`, `TC-crp-reviewed-clear-session-resets`
 
 ### `AC-crp-file-mark-reviewed`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard`
 
 ### `AC-crp-file-unmark-reviewed`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-keyboard`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-keyboard`
 
 ### `AC-crp-file-reviewed-grouping`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`
 
 ### `AC-crp-file-reviewed-progress-count`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`
 
 ### `AC-crp-file-reviewed-survives-tab-switch`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-survives-tab-switch`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-survives-tab-switch`
 
 ### `AC-crp-file-reviewed-with-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-independent-of-comments`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-independent-of-comments`
 
 ### `AC-crp-file-reviewed-clear-session`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-reviewed-clear-session-resets`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-clear-session-resets`
 
 ### `FR-crp-review-context-collapsible`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
 - **QA**:
 
 ### `AC-crp-context-sidebar-collapse`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-context-sidebar-collapse`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-sidebar-collapse`
 
 ### `AC-crp-overall-comment-label`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-overall-comment-label`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-overall-comment-label`
 
 ### `AC-crp-overall-comment-in-prompt`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-overall-comment-in-prompt`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-overall-comment-in-prompt`
 
 ### `FR-crp-comment-summary`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-shows-all`, `TC-crp-comment-summary-realtime`, `TC-crp-comment-summary-empty`, `TC-crp-comment-summary-click-navigates`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-summary-shows-all`, `TC-crp-comment-summary-realtime`, `TC-crp-comment-summary-empty`, `TC-crp-comment-summary-click-navigates`
 
 ### `AC-crp-comment-summary-shows-all`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-shows-all`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-summary-shows-all`
 
 ### `AC-crp-comment-summary-realtime`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-realtime`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-summary-realtime`
 
 ### `AC-crp-comment-summary-empty`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-comment-summary-empty`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-summary-empty`
 
 ### `FR-crp-line-wrap`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`, `TC-crp-line-wrap-keyboard-shortcut`, `TC-crp-line-wrap-gutter-alignment`, `TC-crp-line-wrap-range-selection`, `TC-crp-line-wrap-comment-navigation`, `TC-crp-line-wrap-toggle-disabled-empty`, `TC-crp-line-wrap-toggle-performance`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`, `TC-crp-line-wrap-keyboard-shortcut`, `TC-crp-line-wrap-gutter-alignment`, `TC-crp-line-wrap-range-selection`, `TC-crp-line-wrap-comment-navigation`, `TC-crp-line-wrap-toggle-disabled-empty`, `TC-crp-line-wrap-toggle-performance`
 
 ### `AC-crp-line-wrap-toggle`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`
 
 ### `AC-crp-line-wrap-preserves-line-numbers`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-line-numbers`, `TC-crp-line-wrap-gutter-alignment`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-line-numbers`, `TC-crp-line-wrap-gutter-alignment`
 
 ### `AC-crp-line-wrap-comment-target`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-comment-click`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-comment-click`
 
 ### `AC-crp-line-wrap-default-on`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-default-on`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-default-on`
 
 ### `AC-crp-line-wrap-persists-session`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-line-wrap-persists-file-switch`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-persists-file-switch`
 
 ### `FR-sc-session-id`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`, `engineering/code-review-prompt.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-session-id-generated`, `TC-sc-session-id-deterministic`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`, `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-id-generated`, `TC-sc-session-id-deterministic`
 
 ### `FR-sc-dynamic-port`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-dynamic-port`, `TC-sc-separate-servers-different-worktrees`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-dynamic-port`, `TC-sc-separate-servers-different-worktrees`
 
 ### `FR-sc-session-scoped-output`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`, `engineering/shepherd-review.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-session-scoped-output-path`; `qa/shepherd-review.md` -> `TC-sr-concurrent-review-sessions`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`, `engineering/web/shepherd-review.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-scoped-output-path`; `qa/web/shepherd-review.md` -> `TC-sr-concurrent-review-sessions`
 
 ### `FR-sc-concurrent-windows`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-concurrent-sessions-happy`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-concurrent-sessions-happy`
 
 ### `FR-sc-session-cleanup`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-session-cleanup-after-read`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-cleanup-after-read`
 
 ### `FR-crp-session-identity`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`, `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`, `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-session-identity-window-title`, `TC-crp-session-identity-standalone`; `qa/slash-command.md` -> `TC-sc-window-title-shows-project`
+- **Design**: `design/web/code-review-prompt.md`, `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`, `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-session-identity-window-title`, `TC-crp-session-identity-standalone`; `qa/web/slash-command.md` -> `TC-sc-window-title-shows-project`
 
 ### `AC-sc-concurrent-sessions`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-concurrent-sessions-happy`; `qa/shepherd-review.md` -> `TC-sr-concurrent-review-sessions`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-concurrent-sessions-happy`; `qa/web/shepherd-review.md` -> `TC-sr-concurrent-review-sessions`
 
 ### `AC-sc-session-output-isolation`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/slash-command.md`
-- **Engineering**: `engineering/slash-command.md`
-- **QA**: `qa/slash-command.md` -> `TC-sc-session-output-isolation`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-output-isolation`
 
 ### `FR-crp-panel-resize`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-drag`, `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`, `TC-crp-panel-resize-double-click-reset`, `TC-crp-panel-resize-persists-file-switch`, `TC-crp-panel-resize-keyboard`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-drag`, `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`, `TC-crp-panel-resize-double-click-reset`, `TC-crp-panel-resize-persists-file-switch`, `TC-crp-panel-resize-keyboard`
 
 ### `FR-crp-active-file-path`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-active-file-path-visible`, `TC-crp-active-file-path-switches`, `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-pasted-file`, `TC-crp-active-file-path-transition`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-active-file-path-visible`, `TC-crp-active-file-path-switches`, `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-pasted-file`, `TC-crp-active-file-path-transition`
 
 ### `FR-crp-file-tooltip`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-reviewed-status`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-reviewed-status`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name`
 
 ### `AC-crp-panel-resize-drag`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-drag`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-drag`
 
 ### `AC-crp-panel-resize-bounds`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`
 
 ### `AC-crp-panel-resize-double-click`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-double-click-reset`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-double-click-reset`
 
 ### `AC-crp-panel-resize-persists`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-panel-resize-persists-file-switch`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-persists-file-switch`
 
 ### `AC-crp-active-file-path-visible`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-active-file-path-visible`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-active-file-path-visible`
 
 ### `AC-crp-active-file-path-switches`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-active-file-path-switches`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-active-file-path-switches`
 
 ### `AC-crp-active-file-path-single-file`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-transition`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-transition`
 
 ### `AC-crp-file-tooltip-full-path`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name`
 
 ### `AC-crp-file-tooltip-reviewed`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/code-review-prompt.md`
-- **Engineering**: `engineering/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
-- **QA**: `qa/code-review-prompt.md` -> `TC-crp-file-tooltip-reviewed-status`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`
+- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-file-tooltip-reviewed-status`
 <!--
 Entry template -- copy this when adding a new slug:
 
 ### `FR-feature-slug`
 - **Defined in**: `product/feature.md`
-- **Design**: `design/feature.md`
-- **Engineering**: `engineering/feature.md`, `engineering/src/path/to/file.ext`
-- **QA**: `qa/feature.md` -> `TC-feature-slug`
+- **Design**: `design/web/feature.md`
+- **Engineering**: `engineering/web/feature.md`, `engineering/apps/web/src/path/to/file.ext`
+- **QA**: `qa/web/feature.md` -> `TC-feature-slug`
 -->

@@ -1,6 +1,6 @@
 # Shepherd Review -- Design Spec
 
-> Based on requirements in `../product/shepherd-review.md`
+> Based on requirements in `../../product/shepherd-review.md`
 
 ## Overview
 

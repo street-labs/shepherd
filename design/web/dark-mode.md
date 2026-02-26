@@ -1,6 +1,6 @@
 # Dark Mode — Design Spec
 
-> Based on requirements in `../product/dark-mode.md`
+> Based on requirements in `../../product/dark-mode.md`
 
 ## Screen Inventory
 

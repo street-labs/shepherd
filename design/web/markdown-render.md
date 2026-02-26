@@ -1,6 +1,6 @@
 # Markdown Rendered View -- Design Spec
 
-> Based on requirements in `../product/markdown-render.md`
+> Based on requirements in `../../product/markdown-render.md`
 
 ## Screen Inventory
 

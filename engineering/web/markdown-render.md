@@ -1,7 +1,7 @@
 # Markdown Rendered View -- Technical Spec
 
-> Based on requirements in `../product/markdown-render.md`
-> Based on design in `../design/markdown-render.md`
+> Based on requirements in `../../product/markdown-render.md`
+> Based on design in `../../design/web/markdown-render.md`
 
 ## Technical Approach
 
@@ -261,7 +261,7 @@ A segmented control with "Raw" and "Rendered" segments. Placed in the `Toolbar` 
 - When `isVisible` is false, the component returns null (not rendered in DOM).
 - The component is purely presentational. Mode-switch side effects (confirmation dialogs) are handled by the parent.
 
-**Dimensions**: "Raw" segment 48px wide, "Rendered" segment 80px wide, both 32px tall. Same styling pattern as ViewModeToggle from `../design/diff-view.md` and `../engineering/diff-view.md`.
+**Dimensions**: "Raw" segment 48px wide, "Rendered" segment 80px wide, both 32px tall. Same styling pattern as ViewModeToggle from `../../design/web/diff-view.md` and `../engineering/diff-view.md`.
 
 #### `RenderedViewer` (new)
 

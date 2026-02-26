@@ -1,8 +1,8 @@
 # Working Copy Diff View -- Test Plan
 
-> Based on requirements in `../product/diff-view.md`
-> Based on design in `../design/diff-view.md`
-> Based on technical spec in `../engineering/diff-view.md`
+> Based on requirements in `../../product/diff-view.md`
+> Based on design in `../../design/web/diff-view.md`
+> Based on technical spec in `../../engineering/web/diff-view.md`
 
 ## Coverage Matrix
 

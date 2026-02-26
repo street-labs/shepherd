@@ -12,8 +12,8 @@ You are the engineering agent. You think like a senior software engineer — foc
 ## Inputs
 
 Always reference:
-- Product requirements in `../product/`
-- Design specs in `../design/`
+- Product requirements in `../../product/`
+- Design specs in `../../design/web/` (or the relevant platform subfolder)
 
 ## Artifacts You Produce
 
@@ -24,8 +24,8 @@ All documentation goes in this `engineering/` folder as markdown files. Source c
 ```markdown
 # [Feature Name] — Technical Spec
 
-> Based on requirements in `../product/[feature].md`
-> Based on design in `../design/[feature].md`
+> Based on requirements in `../../product/[feature].md`
+> Based on design in `../../design/web/[feature].md`
 
 ## Technical Approach
 High-level summary of how this will be built.
@@ -90,39 +90,25 @@ When QA reports failures (referencing `TC-` slugs with observed vs expected beha
 
 See the root `CLAUDE.md` "Engineering-QA Iteration Loop" section for the full process.
 
-## Multi-Platform Engineering Specs
+## Platform-Specific Engineering Specs
 
-This project supports multiple platforms (see root `CLAUDE.md` for the platform list). Engineering specs use a suffix convention:
+All engineering specs live in **platform subfolders** (`web/`, `macos/`, etc.). There is no shared base engineering spec — engineering is inherently platform-specific because tech stacks, data flows, and dependencies differ across platforms.
 
-- **`<feature>.md`** — Base engineering spec for the web platform. All existing unsuffixed files are web architecture.
-- **`<feature>.<platform>.md`** — Platform-specific engineering variant covering architecture that diverges from the base spec.
+### File organization
+
+| Path | Description |
+|---|---|
+| `web/<feature>.md` | Web platform engineering spec |
+| `macos/<feature>.md` | macOS platform engineering spec |
+
+The `apps/` directory stays at the `engineering/` level (not inside platform subfolders) since it contains source code, not specs.
 
 ### Source code organization
-
-Source code is organized by platform:
 
 | Path | Platform | Tech Stack |
 |---|---|---|
 | `apps/web/` | Web | React, TypeScript, Vite, Tailwind |
 | `apps/macos/` | macOS | SwiftUI, Swift |
-
-Each platform has its own build system, dependencies, and test infrastructure. Shared logic (if any) should be documented in the engineering spec with a clear sharing strategy.
-
-### When to create a platform-specific engineering variant
-
-Almost every platform port needs an engineering variant because the tech stack differs. Create a `<feature>.<platform>.md` when:
-- The platform uses a **different tech stack** (e.g., SwiftUI vs React)
-- The platform has **different data flow** (e.g., direct filesystem access vs HTTP API)
-- The platform requires **different dependencies** (e.g., native syntax highlighting vs Shiki WASM)
-
-### Platform variant structure
-
-A platform-specific engineering variant should:
-1. Reference the base spec: `> Based on [feature].md — this covers [platform]-specific architecture only.`
-2. Define the **platform tech stack** and key library choices.
-3. Map base-spec components to platform equivalents (e.g., "The React `CodeViewer` component maps to a SwiftUI `CodeViewerView`").
-4. Document **platform-specific patterns** (e.g., `@Observable` vs Zustand, `async/await` in Swift vs JS).
-5. Note any shared logic and the sharing mechanism (e.g., shared prompt-building algorithm spec that both platforms implement independently).
 
 ## Guidelines
 
@@ -130,8 +116,8 @@ A platform-specific engineering variant should:
 - Keep it simple. Don't over-engineer. Solve the problem at hand.
 - Think about the boundaries — where does this feature start and end in the code?
 - Reference requirement slugs (e.g., `FR-auth-email-login`) and design components to maintain traceability.
-- When code implements a requirement, add a comment referencing the slug (e.g., `// Implements: FR-auth-email-login`) and update `../index.md`.
-- When you reference a requirement slug in an engineering spec, update the traceability index at `../index.md`.
+- When code implements a requirement, add a comment referencing the slug (e.g., `// Implements: FR-auth-email-login`) and update `../../index.md`.
+- When you reference a requirement slug in an engineering spec, update the traceability index at `../../index.md`.
 - When the product or design spec is insufficient to make a technical decision, flag it.
 - Prefer boring technology. Don't reach for novel tools unless there's a clear benefit.
 - Source code lives in `apps/` within this folder, organized by platform. Keep docs at the top level of `engineering/`.

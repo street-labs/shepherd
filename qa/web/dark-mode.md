@@ -1,8 +1,8 @@
 # Dark Mode -- Test Plan
 
-> Based on requirements in `../product/dark-mode.md`
-> Based on design in `../design/dark-mode.md`
-> Based on technical spec in `../engineering/dark-mode.md`
+> Based on requirements in `../../product/dark-mode.md`
+> Based on design in `../../design/web/dark-mode.md`
+> Based on technical spec in `../../engineering/web/dark-mode.md`
 
 ## Coverage Matrix
 

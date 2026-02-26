@@ -5,7 +5,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Every agent must check this glossary before introducing a new term.** If a concept already has a name here, use it. If you need a new term, add it here first.
 
 ## Code Review Prompt Generator (CRPG)
-**Definition**: The core application of the Shepherd project. A client-side web app that lets developers load one or more source files, annotate them with inline comments, and generate a single structured prompt for AI coding assistants. Supports multiple files simultaneously in a file browser sidebar. Available as a local web app and (planned) as a standalone CLI.
+**Definition**: The core application of the Shepherd project. An application that lets developers load one or more source files, annotate them with inline comments, and generate a single structured prompt for AI coding assistants. Supports multiple files simultaneously in a file browser sidebar. Available as a local web app and (planned) as a standalone CLI.
 **Also known as**: CRPG, the app
 **Not to be confused with**: The slash command (which is a launcher for the CRPG, not the CRPG itself)
 
@@ -260,19 +260,19 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Tailwind CSS utility classes (which are used for layout and spacing, not theming colors)
 
 ## Platform
-**Definition**: A target runtime environment for the CRPG application. Each platform has its own tech stack, build system, and may have platform-specific UI/UX. The current platforms are: web (React/Vite in the browser) and macOS (native SwiftUI app, planned).
+**Definition**: A target runtime environment for the CRPG application. Each platform has its own tech stack, build system, and may have platform-specific UI/UX. The current platforms are: web (browser-based) and macOS (native app, planned).
 **Also known as**: Target platform
 **Not to be confused with**: Operating system (a platform is more specific — "web" runs on multiple OSes, "macOS" is one OS with a native app)
 
-## Base Spec
-**Definition**: A spec file without a platform suffix (e.g., `code-review-prompt.md`). Represents either shared behavior across platforms or the web platform's spec (since web was the first platform). All existing unsuffixed spec files are base specs.
-**Also known as**: Unsuffixed spec, web spec
-**Not to be confused with**: Platform-specific variant (which has a `.<platform>.md` suffix)
+## Shared Product Spec
+**Definition**: A product spec file at the top level of `product/` (e.g., `product/code-review-prompt.md`). Contains platform-neutral requirements describing what a feature does. Design, engineering, and QA specs do not have shared base specs — they are always platform-specific.
+**Also known as**: Base spec, product spec
+**Not to be confused with**: Platform-specific specs (which live in platform subfolders like `design/web/` or `engineering/macos/`)
 
-## Platform-Specific Variant
-**Definition**: A spec file with a platform suffix (e.g., `code-review-prompt.macos.md`) that documents how a feature diverges from its base spec on a particular platform. Only covers differences — shared behavior stays in the base spec.
-**Also known as**: Platform variant, suffixed spec
-**Not to be confused with**: Base spec (which covers shared or web-specific behavior)
+## Platform-Specific Spec
+**Definition**: A spec file in a platform subfolder (e.g., `design/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`). For product, this supplements the shared spec with platform-specific requirements. For design, engineering, and QA, this is the primary spec (there is no shared base).
+**Also known as**: Platform spec, platform variant
+**Not to be confused with**: Shared product spec (which lives at the top level of `product/`)
 
 ## Session Directory
 **Definition**: A directory at `~/.shepherd/sessions/<session-id>/` that holds session-scoped files (primarily `prompt-output.md`). Created on demand when the CRPG writes the prompt output. Cleaned up after the agent reads the output, or after 24 hours if stale. Each `/shepherd` or `/shepherd-review` invocation gets its own session directory, identified by its unique Session ID.
@@ -373,6 +373,11 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Definition**: A segmented tab control in the sidebar that switches between two content areas: the "Preview" tab (showing the PromptPreview component) and the "All Comments" tab (showing the CommentSummary component). Positioned below the Overall Comment input. The All Comments tab displays a count badge showing the total number of comments when comments exist.
 **Also known as**: SidebarContentTabs (component name), Preview/All Comments tabs, sidebar tabs
 **Not to be confused with**: File Tab Bar (which switches between loaded files), view mode toggle (which switches between file/diff/rendered views)
+
+## Lane Discipline
+**Definition**: The principle that each functional area (product, design, engineering, QA) stays within its scope. Product describes what; design describes how it looks; engineering describes how it's built; QA describes how to verify. Specifically, product specs must not prescribe design solutions (pixel values, font choices, layout specifics) or engineering solutions (library names, API endpoints, algorithms, CSS properties).
+**Also known as**: Separation of concerns (in the spec context)
+**Not to be confused with**: Code separation of concerns (which is an engineering pattern within a single codebase)
 
 <!--
 Entry template:

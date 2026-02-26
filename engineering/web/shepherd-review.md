@@ -1,7 +1,7 @@
 # Shepherd Review -- Technical Spec
 
-> Based on requirements in `../product/shepherd-review.md`
-> Based on design in `../design/shepherd-review.md`
+> Based on requirements in `../../product/shepherd-review.md`
+> Based on design in `../../design/web/shepherd-review.md`
 
 ## Technical Approach
 

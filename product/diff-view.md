@@ -39,20 +39,20 @@ The application provides a toggle control (e.g., a segmented button or tab) that
 The diff view toggle is only enabled when the file was loaded via the file-serving API (i.e., via the `/shepherd` slash command or a `?file=` URL parameter). For files loaded via paste, upload, or drag-and-drop, the toggle is visible but disabled, with a tooltip explaining that diff view requires the file to be loaded from the local filesystem via the slash command.
 
 #### `FR-diff-baseline-fetch` -- Fetch the git HEAD version of a file
-When the user activates diff view (or when a server-loaded file is first loaded and diff view is the active mode), the application fetches the git HEAD version of the file from the server. The server provides this via a new API endpoint (e.g., `GET /api/file/head?path=<encoded-path>`). If the file has no git history (untracked file), the endpoint returns a 404 and the application treats the entire file as added (the diff shows all lines as additions with no removals). If the file is unchanged from HEAD, the application shows an "No changes" empty state.
+When the user activates diff view (or when a server-loaded file is first loaded and diff view is the active mode), the application fetches the git HEAD version of the file from the server. The server provides this via a dedicated endpoint. The endpoint design is an engineering decision. If the file has no git history (untracked file), the endpoint returns a 404 and the application treats the entire file as added (the diff shows all lines as additions with no removals). If the file is unchanged from HEAD, the application shows an "No changes" empty state.
 
 #### `FR-diff-compute` -- Compute the unified diff client-side
-The application computes the diff between the baseline (HEAD) and the working copy entirely in the browser. The diff algorithm produces a list of hunks, where each hunk contains a sequence of added, removed, and unchanged (context) lines. The diff operates on a line-by-line basis. The diff computation must use a standard algorithm (Myers diff or equivalent) that produces minimal, human-readable diffs.
+The application computes the diff between the baseline (HEAD) and the working copy locally. The diff algorithm produces a list of hunks, where each hunk contains a sequence of added, removed, and unchanged (context) lines. The diff operates on a line-by-line basis. The diff algorithm must produce minimal, human-readable diffs. Algorithm selection is an engineering decision.
 
 #### `FR-diff-display` -- Display the unified diff with line gutters
 The diff is displayed in a unified format within the code viewer area. Each line in the diff view has:
 1. A **line type indicator**: a gutter column showing `+` for added lines, `-` for removed lines, and a blank space for context lines.
 2. A **background color**: green-tinted for added lines, red-tinted for removed lines, no tint for context lines.
-3. **Line numbers**: Two gutter columns — the left showing the line number in the old (HEAD) version, and the right showing the line number in the new (working copy) version. Added lines have no old line number; removed lines have no new line number.
+3. **Line numbers**: Line numbers for both the old (HEAD) and new (working copy) versions. Added lines show only a new line number; removed lines show only an old line number; context lines show both.
 4. **Syntax highlighting**: Both added and removed lines are syntax-highlighted based on the detected language, consistent with `FR-crp-syntax-highlight`.
 
 #### `FR-diff-collapse` -- Collapse unchanged sections by default
-Blocks of unchanged (context) lines are collapsed by default when the gap between two change hunks exceeds `2 * contextLines + 1` lines (default: 7 lines, with a context size of 3). If the gap is 7 or fewer unchanged lines, all lines are shown in full rather than collapsed. When a gap is collapsed, the application shows 3 context lines below the preceding hunk and 3 context lines above the following hunk, with a visual separator in between indicating how many lines are hidden (e.g., "... 47 unchanged lines ..."). At the top and bottom of the file, unchanged lines beyond the context window are also collapsed — the first hunk shows 3 context lines above it (collapsing everything before), and the last hunk shows 3 context lines below it (collapsing everything after).
+Blocks of unchanged (context) lines are collapsed by default when the gap between two change hunks exceeds a threshold based on the configured context size (default context: 3 lines). If the gap is small enough, all lines are shown in full rather than collapsed. When a gap is collapsed, the application shows 3 context lines below the preceding hunk and 3 context lines above the following hunk, with a visual separator in between indicating how many lines are hidden (e.g., "... 47 unchanged lines ..."). At the top and bottom of the file, unchanged lines beyond the context window are also collapsed — the first hunk shows 3 context lines above it (collapsing everything before), and the last hunk shows 3 context lines below it (collapsing everything after).
 
 #### `FR-diff-expand` -- Expand collapsed sections
 The user can click on a collapsed section separator to expand it. Expansion reveals all hidden lines in that section. Once expanded, a section remains expanded until the user switches away from diff view or loads a new file. There is no mechanism to re-collapse an expanded section within the same session (consistent with GitHub's behavior).
@@ -75,13 +75,13 @@ The user can manually trigger a refresh of the diff by clicking a refresh button
 ### Non-Functional Requirements
 
 #### `NFR-diff-compute-perf` -- Diff computation performance
-The diff computation must complete within 500ms for files up to 10,000 lines. For files between 10,000 and 50,000 lines, the diff should complete within 2 seconds. The computation runs on the main thread but should not block UI rendering for more than 100ms at a time; if files are large enough to cause blocking, the computation should be deferred to a Web Worker.
+The diff computation must complete within 500ms for files up to 10,000 lines. For files between 10,000 and 50,000 lines, the diff should complete within 2 seconds. The computation runs on the main thread but should not block UI rendering for more than 100ms at a time; if files are large enough to cause blocking, the computation should not block UI rendering.
 
 #### `NFR-diff-render-perf` -- Diff view rendering performance
 The diff view must use the same virtualized scrolling approach as the file view (`NFR-crp-large-file-perf`). Scrolling through a diff of a 10,000-line file must be smooth with no visible jank exceeding 200ms.
 
 #### `NFR-diff-client-compute` -- Client-side diff computation
-Consistent with `NFR-crp-client-only`, the diff computation happens entirely in the browser. The server provides the two file versions (HEAD and working copy) as plain text; the server does not run `git diff` or any diff algorithm. This keeps the server simple and the architecture consistent.
+Consistent with `NFR-crp-client-only`, the diff computation happens locally in the application. The server provides the two file versions as plain text; the server does not run diff algorithms. This keeps the server simple and the architecture consistent.
 
 #### `NFR-diff-baseline-fetch-speed` -- Baseline fetch latency
 Fetching the git HEAD version of a file via the API should complete within 500ms for files up to 10,000 lines. This is a server-side target; the endpoint reads the file from the git object store (e.g., via `git show HEAD:<path>`).
@@ -163,7 +163,7 @@ All diff view interactions — toggling diff mode, expanding collapsed sections,
 ## Dependencies
 
 - **`FR-crp-file-display`**: The diff view renders within the same code viewer component, extending it with diff-specific rendering (line type indicators, dual line numbers, background colors).
-- **`FR-crp-syntax-highlight`**: Both added and removed lines in the diff are syntax-highlighted using the same Shiki-based highlighting.
+- **`FR-crp-syntax-highlight`**: Both added and removed lines in the diff are syntax-highlighted using the same syntax highlighting engine.
 - **`FR-crp-line-comment-create`**: The comment creation interaction in diff view mirrors the existing file view interaction.
 - **`FR-crp-line-range-comment`**: Range commenting in diff view extends the existing range comment mechanism.
 - **`FR-crp-prompt-format`**: The diff-aware prompt format builds on the existing structured prompt format, adapting it for diff context.

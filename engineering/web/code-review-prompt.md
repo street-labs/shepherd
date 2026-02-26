@@ -1,7 +1,7 @@
 # Code Review Prompt Generator -- Technical Spec
 
-> Based on requirements in `../product/code-review-prompt.md`
-> Based on design in `../design/code-review-prompt.md`
+> Based on requirements in `../../product/code-review-prompt.md`
+> Based on design in `../../design/web/code-review-prompt.md`
 
 ## Technical Approach
 
@@ -887,8 +887,8 @@ A 10,000-line file with 100-character average lines is ~1 MB of text. Syntax tok
 ## Done Action & Prompt Handoff
 
 > Implements: `FR-crp-done-action`, `FR-crp-prompt-handoff`
-> See requirements in `../product/code-review-prompt.md`
-> See design in `../design/code-review-prompt.md`
+> See requirements in `../../product/code-review-prompt.md`
+> See design in `../../design/web/code-review-prompt.md`
 
 This section covers the "Done" button feature that sends the generated prompt back to the Claude Code agent via a file-based handoff through the Vite dev server.
 
@@ -1004,8 +1004,8 @@ Error handling:
 ## Review Context Loading
 
 > Implements: `FR-crp-review-context-receive`, `FR-crp-review-context-display`
-> See requirements in `../product/code-review-prompt.md`
-> See design in `../design/code-review-prompt.md`
+> See requirements in `../../product/code-review-prompt.md`
+> See design in `../../design/web/code-review-prompt.md`
 
 This section covers how the CRPG receives and displays structured review context data from the shepherd-review command.
 

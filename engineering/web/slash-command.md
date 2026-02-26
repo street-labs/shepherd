@@ -1,7 +1,7 @@
 # Slash Command Launcher -- Technical Spec
 
-> Based on requirements in `../product/slash-command.md`
-> Based on design in `../design/slash-command.md`
+> Based on requirements in `../../product/slash-command.md`
+> Based on design in `../../design/web/slash-command.md`
 
 ## Technical Approach
 
@@ -372,8 +372,8 @@ In all error cases, the FileDropZone remains functional -- the user can manually
 ## Prompt Feedback Loop
 
 > Implements: `FR-sc-prompt-receive`, `FR-sc-prompt-output-api`, `FR-sc-prompt-cleanup`, `NFR-sc-watcher-low-overhead`
-> See requirements in `../product/slash-command.md`
-> See design in `../design/slash-command.md`
+> See requirements in `../../product/slash-command.md`
+> See design in `../../design/web/slash-command.md`
 
 This section covers the mechanism by which the CRPG web app sends the completed prompt back to the Claude Code agent. The handoff uses a file-based approach: the web app POSTs the prompt to a Vite dev server endpoint, the server writes it to a well-known file path, and the slash command's file watcher detects and reads the file.
 

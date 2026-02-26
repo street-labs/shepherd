@@ -1,7 +1,7 @@
 # Working Copy Diff View -- Technical Spec
 
-> Based on requirements in `../product/diff-view.md`
-> Based on design in `../design/diff-view.md`
+> Based on requirements in `../../product/diff-view.md`
+> Based on design in `../../design/web/diff-view.md`
 
 ## Technical Approach
 

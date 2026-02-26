@@ -61,7 +61,7 @@ The rendered view converts the markdown source into formatted HTML and displays 
 - Autolinks (bare URLs converted to links)
 
 The rendered output must also handle:
-- Fenced code blocks with syntax highlighting (using the same Shiki-based highlighting as `FR-crp-syntax-highlight`)
+- Fenced code blocks with syntax highlighting (using the same syntax highlighting engine as `FR-crp-syntax-highlight`)
 - Inline code spans
 - Block quotes
 - Nested lists (ordered and unordered, up to 4 levels)
@@ -72,17 +72,10 @@ The rendered output must also handle:
 The rendered output is **read-only** — the user cannot edit the markdown through the rendered view.
 
 #### `FR-mdr-render-styling` -- Rendered view styling matches code review context
-The rendered markdown view uses a styling theme that is consistent with the code review tool aesthetic — not a generic documentation site look. Specifically:
-- Typography uses a readable sans-serif font for body text, with the same monospace font used in the raw view for code blocks and inline code
-- Colors and spacing are derived from the existing application theme tokens
-- Headings are visually distinct with a left-border accent (not full-width underlines)
-- Code blocks within the rendered view use the same syntax highlighting theme as the raw code viewer
-- Tables have bordered cells with alternating row backgrounds
-- The rendered view occupies the same layout area as the raw code viewer, including the sidebar for preamble and prompt preview
-- Maximum content width is capped (e.g., 80ch for prose) to maintain readability, even on wide viewports
+The rendered markdown view uses a styling theme that is consistent with the code review tool aesthetic. Styled consistently with the application's visual theme. Code blocks within the rendered view use the same syntax highlighting engine and theme as the raw code viewer. Specific visual treatments (typography, spacing, heading styles, table presentation, maximum content width) are design decisions.
 
 #### `FR-mdr-element-id` -- Assign stable identifiers to rendered elements
-Each rendered block-level element (heading, paragraph, list item, code block, table, blockquote, horizontal rule, image) is assigned a stable identifier based on its position in the document's abstract syntax tree (AST). The identifier encodes the element's AST path (e.g., `heading-0`, `paragraph-3`, `list-1-item-2`). These identifiers are used for comment anchoring in the rendered view.
+Each rendered block-level element (heading, paragraph, list item, code block, table, blockquote, horizontal rule, image) is assigned a stable identifier based on its position in the document structure. The identifier encodes the element's structural path (e.g., `heading-0`, `paragraph-3`, `list-1-item-2`). These identifiers are used for comment anchoring in the rendered view.
 
 The identifiers must be **deterministic** — rendering the same markdown source always produces the same identifiers. They are positional (based on AST node index), not content-based, because content may be duplicated (e.g., multiple paragraphs could have the same text).
 
@@ -139,19 +132,19 @@ When generating a prompt from the rendered diff view, comments are paired with b
 ### Non-Functional Requirements
 
 #### `NFR-mdr-render-perf` -- Markdown rendering performance
-Markdown rendering (parsing + HTML generation) must complete within 200ms for files up to 5,000 lines. For files between 5,000 and 10,000 lines, rendering should complete within 500ms. The rendering runs on the main thread; if files are large enough to block UI for more than 100ms, rendering should be deferred to a Web Worker or use incremental rendering. This budget includes both the markdown parsing and the syntax highlighting of fenced code blocks within the rendered output.
+Markdown rendering (parsing + HTML generation) must complete within 200ms for files up to 5,000 lines. For files between 5,000 and 10,000 lines, rendering should complete within 500ms. The rendering runs on the main thread; if files are large enough to block UI for more than 100ms, rendering should not block UI interaction. This budget includes both the markdown parsing and the syntax highlighting of fenced code blocks within the rendered output.
 
 #### `NFR-mdr-render-scroll-perf` -- Rendered view scroll performance
-The rendered view must scroll smoothly for markdown files up to 10,000 lines. Unlike the raw view which uses virtualized scrolling (`NFR-crp-large-file-perf`), the rendered view produces a single HTML document. For very large markdown files (> 5,000 lines), the rendered view may use a simpler optimization (e.g., CSS `content-visibility: auto`) rather than full virtualization, since rendered markdown elements are heterogeneous and harder to virtualize than uniform code lines.
+The rendered view must scroll smoothly for markdown files up to 10,000 lines. Unlike the raw view which uses virtualized scrolling (`NFR-crp-large-file-perf`), the rendered view produces a single HTML document. For very large markdown files (> 5,000 lines), the rendered view may use platform-appropriate optimizations for rendering performance, since rendered markdown elements are heterogeneous and harder to virtualize than uniform code lines.
 
 #### `NFR-mdr-rendered-diff-perf` -- Rendered diff computation performance
-The AST-level diff computation (parse both versions, diff the ASTs, compute word-level diffs for modified blocks) must complete within 1 second for files up to 5,000 lines. For files between 5,000 and 10,000 lines, the computation should complete within 3 seconds. A loading spinner is shown during computation. If the computation exceeds 5 seconds, the application cancels it and falls back to raw diff view with a message explaining that the file is too large for rendered diff.
+The AST-level diff computation (parse both versions, diff the ASTs, compute word-level diffs for modified blocks) must complete within 1 second for files up to 5,000 lines. For files between 5,000 and 10,000 lines, the computation should complete within 3 seconds. A visual indication of computation in progress is shown. If the computation exceeds 5 seconds, the application cancels it and falls back to raw diff view with a message explaining that the file is too large for rendered diff.
 
 #### `NFR-mdr-xss-safety` -- Rendered markdown must be XSS-safe
 The markdown renderer must sanitize the HTML output to prevent cross-site scripting (XSS) attacks. This is especially important because markdown can contain embedded HTML blocks. The sanitization must strip: `<script>` tags, event handler attributes (e.g., `onclick`, `onerror`), `javascript:` URLs, and any other active content vectors. The sanitization must be applied *after* rendering but *before* insertion into the DOM. This is a security requirement, not a feature — it is not optional.
 
 #### `NFR-mdr-client-only` -- Rendered view is client-side only
-Consistent with `NFR-crp-client-only`, all markdown rendering, AST diffing, and comment anchoring happen entirely in the browser. No markdown content is sent to any external service.
+Consistent with `NFR-crp-client-only`, all markdown rendering, AST diffing, and comment anchoring happen locally. No markdown content is sent to any external service.
 
 #### `NFR-mdr-accessibility` -- Rendered view accessibility
 The rendered view must be navigable via keyboard. Commentable elements must be focusable via Tab key. The comment icon must be reachable via keyboard (not hover-only). Screen readers must be able to read the rendered content. Diff annotations (added, removed) must be announced to screen readers using appropriate ARIA labels, not just communicated via color.
@@ -240,7 +233,7 @@ The rendered view must be navigable via keyboard. Commentable elements must be f
 
 ## Dependencies
 
-- **`FR-crp-syntax-highlight`**: The rendered view's fenced code blocks reuse the same Shiki-based syntax highlighting.
+- **`FR-crp-syntax-highlight`**: The rendered view's fenced code blocks reuse the same syntax highlighting engine.
 - **`FR-crp-file-display`**: The rendered view occupies the same code viewer area and shares the layout (sidebar, toolbar).
 - **`FR-crp-line-comment-create`**: The rendered view's comment creation interaction is modeled after the existing line-comment interaction, adapted for element-based anchoring.
 - **`FR-crp-prompt-format`**: The rendered view's prompt generation follows the same structural format, with element-type annotations instead of line numbers.

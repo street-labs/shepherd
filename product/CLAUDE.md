@@ -70,20 +70,20 @@ Rules:
 
 ## Multi-Platform Specs
 
-This project supports multiple platforms (see root `CLAUDE.md` for the platform list). Product specs use a suffix convention:
+Product specs live at the top level of this `product/` folder. They describe **what** the feature does in platform-neutral language.
 
-- **`<feature>.md`** — Base spec covering shared requirements or the web platform. All existing unsuffixed files are web specs.
-- **`<feature>.<platform>.md`** — Platform-specific variant covering requirements that diverge from the base spec.
+- **`<feature>.md`** — Shared product spec covering platform-neutral requirements.
+- **`<platform>/<feature>.md`** — Platform-specific product supplement covering requirements unique to that platform.
 
 ### When to create a platform-specific product variant
 
-Create a `<feature>.<platform>.md` only when the platform introduces **new requirements** not covered by the base spec (e.g., macOS-specific file access, native menu integration). If all requirements in the base spec apply unchanged to the new platform, no variant is needed at the product level.
+Create a `<platform>/<feature>.md` only when the platform introduces **new requirements** not covered by the shared spec (e.g., macOS-specific file access, native menu integration). If all requirements in the shared spec apply unchanged to the new platform, no variant is needed.
 
 ### Platform variant structure
 
 A platform-specific product variant should:
-1. Reference the base spec: `> Based on [feature].md — this covers [platform]-specific requirements only.`
-2. List which base-spec requirements apply as-is, which are modified, and which don't apply.
+1. Reference the shared spec: `> Web-specific requirements for [feature]. See ../[feature].md for shared requirements.`
+2. List which shared-spec requirements apply as-is, which are modified, and which don't apply.
 3. Add any new platform-specific requirements (using the same `FR-`/`NFR-`/`AC-` slug format).
 4. Keep the same feature slug prefix (e.g., `FR-crp-*`) — don't create a separate prefix per platform.
 
@@ -95,3 +95,32 @@ A platform-specific product variant should:
 - Flag ambiguity. If the user's request is vague, list it under Open Questions rather than making assumptions.
 - Think about edge cases and error states, not just the happy path.
 - Keep scope tight. Push back on scope creep by calling it out.
+
+## Stay In Your Lane
+
+Product specs describe **what** the application does and **why**, never **how** it looks or **how** it's built. This separation is critical for multi-platform support — a product spec that prescribes CSS properties or React components cannot be used for a macOS port.
+
+### Do NOT include in product specs:
+- **Pixel values, font names, color values** — these are design decisions (e.g., "240px", "monospace", "#ff0000")
+- **UI component names or interaction specifics** — these are design decisions (e.g., "gutter icon", "segmented button", "sidebar header")
+- **Library or framework names** — these are engineering decisions (e.g., "React", "Shiki", "Vite", "SwiftUI")
+- **API endpoint paths** — these are engineering decisions (e.g., "POST /api/prompt-output", "GET /api/file")
+- **Algorithm names** — these are engineering decisions (e.g., "Myers diff")
+- **CSS/HTML/platform-specific terms** — these are implementation details (e.g., "localStorage", "Web Worker", "prefers-color-scheme")
+
+### DO include in product specs:
+- Behavioral requirements ("the user can resize the panel")
+- Acceptance criteria ("the prompt is copied to clipboard")
+- Performance thresholds ("rendering completes within 500ms")
+- Security constraints ("no data leaves the local machine")
+- User-facing labels when they are a product decision ("Overall Comment" as the field name)
+
+### Before/after examples:
+
+| Before (has bleed) | After (clean) |
+|---|---|
+| "use a monospace font" | "display in a format suitable for code" |
+| "via `POST /api/prompt-output`" | "sends to the local server for handoff" |
+| "deferred to a Web Worker" | "should not block UI rendering" |
+| "using `prefers-color-scheme` CSS media query" | "detects the OS color scheme preference" |
+| "stored in `localStorage`" | "persisted using local storage appropriate to the platform" |

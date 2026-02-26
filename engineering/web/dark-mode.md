@@ -1,7 +1,7 @@
 # Dark Mode -- Technical Spec
 
-> Based on requirements in `../product/dark-mode.md`
-> Based on design in `../design/dark-mode.md`
+> Based on requirements in `../../product/dark-mode.md`
+> Based on design in `../../design/web/dark-mode.md`
 
 ## Technical Approach
 

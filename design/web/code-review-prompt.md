@@ -1,6 +1,6 @@
 # Code Review Prompt Generator — Design Spec
 
-> Based on requirements in `../product/code-review-prompt.md`
+> Based on requirements in `../../product/code-review-prompt.md`
 
 ## Screen Inventory
 

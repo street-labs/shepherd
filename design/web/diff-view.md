@@ -1,6 +1,6 @@
 # Working Copy Diff View — Design Spec
 
-> Based on requirements in `../product/diff-view.md`
+> Based on requirements in `../../product/diff-view.md`
 
 ## Screen Inventory
 

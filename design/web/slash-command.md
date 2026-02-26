@@ -1,6 +1,6 @@
 # Slash Command Launcher -- Design Spec
 
-> Based on requirements in `../product/slash-command.md`
+> Based on requirements in `../../product/slash-command.md`
 
 ## Overview
 

@@ -32,7 +32,8 @@ warn() {
 collect_defined_slugs() {
   local dir="$1"
   if [ ! -d "$dir" ]; then return; fi
-  grep -rhoP '`(FR-[a-z0-9-]+|NFR-[a-z0-9-]+|AC-[a-z0-9-]+)`' "$dir"/*.md 2>/dev/null \
+  find "$dir" -name "*.md" -not -name "CLAUDE.md" -print0 2>/dev/null \
+    | xargs -0 grep -hoP '`(FR-[a-z0-9-]+|NFR-[a-z0-9-]+|AC-[a-z0-9-]+)`' 2>/dev/null \
     | tr -d '`' | sort -u || true
 }
 
@@ -40,7 +41,8 @@ collect_defined_slugs() {
 collect_referenced_slugs() {
   local dir="$1"
   if [ ! -d "$dir" ]; then return; fi
-  grep -rhoP '`(FR-[a-z0-9-]+|NFR-[a-z0-9-]+|AC-[a-z0-9-]+|TC-[a-z0-9-]+)`' "$dir"/*.md 2>/dev/null \
+  find "$dir" -name "*.md" -not -name "CLAUDE.md" -print0 2>/dev/null \
+    | xargs -0 grep -hoP '`(FR-[a-z0-9-]+|NFR-[a-z0-9-]+|AC-[a-z0-9-]+|TC-[a-z0-9-]+)`' 2>/dev/null \
     | tr -d '`' | sort -u || true
 }
 
@@ -82,10 +84,12 @@ qa_refs=$(collect_referenced_slugs "$QA_DIR")
 
 # Also check code comments for slug references
 code_refs=""
-if [ -d "$ENGINEERING_DIR/src" ]; then
-  code_refs=$(grep -rhoP '(FR-[a-z0-9-]+|NFR-[a-z0-9-]+|AC-[a-z0-9-]+)' "$ENGINEERING_DIR/src" 2>/dev/null \
-    | sort -u || true)
-fi
+for code_dir in "$ENGINEERING_DIR/apps" "$ENGINEERING_DIR/src"; do
+  if [ -d "$code_dir" ]; then
+    dir_refs=$(grep -rhoP '(FR-[a-z0-9-]+|NFR-[a-z0-9-]+|AC-[a-z0-9-]+)' "$code_dir" 2>/dev/null | sort -u || true)
+    code_refs=$(echo -e "${code_refs}\n${dir_refs}" | grep -v '^$' | sort -u || true)
+  fi
+done
 
 all_downstream_refs=$(echo -e "${design_refs}\n${engineering_refs}\n${qa_refs}\n${code_refs}" | grep -v '^$' | sort -u || true)
 

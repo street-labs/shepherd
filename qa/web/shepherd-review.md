@@ -1,8 +1,8 @@
 # Shepherd Review -- Test Plan
 
-> Based on requirements in `../product/shepherd-review.md`
-> Based on design in `../design/shepherd-review.md`
-> Based on technical spec in `../engineering/shepherd-review.md`
+> Based on requirements in `../../product/shepherd-review.md`
+> Based on design in `../../design/web/shepherd-review.md`
+> Based on technical spec in `../../engineering/web/shepherd-review.md`
 
 ## Coverage Matrix
 

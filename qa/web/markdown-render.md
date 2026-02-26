@@ -1,8 +1,8 @@
 # Markdown Rendered View -- Test Plan
 
-> Based on requirements in `../product/markdown-render.md`
-> Based on design in `../design/markdown-render.md`
-> Based on technical spec in `../engineering/markdown-render.md`
+> Based on requirements in `../../product/markdown-render.md`
+> Based on design in `../../design/web/markdown-render.md`
+> Based on technical spec in `../../engineering/web/markdown-render.md`
 
 ## Coverage Matrix
 

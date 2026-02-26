@@ -1,8 +1,8 @@
 # Slash Command Launcher -- Test Plan
 
-> Based on requirements in `../product/slash-command.md`
-> Based on design in `../design/slash-command.md`
-> Based on technical spec in `../engineering/slash-command.md`
+> Based on requirements in `../../product/slash-command.md`
+> Based on design in `../../design/web/slash-command.md`
+> Based on technical spec in `../../engineering/web/slash-command.md`
 
 ## Coverage Matrix
 

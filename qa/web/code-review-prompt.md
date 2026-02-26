@@ -1,8 +1,8 @@
 # Code Review Prompt Generator -- Test Plan
 
-> Based on requirements in `../product/code-review-prompt.md`
-> Based on design in `../design/code-review-prompt.md`
-> Based on technical spec in `../engineering/code-review-prompt.md`
+> Based on requirements in `../../product/code-review-prompt.md`
+> Based on design in `../../design/web/code-review-prompt.md`
+> Based on technical spec in `../../engineering/web/code-review-prompt.md`
 
 ## Coverage Matrix
 

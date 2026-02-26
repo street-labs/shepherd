@@ -2,11 +2,11 @@
 
 ## Overview
 
-The CRPG currently renders in a fixed light color scheme with no theming system. Dark mode adds a complete light/dark/system theme capability to the application. The default behavior respects the user's operating system preference via the `prefers-color-scheme` media query, so the app looks right from the first load without any configuration. Users can also manually override the theme (light, dark, or system) via a toggle in the toolbar, and the choice persists in `localStorage` so it survives page reloads.
+The CRPG currently renders in a fixed light color scheme with no theming system. Dark mode adds a complete light/dark/system theme capability to the application. The default behavior respects the user's operating system preference so the app looks right from the first load without any configuration. Users can also manually override the theme (light, dark, or system) via a toggle in the toolbar, and the choice persists locally so it survives reloads.
 
 **Why**: Developers overwhelmingly prefer dark-themed tooling, especially when working in dimly lit environments or alongside dark-themed editors and terminals. A code review tool that forces a bright white UI clashes with the surrounding workflow. Respecting the OS setting by default means the app integrates seamlessly without any setup.
 
-**Scope**: This is v1 of theming. It introduces the infrastructure (CSS custom properties, theme detection, persistence) and applies it across all existing UI surfaces. It does not include user-customizable accent colors, per-component theme overrides, or high-contrast accessibility modes beyond ensuring WCAG AA contrast ratios in both themes.
+**Scope**: This is v1 of theming. It introduces the infrastructure (theming tokens, theme detection, persistence) and applies it across all existing UI surfaces. It does not include user-customizable accent colors, per-component theme overrides, or high-contrast accessibility modes beyond ensuring WCAG AA contrast ratios in both themes.
 
 ## User Stories
 
@@ -30,22 +30,22 @@ The CRPG currently renders in a fixed light color scheme with no theming system.
 ### Functional Requirements
 
 #### `FR-dm-system-preference` -- Detect and apply OS theme preference
-On initial load, if no user override is stored, the application detects the OS color scheme preference via the `prefers-color-scheme` CSS media query and applies the matching theme (light or dark). This is the default behavior for new users.
+On initial load, if no user override is stored, the application detects the OS color scheme preference using the platform's standard mechanism for detecting OS color scheme and applies the matching theme (light or dark). This is the default behavior for new users.
 
 #### `FR-dm-manual-toggle` -- Manual theme toggle with three options
 The application provides a theme toggle control in the toolbar with three options: **Light**, **Dark**, and **System**. Selecting Light or Dark forces that theme regardless of OS setting. Selecting System returns to OS-tracking behavior. The currently active option is visually indicated.
 
-#### `FR-dm-persistence` -- Persist theme preference in localStorage
-The user's theme selection (light, dark, or system) is stored in `localStorage` under a well-known key. On subsequent page loads, the stored preference is read and applied before the first paint. If the stored value is "system", the OS preference is detected and applied. If `localStorage` is unavailable or the stored value is invalid, the app falls back to system preference detection. This is a deliberate, scoped exception to `NFR-crp-no-data-persistence`: theme preference is a UI setting, not user-generated session data.
+#### `FR-dm-persistence` -- Persist theme preference locally
+The user's theme selection (light, dark, or system) is persisted using local storage appropriate to the platform. On subsequent launches, the stored preference is read and applied before the first visible paint. If the stored value is "system", the OS preference is detected and applied. If local storage is unavailable or the stored value is invalid, the app falls back to system preference detection. This is a deliberate, scoped exception to `NFR-crp-no-data-persistence`: theme preference is a UI setting, not user-generated session data.
 
 #### `FR-dm-realtime-tracking` -- Real-time OS preference tracking
-When the active theme selection is "system", the application listens for changes to the OS `prefers-color-scheme` media query (via `matchMedia.addEventListener('change', ...)`) and updates the applied theme in real time without a page reload. When the user has selected an explicit Light or Dark override, OS changes are ignored.
+When the active theme selection is "system", the application listens for OS preference changes in real time and updates the applied theme in real time without a page reload. When the user has selected an explicit Light or Dark override, OS changes are ignored.
 
 #### `FR-dm-full-surface-coverage` -- Theme applies to all UI surfaces
 The active theme must be applied to every visual surface of the application, including but not limited to:
 - **Toolbar**: background, text, icons, button states
 - **Code viewer**: background, line numbers, gutter indicators, hover/selection highlights
-- **Syntax highlighting**: Shiki theme must switch between a light and dark variant (e.g., `github-light` / `github-dark` or equivalent)
+- **Syntax highlighting**: Syntax highlighting must switch between appropriate light and dark variants
 - **Comment bubbles**: background, text, border, action button states
 - **Inline comment editor**: input background, border, placeholder text, buttons
 - **Sidebar**: preamble input, prompt preview panel, section headers
@@ -57,30 +57,30 @@ The active theme must be applied to every visual surface of the application, inc
 
 No surface should remain hardcoded to a single color scheme.
 
-#### `FR-dm-css-custom-properties` -- Theme implemented via CSS custom properties
-The theme system must use CSS custom properties (CSS variables) as the mechanism for theming. All color values throughout the application reference these variables rather than hardcoded colors. Switching themes updates the variable values on the root element, and all surfaces update accordingly. This ensures a single, maintainable source of truth for color definitions.
+#### `FR-dm-css-custom-properties` -- Theme implemented via a structured theming mechanism
+The theme system must use a structured mechanism (such as design tokens or variables) as the foundation for theming. All color values throughout the application reference these tokens rather than hardcoded colors. Switching themes updates the token values, and all surfaces update accordingly. This ensures a single, maintainable source of truth for color definitions. The specific implementation mechanism is an engineering decision.
 
 ### Non-Functional Requirements
 
 #### `NFR-dm-no-fouc` -- No flash of wrong theme on load
-The correct theme must be applied before the first visible paint. The user must never see a flash of light theme that then switches to dark (or vice versa). This is achieved by reading `localStorage` and the `prefers-color-scheme` media query in a blocking `<script>` in `<head>` (before React renders) and setting the appropriate CSS class or attribute on `<html>`. The theme resolution logic must not depend on React hydration or any async operation.
+The correct theme must be applied before the first visible paint. The user must never see a flash of light theme that then switches to dark (or vice versa). This requires applying the theme before any UI renders. The mechanism for achieving this is an engineering decision, but it must not depend on the application framework's initialization.
 
 #### `NFR-dm-smooth-transition` -- Smooth theme transitions
-When the user manually toggles themes, the color changes should animate smoothly using CSS transitions (suggested: `transition: background-color 150ms ease, color 150ms ease` on key elements). The transition must not cause layout shifts. When the app first loads (applying the initial theme), no transition should occur -- transitions only apply to runtime theme switches.
+When the user manually toggles themes, the color changes should animate smoothly (smooth, brief animation). The transition must not cause layout shifts. When the app first loads (applying the initial theme), no transition should occur -- transitions only apply to runtime theme switches.
 
 #### `NFR-dm-syntax-highlight-both-themes` -- Syntax highlighting works in both themes
-Syntax highlighting must be readable and visually appropriate in both light and dark themes. This requires loading or switching between two Shiki themes (one light, one dark). Token colors must have sufficient contrast against the code viewer background in both modes. The theme switch must not require re-parsing the file (Shiki supports dual-theme via CSS variables or `getHighlighter` with multiple themes).
+Syntax highlighting must be readable and visually appropriate in both light and dark themes. The syntax highlighting engine must support both light and dark color schemes. Token colors must have sufficient contrast against the code viewer background in both modes. The mechanism for switching themes is an engineering decision.
 
 #### `NFR-dm-contrast-ratios` -- Sufficient contrast ratios in both themes
 All text and interactive elements must meet WCAG 2.1 AA contrast requirements (minimum 4.5:1 for normal text, 3:1 for large text and UI components) in both light and dark themes. This applies to all surfaces listed in `FR-dm-full-surface-coverage`.
 
 #### `NFR-dm-no-performance-impact` -- No measurable performance impact
-The theming system must not degrade existing performance benchmarks. Specifically: initial render time (`NFR-crp-render-time`), prompt generation time (`NFR-crp-prompt-gen-time`), and large file scrolling performance (`NFR-crp-large-file-perf`) must remain within their existing thresholds. CSS custom property lookups are resolved by the browser's style engine and should have negligible overhead.
+The theming system must not degrade existing performance benchmarks. Specifically: initial render time (`NFR-crp-render-time`), prompt generation time (`NFR-crp-prompt-gen-time`), and large file scrolling performance (`NFR-crp-large-file-perf`) must remain within their existing thresholds. Theme token lookups should have negligible overhead.
 
 ## Acceptance Criteria
 
 #### `AC-dm-default-respects-system` -- Default theme matches OS setting
-**Given** the user has never visited the app before (no `localStorage` entry) and their OS is set to dark mode, **when** the app loads, **then** the app renders in dark mode with no intermediate flash of light mode.
+**Given** the user has never used the app before (no stored preference) and their OS is set to dark mode, **when** the app loads, **then** the app renders in dark mode with no intermediate flash of light mode.
 
 #### `AC-dm-default-light-system` -- Default is light when OS is light
 **Given** the user has never visited the app before and their OS is set to light mode, **when** the app loads, **then** the app renders in light mode.
@@ -127,20 +127,17 @@ The theming system must not degrade existing performance benchmarks. Specificall
 #### `AC-dm-no-fouc` -- No flash of wrong theme on initial load
 **Given** the user's stored preference is "Dark" (or system is dark with "System" stored), **when** the page loads and renders, **then** there is no visible flash of a light background that then transitions to dark. The initial paint is already dark.
 
-#### `AC-dm-localstorage-unavailable` -- Graceful fallback without localStorage
-**Given** `localStorage` is unavailable (e.g., private browsing in some browsers), **when** the app loads, **then** the app falls back to detecting the OS preference and applies the matching theme. The theme toggle still works for the current session (changes are not persisted).
+#### `AC-dm-localstorage-unavailable` -- Graceful fallback without local storage
+**Given** local storage is unavailable, **when** the app loads, **then** the app falls back to detecting the OS preference and applies the matching theme. The theme toggle still works for the current session (changes are not persisted).
 
 #### `AC-dm-keyboard-toggle` -- Theme toggle is keyboard accessible
 **Given** the user is navigating with the keyboard, **when** the user tabs to the theme toggle and interacts with it, **then** the user can cycle through Light/Dark/System options without using a mouse.
 
 ## Open Questions
 
-No open questions. The scope is well-defined and the implementation approach (CSS custom properties, `prefers-color-scheme` media query, `localStorage` persistence, blocking script for FOUC prevention) is a well-established pattern.
+No open questions. The scope is well-defined. The implementation approach is an engineering decision.
 
 ## Dependencies
 
-- **Shiki dual-theme support** (`FR-crp-syntax-highlight`): Shiki must be configured to support two themes (one light, one dark). Shiki supports this via CSS variables mode or by loading multiple themes with `createHighlighter`. The engineering spec will determine the exact approach.
-- **Existing CSS architecture**: The app currently uses hardcoded color values. This feature requires migrating all color references to CSS custom properties -- a prerequisite refactoring step.
-- **Scoped exception to `NFR-crp-no-data-persistence`**: Theme preference persistence in `localStorage` is explicitly permitted as a UI-settings-only exception. This does not set a precedent for persisting session data (file content, comments, preamble).
-- **Browser `prefers-color-scheme` support**: Supported in all browsers covered by `NFR-crp-browser-support` (Chrome, Firefox, Safari, Edge -- all latest stable versions).
-- **Browser `matchMedia` change event**: Required for `FR-dm-realtime-tracking`. Supported in all target browsers.
+- **Syntax highlighting dual-theme support** (`FR-crp-syntax-highlight`): The syntax highlighting engine must support two themes (one light, one dark). The engineering spec determines the approach.
+- **Scoped exception to `NFR-crp-no-data-persistence`**: Theme preference persistence is explicitly permitted as a UI-settings-only exception. This does not set a precedent for persisting session data.
