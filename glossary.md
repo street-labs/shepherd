@@ -379,6 +379,76 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: Separation of concerns (in the spec context)
 **Not to be confused with**: Code separation of concerns (which is an engineering pattern within a single codebase)
 
+## TCA
+**Definition**: The Composable Architecture — a SwiftUI state management framework used in the macOS app. Provides unidirectional data flow, exhaustive testability via TestStore, controlled side effects via @Dependency, and a composable reducer tree. Every state transition is explicit and testable. Used exclusively in the macOS platform engineering implementation.
+**Also known as**: The Composable Architecture
+**Not to be confused with**: MVC or other architecture patterns (TCA is specifically a Swift/SwiftUI pattern)
+
+## Reducer (TCA)
+**Definition**: In TCA, a pure function that takes the current state and an action, and returns an updated state along with any effects to execute. Reducers compose into a tree structure mirroring the application's feature hierarchy. The root AppFeature reducer composes child feature reducers (FileBrowserFeature, CodeViewerFeature, etc.) using Scope. All state mutations happen within reducers.
+**Also known as**: TCA reducer
+**Not to be confused with**: JavaScript reducers (similar concept, different ecosystem)
+
+## TreeSitter
+**Definition**: A native syntax highlighting engine used in the macOS app. Parses source code using language-specific grammars to produce syntax tokens. Runs on a background thread to avoid blocking UI rendering. Supports all 13 required programming languages. The web platform uses Shiki (which is built on TreeSitter WASM); the macOS platform uses swift-tree-sitter (native TreeSitter bindings).
+**Also known as**: swift-tree-sitter (Swift bindings), TreeSitterHighlighter (the app's singleton)
+**Not to be confused with**: Shiki (the web platform's syntax highlighter)
+
+## Inspector (macOS)
+**Definition**: The right sidebar panel in the macOS app. Contains the ReviewContextSection (overall changeset context), Overall Comment editor, and Preview/All Comments tabs. Default width 340pt. Uses native macOS sidebar material and styling. The term "inspector" follows macOS conventions for detail/configuration sidebars.
+**Also known as**: Inspector sidebar, right sidebar (macOS)
+**Not to be confused with**: Sidebar (generic term used on web), file browser sidebar (the left panel in multi-file mode)
+
+## Source List
+**Definition**: A macOS sidebar style using vibrant background material under the sidebar appearance. The macOS file browser sidebar uses source list styling — standard for file/navigation trees in macOS apps. Provides selection highlighting, hover states, and tree disclosure indicators following macOS conventions.
+**Also known as**: NSTableView source list (AppKit term)
+**Not to be confused with**: Generic sidebar or tree view (source list is specifically a macOS UI pattern)
+
+## SF Symbols
+**Definition**: Apple's system icon library used throughout the macOS app. Provides vector icons that automatically adapt to system appearance (light/dark) and accessibility settings (high contrast, large text). Examples in the app: doc.badge.plus (Open button), checkmark.circle.fill (Done button), trash (delete), pencil (edit). All toolbar and menu icons use SF Symbols.
+**Also known as**: San Francisco Symbols
+**Not to be confused with**: Custom icons or icon fonts (SF Symbols are system-provided and platform-native)
+
+## NavigationSplitView
+**Definition**: A SwiftUI component that creates a three-column layout with resizable dividers. Used in the macOS app for multi-file mode (file browser, code viewer, inspector). Provides native split view behavior: user-resizable columns, keyboard accessibility, and state restoration. The split view divider between file browser and code viewer implements FR-crp-panel-resize.
+**Also known as**: Three-column split view
+**Not to be confused with**: HSplitView (two-column split view used in single-file mode)
+
+## Feature Module (TCA)
+**Definition**: A self-contained Swift package target representing a single functional area in the TCA architecture. Each feature module has its own reducer, state, actions, and views. Examples: FileBrowserFeature, CodeViewerFeature, InspectorFeature. Feature modules compose into the root AppFeature using Scope. Enables independent testing and clear boundaries between features.
+**Also known as**: TCA feature, reducer module
+**Not to be confused with**: React components or web modules (feature modules are TCA-specific)
+
+## TestStore (TCA)
+**Definition**: A TCA testing utility that provides exhaustive verification of state changes and effects. Used to test every reducer in the macOS app. TestStore assertions fail if any state mutation is unaccounted for or if effects don't match expectations. Supports dependency injection for deterministic testing with no mocks. The test pattern is: send action → assert state change → receive effect result action → assert state change.
+**Also known as**: TCA TestStore
+**Not to be confused with**: XCTest (the underlying testing framework — TestStore is a TCA-specific layer on top of it)
+
+## Native Menu Bar
+**Definition**: The macOS menu bar integration in the Shepherd app. Provides standard menus (Shepherd, File, Edit, View, Review, Window, Help) with keyboard shortcuts. Menu items reflect application state — for example, Copy Prompt is disabled when no comments exist. All keyboard shortcuts are discoverable through the menu bar. Defined using SwiftUI's @CommandsBuilder.
+**Also known as**: macOS menu bar
+**Not to be confused with**: Toolbar (the visual bar at the top of the window — the menu bar is the system-level menu at the top of the screen)
+
+## App Bundle
+**Definition**: The macOS application distribution format. A directory structure (Shepherd.app) containing the executable, resources, and metadata (Info.plist). Users install by dragging the .app bundle to /Applications. The bundle is signed with a Developer ID certificate and notarized for Gatekeeper compatibility. Distributed as a .dmg or .zip file.
+**Also known as**: .app bundle, application bundle
+**Not to be confused with**: Executable binary (the app bundle contains the binary plus all resources)
+
+## Developer ID
+**Definition**: An Apple-issued code signing certificate used to sign macOS applications distributed outside the App Store. The Shepherd app is signed with a Developer ID certificate, enabling Gatekeeper to verify the app's authenticity. Without Developer ID signing, users would see "unidentified developer" warnings on first launch.
+**Also known as**: Developer ID certificate
+**Not to be confused with**: App Store distribution (Developer ID is for direct distribution, not the App Store)
+
+## Notarization
+**Definition**: An Apple security process that scans macOS applications for malicious content and issues a notarization ticket. The Shepherd app is notarized via notarytool after code signing. Notarization is required for Gatekeeper to allow the app to run without warnings on macOS 10.15+. The notarization ticket is stapled to the .app bundle before distribution.
+**Also known as**: Apple notarization, notarytool process
+**Not to be confused with**: Code signing (notarization happens after signing and is a separate verification step)
+
+## Gatekeeper
+**Definition**: The macOS security system that verifies downloaded applications before allowing them to run. Checks for code signing and notarization. The Shepherd app must be signed with a Developer ID and notarized to pass Gatekeeper verification. When properly signed/notarized, users can open the app without encountering "unidentified developer" warnings (AC-crp-macos-signed-notarized).
+**Also known as**: macOS Gatekeeper
+**Not to be confused with**: macOS sandboxing (a separate security mechanism for App Store apps)
+
 <!--
 Entry template:
 

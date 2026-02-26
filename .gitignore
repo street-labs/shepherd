@@ -1,1 +1,5 @@
 decisions-pending.md
+
+# Swift Package Manager
+.build/
+.swiftpm/

@@ -20,7 +20,7 @@ This project supports multiple target platforms. Each platform may have its own 
 | Platform ID | Description | Status |
 |---|---|---|
 | `web` | Browser-based SPA (React/Vite) | Active — all features |
-| `macos` | Native macOS app (SwiftUI) | Planned |
+| `macos` | Native macOS app (SwiftUI + TCA) | Active — core CRPG feature |
 
 New platforms are added by updating this table and following the conventions below.
 
