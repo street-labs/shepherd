@@ -1,4 +1,3 @@
-// Implements: FR-mdr-element-id
 
 import type { Root, RootContent } from 'mdast';
 import type { AstBlockElement, ElementSourceMapping, ElementId } from '@/types';
@@ -6,6 +5,7 @@ import type { AstBlockElement, ElementSourceMapping, ElementId } from '@/types';
 /**
  * Recursively extract all text content from an mdast node.
  */
+// Implements: FR-mdr-element-id
 function extractTextContent(node: RootContent | Root): string {
   if ('value' in node && typeof node.value === 'string') {
     return node.value;

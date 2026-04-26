@@ -1,4 +1,3 @@
-// Implements: FR-mdr-rendered-diff-display
 
 import { useState } from 'react';
 import { ElementCommentAnchor } from './ElementCommentAnchor';
@@ -12,6 +11,7 @@ interface RenderedDiffBlockProps {
   children?: React.ReactNode;
 }
 
+// Implements: FR-mdr-rendered-diff-display
 function renderWordDiff(segments: WordDiffSegment[]): React.ReactNode {
   return segments.map((seg, i) => {
     if (seg.added) {

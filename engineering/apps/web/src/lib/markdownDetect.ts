@@ -1,4 +1,3 @@
-// Implements: FR-mdr-detect-markdown
 
 const MARKDOWN_EXTENSIONS = new Set([
   '.md',
@@ -12,6 +11,7 @@ const MARKDOWN_EXTENSIONS = new Set([
 /**
  * Checks whether a file name has a markdown extension (case-insensitive).
  */
+// Implements: FR-mdr-detect-markdown
 export function isMarkdownFile(fileName: string): boolean {
   const lastDot = fileName.lastIndexOf('.');
   if (lastDot === -1) return false;

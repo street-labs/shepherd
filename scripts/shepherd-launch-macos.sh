@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Implements: FR-sc-mac-launch, FR-sc-mac-session-handoff, FR-sc-mac-invoke-command
 #
 # Launches the macOS Code Review Prompt Generator (CRPG) for one or more files.
 # Validates each file, writes a session.json staging file, then opens the
@@ -28,6 +27,7 @@ fi
 
 # --- Resolve path helper ---
 
+# Implements: FR-sc-mac-launch, FR-sc-mac-session-handoff, FR-sc-mac-invoke-command
 resolve_path() {
   if command -v realpath &>/dev/null; then
     realpath "$1" 2>/dev/null && return 0

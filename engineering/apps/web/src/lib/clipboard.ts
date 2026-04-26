@@ -1,9 +1,9 @@
-// Implements: FR-crp-prompt-copy, AC-crp-copy-clipboard
 
 /**
  * Copies text to the clipboard using the modern Clipboard API,
  * falling back to execCommand for older browsers or denied permissions.
  */
+// Implements: FR-crp-prompt-copy, AC-crp-copy-clipboard
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);

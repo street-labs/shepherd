@@ -1,6 +1,6 @@
-// Implements: FR-mdr-rendered-diff-display
 
 export function RenderedDiffLoadingState() {
+  // Implements: FR-mdr-rendered-diff-display
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-secondary">
       <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />

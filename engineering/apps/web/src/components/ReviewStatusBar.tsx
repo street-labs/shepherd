@@ -1,8 +1,8 @@
-// Implements: FR-crp-file-reviewed-toggle, FR-crp-file-reviewed-visual
 
 import { useAppStore } from '@/store/appStore';
 
 export function ReviewStatusBar() {
+  // Implements: FR-crp-file-reviewed-toggle, FR-crp-file-reviewed-visual
   const activeFileId = useAppStore((s) => s.activeFileId);
   const reviewedFiles = useAppStore((s) => s.reviewedFiles);
   const toggleFileReviewed = useAppStore((s) => s.toggleFileReviewed);

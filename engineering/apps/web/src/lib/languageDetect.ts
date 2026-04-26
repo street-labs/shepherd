@@ -1,4 +1,3 @@
-// Implements: FR-crp-syntax-highlight
 
 const EXTENSION_MAP: Record<string, string> = {
   '.js': 'javascript',
@@ -35,6 +34,7 @@ const EXTENSION_MAP: Record<string, string> = {
  * Detects the programming language from a file name by matching its extension.
  * Returns the Shiki language identifier, or "plaintext" if unrecognized.
  */
+// Implements: FR-crp-syntax-highlight
 export function detectLanguage(fileName: string): string {
   const lastDot = fileName.lastIndexOf('.');
   if (lastDot === -1) return 'plaintext';

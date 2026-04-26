@@ -1,9 +1,9 @@
-// Implements: FR-diff-empty-state, AC-diff-no-changes
 
 interface DiffEmptyStateProps {
   onSwitchToFile: () => void;
 }
 
+// Implements: FR-diff-empty-state, AC-diff-no-changes
 export function DiffEmptyState({ onSwitchToFile }: DiffEmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8">

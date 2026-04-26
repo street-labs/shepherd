@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Implements: FR-sc-install, AC-sc-install-global, FR-sr-install, AC-sr-install-global
 #
 # Installs the /shepherd and /shepherd-review slash commands globally for Claude Code and opencode
 # by creating symlinks from ~/.claude/commands/ and ~/.config/opencode/skills/ to this repo's command files.
@@ -48,6 +47,7 @@ ALREADY=0
 ERRORS=0
 
 # Helper function to install a symlink
+# Implements: FR-sc-install, AC-sc-install-global, FR-sr-install, AC-sr-install-global
 install_symlink() {
   local source_file="$1"
   local target_file="$2"

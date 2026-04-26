@@ -1,9 +1,9 @@
-// Implements: FR-crp-prompt-preamble, FR-crp-prompt-preamble
 
 import { useAppStore } from '@/store/appStore';
 import { useState } from 'react';
 
 export function PreambleInput() {
+  // Implements: FR-crp-prompt-preamble
   const preamble = useAppStore((s) => s.preamble);
   const setPreamble = useAppStore((s) => s.setPreamble);
   const [isExpanded, setIsExpanded] = useState(false);

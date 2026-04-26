@@ -1,4 +1,3 @@
-// Implements: FR-crp-clear-session, AC-crp-clear-confirmation
 
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -11,6 +10,7 @@ interface ConfirmationDialogProps {
   onCancel: () => void;
 }
 
+// Implements: FR-crp-clear-session, AC-crp-clear-confirmation
 export function ConfirmationDialog({
   title,
   message,

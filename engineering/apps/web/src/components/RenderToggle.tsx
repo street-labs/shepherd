@@ -1,4 +1,3 @@
-// Implements: FR-mdr-render-toggle
 
 import type { RenderMode } from '@/types';
 
@@ -8,6 +7,7 @@ interface RenderToggleProps {
   onModeChange: (mode: RenderMode) => void;
 }
 
+// Implements: FR-mdr-render-toggle
 export function RenderToggle({ activeMode, isVisible, onModeChange }: RenderToggleProps) {
   if (!isVisible) return null;
 

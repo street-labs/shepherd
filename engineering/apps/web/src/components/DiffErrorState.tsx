@@ -1,10 +1,10 @@
-// Implements: FR-diff-baseline-fetch
 
 interface DiffErrorStateProps {
   errorMessage: string;
   onRetry: () => void;
 }
 
+// Implements: FR-diff-baseline-fetch
 export function DiffErrorState({ errorMessage, onRetry }: DiffErrorStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8">

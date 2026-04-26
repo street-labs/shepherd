@@ -1,4 +1,3 @@
-// Implements: FR-mdr-render-commonmark, FR-mdr-rendered-comment-create, FR-mdr-rendered-comment-prompt
 
 import { useAppStore } from '@/store/appStore';
 import { RenderedBlockElement } from './RenderedBlockElement';
@@ -7,6 +6,7 @@ import { InlineCommentEditor } from './InlineCommentEditor';
 import { useEffect, useRef, useCallback } from 'react';
 import type { ElementId, RenderedComment } from '@/types';
 
+// Implements: FR-mdr-render-commonmark, FR-mdr-rendered-comment-create, FR-mdr-rendered-comment-prompt
 export function RenderedViewer() {
   const astElements = useAppStore((s) => s.astElements);
   const renderedHtml = useAppStore((s) => s.renderedHtml);

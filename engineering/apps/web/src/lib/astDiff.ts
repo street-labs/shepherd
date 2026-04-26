@@ -1,4 +1,3 @@
-// Implements: FR-mdr-rendered-diff-display
 
 import { diffWords } from 'diff';
 import { parseMarkdownToAst } from './markdownPipeline';
@@ -11,6 +10,7 @@ const MODIFIED_OVERLAP_THRESHOLD = 0.3; // >30% word overlap → "modified" not 
 /**
  * Flatten an AST into block elements with assigned IDs.
  */
+// Implements: FR-mdr-rendered-diff-display
 function flattenAst(source: string): AstBlockElement[] {
   const ast = parseMarkdownToAst(source);
   const lines = source.split('\n');

@@ -1,4 +1,3 @@
-// Implements: FR-sc-auto-load-file, AC-sc-session-clear-on-new-file
 
 import { useEffect, useState } from 'react';
 import { useAppStore } from '@/store/appStore';
@@ -15,6 +14,7 @@ interface FileFromUrlState {
  * added as tabs via addFile. Each file's path is stored in the
  * serverFilePaths map so setActiveFile can restore it on tab switch.
  */
+// Implements: FR-sc-auto-load-file, AC-sc-session-clear-on-new-file
 export function useFileFromUrl(): FileFromUrlState {
   const [state, setState] = useState<FileFromUrlState>({ loading: false, error: null });
   const loadFile = useAppStore((s) => s.loadFile);

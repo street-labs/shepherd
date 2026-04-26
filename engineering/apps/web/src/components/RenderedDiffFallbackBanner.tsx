@@ -1,4 +1,3 @@
-// Implements: FR-mdr-rendered-diff-display
 
 import { useState } from 'react';
 
@@ -6,6 +5,7 @@ interface RenderedDiffFallbackBannerProps {
   onSwitchToRawDiff: () => void;
 }
 
+// Implements: FR-mdr-rendered-diff-display
 export function RenderedDiffFallbackBanner({ onSwitchToRawDiff }: RenderedDiffFallbackBannerProps) {
   const [dismissed, setDismissed] = useState(false);
 

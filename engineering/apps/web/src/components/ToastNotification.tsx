@@ -1,4 +1,3 @@
-// Implements: AC-crp-copy-clipboard
 
 import { useAppStore } from '@/store/appStore';
 import { useEffect } from 'react';
@@ -6,6 +5,7 @@ import { createPortal } from 'react-dom';
 
 const AUTO_DISMISS_MS = 3000;
 
+// Implements: AC-crp-copy-clipboard
 export function ToastNotification() {
   const toast = useAppStore((s) => s.toast);
   const dismissToast = useAppStore((s) => s.dismissToast);

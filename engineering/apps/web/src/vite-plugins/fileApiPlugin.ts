@@ -1,4 +1,3 @@
-// Implements: FR-sc-file-api, FR-sc-file-validation, FR-sc-auto-load-file, FR-diff-baseline-fetch
 
 import type { Plugin } from 'vite';
 import type { ServerResponse, IncomingMessage } from 'http';
@@ -9,6 +8,7 @@ import { execFile, execFileSync } from 'child_process';
 
 const BINARY_CHECK_BYTES = 8192;
 
+// Implements: FR-sc-file-api, FR-sc-file-validation, FR-sc-auto-load-file, FR-diff-baseline-fetch
 function isBinaryBuffer(buffer: Buffer): boolean {
   const limit = Math.min(buffer.length, BINARY_CHECK_BYTES);
   for (let i = 0; i < limit; i++) {

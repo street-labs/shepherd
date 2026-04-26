@@ -1,4 +1,3 @@
-// Implements: FR-mdr-render-commonmark, NFR-mdr-xss-safety
 
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
@@ -40,6 +39,7 @@ const customSchema = {
 /**
  * Parse markdown source into an mdast AST.
  */
+// Implements: FR-mdr-render-commonmark, NFR-mdr-xss-safety
 export function parseMarkdownToAst(source: string): Root {
   return unified().use(remarkParse).use(remarkGfm).parse(source) as Root;
 }

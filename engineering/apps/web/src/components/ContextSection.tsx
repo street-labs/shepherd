@@ -1,10 +1,10 @@
-// Implements: FR-crp-review-context-display
 
 interface ContextSectionProps {
   variant: 'neutral' | 'review';
   content: string;
 }
 
+// Implements: FR-crp-review-context-display
 export function ContextSection({ variant, content }: ContextSectionProps) {
   if (!content.trim()) return null;
 

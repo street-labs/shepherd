@@ -1,4 +1,3 @@
-// Implements: FR-crp-multi-file-nav
 
 import type { FileInfo, FileTreeNode } from '@/types';
 
@@ -7,6 +6,7 @@ import type { FileInfo, FileTreeNode } from '@/types';
  * Returns the common prefix ending with '/'. If there's only one path,
  * returns its directory. If no common prefix, returns '/'.
  */
+// Implements: FR-crp-multi-file-nav
 function findCommonPrefix(paths: string[]): string {
   if (paths.length === 0) return '';
   if (paths.length === 1) {

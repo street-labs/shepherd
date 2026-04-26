@@ -1,4 +1,3 @@
-// Implements: FR-crp-comment-summary
 
 import { useAppStore } from '@/store/appStore';
 
@@ -7,6 +6,7 @@ import { useAppStore } from '@/store/appStore';
  * Shows every comment across all files, grouped by file in fileOrder.
  * Clicking a comment navigates to that file and focuses the comment.
  */
+// Implements: FR-crp-comment-summary
 export function CommentSummary() {
   const files = useAppStore((s) => s.files);
   const fileOrder = useAppStore((s) => s.fileOrder);

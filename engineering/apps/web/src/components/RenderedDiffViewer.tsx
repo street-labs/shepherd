@@ -1,4 +1,3 @@
-// Implements: FR-mdr-rendered-diff-display, FR-mdr-rendered-diff-comment
 
 import { useAppStore } from '@/store/appStore';
 import { RenderedDiffBlock } from './RenderedDiffBlock';
@@ -9,6 +8,7 @@ import { InlineCommentEditor } from './InlineCommentEditor';
 import { useEffect } from 'react';
 import type { RenderedDiffComment } from '@/types';
 
+// Implements: FR-mdr-rendered-diff-display, FR-mdr-rendered-diff-comment
 export function RenderedDiffViewer() {
   const astDiffResult = useAppStore((s) => s.astDiffResult);
   const isAstDiffComputing = useAppStore((s) => s.isAstDiffComputing);

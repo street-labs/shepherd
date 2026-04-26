@@ -1,4 +1,3 @@
-// Implements: FR-mdr-rendered-comment-create
 
 import { useState } from 'react';
 import { ElementCommentAnchor } from './ElementCommentAnchor';
@@ -14,6 +13,7 @@ interface RenderedBlockElementProps {
   children?: React.ReactNode;
 }
 
+// Implements: FR-mdr-rendered-comment-create
 export function RenderedBlockElement({
   elementId,
   elementType,

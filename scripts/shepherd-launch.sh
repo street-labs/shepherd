@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Implements: FR-sc-launcher-script, FR-sc-file-validation, FR-sc-app-serve, FR-sc-browser-open
 #
 # Launches the Code Review Prompt Generator (CRPG) for one or more files.
 # Validates each file, ensures the Vite dev server is running, and opens
@@ -48,6 +47,7 @@ fi
 
 # --- Resolve path helper ---
 
+# Implements: FR-sc-launcher-script, FR-sc-file-validation, FR-sc-app-serve, FR-sc-browser-open
 resolve_path() {
   if command -v realpath &>/dev/null; then
     realpath "$1" 2>/dev/null && return 0

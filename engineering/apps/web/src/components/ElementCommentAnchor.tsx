@@ -1,4 +1,3 @@
-// Implements: FR-mdr-rendered-comment-create
 
 interface ElementCommentAnchorProps {
   elementId: string;
@@ -10,6 +9,7 @@ interface ElementCommentAnchorProps {
   onClick: () => void;
 }
 
+// Implements: FR-mdr-rendered-comment-create
 export function ElementCommentAnchor({
   elementType,
   contentPreview,

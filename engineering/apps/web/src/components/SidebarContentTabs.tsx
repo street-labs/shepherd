@@ -1,10 +1,10 @@
-// Implements: FR-crp-comment-summary
 
 import { useAppStore } from '@/store/appStore';
 
 /**
  * Two-tab switcher for the sidebar content area: "Preview" and "All Comments (N)".
  */
+// Implements: FR-crp-comment-summary
 export function SidebarContentTabs() {
   const sidebarTab = useAppStore((s) => s.sidebarTab);
   const setSidebarTab = useAppStore((s) => s.setSidebarTab);

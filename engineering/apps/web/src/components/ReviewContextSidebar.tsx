@@ -1,4 +1,3 @@
-// Implements: FR-crp-review-context-overall, FR-crp-review-context-collapsible
 
 import { useAppStore } from '@/store/appStore';
 import { ContextSection } from '@/components/ContextSection';
@@ -8,6 +7,7 @@ import { ContextSection } from '@/components/ContextSection';
  * Shows the agent's overall summary (neutral + review) for the entire changeset.
  * Per-file context lives in ReviewContextPanel (in the code viewer area).
  */
+// Implements: FR-crp-review-context-overall, FR-crp-review-context-collapsible
 export function ReviewContextSidebar() {
   const reviewContext = useAppStore((s) => s.reviewContext);
   const isCollapsed = useAppStore((s) => s.isReviewContextSidebarCollapsed);

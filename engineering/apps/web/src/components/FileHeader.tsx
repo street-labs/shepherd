@@ -1,9 +1,9 @@
-// Implements: FR-crp-filename-display
 
 import { useAppStore } from '@/store/appStore';
 import { useState } from 'react';
 
 export function FileHeader() {
+  // Implements: FR-crp-filename-display
   const file = useAppStore((s) => s.file);
   const updateFileName = useAppStore((s) => s.updateFileName);
   const [isEditing, setIsEditing] = useState(false);

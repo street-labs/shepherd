@@ -1,4 +1,3 @@
-// Implements: FR-crp-review-context-collapsible, FR-crp-review-context-per-file
 
 import { useAppStore } from '@/store/appStore';
 import { ContextSection } from '@/components/ContextSection';
@@ -8,6 +7,7 @@ import { ContextSection } from '@/components/ContextSection';
  * Only shows context for the currently active file — overall changeset context
  * lives in ReviewContextSidebar (near the preamble).
  */
+// Implements: FR-crp-review-context-collapsible, FR-crp-review-context-per-file
 export function ReviewContextPanel() {
   const reviewContext = useAppStore((s) => s.reviewContext);
   const isCollapsed = useAppStore((s) => s.isReviewContextCollapsed);
