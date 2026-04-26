@@ -67,7 +67,7 @@
 - **Covers**: `AC-sr-happy-path`, `AC-sr-batch-open`, `AC-sr-auto-open`, `FR-sr-changeset-detection`, `FR-sr-iteration-loop`, `NFR-sr-agent-native`
 - **Preconditions**: The user is on a feature branch that has 5 modified source files (e.g., `.ts`, `.tsx`, `.py`) and 3 excluded files (e.g., `package-lock.json`, `dist/bundle.js`, `logo.png`) relative to `main`. The `shepherd-launch.sh` script is functional. The CRPG dev server is running or will be started by the launch script.
 - **Steps**:
-  1. Open a Claude Code session inside the repository.
+  1. Open a Claude Code or opencode session inside the repository.
   2. Type `/shepherd-review`.
   3. Observe the agent output. Verify a brief summary is displayed: the scope label (e.g., "all changes vs main"), the file count ("Opening 5 files for review"), and a note about excluded files (e.g., "3 excluded"). There is no detailed file list, no per-file context, and no confirmation prompt.
   4. Verify the CRPG auto-opens immediately after the brief summary -- no "Ready to start?" or "go" prompt appears.
@@ -523,7 +523,7 @@
 - **Covers**: `AC-sr-not-git-repo`, `FR-sr-git-required`
 - **Preconditions**: The working directory is not inside a git repository (e.g., `/tmp/not-a-repo/`).
 - **Steps**:
-  1. Open a Claude Code session with the working directory set to a non-git directory.
+  1. Open a Claude Code or opencode session with the working directory set to a non-git directory.
   2. Type `/shepherd-review`.
 - **Expected Result**: The agent outputs exactly:
   ```
@@ -672,8 +672,8 @@
   1. Run `./scripts/install-command.sh`.
   2. Check that `~/.claude/commands/shepherd-review.md` exists.
   3. Verify it is a symlink pointing to `<repo>/.claude/commands/shepherd-review.md`.
-  4. Type `/shepherd-review` in a Claude Code session (in any git repository) to verify the command is available.
-- **Expected Result**: The symlink exists at `~/.claude/commands/shepherd-review.md` and points to the correct file in the repository. The `/shepherd-review` command is recognized by Claude Code and begins execution (git check, changeset detection, etc.).
+  4. Type `/shepherd-review` in a Claude Code or opencode session (in any git repository) to verify the command is available.
+- **Expected Result**: The symlink exists at `~/.claude/commands/shepherd-review.md` and points to the correct file in the repository. The `/shepherd-review` command is recognized by Claude Code or opencode and begins execution (git check, changeset detection, etc.).
 - **Edge Cases**:
   - Running the install script when the symlink already exists: should overwrite or re-create the symlink without error.
   - Running the install script when `~/.claude/commands/` directory does not exist: the script should create the directory.
@@ -1018,8 +1018,8 @@
 - **Covers**: `AC-sc-concurrent-sessions`, `FR-sc-session-scoped-output`
 - **Preconditions**: Two separate worktrees of a repository exist, each on a different feature branch with different changed files. The `/shepherd-review` command is available in both.
 - **Steps**:
-  1. Open a Claude Code session in worktree A. Run `/shepherd-review`. Note the session ID and port.
-  2. Open a Claude Code session in worktree B. Run `/shepherd-review`. Note the session ID and port.
+  1. Open a Claude Code or opencode session in worktree A. Run `/shepherd-review`. Note the session ID and port.
+  2. Open a Claude Code or opencode session in worktree B. Run `/shepherd-review`. Note the session ID and port.
   3. Verify both CRPG browser windows are open, each showing their respective set of changed files.
   4. In CRPG window A, add comments on 2 files.
   5. In CRPG window B, add comments on 3 files.

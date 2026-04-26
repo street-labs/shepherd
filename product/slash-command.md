@@ -6,7 +6,7 @@ A slash command (`/shepherd`) that lets developers launch the Code Review Prompt
 
 This eliminates the friction of switching context between the AI agent conversation and the CRPG. The current workflow requires the developer to remember the app's URL or how to start it, open it manually, and then load the file through drag-and-drop, upload, or paste. The slash command collapses that into a single command issued from the place the developer is already working.
 
-The slash command is distributed as a command file in the Shepherd repository (`.claude/commands/shepherd.md`). It works with AI coding agents that support custom slash commands or skills, such as Claude Code. Within the repo it is available automatically; a symlink script provides global availability.
+The slash command is distributed as a command file in the Shepherd repository (`.claude/commands/shepherd.md`). It works with AI coding agents that support custom slash commands or skills, such as Claude Code or opencode. Within the repo it is available automatically; a symlink script provides global availability.
 
 ## User Stories
 
@@ -61,7 +61,7 @@ When the CRPG starts (or is already open) and receives a file path via the launc
 The local server exposes a mechanism for the CRPG to read files from the local filesystem and return their content as plain text. This is what the CRPG calls when it receives a file path via the launch mechanism. The mechanism only accepts requests from `localhost`. It applies the same binary detection check as `FR-sc-file-validation` and rejects binary files. Files that do not exist or are not readable are rejected with appropriate errors.
 
 #### `FR-sc-install` -- Available via repository command file
-The slash command lives at `.claude/commands/shepherd.md` in the Shepherd repository. When working inside the repo, it is automatically available as a project-level command — no installation required. For global availability (so `/shepherd` works from any directory), a script (`scripts/install-command.sh`) creates a symlink from `~/.claude/commands/shepherd.md` to the repo's `.claude/commands/shepherd.md`. Because the global command is a symlink, running `git pull` in the repo automatically updates the command everywhere. No npm package or standalone CLI binary is needed for Claude Code users.
+The slash command lives at `.claude/commands/shepherd.md` in the Shepherd repository. When working inside the repo, it is automatically available as a project-level command — no installation required. For global availability (so `/shepherd` works from any directory), a script (`scripts/install-command.sh`) creates a symlink from `~/.claude/commands/shepherd.md` to the repo's `.claude/commands/shepherd.md`. Because the global command is a symlink, running `git pull` in the repo automatically updates the command everywhere. No npm package or standalone CLI binary is needed for Claude Code or opencode users.
 
 #### `FR-sc-server-shutdown` -- Server lifecycle management
 The local server is managed by the agent or manually by the user. The agent starts the dev server if it is not already running (detected by checking whether the recorded port for the current worktree is responding). The user can stop the server manually (e.g., Ctrl-C in the terminal) or the agent can stop it when appropriate. Because the server's port is ephemeral (dynamically assigned), the lock file or equivalent mechanism must record the assigned port so that subsequent invocations can detect and reuse the running server. No idle timeout is required.
@@ -162,7 +162,10 @@ The file watcher that monitors for the prompt output file must use minimal syste
 **Given** an application server is running from a previous `/shepherd` invocation, **when** the user stops the server process (e.g., Ctrl-C in the terminal), **then** the server terminates and the port is freed.
 
 #### `AC-sc-install-global` -- Command is available globally via symlink
-**Given** the user has cloned the Shepherd repository, **when** they run `./scripts/install-command.sh`, **then** a symlink is created at `~/.claude/commands/shepherd.md` pointing to the repo's `.claude/commands/shepherd.md`, and `/shepherd` is available globally in Claude Code.
+**Given** the user has cloned the Shepherd repository, **when** they run `./scripts/install-command.sh`, **then** a symlink is created at `~/.claude/commands/shepherd.md` pointing to the repo's `.claude/commands/shepherd.md`, and `/shepherd` is available globally in Claude Code or opencode.
+
+#### `AC-sc-install-symlink` -- Install creates a symlink, not a copy
+**Given** `./scripts/install-command.sh` has run successfully, **then** the global command file at `~/.claude/commands/shepherd.md` is a symlink (not a copy) pointing into the cloned repository, so a `git pull` immediately propagates command changes without requiring a reinstall.
 
 #### `AC-sc-session-clear-on-new-file` -- New file via slash command clears existing session
 **Given** the CRPG is already open with a file loaded and comments added, **when** the user runs `/shepherd another-file.ts`, **then** the previous file, all comments, and the preamble are cleared, and the new file is loaded without any confirmation dialog.
@@ -202,7 +205,7 @@ The file watcher that monitors for the prompt output file must use minimal syste
 
 ## Open Questions
 
-1. **Agent-specific registration**: Different AI coding agents have different mechanisms for custom slash commands. Claude Code uses a `.claude/commands/` directory. Other agents may use different configuration formats. Should v1 target only Claude Code, or should the install step produce configurations for multiple agents? This PRD assumes Claude Code as the primary target for v1, with the architecture allowing other agents to be supported later.
+1. **Agent-specific registration**: Different AI coding agents have different mechanisms for custom slash commands. Claude Code or opencode uses a `.claude/commands/` directory. Other agents may use different configuration formats. Should v1 target only Claude Code or opencode, or should the install step produce configurations for multiple agents? This PRD assumes Claude Code or opencode as the primary target for v1, with the architecture allowing other agents to be supported later.
 
 2. **Multiple files**: Should `/shepherd` accept multiple file paths (e.g., `/shepherd file1.ts file2.ts`) and load them all? The CRPG currently only supports single-file sessions (`FR-crp-file-load`). This PRD scopes to single-file only, consistent with the existing CRPG behavior. Multi-file support would require changes to both the slash command and the CRPG.
 
@@ -214,7 +217,7 @@ The file watcher that monitors for the prompt output file must use minimal syste
 
 6. **Security of the file-serving API**: The `FR-sc-file-api` endpoint serves arbitrary local files. While it is localhost-only (`NFR-sc-localhost-only`), a malicious webpage could potentially make requests to localhost. Should the endpoint require a one-time token or use a non-standard port to mitigate this? Engineering should evaluate the threat model.
 
-7. **Standalone CLI for non-Claude-Code users**: The current approach targets Claude Code exclusively via the `.claude/commands/` mechanism. A standalone CLI (e.g., an npm package providing a `shepherd` binary) could be added later for users of other AI coding agents or for direct invocation from the terminal. This is deferred to a future iteration.
+7. **Standalone CLI for non-Claude-Code users**: The current approach targets Claude Code or opencode exclusively via the `.claude/commands/` mechanism. A standalone CLI (e.g., an npm package providing a `shepherd` binary) could be added later for users of other AI coding agents or for direct invocation from the terminal. This is deferred to a future iteration.
 
 ## Dependencies
 

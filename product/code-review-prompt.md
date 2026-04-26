@@ -399,6 +399,9 @@ The application is not required to persist sessions across page reloads in this 
 #### `AC-crp-panel-resize-persists` -- Resize preference persists within the session
 **Given** the user resizes the file browser to 350px, **when** they switch between files, **then** the file browser remains at 350px. Consistent with `NFR-crp-no-data-persistence`, the width resets to default on page reload.
 
+#### `AC-crp-panel-resize-keyboard` -- File browser sidebar can be resized via keyboard
+**Given** keyboard focus is on the resize handle, **when** the user presses left/right arrow keys, **then** the sidebar width adjusts in fixed increments. Pressing Home/End sets the sidebar to its minimum/maximum width. The handle exposes `role="separator"` with current value attributes for assistive technology.
+
 #### `AC-crp-active-file-path-visible` -- Active file path is displayed at top of code viewer in multi-file mode
 **Given** two or more files are loaded and the user is viewing `src/components/FileBrowser.tsx`, **then** the full path `src/components/FileBrowser.tsx` is displayed at the top of the code viewer panel, above the code content.
 

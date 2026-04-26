@@ -37,7 +37,7 @@ export type EditorState =
   | { mode: 'create'; anchorLine: number; endLine: number }
   | { mode: 'edit'; commentId: string };
 
-// Implements: FR-rc-context-structure
+// Implements: FR-crp-review-context-receive
 /** Structured review context written by the shepherd-review agent. */
 export interface ReviewContext {
   overall: { neutral: string; review: string };
@@ -98,7 +98,7 @@ export interface AppState {
   fileBrowserWidth: number;
 }
 
-// Implements: FR-crp-file-tree-display
+// Implements: FR-crp-multi-file-nav
 /** A node in the file browser tree: either a directory or a file leaf. */
 export type FileTreeNode =
   | { type: 'directory'; name: string; path: string; children: FileTreeNode[] }
@@ -195,7 +195,7 @@ export type DiffEditorState =
   | { mode: 'create'; startIndex: number; endIndex: number }
   | { mode: 'edit'; commentId: string };
 
-// Implements: FR-mr-element-id, FR-mr-render-toggle, FR-mr-rendered-comment
+// Implements: FR-mdr-element-id, FR-mdr-render-toggle, FR-mdr-rendered-comment-create
 
 /** Opaque element ID string (e.g., "heading-0", "paragraph-1", "list-2-item-0"). */
 export type ElementId = string & { readonly __brand: unique symbol };

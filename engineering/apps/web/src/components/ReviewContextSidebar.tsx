@@ -1,4 +1,4 @@
-// Implements: FR-rc-overall-context, FR-sb-collapse-toggle
+// Implements: FR-crp-review-context-overall, FR-crp-review-context-collapsible
 
 import { useAppStore } from '@/store/appStore';
 import { ContextSection } from '@/components/ContextSection';

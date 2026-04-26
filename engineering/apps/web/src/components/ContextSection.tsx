@@ -1,4 +1,4 @@
-// Implements: FR-rc-neutral-review-split, FR-rc-visual-distinction
+// Implements: FR-crp-review-context-display
 
 interface ContextSectionProps {
   variant: 'neutral' | 'review';

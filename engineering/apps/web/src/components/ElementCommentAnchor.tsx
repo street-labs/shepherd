@@ -1,4 +1,4 @@
-// Implements: FR-mr-rendered-comment
+// Implements: FR-mdr-rendered-comment-create
 
 interface ElementCommentAnchorProps {
   elementId: string;

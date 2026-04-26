@@ -1,0 +1,6 @@
+{
+  "pdeqVersion": "0.2.0",
+  "specsRoot": ".",
+  "codeRoot": ".",
+  "platforms": ["web", "macos"]
+}

@@ -5,11 +5,11 @@
 
 ## Technical Approach
 
-The slash command feature uses a single-mode architecture: a Claude Code custom command backed by a Vite dev server plugin.
+The slash command feature uses a single-mode architecture: a Claude Code or opencode custom command backed by a Vite dev server plugin.
 
-When a developer types `/shepherd README.md` in Claude Code, the custom command file at `.claude/commands/shepherd.md` instructs the agent to start the CRPG dev server (if not already running for the current project), then open the browser to `http://localhost:<port>?session=<id>&file=<encoded-path>`. Each invocation generates a unique session ID (`FR-sc-session-id`) and uses a dynamic port (`FR-sc-dynamic-port`), enabling concurrent sessions from different projects. The web app reads the URL parameters and fetches the file from an API endpoint served by a Vite plugin.
+When a developer types `/shepherd README.md` in Claude Code or opencode, the custom command file at `.claude/commands/shepherd.md` instructs the agent to start the CRPG dev server (if not already running for the current project), then open the browser to `http://localhost:<port>?session=<id>&file=<encoded-path>`. Each invocation generates a unique session ID (`FR-sc-session-id`) and uses a dynamic port (`FR-sc-dynamic-port`), enabling concurrent sessions from different projects. The web app reads the URL parameters and fetches the file from an API endpoint served by a Vite plugin.
 
-- **In-repo use**: Works automatically. Claude Code discovers project-level commands from `.claude/commands/` in the repo.
+- **In-repo use**: Works automatically. Claude Code or opencode discovers project-level commands from `.claude/commands/` in the repo.
 - **Global use**: `scripts/install-command.sh` creates a symlink from `~/.claude/commands/shepherd.md` to the repo's `.claude/commands/shepherd.md`. This means updates propagate automatically via `git pull` -- no reinstall needed.
 - **Server**: The Vite dev server (with the file API plugin) is the only server. Each project/worktree gets its own Vite instance on a dynamic port, with the port recorded in a per-project lock file at `~/.shepherd/servers/<hash>.lock` for reuse detection.
 
@@ -17,7 +17,7 @@ When a developer types `/shepherd README.md` in Claude Code, the custom command 
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Command mechanism | Claude Code custom command (`.claude/commands/shepherd.md`) | Zero code needed for the command itself -- it is a markdown prompt file that Claude Code natively supports. The agent reads the file, follows instructions, and executes shell commands. No CLI binary required. |
+| Command mechanism | Claude Code or opencode custom command (`.claude/commands/shepherd.md`) | Zero code needed for the command itself -- it is a markdown prompt file that Claude Code or opencode natively supports. The agent reads the file, follows instructions, and executes shell commands. No CLI binary required. |
 | Dev server file API | Vite plugin | Vite's plugin API supports the `configureServer` hook, which gives access to the underlying Connect middleware stack. A custom plugin can register an Express-style route handler for `/api/file` without adding any npm dependencies. This keeps the dev server self-contained. |
 | Global install mechanism | Symlink via install script | A symlink from `~/.claude/commands/shepherd.md` to the repo file means the command stays in sync with the repo. No package manager, no version management, no publish step. `git pull` is the update mechanism. |
 | Session isolation (`FR-sc-session-id`) | Path-derived session ID (slugified directory basename) | Deterministic and human-readable — same worktree always produces the same session ID (e.g., `my-project`). Different worktrees produce different IDs, providing natural session isolation. No random component needed. |
@@ -25,13 +25,13 @@ When a developer types `/shepherd README.md` in Claude Code, the custom command 
 
 ---
 
-## Claude Code Custom Command Design
+## Claude Code or opencode Custom Command Design
 
 > Implements: `FR-sc-invoke-command`, `FR-sc-install`
 
 ### File: `.claude/commands/shepherd.md`
 
-This is a Claude Code custom slash command file. When a user types `/shepherd README.md`, Claude Code reads this file, substitutes `$ARGUMENTS` with `README.md`, and the agent follows the instructions as a prompt.
+This is a Claude Code or opencode custom slash command file. When a user types `/shepherd README.md`, Claude Code or opencode reads this file, substitutes `$ARGUMENTS` with `README.md`, and the agent follows the instructions as a prompt.
 
 The command file instructs the agent to:
 
@@ -42,7 +42,7 @@ The command file instructs the agent to:
 
 ### Why a Prompt File, Not a Script
 
-Claude Code custom commands are markdown prompt files, not shell scripts. The agent interprets the instructions and uses its tool-calling capabilities (shell execution, file reading) to carry out the steps. This means:
+Claude Code or opencode custom commands are markdown prompt files, not shell scripts. The agent interprets the instructions and uses its tool-calling capabilities (shell execution, file reading) to carry out the steps. This means:
 
 - File validation logic is performed by the agent using shell commands (`stat`, `file`, `head -c 8192 | tr -d '\0'`, `wc -l`), not by custom code.
 - The agent handles error cases by reading command output and deciding what to report.
@@ -52,7 +52,7 @@ This is the simplest possible architecture. It requires no npm packages, no comp
 
 ### Limitations
 
-- Only works with Claude Code (other AI agents have different command mechanisms).
+- Only works with Claude Code or opencode (other AI agents have different command mechanisms).
 - Depends on the Vite dev server, which binds to a dynamic port (recorded in a per-project lock file).
 - The agent performs the validation, so exact error message formatting depends on the prompt instructions rather than deterministic code.
 
@@ -64,7 +64,7 @@ This is the simplest possible architecture. It requires no npm packages, no comp
 
 ### Problem: Agent Overhead Dominates Launch Time
 
-The original architecture had the Claude Code agent interpret the `shepherd.md` prompt step-by-step. Each step (resolve path, validate file, check server, start server, URL-encode, open browser) required a separate AI inference round-trip and tool call. While the shell operations themselves take ~255ms total, the agent overhead adds multiple seconds of AI inference time per step.
+The original architecture had the Claude Code or opencode agent interpret the `shepherd.md` prompt step-by-step. Each step (resolve path, validate file, check server, start server, URL-encode, open browser) required a separate AI inference round-trip and tool call. While the shell operations themselves take ~255ms total, the agent overhead adds multiple seconds of AI inference time per step.
 
 ### Solution: Single Shell Script Invocation
 
@@ -157,7 +157,7 @@ The shell execution total (~285ms warm) is well under the 2-second `NFR-sc-launc
 
 ### File: `scripts/install-command.sh`
 
-A shell script that enables global use of the `/shepherd` command from any Claude Code session, not just when working inside the Shepherd repo.
+A shell script that enables global use of the `/shepherd` command from any Claude Code or opencode session, not just when working inside the Shepherd repo.
 
 #### Behavior
 
@@ -172,7 +172,7 @@ A shell script that enables global use of the `/shepherd` command from any Claud
    ```
    Installed: ~/.claude/commands/shepherd.md -> <repo>/.claude/commands/shepherd.md
 
-   The /shepherd command is now available globally in Claude Code.
+   The /shepherd command is now available globally in Claude Code or opencode.
    Updates will propagate automatically when you git pull.
    ```
 
@@ -375,7 +375,7 @@ In all error cases, the FileDropZone remains functional -- the user can manually
 > See requirements in `../../product/slash-command.md`
 > See design in `../../design/web/slash-command.md`
 
-This section covers the mechanism by which the CRPG web app sends the completed prompt back to the Claude Code agent. The handoff uses a file-based approach: the web app POSTs the prompt to a Vite dev server endpoint, the server writes it to a well-known file path, and the slash command's file watcher detects and reads the file.
+This section covers the mechanism by which the CRPG web app sends the completed prompt back to the Claude Code or opencode agent. The handoff uses a file-based approach: the web app POSTs the prompt to a Vite dev server endpoint, the server writes it to a well-known file path, and the slash command's file watcher detects and reads the file.
 
 ### Prompt Output API Endpoint
 
@@ -459,7 +459,7 @@ Key implementation details:
 - **File write**: `fs.writeFileSync(outputPath, body, 'utf-8')` provides an atomic-ish write. For the expected use case (single writer, single reader per session), this is sufficient.
 - **Imports**: Uses `os` (for `homedir()`), `path`, `fs`, and `URL` -- all Node.js built-ins already used by the existing plugin.
 
-### Claude Code Custom Command Changes
+### Claude Code or opencode Custom Command Changes
 
 > Modifies: `.claude/commands/shepherd.md`
 
@@ -504,14 +504,14 @@ The watcher script uses only POSIX shell built-ins (`[`, `sleep`, arithmetic exp
 
 - **macOS**: Works natively. No dependency on `timeout` (which requires coreutils/Homebrew).
 - **Linux**: Works natively.
-- **Windows**: The slash command is a markdown prompt, so the Claude Code agent adapts the shell commands to the available shell. On Windows, the session directory is `%USERPROFILE%\.shepherd\sessions\<session-id>\` and the agent uses PowerShell equivalents:
+- **Windows**: The slash command is a markdown prompt, so the Claude Code or opencode agent adapts the shell commands to the available shell. On Windows, the session directory is `%USERPROFILE%\.shepherd\sessions\<session-id>\` and the agent uses PowerShell equivalents:
   ```powershell
   $sessionDir = "$env:USERPROFILE\.shepherd\sessions\<session-id>"
   $i=0; while (-not (Test-Path "$sessionDir\prompt-output.md") -and $i -lt 1800) { Start-Sleep -Seconds 1; $i++ }
   if (Test-Path "$sessionDir\prompt-output.md") { Get-Content "$sessionDir\prompt-output.md"; Remove-Item -Recurse -Force $sessionDir } else { Write-Output "SHEPHERD_TIMEOUT" }
   ```
 
-The portable POSIX version is preferred in the command file since Claude Code primarily runs on macOS and Linux. The agent can adapt for Windows when it detects a Windows environment (`NFR-sc-watcher-low-overhead`).
+The portable POSIX version is preferred in the command file since Claude Code or opencode primarily runs on macOS and Linux. The agent can adapt for Windows when it detects a Windows environment (`NFR-sc-watcher-low-overhead`).
 
 #### Watcher Performance
 
@@ -727,17 +727,17 @@ Playwright E2E tests that validate the full flow (these test the Vite plugin pat
 
 **Slug coverage**: `FR-sc-launcher-script`, `AC-sc-warm-launch-2s`, `AC-sc-cold-launch-8s`, `AC-sc-single-tool-call`.
 
-### Phase 3: Claude Code Command File + Install Script (estimated 0.5-1 day)
+### Phase 3: Claude Code or opencode Command File + Install Script (estimated 0.5-1 day)
 
-**Goal**: The `/shepherd` command is usable from within any Claude Code session.
+**Goal**: The `/shepherd` command is usable from within any Claude Code or opencode session.
 
 1. Create `.claude/commands/shepherd.md` with instructions for the agent to validate the file, start the dev server if needed, and open the browser with the `?file=` parameter.
 2. Create `scripts/install-command.sh` with symlink creation, existing file detection, `--force` flag, and success messaging.
-3. Test the command manually by typing `/shepherd <filepath>` in a Claude Code session within the repo.
-4. Test global install by running `scripts/install-command.sh` and then using `/shepherd` from a Claude Code session outside the repo.
+3. Test the command manually by typing `/shepherd <filepath>` in a Claude Code or opencode session within the repo.
+4. Test global install by running `scripts/install-command.sh` and then using `/shepherd` from a Claude Code or opencode session outside the repo.
 5. Iterate on the prompt instructions to ensure reliable behavior across edge cases (file not found, binary file, no arguments).
 
-**Delivers**: A developer working in the Shepherd repo can type `/shepherd src/utils.ts` in Claude Code and the CRPG opens with the file loaded. After running the install script, the command works globally.
+**Delivers**: A developer working in the Shepherd repo can type `/shepherd src/utils.ts` in Claude Code or opencode and the CRPG opens with the file loaded. After running the install script, the command works globally.
 
 **Slug coverage**: `FR-sc-invoke-command`, `FR-sc-install`, `FR-sc-file-resolution`, `FR-sc-file-validation`, `FR-sc-browser-open`, `FR-sc-output-feedback`, `AC-sc-no-args-usage`, `NFR-sc-launch-speed`.
 
@@ -751,7 +751,7 @@ New and modified files across the monorepo:
 shepherd/                                 (project root)
   .claude/
     commands/
-      shepherd.md                         NEW -- Claude Code custom slash command (includes watcher steps)
+      shepherd.md                         NEW -- Claude Code or opencode custom slash command (includes watcher steps)
 
   scripts/
     install-command.sh                    NEW -- symlink installer for global use
@@ -782,18 +782,18 @@ shepherd/                                 (project root)
 
 | Slug | Engineering Coverage |
 |---|---|
-| `FR-sc-invoke-command` | Claude Code command file (`.claude/commands/shepherd.md`); argument validation in prompt instructions |
-| `FR-sc-file-resolution` | Claude Code command file (agent resolves paths via shell commands) |
-| `FR-sc-file-validation` | Claude Code command file (agent validates via shell commands: `stat`, `file`, `head`, `wc`); Vite plugin `fileApiPlugin.ts` (server-side validation) |
-| `FR-sc-app-serve` | Vite dev server started by Claude Code command if not already running |
-| `FR-sc-browser-open` | Claude Code command file (agent runs `open` command via shell) |
+| `FR-sc-invoke-command` | Claude Code or opencode command file (`.claude/commands/shepherd.md`); argument validation in prompt instructions |
+| `FR-sc-file-resolution` | Claude Code or opencode command file (agent resolves paths via shell commands) |
+| `FR-sc-file-validation` | Claude Code or opencode command file (agent validates via shell commands: `stat`, `file`, `head`, `wc`); Vite plugin `fileApiPlugin.ts` (server-side validation) |
+| `FR-sc-app-serve` | Vite dev server started by Claude Code or opencode command if not already running |
+| `FR-sc-browser-open` | Claude Code or opencode command file (agent runs `open` command via shell) |
 | `FR-sc-auto-load-file` | `useFileFromUrl` hook (`apps/web/src/hooks/useFileFromUrl.ts`); `App.tsx` modifications; store `loadFile` action |
 | `FR-sc-file-api` | Vite plugin (`fileApiPlugin.ts`); API contract defined in this spec |
-| `FR-sc-install` | Claude Code project-level commands (automatic for in-repo); `scripts/install-command.sh` (symlink for global use) |
-| `FR-sc-output-feedback` | Claude Code command file (prompt instructs agent to print output with URL, file info, and line count) |
-| `FR-sc-prompt-receive` | Claude Code command file (`.claude/commands/shepherd.md`) -- file watcher loop polls for `~/.shepherd/sessions/<session-id>/prompt-output.md`, reads and deletes session directory on detection |
+| `FR-sc-install` | Claude Code or opencode project-level commands (automatic for in-repo); `scripts/install-command.sh` (symlink for global use) |
+| `FR-sc-output-feedback` | Claude Code or opencode command file (prompt instructs agent to print output with URL, file info, and line count) |
+| `FR-sc-prompt-receive` | Claude Code or opencode command file (`.claude/commands/shepherd.md`) -- file watcher loop polls for `~/.shepherd/sessions/<session-id>/prompt-output.md`, reads and deletes session directory on detection |
 | `FR-sc-prompt-output-api` | Vite plugin (`fileApiPlugin.ts`) -- `POST /api/prompt-output?session=<id>` endpoint; writes request body to `~/.shepherd/sessions/<session-id>/prompt-output.md` |
-| `FR-sc-prompt-cleanup` | Claude Code command file -- `rm -f ~/.shepherd/sessions/<session-id>/prompt-output.md` before starting watcher |
+| `FR-sc-prompt-cleanup` | Claude Code or opencode command file -- `rm -f ~/.shepherd/sessions/<session-id>/prompt-output.md` before starting watcher |
 | `FR-sc-launcher-script` | Shell script (`scripts/shepherd-launch.sh`); invoked by `.claude/commands/shepherd.md` |
 | `FR-sc-session-id` | Launcher script derives session ID from project directory basename (slugified); passed in URL `?session=<id>`; stored in Zustand store as `sessionId` |
 | `FR-sc-dynamic-port` | Launcher script uses dynamic port assignment with per-project lock files at `~/.shepherd/servers/<hash>.lock`; replaces fixed port 5173 |
@@ -821,14 +821,14 @@ shepherd/                                 (project root)
 | `AC-sc-binary-file-rejected` | Vite plugin `fileApiPlugin.ts` (415 response); `useFileFromUrl` error handling |
 | `AC-sc-permission-denied` | Vite plugin `fileApiPlugin.ts` (403 response); `useFileFromUrl` error handling |
 | `AC-sc-directory-rejected` | Vite plugin `fileApiPlugin.ts` (404 with directory message); `useFileFromUrl` error handling |
-| `AC-sc-no-args-usage` | Claude Code command file (prompt handles no-args case) |
-| `AC-sc-large-file-warning` | Claude Code command file (agent warns when lines > 10,000); web app shows large file warning banner (existing behavior in `CodeViewer`) |
+| `AC-sc-no-args-usage` | Claude Code or opencode command file (prompt handles no-args case) |
+| `AC-sc-large-file-warning` | Claude Code or opencode command file (agent warns when lines > 10,000); web app shows large file warning banner (existing behavior in `CodeViewer`) |
 | `AC-sc-session-clear-on-new-file` | `useFileFromUrl` hook calls `store.loadFile()` which resets all state; no confirmation dialog |
-| `AC-sc-prompt-received` | Claude Code command file watcher detects `~/.shepherd/sessions/<session-id>/prompt-output.md`, reads contents, deletes session directory, agent proceeds with prompt |
-| `AC-sc-prompt-watcher-timeout` | Claude Code command file watcher loop exits after 1800 iterations (30 minutes), agent prints timeout message and cleans up session directory |
-| `AC-sc-prompt-cleanup-stale` | Claude Code command file runs `rm -f ~/.shepherd/sessions/<session-id>/prompt-output.md` before starting watcher |
+| `AC-sc-prompt-received` | Claude Code or opencode command file watcher detects `~/.shepherd/sessions/<session-id>/prompt-output.md`, reads contents, deletes session directory, agent proceeds with prompt |
+| `AC-sc-prompt-watcher-timeout` | Claude Code or opencode command file watcher loop exits after 1800 iterations (30 minutes), agent prints timeout message and cleans up session directory |
+| `AC-sc-prompt-cleanup-stale` | Claude Code or opencode command file runs `rm -f ~/.shepherd/sessions/<session-id>/prompt-output.md` before starting watcher |
 | `AC-sc-prompt-output-api-success` | Vite plugin `POST /api/prompt-output?session=<id>` returns 200 and writes body to `~/.shepherd/sessions/<session-id>/prompt-output.md` |
-| `AC-sc-standalone-window` | Claude Code command file (`.claude/commands/shepherd.md`) -- platform-specific Chrome/Chromium app-mode fallback chain opens CRPG in a standalone window; falls back to default browser if Chrome unavailable |
+| `AC-sc-standalone-window` | Claude Code or opencode command file (`.claude/commands/shepherd.md`) -- platform-specific Chrome/Chromium app-mode fallback chain opens CRPG in a standalone window; falls back to default browser if Chrome unavailable |
 | `AC-sc-prompt-output-api-localhost-only` | Vite plugin `POST /api/prompt-output` returns 403 for non-localhost requests (reuses `isLocalhostRequest()` from `GET /api/file`) |
 | `AC-sc-warm-launch-2s` | Launcher script warm path (~265ms shell time); single agent tool call budget (~1.7s) |
 | `AC-sc-cold-launch-8s` | Launcher script cold path (server startup ~3-6s + validation + browser open) |

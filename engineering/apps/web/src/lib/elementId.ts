@@ -1,4 +1,4 @@
-// Implements: FR-mr-element-id
+// Implements: FR-mdr-element-id
 
 import type { Root, RootContent } from 'mdast';
 import type { AstBlockElement, ElementSourceMapping, ElementId } from '@/types';

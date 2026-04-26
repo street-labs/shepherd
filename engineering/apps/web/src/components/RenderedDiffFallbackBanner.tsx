@@ -1,4 +1,4 @@
-// Implements: FR-mr-rendered-diff-fallback
+// Implements: FR-mdr-rendered-diff-display
 
 import { useState } from 'react';
 

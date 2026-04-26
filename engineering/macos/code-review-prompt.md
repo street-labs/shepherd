@@ -457,6 +457,37 @@ struct AppFeature {
         Scope(state: \.codeViewer, action: \.codeViewer) {
             CodeViewerFeature()
         }
+
+        // Upstream Reduce for comment submission. Must run BEFORE the comment
+        // Scope: child clears editorState/editorText on submit, so parent must
+        // read them first to build the new Comment.
+        Reduce { state, action in
+            guard case .comment(.submitComment) = action,
+                  let editor = state.comment.editorState else { return .none }
+            let trimmed = state.comment.editorText
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return .none }
+            switch editor {
+            case let .creating(anchorLine, endLine):
+                guard let fileID = state.activeFileID else { return .none }
+                state.allComments.append(
+                    Comment(
+                        id: uuid(),
+                        fileID: fileID,
+                        startLine: min(anchorLine, endLine),
+                        endLine: max(anchorLine, endLine),
+                        text: trimmed
+                    )
+                )
+            case let .editing(commentID):
+                state.allComments[id: commentID]?.text = trimmed
+            }
+            return .merge(.send(.regeneratePrompt), .send(.rebuildFileTree))
+        }
+
+        Scope(state: \.comment, action: \.comment) {
+            CommentFeature()
+        }
         Scope(state: \.inspector, action: \.inspector) {
             InspectorFeature()
         }
@@ -663,7 +694,11 @@ struct CommentFeature {
                 guard !state.editorText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                     return .none
                 }
-                // Parent handles creating/updating the comment in allComments
+                // Parent reducer (AppFeature) creates/updates the comment in
+                // `allComments` BEFORE this child runs (see AppFeature.body —
+                // the upstream `.comment(.submitComment)` Reduce is placed
+                // before `Scope(state: \.comment, ...)`). After parent persists
+                // the comment, this child clears editor state.
                 state.editorState = nil
                 state.editorText = ""
                 return .none
@@ -1585,6 +1620,12 @@ struct ShepherdApp: App {
     let store: StoreOf<AppFeature>
 
     init() {
+        // Bare SwiftPM executable (no .app bundle): force regular activation
+        // policy and activate so the window becomes key and text input works.
+        // Without this, TextEditor key events beep because no first responder.
+        NSApplication.shared.setActivationPolicy(.regular)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+
         // Handle direct invocation with --session flag (fallback for dev/testing)
         let sessionID = Self.parseSessionID()
         self.store = Store(initialState: AppFeature.State()) {

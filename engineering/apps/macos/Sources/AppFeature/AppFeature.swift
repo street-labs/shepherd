@@ -165,6 +165,38 @@ public struct AppFeature {
         Scope(state: \.codeViewer, action: \.codeViewer) {
             CodeViewerFeature()
         }
+
+        // Must run BEFORE the comment Scope: child reducer clears
+        // editorState/editorText on submit, so parent must read them first.
+        Reduce { state, action in
+            guard case .comment(.submitComment) = action,
+                  let editor = state.comment.editorState else { return .none }
+            let trimmed = state.comment.editorText
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return .none }
+            switch editor {
+            case let .creating(anchorLine, endLine):
+                guard let fileID = state.activeFileID else { return .none }
+                let start = min(anchorLine, endLine)
+                let end = max(anchorLine, endLine)
+                state.allComments.append(
+                    Comment(
+                        id: uuid(),
+                        fileID: fileID,
+                        startLine: start,
+                        endLine: end,
+                        text: trimmed
+                    )
+                )
+            case let .editing(commentID):
+                state.allComments[id: commentID]?.text = trimmed
+            }
+            return .merge(
+                .send(.regeneratePrompt),
+                .send(.rebuildFileTree)
+            )
+        }
+
         Scope(state: \.comment, action: \.comment) {
             CommentFeature()
         }
@@ -386,17 +418,6 @@ public struct AppFeature {
                 return .none
 
             case .codeViewer:
-                return .none
-
-            case .comment(.submitComment):
-                // Comment was just submitted. Create it in allComments.
-                if let editorState = state.comment.editorState {
-                    // Note: submitComment clears editorState, but we captured it before the child reducer ran.
-                    // Actually, the child reducer already ran and cleared it. We need to reconstruct.
-                    // The parent reducer runs after child scoped reducers, so editorState is already nil.
-                    // We handle this differently - see below.
-                    _ = editorState
-                }
                 return .none
 
             case let .comment(.editComment(commentID)):

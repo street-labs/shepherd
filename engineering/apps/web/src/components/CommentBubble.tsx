@@ -1,5 +1,5 @@
 // Implements: FR-crp-line-comment-edit, FR-crp-line-comment-delete, FR-crp-comment-indicator,
-// FR-mr-rendered-comment
+// FR-mdr-rendered-comment-create
 
 import { useAppStore } from '@/store/appStore';
 import type { Comment, DiffComment, RenderedComment, RenderedDiffComment } from '@/types';

@@ -1,6 +1,6 @@
 // Implements: FR-crp-line-comment-create, FR-crp-line-comment-edit,
 // AC-crp-add-comment-single-line, AC-crp-add-comment-line-range, AC-crp-edit-comment,
-// FR-diff-comment-create, FR-mr-rendered-comment
+// FR-diff-comment-create, FR-mdr-rendered-comment-create
 
 import { useAppStore } from '@/store/appStore';
 import { useState, useEffect, useRef } from 'react';

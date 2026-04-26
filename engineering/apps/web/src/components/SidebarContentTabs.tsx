@@ -1,4 +1,4 @@
-// Implements: FR-sb-all-comments-summary
+// Implements: FR-crp-comment-summary
 
 import { useAppStore } from '@/store/appStore';
 

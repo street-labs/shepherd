@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Implements: FR-sc-launch, FR-sc-validate, FR-sc-server, FR-sc-browser
+# Implements: FR-sc-launcher-script, FR-sc-file-validation, FR-sc-app-serve, FR-sc-browser-open
 #
 # Launches the Code Review Prompt Generator (CRPG) for one or more files.
 # Validates each file, ensures the Vite dev server is running, and opens

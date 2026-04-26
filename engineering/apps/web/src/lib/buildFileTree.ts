@@ -1,4 +1,4 @@
-// Implements: FR-crp-file-tree-display
+// Implements: FR-crp-multi-file-nav
 
 import type { FileInfo, FileTreeNode } from '@/types';
 

@@ -1,4 +1,4 @@
-// Implements: FR-mr-rendered-view, FR-mr-rendered-comment, FR-mr-rendered-prompt
+// Implements: FR-mdr-render-commonmark, FR-mdr-rendered-comment-create, FR-mdr-rendered-comment-prompt
 
 import { useAppStore } from '@/store/appStore';
 import { RenderedBlockElement } from './RenderedBlockElement';

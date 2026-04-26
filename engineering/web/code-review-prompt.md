@@ -890,7 +890,7 @@ A 10,000-line file with 100-character average lines is ~1 MB of text. Syntax tok
 > See requirements in `../../product/code-review-prompt.md`
 > See design in `../../design/web/code-review-prompt.md`
 
-This section covers the "Done" button feature that sends the generated prompt back to the Claude Code agent via a file-based handoff through the Vite dev server.
+This section covers the "Done" button feature that sends the generated prompt back to the Claude Code or opencode agent via a file-based handoff through the Vite dev server.
 
 ### State Management Changes
 

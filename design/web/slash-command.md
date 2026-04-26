@@ -4,9 +4,9 @@
 
 ## Overview
 
-The Slash Command Launcher is a Claude Code custom command with a small web-app integration surface. Unlike the CRPG design spec (see `design/code-review-prompt.md`), which describes a full single-page application, this spec covers:
+The Slash Command Launcher is a Claude Code or opencode custom command with a small web-app integration surface. Unlike the CRPG design spec (see `design/code-review-prompt.md`), which describes a full single-page application, this spec covers:
 
-1. **Claude Code custom command**: The `.claude/commands/shepherd.md` file that defines the `/shepherd` slash command. The agent validates the file, manages the Vite dev server, and opens the browser.
+1. **Claude Code or opencode custom command**: The `.claude/commands/shepherd.md` file that defines the `/shepherd` slash command. The agent validates the file, manages the Vite dev server, and opens the browser.
 2. **Local Vite dev server**: How the dev server starts and serves the CRPG with the file API plugin.
 3. **CRPG web app modifications**: Changes to the existing App root component and FileDropZone to support auto-loading a file from URL query parameters.
 4. **Installation flow**: What the user does to make `/shepherd` available globally.
@@ -17,11 +17,11 @@ The user never interacts with a "slash command UI." The CLI output appears inlin
 
 ## Interface Inventory
 
-This feature spans two surfaces: the agent conversation (Claude Code) and the existing CRPG web app (browser). There are no new screens or pages; the CRPG modifications are behavioral changes to existing components.
+This feature spans two surfaces: the agent conversation (Claude Code or opencode) and the existing CRPG web app (browser). There are no new screens or pages; the CRPG modifications are behavioral changes to existing components.
 
 | Surface | What Changes |
 |---|---|
-| **Agent conversation (Claude Code)** | New -- the `/shepherd` custom command produces output inline in the conversation, then enters a waiting state for the prompt feedback loop |
+| **Agent conversation (Claude Code or opencode)** | New -- the `/shepherd` custom command produces output inline in the conversation, then enters a waiting state for the prompt feedback loop |
 | **CRPG web app -- Standalone window** | New -- the CRPG opens in a chromeless app-mode browser window (no address bar, no tabs) via Chrome's `--app` flag, rather than a regular browser tab. Falls back to a normal browser tab if Chrome is unavailable. |
 | **CRPG web app -- App root** | Modified -- reads `?file=` query parameter on load and triggers file fetch |
 | **CRPG web app -- Toolbar** | Modified -- Done button appears in slash command mode (see `design/code-review-prompt.md`, Toolbar component spec) |
@@ -43,7 +43,7 @@ This feature spans two surfaces: the agent conversation (Claude Code) and the ex
 - `--help` displays the usage message (same content as the no-args output).
 - No other flags or options exist in v1.
 
-When invoked as a slash command in Claude Code (e.g., `/shepherd src/utils.ts`), the agent executes the instructions in the custom command file. The agent validates the file, ensures the Vite dev server is running, opens the browser with the appropriate URL, and then enters a **waiting state** where it runs a blocking file watcher for `~/.shepherd/sessions/<session-id>/prompt-output.md`. The agent remains blocked until the user clicks "Done" in the CRPG (which writes the prompt to the watched file) or the watcher times out after 30 minutes (`FR-sc-prompt-receive`).
+When invoked as a slash command in Claude Code or opencode (e.g., `/shepherd src/utils.ts`), the agent executes the instructions in the custom command file. The agent validates the file, ensures the Vite dev server is running, opens the browser with the appropriate URL, and then enters a **waiting state** where it runs a blocking file watcher for `~/.shepherd/sessions/<session-id>/prompt-output.md`. The agent remains blocked until the user clicks "Done" in the CRPG (which writes the prompt to the watched file) or the watcher times out after 30 minutes (`FR-sc-prompt-receive`).
 
 ### Output Format (`FR-sc-output-feedback`)
 
@@ -136,7 +136,7 @@ Error messages always show the **resolved absolute path** (after path resolution
 
 ### Flow 1: Happy Path -- Launch CRPG with a File (`AC-sc-launch-happy-path`)
 
-1. User types `/shepherd src/utils.ts` in their Claude Code session.
+1. User types `/shepherd src/utils.ts` in their Claude Code or opencode session.
 2. The agent reads the custom command file and follows its instructions.
 3. Agent resolves the path relative to the current working directory (`FR-sc-file-resolution`). Symlinks are followed.
 4. Agent validates the file (`FR-sc-file-validation`):
@@ -222,12 +222,12 @@ Error messages always show the **resolved absolute path** (after path resolution
 1. User clones the Shepherd repository.
 2. User runs `./scripts/install-command.sh` from the repo root.
 3. The script creates a symlink at `~/.claude/commands/shepherd.md` pointing to the repo's `.claude/commands/shepherd.md` file.
-4. The `/shepherd` command is now available globally in all Claude Code sessions.
+4. The `/shepherd` command is now available globally in all Claude Code or opencode sessions.
 5. Updates to the command file propagate automatically through the symlink -- when the user runs `git pull`, any changes to `.claude/commands/shepherd.md` are immediately reflected without re-running the install script.
 
 ### Flow 10: Prompt Feedback Loop -- Agent Receives Prompt (`FR-sc-prompt-receive`, `FR-sc-prompt-output-api`, `AC-sc-prompt-received`)
 
-1. User types `/shepherd src/utils.ts` in their Claude Code session.
+1. User types `/shepherd src/utils.ts` in their Claude Code or opencode session.
 2. Agent validates the file and opens the CRPG in the browser (existing Flow 1, steps 1-7).
 3. Agent prints: "The file is loaded in the Code Review Prompt Generator. Annotate your code and click Done when you're finished. I'll wait for your prompt."
 4. Agent cleans up any stale prompt output file at `~/.shepherd/sessions/<session-id>/prompt-output.md` (`FR-sc-prompt-cleanup`, `AC-sc-prompt-cleanup-stale`).
@@ -241,7 +241,7 @@ Error messages always show the **resolved absolute path** (after path resolution
 
 ### Flow 11: Prompt Feedback Loop -- Timeout (`AC-sc-prompt-watcher-timeout`)
 
-1. User types `/shepherd src/utils.ts` in their Claude Code session.
+1. User types `/shepherd src/utils.ts` in their Claude Code or opencode session.
 2. Agent validates, launches, and enters the waiting state (Flow 10, steps 1-5).
 3. User does not click "Done" within 30 minutes. The user may have closed the browser, gotten distracted, or chosen to copy the prompt manually instead.
 4. The watcher's timeout elapses. The loop exits with a timeout status.
@@ -392,7 +392,7 @@ After an error, the FileDropZone is fully functional -- the user can load a diff
 
 - Node.js 18+ (for running the Vite dev server)
 - pnpm (for `pnpm dev`)
-- Claude Code (for the `/shepherd` slash command)
+- Claude Code or opencode (for the `/shepherd` slash command)
 
 ### Steps
 
@@ -406,7 +406,7 @@ After an error, the FileDropZone is fully functional -- the user can load a diff
    ```
    ./scripts/install-command.sh
    ```
-   This creates a symlink at `~/.claude/commands/shepherd.md` pointing to the repo's `.claude/commands/shepherd.md` file. The `/shepherd` command is now available globally in all Claude Code sessions.
+   This creates a symlink at `~/.claude/commands/shepherd.md` pointing to the repo's `.claude/commands/shepherd.md` file. The `/shepherd` command is now available globally in all Claude Code or opencode sessions.
 
 3. **Verify installation**:
    ```
@@ -423,7 +423,7 @@ cd shepherd
 git pull
 ```
 
-Any changes to `.claude/commands/shepherd.md` in the repo are immediately available to all Claude Code sessions without re-running the install script.
+Any changes to `.claude/commands/shepherd.md` in the repo are immediately available to all Claude Code or opencode sessions without re-running the install script.
 
 ### What Gets Installed
 

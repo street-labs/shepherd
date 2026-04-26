@@ -1,0 +1,1 @@
+../../.pdeq/.claude/commands/bootstrap.md

@@ -1,4 +1,4 @@
-// Implements: FR-mr-rendered-diff
+// Implements: FR-mdr-rendered-diff-display
 
 import { useState } from 'react';
 import { ElementCommentAnchor } from './ElementCommentAnchor';

@@ -1,4 +1,4 @@
-// Implements: FR-mr-rendered-comment
+// Implements: FR-mdr-rendered-comment-create
 
 import { useState } from 'react';
 import { ElementCommentAnchor } from './ElementCommentAnchor';

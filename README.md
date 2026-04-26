@@ -39,7 +39,7 @@ The first app built with Shepherd is the **Code Review Prompt Generator (CRPG)**
 
 ### Slash Command
 
-Launch the CRPG directly from Claude Code:
+Launch the CRPG directly from Claude Code or opencode:
 
 ```
 /shepherd path/to/file.ts

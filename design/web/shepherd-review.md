@@ -4,7 +4,7 @@
 
 ## Overview
 
-This spec defines the conversational user experience for the `/shepherd-review` slash command. Unlike other design specs in this project that describe web UI screens and components, this spec describes a text-based interaction that takes place within an AI coding agent conversation (Claude Code) plus a data handoff to the CRPG browser experience. The agent discovers the changeset, generates structured review context (neutral + review feedback, at both overall and per-file levels), displays a brief summary in the conversation, and immediately auto-opens `shepherd-launch.sh` with all reviewable file paths and the structured context data to open a single CRPG browser session with every file loaded as a tab.
+This spec defines the conversational user experience for the `/shepherd-review` slash command. Unlike other design specs in this project that describe web UI screens and components, this spec describes a text-based interaction that takes place within an AI coding agent conversation (Claude Code or opencode) plus a data handoff to the CRPG browser experience. The agent discovers the changeset, generates structured review context (neutral + review feedback, at both overall and per-file levels), displays a brief summary in the conversation, and immediately auto-opens `shepherd-launch.sh` with all reviewable file paths and the structured context data to open a single CRPG browser session with every file loaded as a tab.
 
 The agent conversation is minimal -- it shows a brief summary (scope, file count, exclusion count) and handles the post-review feedback handoff. The detailed context and review feedback are displayed in the CRPG alongside the diffs, not in the conversation. The user controls the review entirely within the CRPG -- navigating tabs freely, reading context and feedback alongside each diff, adding comments on whichever files they choose, and clicking "Done" once to produce a unified multi-file prompt.
 
@@ -14,7 +14,7 @@ The agent conversation is minimal -- it shows a brief summary (scope, file count
 
 | Surface | Role |
 |---|---|
-| **Agent conversation (Claude Code)** | Orchestration surface. Displays a brief summary (scope, file count, exclusion count) and auto-opens the CRPG. Also handles the post-review feedback handoff (completion summary and action menu). The detailed changeset overview, per-file context, and review feedback are NOT displayed here. |
+| **Agent conversation (Claude Code or opencode)** | Orchestration surface. Displays a brief summary (scope, file count, exclusion count) and auto-opens the CRPG. Also handles the post-review feedback handoff (completion summary and action menu). The detailed changeset overview, per-file context, and review feedback are NOT displayed here. |
 | **CRPG web app (browser)** | Primary review surface. Invoked once for all reviewable files -- each file appears as a tab. Displays structured context data: overall neutral context and review feedback at the session level, plus per-file neutral context and review feedback alongside each diff. The user navigates tabs freely, adds comments, and clicks "Done" to generate a unified multi-file prompt. |
 
 The agent conversation is the orchestration layer -- it discovers the changeset, generates context, and handles feedback. The CRPG is the review tool where context, code, and feedback converge. This spec covers the orchestration layer and the data handoff to the CRPG (`FR-sr-context-handoff`).
@@ -43,7 +43,7 @@ Usage: /shepherd-review [--staged | --unstaged]
 
 The command auto-detects the current branch and compares against `main` (`FR-sr-changeset-detection`).
 
-The command is implemented as a Claude Code custom command file at `.claude/commands/shepherd-review.md`. It is installed globally via `scripts/install-command.sh` (`FR-sr-install`).
+The command is implemented as a Claude Code or opencode custom command file at `.claude/commands/shepherd-review.md`. It is installed globally via `scripts/install-command.sh` (`FR-sr-install`).
 
 ---
 
@@ -188,7 +188,7 @@ No reviewable files found. All <N> changed files were filtered out (lockfiles, g
 
 This flow covers a complete review session from command invocation through feedback handoff.
 
-1. User types `/shepherd-review` in their Claude Code session (optionally with `--staged` or `--unstaged`).
+1. User types `/shepherd-review` in their Claude Code or opencode session (optionally with `--staged` or `--unstaged`).
 2. Agent reads the custom command file and begins execution.
 3. Agent checks that the current working directory is inside a git repository by running `git rev-parse --is-inside-work-tree`. If this fails, agent outputs the "Not a git repository" error and stops (`FR-sr-git-required`).
 4. Agent determines the merge base between HEAD and `main` using `git merge-base HEAD main` (`FR-sr-changeset-detection`). If this fails (e.g., `main` does not exist or HEAD is `main` with no divergence), agent outputs "No changes found relative to main." and stops.

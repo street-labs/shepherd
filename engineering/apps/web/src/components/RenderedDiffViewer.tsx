@@ -1,4 +1,4 @@
-// Implements: FR-mr-rendered-diff, FR-mr-rendered-diff-comment
+// Implements: FR-mdr-rendered-diff-display, FR-mdr-rendered-diff-comment
 
 import { useAppStore } from '@/store/appStore';
 import { RenderedDiffBlock } from './RenderedDiffBlock';

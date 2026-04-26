@@ -75,7 +75,7 @@
 - **Covers**: `AC-sc-launch-happy-path`, `FR-sc-invoke-command`, `FR-sc-browser-open`, `FR-sc-auto-load-file`
 - **Preconditions**: The Shepherd repository is cloned. The Vite dev server is running (`pnpm dev` in `engineering/apps/web/`). A file `engineering/apps/web/src/App.tsx` exists.
 - **Steps**:
-  1. Open a Claude Code session inside the Shepherd repository.
+  1. Open a Claude Code or opencode session inside the Shepherd repository.
   2. Type `/shepherd engineering/apps/web/src/App.tsx`.
   3. Observe the agent conversation output.
   4. Observe the browser.
@@ -90,9 +90,9 @@
 
 - **Type**: Unit
 - **Covers**: `AC-sc-no-args-usage`, `FR-sc-invoke-command`, `FR-sc-output-feedback`
-- **Preconditions**: The `/shepherd` custom command is available in Claude Code.
+- **Preconditions**: The `/shepherd` custom command is available in Claude Code or opencode.
 - **Steps**:
-  1. Type `/shepherd` with no arguments in Claude Code.
+  1. Type `/shepherd` with no arguments in Claude Code or opencode.
   2. Observe the agent output.
 - **Expected Result**: The agent reports the usage message:
   ```
@@ -122,7 +122,7 @@
 - **Covers**: `AC-sc-no-args-usage`, `FR-sc-invoke-command`
 - **Preconditions**: The `/shepherd` custom command is available.
 - **Steps**:
-  1. Type `/shepherd --help` in Claude Code.
+  1. Type `/shepherd --help` in Claude Code or opencode.
   2. Observe the agent output.
 - **Expected Result**: The agent reports the same usage message as `TC-sc-no-args-usage`.
 - **Edge Cases**:
@@ -136,7 +136,7 @@
 - **Covers**: `FR-sc-output-feedback`, `AC-sc-launch-happy-path`
 - **Preconditions**: The Vite dev server is running. A file `main.py` (50 lines, Python) exists.
 - **Steps**:
-  1. Type `/shepherd main.py` in Claude Code.
+  1. Type `/shepherd main.py` in Claude Code or opencode.
   2. Parse the agent output.
 - **Expected Result**: Line 1 matches the pattern `Opened Code Review Prompt Generator at http://localhost:<port>` where `<port>` is a numeric value. Line 2 matches `Loaded: main.py (50 lines, Python)`. All output is plain text.
 - **Edge Cases**:
@@ -151,7 +151,7 @@
 - **Covers**: `FR-sc-output-feedback`, `AC-sc-server-reuse`
 - **Preconditions**: The Vite dev server is already running from a previous invocation or manual start.
 - **Steps**:
-  1. Type `/shepherd file2.ts` in Claude Code.
+  1. Type `/shepherd file2.ts` in Claude Code or opencode.
   2. Observe the agent output.
 - **Expected Result**: The agent reports success. The Vite dev server is reused (no new server started). The output shows the URL and file info.
 - **Edge Cases**:
@@ -529,7 +529,7 @@
 - **Covers**: `AC-sc-large-file-warning`
 - **Preconditions**: A text file with 15,000 lines exists. The Vite dev server is running.
 - **Steps**:
-  1. Type `/shepherd large-file.ts` in Claude Code.
+  1. Type `/shepherd large-file.ts` in Claude Code or opencode.
   2. Observe the agent output and the browser.
 - **Expected Result**: The agent reports the large-file warning. The CRPG loads the file in the browser and displays the code viewer. If the CRPG has its own large-file warning banner (from `NFR-crp-large-file-perf`), that banner also appears in the web app.
 - **Edge Cases**:
@@ -547,7 +547,7 @@
 - **Covers**: `FR-sc-app-serve`
 - **Preconditions**: The Shepherd repository is cloned. No Vite dev server is currently running.
 - **Steps**:
-  1. Type `/shepherd somefile.ts` in Claude Code.
+  1. Type `/shepherd somefile.ts` in Claude Code or opencode.
   2. Observe whether the agent starts the Vite dev server.
   3. Verify the server is running by accessing `http://localhost:<port>` (the dynamically assigned port reported in the output).
 - **Expected Result**: The agent detects no running server for this worktree, starts it on a dynamic port, and then proceeds to open the browser with the file URL. The server serves the CRPG correctly. The output shows the assigned port.
@@ -577,7 +577,7 @@
 - **Covers**: `AC-sc-server-reuse`
 - **Preconditions**: The Vite dev server is already running from a previous invocation.
 - **Steps**:
-  1. Type `/shepherd file2.ts` in Claude Code.
+  1. Type `/shepherd file2.ts` in Claude Code or opencode.
   2. Observe whether the agent starts a new server or reuses the existing one.
 - **Expected Result**: The agent detects the running server and reuses it. No new server process is started. The success output shows the existing server's URL.
 - **Edge Cases**:
@@ -598,8 +598,8 @@
   1. Run `./scripts/install-command.sh` from the repo root.
   2. Verify the symlink exists: `ls -la ~/.claude/commands/shepherd.md`.
   3. Verify the symlink target: `readlink ~/.claude/commands/shepherd.md`.
-  4. Open Claude Code and verify `/shepherd` is available as a command.
-- **Expected Result**: A symlink exists at `~/.claude/commands/shepherd.md` pointing to the repo's `.claude/commands/shepherd.md` file. The `/shepherd` command is recognized by Claude Code. No npm packages were installed globally. No binaries were placed on PATH.
+  4. Open Claude Code or opencode and verify `/shepherd` is available as a command.
+- **Expected Result**: A symlink exists at `~/.claude/commands/shepherd.md` pointing to the repo's `.claude/commands/shepherd.md` file. The `/shepherd` command is recognized by Claude Code or opencode. No npm packages were installed globally. No binaries were placed on PATH.
 - **Edge Cases**:
   - `~/.claude/commands/` directory does not exist: the install script should create it.
   - A file (not symlink) already exists at `~/.claude/commands/shepherd.md`: the script should warn the user and ask for confirmation or provide instructions.
@@ -622,17 +622,17 @@
 
 ---
 
-#### `TC-sc-install-claude-code-command`: Claude Code custom command file works
+#### `TC-sc-install-claude-code-command`: Claude Code or opencode custom command file works
 
 - **Type**: E2E / Manual
 - **Covers**: `FR-sc-install`, `FR-sc-invoke-command`
 - **Preconditions**: The `.claude/commands/shepherd.md` file exists in the Shepherd repo (or is symlinked globally).
 - **Steps**:
-  1. Open Claude Code in the Shepherd repo.
+  1. Open Claude Code or opencode in the Shepherd repo.
   2. Type `/shepherd` and observe auto-complete.
   3. Type `/shepherd README.md`.
   4. Observe the agent's actions and output.
-- **Expected Result**: Claude Code recognizes `/shepherd` as a custom command. The agent follows the instructions in the command file: validates the file, checks/starts the dev server, opens the browser with the `?file=` parameter, and reports success.
+- **Expected Result**: Claude Code or opencode recognizes `/shepherd` as a custom command. The agent follows the instructions in the command file: validates the file, checks/starts the dev server, opens the browser with the `?file=` parameter, and reports success.
 - **Edge Cases**:
   - The command file references `$ARGUMENTS`; if no arguments are provided, the agent should print usage instructions per the command file's logic.
 
@@ -648,7 +648,7 @@
 - **Covers**: `AC-sc-cross-platform-open`, `NFR-sc-cross-platform`, `FR-sc-browser-open`
 - **Preconditions**: Running on macOS. The `/shepherd` command is available.
 - **Steps**:
-  1. Type `/shepherd somefile.ts` in Claude Code.
+  1. Type `/shepherd somefile.ts` in Claude Code or opencode.
   2. Observe whether a browser window opens.
 - **Expected Result**: If Chrome or Chromium is installed, the CRPG opens in a chromeless app-mode window (no address bar, no tab strip). If neither is installed, the default macOS browser opens the CRPG as a regular tab via the `open` command.
 - **Edge Cases**:
@@ -662,7 +662,7 @@
 - **Covers**: `AC-sc-cross-platform-open`, `NFR-sc-cross-platform`, `FR-sc-browser-open`
 - **Preconditions**: Running on Linux. The `/shepherd` command is available.
 - **Steps**:
-  1. Type `/shepherd somefile.ts` in Claude Code.
+  1. Type `/shepherd somefile.ts` in Claude Code or opencode.
   2. Observe whether a browser window opens.
 - **Expected Result**: If Chrome or Chromium is installed, the CRPG opens in a chromeless app-mode window (no address bar, no tab strip). If neither is installed, the default Linux browser opens the CRPG as a regular tab via `xdg-open`.
 - **Edge Cases**:
@@ -677,7 +677,7 @@
 - **Covers**: `AC-sc-cross-platform-open`, `NFR-sc-cross-platform`, `FR-sc-browser-open`
 - **Preconditions**: Running on Windows. The `/shepherd` command is available.
 - **Steps**:
-  1. Type `/shepherd somefile.ts` in Claude Code.
+  1. Type `/shepherd somefile.ts` in Claude Code or opencode.
   2. Observe whether a browser window opens.
 - **Expected Result**: If Chrome or Chromium is installed, the CRPG opens in a chromeless app-mode window (no address bar, no tab strip). If neither is installed, the default Windows browser opens the CRPG as a regular tab via `cmd /c start`.
 - **Edge Cases**:
@@ -766,7 +766,7 @@
 - **Covers**: `NFR-sc-launch-speed`, `AC-sc-cold-launch-8s`
 - **Preconditions**: The Vite dev server is not running.
 - **Steps**:
-  1. Type `/shepherd somefile.ts` in Claude Code.
+  1. Type `/shepherd somefile.ts` in Claude Code or opencode.
   2. Observe the time from invocation to browser opening.
 - **Expected Result**: The agent completes file validation, starts the Vite dev server, and opens the browser within 8 seconds. Vite's dev server starts quickly since it does not require a full build. With the launcher script optimization, this includes one AI inference round-trip plus the launcher script handling server startup.
 - **Edge Cases**:
@@ -780,7 +780,7 @@
 - **Covers**: `NFR-sc-launch-speed`, `AC-sc-warm-launch-2s`
 - **Preconditions**: The Vite dev server is already running from a previous invocation.
 - **Steps**:
-  1. Type `/shepherd anotherfile.ts` in Claude Code.
+  1. Type `/shepherd anotherfile.ts` in Claude Code or opencode.
   2. Observe the time from invocation to browser opening.
 - **Expected Result**: The agent completes file validation and opens the browser within 2 seconds. Expected to be faster than cold start (no server startup needed). With the launcher script optimization, this is achieved via a single shell invocation (~265ms) plus one AI inference round-trip.
 - **Edge Cases**:
@@ -800,7 +800,7 @@
 - **Preconditions**: Vite dev server is running on a dynamic port for this worktree. A valid text file exists.
 - **Steps**:
   1. Record the current timestamp.
-  2. Invoke `/shepherd <filepath>` in Claude Code.
+  2. Invoke `/shepherd <filepath>` in Claude Code or opencode.
   3. Record the timestamp when the browser tab opens (or when the `open` command returns).
   4. Calculate elapsed time.
 - **Expected Result**: Elapsed time is under 2 seconds.
@@ -817,7 +817,7 @@
 - **Steps**:
   1. Ensure no Vite dev server is running for this worktree.
   2. Record the current timestamp.
-  3. Invoke `/shepherd <filepath>` in Claude Code.
+  3. Invoke `/shepherd <filepath>` in Claude Code or opencode.
   4. Record the timestamp when the browser tab opens.
   5. Calculate elapsed time.
 - **Expected Result**: Elapsed time is under 8 seconds (including Vite dev server startup on a dynamic port).
@@ -831,7 +831,7 @@
 - **Covers**: `AC-sc-single-tool-call`, `FR-sc-launcher-script`
 - **Preconditions**: The `/shepherd` command is installed. A valid text file exists.
 - **Steps**:
-  1. Invoke `/shepherd <filepath>` in Claude Code.
+  1. Invoke `/shepherd <filepath>` in Claude Code or opencode.
   2. Observe the agent's execution (tool calls made).
 - **Expected Result**: The agent makes exactly one Bash tool call to execute the launcher script. It does NOT make multiple sequential tool calls for file validation, server checking, and browser opening separately.
 
@@ -1105,7 +1105,7 @@
 - **Covers**: `FR-sc-session-id`
 - **Preconditions**: The `/shepherd` custom command is available. A valid text file exists.
 - **Steps**:
-  1. Type `/shepherd somefile.ts` in Claude Code.
+  1. Type `/shepherd somefile.ts` in Claude Code or opencode.
   2. Observe the agent output.
   3. Observe the browser URL.
 - **Expected Result**: The agent output includes a session identifier (e.g., `Session: my-project`). The session ID is derived from the working directory basename — it should be a slugified version of the directory name (lowercase alphanumeric and hyphens, e.g., `shepherd-1`, `my-project`). The browser URL contains `?session=<id>&file=<encoded-path>` where `<id>` matches the session ID in the agent output.
@@ -1120,7 +1120,7 @@
 - **Covers**: `FR-sc-session-id`
 - **Preconditions**: The `/shepherd` custom command is available. A valid text file exists.
 - **Steps**:
-  1. Type `/shepherd somefile.ts` in Claude Code from directory `/path/to/my-project`. Note the session ID from the output.
+  1. Type `/shepherd somefile.ts` in Claude Code or opencode from directory `/path/to/my-project`. Note the session ID from the output.
   2. Type `/shepherd somefile.ts` again from the same directory. Note the session ID from the output.
   3. Compare the two session IDs.
 - **Expected Result**: The two session IDs are identical (e.g., both are `my-project`). The session ID is derived from the working directory, so the same worktree always produces the same ID.
@@ -1136,7 +1136,7 @@
 - **Covers**: `FR-sc-dynamic-port`
 - **Preconditions**: The `/shepherd` custom command is available. A valid text file exists. No existing server is running for this worktree.
 - **Steps**:
-  1. Type `/shepherd somefile.ts` in Claude Code.
+  1. Type `/shepherd somefile.ts` in Claude Code or opencode.
   2. Observe the port number in the agent output URL.
 - **Expected Result**: The URL shows a dynamically assigned port (not necessarily 5173). The port is a valid TCP port number. The server is accessible at the reported port.
 - **Edge Cases**:
@@ -1150,8 +1150,8 @@
 - **Covers**: `AC-sc-concurrent-sessions`, `FR-sc-concurrent-windows`, `FR-sc-dynamic-port`
 - **Preconditions**: Two separate worktrees (or clones) of a repository exist at different paths. Valid text files exist in each. The `/shepherd` command is available.
 - **Steps**:
-  1. Open a Claude Code session in worktree A. Type `/shepherd file1.ts`. Note the session ID (A) and port (A).
-  2. Open a Claude Code session in worktree B. Type `/shepherd file2.ts`. Note the session ID (B) and port (B).
+  1. Open a Claude Code or opencode session in worktree A. Type `/shepherd file1.ts`. Note the session ID (A) and port (A).
+  2. Open a Claude Code or opencode session in worktree B. Type `/shepherd file2.ts`. Note the session ID (B) and port (B).
   3. Verify both browser windows are open and functional.
   4. In browser window A, add a comment to file1.ts.
   5. In browser window B, add a comment to file2.ts.
@@ -1369,7 +1369,7 @@
 - **Preconditions**: Several other processes are listening on various ports.
 - **Steps**:
   1. Start several processes on common ports (e.g., 3000, 5173, 8080).
-  2. Type `/shepherd somefile.ts` in Claude Code.
+  2. Type `/shepherd somefile.ts` in Claude Code or opencode.
   3. Observe the assigned port in the output.
 - **Expected Result**: The server is assigned a dynamic port that does not conflict with existing processes. The browser opens with the correct dynamically assigned port.
 - **Edge Cases**:

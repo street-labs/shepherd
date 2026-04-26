@@ -1,4 +1,4 @@
-// Implements: FR-mr-rendered-diff, FR-mr-ast-diff
+// Implements: FR-mdr-rendered-diff-display
 
 import { diffWords } from 'diff';
 import { parseMarkdownToAst } from './markdownPipeline';

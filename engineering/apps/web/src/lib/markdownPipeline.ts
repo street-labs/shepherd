@@ -1,4 +1,4 @@
-// Implements: FR-mr-render-pipeline, FR-mr-sanitize, NFR-mr-xss-prevent
+// Implements: FR-mdr-render-commonmark, NFR-mdr-xss-safety
 
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';

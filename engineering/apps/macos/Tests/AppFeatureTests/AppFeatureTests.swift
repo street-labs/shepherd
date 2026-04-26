@@ -168,6 +168,95 @@ struct AppFeatureTests {
         }
     }
 
+    @Test("Submit creating comment appends to allComments and clears editor")
+    func submitCreatingComment() async {
+        let fileID = UUID()
+        let commentID = UUID(uuidString: "00000000-0000-0000-0000-0000000000aa")!
+        var initialState = AppFeature.State(
+            files: [FileNode(id: fileID, name: "test.ts", content: "x\ny\nz")],
+            activeFileID: fileID
+        )
+        initialState.comment.editorState = .creating(anchorLine: 2, endLine: 2)
+        initialState.comment.editorText = "Rename this"
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.uuid = .constant(commentID)
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.comment(.submitComment)) {
+            $0.allComments = [
+                SharedModels.Comment(
+                    id: commentID,
+                    fileID: fileID,
+                    startLine: 2,
+                    endLine: 2,
+                    text: "Rename this",
+                    createdAt: $0.allComments.first?.createdAt ?? Date()
+                )
+            ]
+            $0.comment.editorState = nil
+            $0.comment.editorText = ""
+        }
+    }
+
+    @Test("Submit editing comment updates existing text")
+    func submitEditingComment() async {
+        let fileID = UUID()
+        let commentID = UUID()
+        var initialState = AppFeature.State(
+            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            allComments: [SharedModels.Comment(
+                id: commentID,
+                fileID: fileID,
+                startLine: 1,
+                endLine: 1,
+                text: "old"
+            )],
+            activeFileID: fileID
+        )
+        initialState.comment.editorState = .editing(commentID: commentID)
+        initialState.comment.editorText = "new text"
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.comment(.submitComment)) {
+            $0.allComments[id: commentID]?.text = "new text"
+            $0.comment.editorState = nil
+            $0.comment.editorText = ""
+        }
+    }
+
+    @Test("Submit with whitespace-only text does not create comment")
+    func submitWhitespaceComment() async {
+        let fileID = UUID()
+        var initialState = AppFeature.State(
+            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            activeFileID: fileID
+        )
+        initialState.comment.editorState = .creating(anchorLine: 1, endLine: 1)
+        initialState.comment.editorText = "   "
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.comment(.submitComment))
+        #expect(store.state.allComments.isEmpty)
+        #expect(store.state.comment.editorState != nil)
+    }
+
     @Test("Toggle file reviewed")
     func toggleFileReviewed() async {
         let fileID = UUID()

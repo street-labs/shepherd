@@ -1,5 +1,5 @@
 // Implements: FR-crp-file-reviewed-toggle, FR-crp-file-reviewed-visual,
-// FR-crp-file-reviewed-progress, FR-crp-file-tree-display,
+// FR-crp-file-reviewed-progress, FR-crp-multi-file-nav,
 // FR-crp-panel-resize, FR-crp-file-tooltip,
 // FR-mf-tab-bar, FR-mf-tab-switch, FR-mf-tab-close
 

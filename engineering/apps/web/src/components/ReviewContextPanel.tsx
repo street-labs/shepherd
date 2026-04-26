@@ -1,4 +1,4 @@
-// Implements: FR-rc-collapsible-panel, FR-rc-per-file-context
+// Implements: FR-crp-review-context-collapsible, FR-crp-review-context-per-file
 
 import { useAppStore } from '@/store/appStore';
 import { ContextSection } from '@/components/ContextSection';

@@ -1,4 +1,4 @@
-// Implements: FR-mr-render-toggle
+// Implements: FR-mdr-render-toggle
 
 import type { RenderMode } from '@/types';
 

@@ -85,7 +85,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: The sidebar panel (which is the right-side panel containing the preamble and prompt preview)
 
 ## Slash Command
-**Definition**: A shortcut invoked by typing `/shepherd <filepath>` in a supported AI coding agent (e.g., Claude Code). Launches the CRPG web app with the specified file auto-loaded. Implemented as a Claude Code custom command (`.claude/commands/shepherd.md`) for in-repo use, and as a standalone CLI binary for global use.
+**Definition**: A shortcut invoked by typing `/shepherd <filepath>` in a supported AI coding agent (e.g., Claude Code or opencode). Launches the CRPG web app with the specified file auto-loaded. Implemented as a Claude Code or opencode custom command (`.claude/commands/shepherd.md`) for in-repo use, and as a standalone CLI binary for global use.
 **Also known as**: Custom command, agent command
 **Not to be confused with**: Shell commands (executed in a terminal, not an agent conversation)
 

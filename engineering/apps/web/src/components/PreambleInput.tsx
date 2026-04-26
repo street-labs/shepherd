@@ -1,4 +1,4 @@
-// Implements: FR-crp-prompt-preamble, FR-sb-preamble-rename
+// Implements: FR-crp-prompt-preamble, FR-crp-prompt-preamble
 
 import { useAppStore } from '@/store/appStore';
 import { useState } from 'react';

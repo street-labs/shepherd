@@ -5,7 +5,7 @@
 
 ## Technical Approach
 
-The `/shepherd-review` command is a Claude Code custom command file -- a markdown prompt that instructs the AI agent to orchestrate a multi-file code review workflow. There is no compiled code, no new npm packages, no server-side logic, and no binaries. The core implementation is the prompt file at `.claude/commands/shepherd-review.md`, plus targeted updates to `scripts/shepherd-launch.sh` (multi-file support), `engineering/apps/web/src/hooks/useFileFromUrl.ts` (multi-file URL loading), and `scripts/install-command.sh` (global installation).
+The `/shepherd-review` command is a Claude Code or opencode custom command file -- a markdown prompt that instructs the AI agent to orchestrate a multi-file code review workflow. There is no compiled code, no new npm packages, no server-side logic, and no binaries. The core implementation is the prompt file at `.claude/commands/shepherd-review.md`, plus targeted updates to `scripts/shepherd-launch.sh` (multi-file support), `engineering/apps/web/src/hooks/useFileFromUrl.ts` (multi-file URL loading), and `scripts/install-command.sh` (global installation).
 
 The agent executes the prompt by running git commands via `Bash` tool calls, applying filtering logic described in the prompt, reading diffs for context, generating structured review context (both neutral descriptions and review feedback at the overall and per-file levels), writing the context to `~/.shepherd/sessions/<session-id>/review-context.json`, and immediately auto-opening `shepherd-launch.sh` with all file paths to launch a single CRPG session with one tab per file. The conversation output is a brief summary (session ID, scope, file count, exclusion count) -- not the detailed file list. There is no confirmation prompt before launch. The CRPG reads the context file on load and displays it alongside the diffs.
 
@@ -17,7 +17,7 @@ The iteration loop is replaced with a batch-open + wait-for-done model: all file
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Implementation mechanism | Claude Code custom command (`.claude/commands/shepherd-review.md`) | Same pattern as the existing `/shepherd` command. Zero code, zero dependencies. The agent interprets the prompt and executes shell commands. |
+| Implementation mechanism | Claude Code or opencode custom command (`.claude/commands/shepherd-review.md`) | Same pattern as the existing `/shepherd` command. Zero code, zero dependencies. The agent interprets the prompt and executes shell commands. |
 | State management | Agent conversation context (minimal) | The session state is the file list, changeset/excluded/reviewable counts, and the prompt output from the CRPG. No iteration index, no reviewed/skipped counters. Each invocation starts fresh. |
 | File filtering | Prompt-embedded pattern lists | The exclusion rules are written directly in the command file as lists of patterns. The agent applies them by evaluating file paths -- no regex engine or external tool needed. |
 | Git operations | `git rev-parse`, `git merge-base`, `git diff --name-status` | Standard cross-platform git commands. No git libraries, no wrappers. The agent runs them via `Bash` and parses the output. |
@@ -35,7 +35,7 @@ The iteration loop is replaced with a batch-open + wait-for-done model: all file
 
 ### File: `.claude/commands/shepherd-review.md`
 
-This is a Claude Code custom slash command file. When a user types `/shepherd-review` (optionally with `--staged` or `--unstaged`), Claude Code reads this file, substitutes `$ARGUMENTS`, and the agent follows the instructions as a prompt.
+This is a Claude Code or opencode custom slash command file. When a user types `/shepherd-review` (optionally with `--staged` or `--unstaged`), Claude Code or opencode reads this file, substitutes `$ARGUMENTS`, and the agent follows the instructions as a prompt.
 
 The command file is structured as a sequential set of instructions that the agent follows. The prompt must be precise enough that the agent produces the exact output formats defined in the design spec, runs the correct git commands, applies the correct filtering rules, and handles all user input variations.
 
@@ -423,7 +423,7 @@ The help text and success message are updated to mention both commands:
 Installed: ~/.claude/commands/shepherd.md -> <repo>/.claude/commands/shepherd.md
 Installed: ~/.claude/commands/shepherd-review.md -> <repo>/.claude/commands/shepherd-review.md
 
-The /shepherd and /shepherd-review commands are now available globally in Claude Code.
+The /shepherd and /shepherd-review commands are now available globally in Claude Code or opencode.
 Updates will propagate automatically when you git pull this repo.
 ```
 
@@ -663,7 +663,7 @@ Modify `scripts/install-command.sh` to loop over both `shepherd.md` and `shepher
 
 ### Step 5: Manual testing
 
-Test the command by running `/shepherd-review` in a Claude Code session on a branch with changes. Verify:
+Test the command by running `/shepherd-review` in a Claude Code or opencode session on a branch with changes. Verify:
 
 1. Git repository detection works (run from a git repo and from a non-git directory).
 2. Changeset detection finds the correct files (compare against manual `git diff --name-only`).

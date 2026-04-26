@@ -3,3 +3,6 @@ decisions-pending.md
 # Swift Package Manager
 .build/
 .swiftpm/
+
+# Fiberplane local issue tracking
+.fp/

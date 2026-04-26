@@ -447,6 +447,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
 - **QA**: `qa/web/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`
 
+### `AC-sc-install-symlink`
+- **Defined in**: `product/slash-command.md`
+- **Design**: `design/web/slash-command.md`
+- **Engineering**: `engineering/web/slash-command.md` -> `scripts/install-command.sh`
+- **QA**: `qa/web/slash-command.md` -> `TC-sc-install-symlink`, `TC-sc-install-update-propagation`
+
 ### `AC-sc-session-clear-on-new-file`
 - **Defined in**: `product/slash-command.md`
 - **Design**: `design/web/slash-command.md`
@@ -482,6 +488,66 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: N/A (no visual changes)
 - **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/shepherd-launch.sh`
 - **QA**: `qa/web/slash-command.md` -> `TC-sc-single-tool-call`
+
+### `FR-sc-mac-invoke-command`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A (reuses existing macOS CRPG window)
+- **Engineering**: `engineering/macos/slash-command.md` -> `.claude/commands/shepherd-mac.md`, `.config/opencode/skills/shepherd-mac/SKILL.md`
+- **QA**: TBD
+
+### `FR-sc-mac-launch`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch-macos.sh`, `engineering/apps/macos/ShepherdApp/ShepherdApp.swift`
+- **QA**: TBD
+
+### `FR-sc-mac-session-handoff`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch-macos.sh`, `engineering/apps/macos/Sources/Dependencies/SessionClient.swift`
+- **QA**: TBD
+
+### `FR-sc-mac-prebuild`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/install-command.sh`
+- **QA**: TBD
+
+### `AC-sc-mac-launches-app`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch-macos.sh`
+- **QA**: TBD
+
+### `AC-sc-mac-no-server`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch-macos.sh`
+- **QA**: TBD
+
+### `AC-sc-mac-prompt-roundtrip`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `engineering/apps/macos/Sources/Dependencies/SessionClient.swift`, `.claude/commands/shepherd-mac.md`
+- **QA**: TBD
+
+### `AC-sc-mac-coexists`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/install-command.sh`, `.claude/commands/shepherd-mac.md`
+- **QA**: TBD
+
+### `AC-sc-mac-prebuild-fast`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/install-command.sh`
+- **QA**: TBD
+
+### `AC-sc-mac-prebuild`
+- **Defined in**: `product/macos/slash-command.md`
+- **Design**: N/A
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/install-command.sh`
+- **QA**: TBD
 
 
 ### `FR-diff-mode-toggle`
@@ -1840,6 +1906,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
 - **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-persists-file-switch`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-persists-file-switch`
 
+### `AC-crp-panel-resize-keyboard`
+- **Defined in**: `product/code-review-prompt.md`
+- **Design**: `design/web/code-review-prompt.md`
+- **Engineering**: `engineering/web/code-review-prompt.md`
+- **QA**: _coverage TBD_
+
 ### `AC-crp-active-file-path-visible`
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
@@ -2079,12 +2151,3 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/code-review-prompt.md`
 - **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-close-last-window-keeps-running`
 
-<!--
-Entry template -- copy this when adding a new slug:
-
-### `FR-feature-slug`
-- **Defined in**: `product/feature.md`
-- **Design**: `design/web/feature.md`
-- **Engineering**: `engineering/web/feature.md`, `engineering/apps/web/src/path/to/file.ext`
-- **QA**: `qa/web/feature.md` -> `TC-feature-slug`
--->

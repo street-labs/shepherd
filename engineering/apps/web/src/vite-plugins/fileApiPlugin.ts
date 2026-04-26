@@ -156,7 +156,7 @@ function handleHeadRequest(_req: IncomingMessage, res: ServerResponse, url: URL)
   res.end(content);
 }
 
-// Implements: FR-sc-prompt-feedback
+// Implements: FR-sc-output-feedback
 
 /** Best-effort: activate the user's terminal app after writing the prompt file. */
 function activateTerminal() {
@@ -215,7 +215,7 @@ function handlePromptOutput(req: IncomingMessage, res: ServerResponse, url: URL)
   });
 }
 
-// Implements: FR-rc-api-endpoint
+// Implements: FR-crp-review-context-receive
 function handleReviewContext(_req: IncomingMessage, res: ServerResponse, url: URL) {
   const session = url.searchParams.get('session');
   if (!session) {

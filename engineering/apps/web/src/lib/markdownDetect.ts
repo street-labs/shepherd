@@ -1,4 +1,4 @@
-// Implements: FR-mr-markdown-detect
+// Implements: FR-mdr-detect-markdown
 
 const MARKDOWN_EXTENSIONS = new Set([
   '.md',
