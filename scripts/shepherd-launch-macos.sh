@@ -20,8 +20,29 @@ PROJECT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 SESSION_ID=$(basename "$PROJECT_DIR" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')
 PROJECT_NAME=$(basename "$PROJECT_DIR")
 
+# --- Parse options ---
+CONTEXT_FILE=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --context)
+      if [ $# -lt 2 ]; then
+        echo "Error: --context requires a file path argument" >&2
+        exit 1
+      fi
+      CONTEXT_FILE="$2"
+      shift 2
+      ;;
+    --) shift; break ;;
+    -*)
+      echo "Unknown option: $1" >&2
+      exit 1
+      ;;
+    *) break ;;
+  esac
+done
+
 if [ $# -eq 0 ] || [ -z "${1:-}" ]; then
-  echo "Usage: shepherd-launch-macos.sh <filepath> [filepath...]" >&2
+  echo "Usage: shepherd-launch-macos.sh [--context <file>] <filepath> [filepath...]" >&2
   exit 1
 fi
 
@@ -97,6 +118,7 @@ json_escape() {
 }
 
 # Build files[] array
+# Implements: FR-srm-multi-file-launch, FR-srm-context-handoff
 {
   printf '{\n'
   printf '  "sessionID": %s,\n' "$(printf '%s' "$SESSION_ID" | json_escape)"
@@ -115,7 +137,18 @@ json_escape() {
     printf '    }'
   done
   printf '\n  ],\n'
-  printf '  "reviewContext": null\n'
+  if [ -n "$CONTEXT_FILE" ]; then
+    if [ -r "$CONTEXT_FILE" ]; then
+      printf '  "reviewContext": '
+      cat "$CONTEXT_FILE"
+      printf '\n'
+    else
+      echo "Warning: --context file not readable: $CONTEXT_FILE — falling back to null" >&2
+      printf '  "reviewContext": null\n'
+    fi
+  else
+    printf '  "reviewContext": null\n'
+  fi
   printf '}\n'
 } > "$SESSION_FILE"
 

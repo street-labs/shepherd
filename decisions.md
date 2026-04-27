@@ -344,6 +344,21 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: The FileBrowser component becomes more complex (tree rendering, collapse state management, deeper keyboard navigation). ARIA changes from `role="listbox"` to `role="tree"`. The "To Review" / "Reviewed" group headers are removed in favor of within-directory ordering. A new `buildFileTree` utility and `collapsedDirs` store state are needed. The `FR-crp-file-reviewed-grouping` requirement was updated to describe within-directory ordering instead of separate group sections.
 **Slug references**: `FR-crp-multi-file-nav`, `FR-crp-file-reviewed-grouping`, `AC-crp-file-path-display`, `AC-crp-file-path-single-dir`
 
+## 2026-04-26 -- Embed review-context in session.json instead of a separate file (macOS variant)
+**Context**: Porting `/shepherd-review` to macOS introduces a context-handoff requirement (`FR-srm-context-handoff`). The web variant writes a separate `~/.shepherd/sessions/<id>/review-context.json` consumed by a Vite plugin endpoint. The macOS native binary already loads `~/.shepherd/sessions/<id>/session.json` via `SessionClient.loadSession`, and the existing `SessionData` model already has an optional `reviewContext: ReviewContext?` field that the launcher hardcodes to `null`.
+**Decision**: Embed the structured review context inside the existing `session.json` payload (populating the existing `reviewContext` field) rather than writing a parallel `review-context.json` for the native variant.
+**Alternatives considered**: (a) Mirror the web file layout with a separate `review-context.json` consumed via a second SessionClient call. (b) Pass the JSON inline as a launcher CLI argument.
+**Rationale**: The native binary already reads `session.json` once on startup and the model already has the field. A separate file would require a second filesystem read, second model, and second decode path with no benefit. CLI-arg inlining hits argv length limits and shell-quoting hazards for non-trivial context payloads. Embedding keeps the load path single-shot, leverages existing `Codable` decoding, and requires zero native-app code changes — only a launcher-script extension to splice JSON in place of the hardcoded `null`.
+**Consequences**: `scripts/shepherd-launch-macos.sh` gains a `--context <path>` flag. The agent writes the context JSON to a temp file before invoking the launcher. The web variant's separate-file pattern is preserved; the divergence is intentional and documented in `engineering/macos/shepherd-review.md`.
+**Slug references**: `FR-srm-context-handoff`, `FR-srm-multi-file-launch`, `AC-srm-context-in-app`
+## 2026-04-26 -- Coexisting `/shepherd-review` and `/shepherd-mac-review` commands; no auto-detection
+**Context**: With both web and macOS variants of the batch-review command available, users could conceivably want a single command that picks the right surface. The existing single-file split (`/shepherd` vs `/shepherd-mac`) already requires explicit choice.
+**Decision**: Ship `/shepherd-mac-review` as a peer of `/shepherd-review`. The user picks per-invocation. No automatic platform detection.
+**Alternatives considered**: A single `/shepherd-review` command that auto-routes based on `uname` or a config flag, falling back if the macOS binary is unavailable.
+**Rationale**: Mirrors the existing `/shepherd` ↔ `/shepherd-mac` split that users already understand. Auto-routing adds invisible behavior the user can't predict, complicates the failure mode when the macOS toolchain is missing, and forces both runtimes to be installed on the same machine. Keeping the choice explicit also makes it trivial to ship the macOS variant on macOS-only without any cross-platform conditional logic in the web command file.
+**Consequences**: Both commands are available simultaneously after install. The install script symlinks both. If the macOS prebuild fails, the web commands remain functional and the macOS commands report a clear error at invocation time rather than falling through silently.
+**Slug references**: `FR-srm-coexists`, `AC-srm-coexists`, `AC-srm-install-degraded`
+
 <!--
 Entry template:
 

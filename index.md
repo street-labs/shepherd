@@ -756,219 +756,219 @@ Each entry lists a requirement slug and every artifact that references it:
 
 ### `FR-sr-changeset-detection`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-file-filtering`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-lockfiles`, `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`, `TC-sr-filters-binary`, `TC-sr-filters-ide-files`, `TC-sr-filters-snapshot-files`, `TC-sr-includes-config-files`, `TC-sr-unknown-file-included`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-lockfiles`, `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`, `TC-sr-filters-binary`, `TC-sr-filters-ide-files`, `TC-sr-filters-snapshot-files`, `TC-sr-includes-config-files`, `TC-sr-unknown-file-included`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-file-list-display`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-file-list-format`, `TC-sr-sorted-file-list`, `TC-sr-file-list-exclusion-count`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-file-list-format`, `TC-sr-sorted-file-list`, `TC-sr-file-list-exclusion-count`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-iteration-loop`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-tab-order-matches-priority`, `TC-sr-implicit-skip`, `TC-sr-done-at-any-point`, `TC-sr-unified-prompt-return`, `TC-sr-no-comments-done`, `TC-sr-interactive-prompt-options`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-tab-order-matches-priority`, `TC-sr-implicit-skip`, `TC-sr-done-at-any-point`, `TC-sr-unified-prompt-return`, `TC-sr-no-comments-done`, `TC-sr-interactive-prompt-options`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-interactive-prompt-options`
 
 ### `FR-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-command-file`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-command-file-exists`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-command-file-exists`; `qa/macos/shepherd-review.md` -> `TC-srm-coexistence`, `TC-srm-install-symlink`
 
 ### `FR-sr-install`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `scripts/install-command.sh`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-install-global-symlink`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `scripts/install-command.sh`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-install-global-symlink`; `qa/macos/shepherd-review.md` -> `TC-srm-install-symlink`, `TC-srm-install-degraded-no-swift`, `TC-srm-install-git-pull`
 
 ### `FR-sr-scope-argument`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-scope-staged`, `TC-sr-scope-unstaged`, `TC-sr-scope-invalid`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-scope-staged`, `TC-sr-scope-unstaged`, `TC-sr-scope-invalid`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-multi-file-launch`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `scripts/shepherd-launch.sh`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-launch-all-files`, `TC-sr-batch-open-all-tabs`, `TC-sr-multi-file-url-params`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `scripts/shepherd-launch.sh`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-launch-all-files`, `TC-sr-batch-open-all-tabs`, `TC-sr-multi-file-url-params`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-launcher-context-flag`
 
 ### `FR-sr-per-file-context`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`; `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`, `TC-srm-context-tab-switch`
 
 ### `FR-sr-changeset-overview`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`; `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`
 
 ### `FR-sr-priority-ordering`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`; `qa/macos/shepherd-review.md` -> `TC-srm-priority-tab-order`
 
 ### `FR-sr-feedback-collection`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-unified-prompt-return`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`, `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-unified-prompt-return`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`, `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-interactive-prompt-options`
 
 ### `FR-sr-git-required`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-not-git-repo`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-not-git-repo`; `qa/macos/shepherd-review.md` -> `TC-srm-not-git-repo`
 
 ### `NFR-sr-startup-speed`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-startup-speed`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-startup-speed`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `NFR-sr-no-dependencies`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
 - **QA**: `qa/web/shepherd-review.md` -> `TC-sr-no-external-dependencies`
 
 ### `NFR-sr-agent-native`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `NFR-sr-cross-platform`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
 - **QA**: `qa/web/shepherd-review.md` -> `TC-sr-cross-platform-git-commands`
 
 ### `AC-sr-happy-path`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-filters-lockfiles`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-lockfiles`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-lockfiles`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-filters-generated`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-filters-binary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-binary`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-binary`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-includes-config`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-includes-config-files`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-includes-config-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-excludes-deleted`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-excludes-deleted-files`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-excludes-deleted-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-skip-file`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-implicit-skip`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-implicit-skip`; `qa/macos/shepherd-review.md` -> `TC-srm-skip-file`
 
 ### `AC-sr-quit-early`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-done-at-any-point`, `TC-sr-interactive-prompt-cancel`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-done-at-any-point`, `TC-sr-interactive-prompt-cancel`; `qa/macos/shepherd-review.md` -> `TC-srm-quit-early`
 
 ### `AC-sr-no-changes`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`; `qa/macos/shepherd-review.md` -> `TC-srm-no-changes`
 
 ### `AC-sr-all-filtered`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-all-filtered`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-all-filtered`; `qa/macos/shepherd-review.md` -> `TC-srm-all-filtered`
 
 ### `AC-sr-not-git-repo`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-not-git-repo`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-not-git-repo`; `qa/macos/shepherd-review.md` -> `TC-srm-not-git-repo`
 
 ### `AC-sr-invokes-shepherd`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-launch-all-files`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-launch-all-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-list-command`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`; `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`
 
 ### `AC-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-sorted-file-list`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`; `qa/macos/shepherd-review.md` -> `TC-srm-priority-tab-order`
 
 ### `AC-sr-batch-open`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-open-all-tabs`, `TC-sr-batch-launch-all-files`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-open-all-tabs`, `TC-sr-batch-launch-all-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-priority-tab-order`
 
 ### `AC-sr-unified-prompt`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-unified-prompt-return`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-unified-prompt-return`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-skip-file`
 
 ### `AC-sr-install-global`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-install-global-symlink`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-install-global-symlink`; `qa/macos/shepherd-review.md` -> `TC-srm-install-symlink`
 
 ### `FR-crp-done-action`
 - **Defined in**: `product/code-review-prompt.md`
@@ -1578,27 +1578,27 @@ Each entry lists a requirement slug and every artifact that references it:
 
 ### `FR-sr-context-handoff`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-context-handoff`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-context-handoff`; `qa/macos/shepherd-review.md` -> `TC-srm-launcher-context-flag`, `TC-srm-launcher-no-context-flag`, `TC-srm-context-in-app`
 
 ### `AC-sr-context-in-crpg`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-context-in-crpg`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-context-in-crpg`; `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`, `TC-srm-context-tab-switch`, `TC-srm-context-graceful-missing`
 
 ### `AC-sr-auto-open`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-auto-open`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-auto-open`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-interactive-prompt`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`
+- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
+- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`; `qa/macos/shepherd-review.md` -> `TC-srm-interactive-prompt-options`
 
 ### `FR-crp-review-context-receive`
 - **Defined in**: `product/code-review-prompt.md`
@@ -2151,3 +2151,110 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/code-review-prompt.md`
 - **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-close-last-window-keeps-running`
 
+### `FR-srm-coexists`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `scripts/install-command.sh`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-coexistence`
+
+### `FR-srm-command-file`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-coexistence`, `TC-srm-install-symlink`
+
+### `FR-srm-multi-file-launch`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `scripts/shepherd-launch-macos.sh`, `.claude/commands/shepherd-mac-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-launcher-context-flag`
+
+### `FR-srm-context-handoff`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `scripts/shepherd-launch-macos.sh`, `.claude/commands/shepherd-mac-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-launcher-context-flag`, `TC-srm-launcher-no-context-flag`, `TC-srm-context-in-app`
+
+### `FR-srm-install`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `scripts/install-command.sh`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-install-symlink`, `TC-srm-install-degraded-no-swift`, `TC-srm-install-git-pull`
+
+### `NFR-srm-launch-budget`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+
+### `NFR-srm-no-server`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-no-server`
+
+### `NFR-srm-platform-restriction`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-binary-missing-error`, `TC-srm-install-degraded-no-swift`
+
+### `AC-srm-coexists`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-coexistence`
+
+### `AC-srm-batch-open-native`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-priority-tab-order`
+
+### `AC-srm-no-server`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-no-server`
+
+### `AC-srm-context-in-app`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-context-in-app`, `TC-srm-context-tab-switch`, `TC-srm-context-graceful-missing`
+
+### `AC-srm-session-isolation`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-session-isolation`
+
+### `AC-srm-prompt-roundtrip`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+
+### `AC-srm-cancel`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-cancel-keeps-window`, `TC-srm-interactive-prompt-options`
+
+### `AC-srm-install-symlink`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-install-symlink`
+
+### `AC-srm-install-degraded`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-install-degraded-no-swift`
+
+### `AC-srm-install-git-pull`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-install-git-pull`
