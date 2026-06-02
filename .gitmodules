@@ -1,3 +1,3 @@
 [submodule ".pdeq"]
 	path = .pdeq
-	url = /Users/ldstreet/Development/pdeq
+	url = git@github.com:street-labs/pdeq.git
