@@ -1,5 +1,5 @@
 {
-  "name": "shepherd-mac",
+  "name": "shepherd",
   "description": "Open the macOS Code Review Prompt Generator (CRPG) with the specified file.",
-  "trigger": "shepherd-mac"
+  "trigger": "shepherd"
 }

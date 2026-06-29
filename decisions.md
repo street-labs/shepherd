@@ -375,6 +375,14 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: The README demo screenshots and the screenshot/README regeneration pipeline (`capture-demos*`, `generate-readme.sh`, the `/readme` command) are still web-coupled and need re-pointing to the macOS app — flagged as a follow-up, not addressed here. Slugs are unchanged (the framework forbids renaming them), so `FR-sr-*` slugs persist even though "web" no longer exists; their web downstream references were removed from the index. The macOS commands are renamed to the canonical `/shepherd` / `/shepherd-review` in a separate follow-up.
 **Slug references**: (none — platform removal; no requirement slugs added or retired)
 
+## 2026-06-29 — Rename macOS commands to canonical /shepherd and /shepherd-review
+**Context**: With the web platform removed, the `-mac` suffix on the macOS slash commands was redundant — macOS is the only platform. The names `/shepherd` and `/shepherd-review` were freed by the web deletion.
+**Decision**: Rename `/shepherd-mac`→`/shepherd` and `/shepherd-mac-review`→`/shepherd-review` (command files, opencode skills, and `metadata.json`); rename the launcher `scripts/shepherd-launch-macos.sh`→`scripts/shepherd-launch.sh`; set `install-command.sh` `COMMANDS=("shepherd" "shepherd-review")`; and update all references in the index, glossary, CLAUDE.md, README, and the macOS specs. Slugs are unchanged (the framework forbids renaming them), so `FR-srm-*` / `FR-sr-*` persist as-is.
+**Alternatives considered**: (a) Keep the `-mac` suffix — rejected; it's noise with one platform. (b) Also retire now-obsolete "coexist with the web variant" requirements (`FR-srm-coexists`, `AC-srm-coexists`, `AC-sc-mac-coexists`) and reframe the macOS specs from "web variant/delta" to canonical — deferred to a follow-up (Phase E) to keep the rename mechanical; this pass only fixes broken references and grammar, not the requirement model.
+**Rationale**: The commands are the primary user surface; getting their names canonical is the high-value change. Doing the file/launcher/install rename plus reference fixes in one pass keeps the commands functional under the new names. Deferring the deeper spec reframing avoids churning the requirement set (and slug lifecycle) inside a mechanical rename.
+**Consequences**: Users invoke `/shepherd` and `/shepherd-review`. After pulling, run `./scripts/install-command.sh` to refresh the symlinks (the old `~/.claude/commands/shepherd-mac*.md` symlinks become dangling and can be removed). The macOS specs still carry "variant"/"coexist" framing and a few now-dated slug descriptions; reframing them to canonical (and retiring the coexistence slugs) is a tracked follow-up. pi prompt-template support is the next follow-up.
+**Slug references**: (none — rename + reference fixes; no slugs added, renamed, or retired)
+
 <!--
 Entry template:
 

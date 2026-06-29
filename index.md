@@ -492,19 +492,19 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-sc-mac-invoke-command`
 - **Defined in**: `product/macos/slash-command.md`
 - **Design**: N/A (reuses existing macOS CRPG window)
-- **Engineering**: `engineering/macos/slash-command.md` -> `.claude/commands/shepherd-mac.md`, `.config/opencode/skills/shepherd-mac/SKILL.md`
+- **Engineering**: `engineering/macos/slash-command.md` -> `.claude/commands/shepherd.md`, `.config/opencode/skills/shepherd/SKILL.md`
 - **QA**: TBD
 
 ### `FR-sc-mac-launch`
 - **Defined in**: `product/macos/slash-command.md`
 - **Design**: N/A
-- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch-macos.sh`, `engineering/apps/macos/ShepherdApp/ShepherdApp.swift`
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch.sh`, `engineering/apps/macos/ShepherdApp/ShepherdApp.swift`
 - **QA**: TBD
 
 ### `FR-sc-mac-session-handoff`
 - **Defined in**: `product/macos/slash-command.md`
 - **Design**: N/A
-- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch-macos.sh`, `engineering/apps/macos/Sources/Dependencies/SessionClient.swift`
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch.sh`, `engineering/apps/macos/Sources/Dependencies/SessionClient.swift`
 - **QA**: TBD
 
 ### `FR-sc-mac-prebuild`
@@ -516,25 +516,25 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `AC-sc-mac-launches-app`
 - **Defined in**: `product/macos/slash-command.md`
 - **Design**: N/A
-- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch-macos.sh`
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch.sh`
 - **QA**: TBD
 
 ### `AC-sc-mac-no-server`
 - **Defined in**: `product/macos/slash-command.md`
 - **Design**: N/A
-- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch-macos.sh`
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/shepherd-launch.sh`
 - **QA**: TBD
 
 ### `AC-sc-mac-prompt-roundtrip`
 - **Defined in**: `product/macos/slash-command.md`
 - **Design**: N/A
-- **Engineering**: `engineering/macos/slash-command.md` -> `engineering/apps/macos/Sources/Dependencies/SessionClient.swift`, `.claude/commands/shepherd-mac.md`
+- **Engineering**: `engineering/macos/slash-command.md` -> `engineering/apps/macos/Sources/Dependencies/SessionClient.swift`, `.claude/commands/shepherd.md`
 - **QA**: TBD
 
 ### `AC-sc-mac-coexists`
 - **Defined in**: `product/macos/slash-command.md`
 - **Design**: N/A
-- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/install-command.sh`, `.claude/commands/shepherd-mac.md`
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/install-command.sh`, `.claude/commands/shepherd.md`
 - **QA**: TBD
 
 ### `AC-sc-mac-prebuild-fast`
@@ -2160,19 +2160,19 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-srm-command-file`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `.config/opencode/skills/shepherd-review/SKILL.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-coexistence`, `TC-srm-install-symlink`
 
 ### `FR-srm-multi-file-launch`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `scripts/shepherd-launch-macos.sh`, `.claude/commands/shepherd-mac-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `scripts/shepherd-launch.sh`, `.claude/commands/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-launcher-context-flag`
 
 ### `FR-srm-context-handoff`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `scripts/shepherd-launch-macos.sh`, `.claude/commands/shepherd-mac-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `scripts/shepherd-launch.sh`, `.claude/commands/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-launcher-context-flag`, `TC-srm-launcher-no-context-flag`, `TC-srm-context-in-app`
 
 ### `FR-srm-install`
@@ -2262,37 +2262,37 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-srm-scope-modes`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `.config/opencode/skills/shepherd-review/SKILL.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-default-scope`, `TC-srm-scope-invalid`, `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope`
 
 ### `FR-srm-branch-scope`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `.config/opencode/skills/shepherd-review/SKILL.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-branch-scope`
 
 ### `FR-srm-commit-scope`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `.config/opencode/skills/shepherd-review/SKILL.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-commit-scope`
 
 ### `FR-srm-range-scope`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `.config/opencode/skills/shepherd-review/SKILL.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-range-scope`
 
 ### `FR-srm-commit-mode-no-untracked`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `.config/opencode/skills/shepherd-review/SKILL.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope`
 
 ### `FR-srm-no-blank-window`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-review.md`, `.config/opencode/skills/shepherd-review/SKILL.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-empty-no-launch`, `TC-srm-no-changes`
 
 ### `AC-srm-default-scope`

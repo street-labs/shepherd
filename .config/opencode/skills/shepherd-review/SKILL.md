@@ -10,7 +10,7 @@ Suggested arguments: [--staged | --unstaged | --branch [base] | --commit [ref] |
 
 ## Instructions
 
-You are orchestrating a guided code review. The user has invoked `/shepherd-mac-review` to open all interesting changed files at once in the **macOS** Code Review Prompt Generator (CRPG), using the batch-open feature of `shepherd-launch-macos.sh`.
+You are orchestrating a guided code review. The user has invoked `/shepherd-review` to open all interesting changed files at once in the **macOS** Code Review Prompt Generator (CRPG), using the batch-open feature of `shepherd-launch.sh`.
 
 You provide context up front: a changeset overview with per-file summaries, then open all files in one go. After the user finishes reviewing in the macOS app, you collect the prompt output and present feedback options.
 
@@ -33,7 +33,7 @@ git rev-parse --is-inside-work-tree 2>/dev/null && git rev-parse --show-toplevel
 If `--is-inside-work-tree` fails (non-zero exit on the first command), output exactly:
 
 ```
-Not a git repository. /shepherd-mac-review must be run from within a git repo.
+Not a git repository. /shepherd-review must be run from within a git repo.
 ```
 
 Then stop.
@@ -49,15 +49,15 @@ SHEPHERD_ROOT="$(cat ~/.shepherd/repo-path 2>/dev/null)"
 
 2. **Symlink resolution** (if installed via manual symlink):
 ```bash
-[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh" ] && SHEPHERD_ROOT="$(cd "$(dirname "$(readlink -f "$(echo ~/.claude/commands/shepherd-mac-review.md)")")"/../.. && pwd)"
+[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" ] && SHEPHERD_ROOT="$(cd "$(dirname "$(readlink -f "$(echo ~/.claude/commands/shepherd-review.md)")")"/../.. && pwd)"
 ```
 
 3. **Current repo fallback** (if running from within the Shepherd repo):
 ```bash
-[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh" ] && SHEPHERD_ROOT="$REPO_ROOT"
+[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" ] && SHEPHERD_ROOT="$REPO_ROOT"
 ```
 
-If `$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh` still doesn't exist, output: "Could not find shepherd-launch-macos.sh. Run `./scripts/install-command.sh` from the Shepherd repo to set it up." and stop.
+If `$SHEPHERD_ROOT/scripts/shepherd-launch.sh` still doesn't exist, output: "Could not find shepherd-launch.sh. Run `./scripts/install-command.sh` from the Shepherd repo to set it up." and stop.
 
 Parse the argument: `$ARGUMENTS`. There are two families of scope: **working-tree** scopes (review what's on disk; include untracked files) and **commit** scopes (review committed history; never include untracked files). Match in this precedence order (first match wins):
 
@@ -79,7 +79,7 @@ Parse the argument: `$ARGUMENTS`. There are two families of scope: **working-tre
   If it does NOT resolve → output the usage message below and stop.
 
 ```
-Usage: /shepherd-mac-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
+Usage: /shepherd-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
 
 Review changes in the macOS CRPG.
 
@@ -256,7 +256,7 @@ The `neutral` fields should be purely factual — what changed, which functions/
 
 The `review` fields contain your agent assessment — what looks good, what might be risky, suggestions for the reviewer to focus on.
 
-Use **absolute file paths** as keys in the `files` object. These keys MUST exactly match the absolute paths passed to `shepherd-launch-macos.sh` so the macOS app can correlate per-file context to its tab. Use the same `REPO_ROOT/<relative-path>` form for both.
+Use **absolute file paths** as keys in the `files` object. These keys MUST exactly match the absolute paths passed to `shepherd-launch.sh` so the macOS app can correlate per-file context to its tab. Use the same `REPO_ROOT/<relative-path>` form for both.
 
 The launcher inlines this file's contents into `session.json` at launch time and the macOS app reads it directly via `SessionClient.loadSession`. There is no Vite endpoint and no `~/.shepherd/sessions/<id>/review-context.json` file involved.
 
@@ -301,7 +301,7 @@ rm -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md
 Build the command with `--context "$CTX"` and all absolute file paths, then invoke the launch script:
 
 ```bash
-bash "$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh" --context "$CTX" "<absolute-path-1>" "<absolute-path-2>" ... "<absolute-path-N>"
+bash "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" --context "$CTX" "<absolute-path-1>" "<absolute-path-2>" ... "<absolute-path-N>"
 ```
 
 Use the absolute paths (`REPO_ROOT/<relative-path>`) for each file in the prioritized list. Quote each path properly. After the launcher returns, delete the temp context file:
@@ -380,6 +380,6 @@ If PROMPT_OUTPUT is empty (from "Reviewed, no comments"), display the summary wi
 ### Important notes
 
 - Provide helpful context but keep it concise. The per-file summaries should orient the reviewer, not overwhelm them.
-- The `shepherd-launch-macos.sh` script handles file validation, `session.json` writing, and launching the prebuilt native binary. No browser opens. No Vite server starts.
+- The `shepherd-launch.sh` script handles file validation, `session.json` writing, and launching the prebuilt native binary. No browser opens. No Vite server starts.
 - Each invocation starts fresh — the launcher overwrites `session.json` for the current session ID.
 - When reading diffs for context, use the Read tool or Bash — whichever is more practical.

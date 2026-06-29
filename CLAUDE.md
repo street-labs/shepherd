@@ -18,8 +18,8 @@ Source code lives at `engineering/apps/macos/`. (The browser-based `web` platfor
 
 These extend the framework commands (`/kickoff`, `/impact`, `/status`, `/bootstrap`, `/migrate`):
 
-- **`/shepherd-mac <file>`** — Open the macOS Code Review Prompt Generator (CRPG) with the specified file.
-- **`/shepherd-mac-review`** — Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
+- **`/shepherd <file>`** — Open the macOS Code Review Prompt Generator (CRPG) with the specified file.
+- **`/shepherd-review`** — Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 - **`/land`** — Land current changes on main, push, return to branch, and rebase.
 - **`/readme`** — Regenerate the project README with fresh demo screenshots.
 

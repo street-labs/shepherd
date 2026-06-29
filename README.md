@@ -41,8 +41,8 @@ The first app built with Shepherd is the **Code Review Prompt Generator (CRPG)**
 Launch the CRPG directly from Claude Code or opencode:
 
 ```
-/shepherd-mac path/to/file.ts     # open a single file
-/shepherd-mac-review              # guided multi-file review of your changes
+/shepherd path/to/file.ts     # open a single file
+/shepherd-review              # guided multi-file review of your changes
 ```
 
 Opens the native macOS app with the file(s) already loaded.
@@ -55,7 +55,7 @@ Opens the native macOS app with the file(s) already loaded.
 sq run personal-lstreet-shepherd install --full-clone
 ```
 
-This clones the repo and symlinks the `/shepherd-mac` and `/shepherd-mac-review` slash commands into `~/.claude/commands/` (and the opencode skills) so they're available in any repo.
+This clones the repo and symlinks the `/shepherd` and `/shepherd-review` slash commands into `~/.claude/commands/` (and the opencode skills) so they're available in any repo.
 
 ### Manual install
 

@@ -4,7 +4,7 @@
 # Validates each file, writes a session.json staging file, then opens the
 # prebuilt ShepherdApp binary with --session <id>.
 #
-# Usage: shepherd-launch-macos.sh <filepath> [filepath...]
+# Usage: shepherd-launch.sh <filepath> [filepath...]
 # Exit codes: 0 success, 1 validation error, 2 launch failure (binary missing, etc.)
 
 set -euo pipefail
@@ -42,7 +42,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ $# -eq 0 ] || [ -z "${1:-}" ]; then
-  echo "Usage: shepherd-launch-macos.sh [--context <file>] <filepath> [filepath...]" >&2
+  echo "Usage: shepherd-launch.sh [--context <file>] <filepath> [filepath...]" >&2
   exit 1
 fi
 

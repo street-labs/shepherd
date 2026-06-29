@@ -18,32 +18,36 @@ public struct ReviewContextPanelView: View {
                     set: { _ in store.send(.collapseToggled) }
                 )
             ) {
-                VStack(alignment: .leading, spacing: 8) {
-                    if !context.neutral.isEmpty {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("What Changed")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.secondary)
-                            Text(context.neutral)
-                                .font(.caption)
-                                .textSelection(.enabled)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if !context.neutral.isEmpty {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("What Changed")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                Text(context.neutral)
+                                    .font(.caption)
+                                    .textSelection(.enabled)
+                            }
                         }
-                    }
 
-                    if !context.review.isEmpty {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Review Feedback")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.secondary)
-                            Text(context.review)
-                                .font(.caption)
-                                .textSelection(.enabled)
+                        if !context.review.isEmpty {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Review Feedback")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                Text(context.review)
+                                    .font(.caption)
+                                    .textSelection(.enabled)
+                            }
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 4)
                 }
-                .padding(.bottom, 4)
+                .frame(maxHeight: 200)
             } label: {
                 Label("File Context", systemImage: "info.circle")
                     .font(.caption)

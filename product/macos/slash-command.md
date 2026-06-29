@@ -4,13 +4,13 @@
 
 ## Overview
 
-A second slash command (`/shepherd-mac`) lets developers launch the macOS variant of the Code Review Prompt Generator from within an AI coding agent. It mirrors the behavior of `/shepherd` but opens the native macOS application instead of a browser-based one.
+The slash command (`/shepherd`) lets developers launch the macOS Code Review Prompt Generator from within an AI coding agent. It opens the native macOS application in its own window.
 
-The two commands coexist. Developers choose per-invocation which surface they want to review in. There is no automatic platform detection — the choice is explicit.
+There is no automatic platform detection — invoking `/shepherd` always launches the native macOS application.
 
 ## Shared Requirements — Applicability on macOS
 
-The following shared requirements apply identically when invoking `/shepherd-mac`, with the substitution of "the CRPG" for "the macOS CRPG application":
+The following shared requirements apply identically when invoking `/shepherd`, with the substitution of "the CRPG" for "the macOS CRPG application":
 
 - `FR-sc-file-resolution` — Resolve file paths
 - `FR-sc-file-validation` — Validate the target file before launch
@@ -30,7 +30,7 @@ The following shared requirements are **replaced** by macOS-specific variants be
 ## macOS-Specific Functional Requirements
 
 #### `FR-sc-mac-invoke-command` -- Invoke the macOS CRPG via slash command
-The user can type `/shepherd-mac <filepath>` to launch the macOS CRPG with the specified file. Argument handling matches `/shepherd` exactly: missing arguments produce a usage message; invalid files produce the same error messages as `FR-sc-file-validation`.
+The user can type `/shepherd <filepath>` to launch the macOS CRPG with the specified file. Argument handling matches `/shepherd` exactly: missing arguments produce a usage message; invalid files produce the same error messages as `FR-sc-file-validation`.
 
 #### `FR-sc-mac-launch` -- Launch the prebuilt macOS application
 On invocation, the command launches the macOS CRPG application directly. The application opens its own window; no browser or local web server is involved. The application receives the session identifier via a launch argument and reads its file payload from a per-session staging location on disk.
@@ -39,20 +39,20 @@ On invocation, the command launches the macOS CRPG application directly. The app
 Before launching the application, the slash command writes the validated file path and contents into the per-session staging area (the same `~/.shepherd/sessions/<id>/` directory used for prompt-output handoff). The application reads the staging file at startup, displays the file in the code viewer, and writes its prompt output back to the same directory when the user clicks **Done**, identically to the shared `FR-sc-prompt-receive` flow.
 
 #### `FR-sc-mac-prebuild` -- Prepare the macOS application during install
-The installer prepares the macOS application so the first invocation of `/shepherd-mac` is fast. After the installer completes, invoking `/shepherd-mac` does not require a build step or dependency download. If preparation fails (e.g., missing toolchain), the installer reports the failure but does not block installation of the web slash command.
+The installer prepares the macOS application so the first invocation of `/shepherd` is fast. After the installer completes, invoking `/shepherd` does not require a build step or dependency download. If preparation fails (e.g., missing toolchain), the installer reports the failure but does not block the rest of the install.
 
 ## macOS-Specific Acceptance Criteria
 
-- [ ] `AC-sc-mac-launches-app` — `/shepherd-mac <valid-file>` opens the macOS CRPG window with the file loaded within the latency budget defined in `NFR-sc-launch-speed`.
-- [ ] `AC-sc-mac-no-server` — Launching `/shepherd-mac` does not start or rely on a local web server.
+- [ ] `AC-sc-mac-launches-app` — `/shepherd <valid-file>` opens the macOS CRPG window with the file loaded within the latency budget defined in `NFR-sc-launch-speed`.
+- [ ] `AC-sc-mac-no-server` — Launching `/shepherd` does not start or rely on a local web server.
 - [ ] `AC-sc-mac-prompt-roundtrip` — After clicking **Done** in the macOS app, the prompt output is delivered back to the agent conversation, matching the shared `FR-sc-prompt-receive` behavior.
-- [ ] `AC-sc-mac-coexists` — Both `/shepherd` and `/shepherd-mac` are available simultaneously after install. Invoking one does not affect the other.
-- [ ] `AC-sc-mac-prebuild-fast` — On a machine where the installer completed successfully, the first `/shepherd-mac` invocation reaches an open window within `NFR-sc-launch-speed`.
-- [ ] `AC-sc-mac-prebuild` — When the prebuild step fails (e.g., missing Swift toolchain), the installer reports the failure but does not abort installation of the web slash command. `/shepherd` remains usable; only `/shepherd-mac` is unavailable until the user fixes the toolchain and reruns the installer.
+- [ ] `AC-sc-mac-coexists` — Both `/shepherd` and `/shepherd-review` are available simultaneously after install. Invoking one does not affect the other.
+- [ ] `AC-sc-mac-prebuild-fast` — On a machine where the installer completed successfully, the first `/shepherd` invocation reaches an open window within `NFR-sc-launch-speed`.
+- [ ] `AC-sc-mac-prebuild` — When the prebuild step fails (e.g., missing Swift toolchain), the installer reports the failure but does not abort the rest of the install. `/shepherd` is unavailable until the user fixes the toolchain and reruns the installer.
 
 ## Open Questions
 
-- Should `/shepherd-mac-review` (the multi-file batch variant) ship in the same release? Currently deferred to a follow-up.
+- Should `/shepherd-review` (the multi-file batch variant) ship in the same release? Currently deferred to a follow-up.
 
 ## Dependencies
 
