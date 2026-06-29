@@ -11,7 +11,7 @@ product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-com
 
 ## What We're Testing
 
-This test plan covers the macOS variant of `shepherd-review` -- specifically the `/shepherd-mac-review` slash command, which orchestrates the multi-file changeset review workflow against the native macOS Code Review Prompt Generator instead of the web CRPG. Scope is limited to the slash-command surface (changeset detection, filtering, ordering, context generation, launcher invocation, interactive prompt, feedback handoff, and install) plus the macOS-specific delivery mechanism (session-JSON payload, prebuilt binary launch, native window with tabs).
+This test plan covers the macOS variant of `shepherd-review` -- specifically the `/shepherd-review` slash command, which orchestrates the multi-file changeset review workflow against the native macOS Code Review Prompt Generator. Scope is limited to the slash-command surface (changeset detection, filtering, ordering, context generation, launcher invocation, interactive prompt, feedback handoff, and install) plus the macOS-specific delivery mechanism (session-JSON payload, prebuilt binary launch, native window with tabs).
 
 The underlying multi-file native UI (file browser, code viewer, inspector, ReviewContextSection, ReviewContextPanel, Done/auto-close behavior) is owned by `qa/macos/code-review-prompt.md` and is not duplicated here -- those test cases are referenced where relevant. This plan focuses on the orchestration layer and the launcher/agent contract.
 
@@ -19,9 +19,9 @@ The underlying multi-file native UI (file browser, code viewer, inspector, Revie
 
 Automated tests for slash-command behavior are intrinsically limited: the agent runtime (Claude Code or opencode) interprets the prompt instructions, runs git commands, generates context, and invokes shell tools. There is no headless harness for that flow today. Consequently most cases here are **Manual** on macOS 14+ (Sonoma) with a Swift toolchain and a working Claude Code or opencode install.
 
-The launcher script (`scripts/shepherd-launch-macos.sh`) is the one piece with a stable contract that can be exercised in isolation: argument parsing, session-JSON construction, and the `--context` flag handling. Those cases are marked **Automated** (shell-script tests) and expected to live alongside other launcher tests in the repo.
+The launcher script (`scripts/shepherd-launch.sh`) is the one piece with a stable contract that can be exercised in isolation: argument parsing, session-JSON construction, and the `--context` flag handling. Those cases are marked **Automated** (shell-script tests) and expected to live alongside other launcher tests in the repo.
 
-Coexistence with the web variant is verified by checking both commands continue to work independently after install. No cross-variant integration tests are needed -- the variants share no runtime state.
+Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both commands continue to work independently after install. The two commands share no runtime state.
 
 ---
 
@@ -70,7 +70,7 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `AC-sr-list-command` | `TC-srm-context-in-app` | Verified -- file list and context surface in native UI |
 | `AC-sr-unified-prompt` | `TC-srm-happy-path`, `TC-srm-skip-file` | Verified -- session-scoped `prompt-output.md` |
 | `AC-sr-install-global` | covered by `AC-srm-install-symlink` (`TC-srm-install-symlink`) | Supplanted on macOS |
-| `AC-sr-filters-lockfiles`, `AC-sr-filters-generated`, `AC-sr-filters-binary`, `AC-sr-includes-config`, `AC-sr-excludes-deleted` | inherited from `qa/web/shepherd-review.md` (filtering logic is platform-neutral) | Inherited |
+| `AC-sr-filters-lockfiles`, `AC-sr-filters-generated`, `AC-sr-filters-binary`, `AC-sr-includes-config`, `AC-sr-excludes-deleted` | covered by the shared review flow in the `/shepherd-review` command prompt (filtering logic is platform-neutral) | Inherited |
 
 ### Functional Requirement Coverage (macOS-specific delta)
 
@@ -106,11 +106,11 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Type**: Manual
 - **Covers**: `AC-sr-happy-path`, `AC-srm-batch-open-native`, `AC-srm-context-in-app`, `AC-srm-prompt-roundtrip`, `AC-sr-auto-open`, `AC-sr-completion-summary`, `AC-sr-invokes-shepherd`, `AC-sr-unified-prompt`, `FR-srm-multi-file-launch`, `NFR-srm-launch-budget`
 - **Preconditions**:
-  - macOS 14+ host with Swift toolchain installed and `./scripts/install-command.sh` already run successfully (so `/shepherd-mac-review` is available and `engineering/apps/macos/.build/release/ShepherdApp` exists).
+  - macOS 14+ host with Swift toolchain installed and `./scripts/install-command.sh` already run successfully (so `/shepherd-review` is available and `engineering/apps/macos/.build/release/ShepherdApp` exists).
   - Open a Claude Code or opencode session inside a test repo on a feature branch with 5 modified human-authored source files and 2 lockfiles relative to `main`.
 - **Steps**:
   1. Note the current contents of `~/.shepherd/sessions/` (if any).
-  2. Type `/shepherd-mac-review` in the agent conversation.
+  2. Type `/shepherd-review` in the agent conversation.
   3. Observe the brief summary in the conversation: `Session: <id>`, scope label, "Opening 5 files in the macOS app for review.", and "2 files excluded (lockfiles, generated, binary)." -- no detailed file list, no per-file context, no confirmation prompt.
   4. Verify the native macOS application window opens immediately (within ~1s after the launcher returns).
   5. In the native window, verify that the file browser shows 5 rows in priority order (core source first, tests last) and the first file is the active tab.
@@ -122,7 +122,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
   11. Confirm the agent prints a completion summary covering total opened, files with comments, files filtered, and presents the action menu (apply, discuss, save, nothing).
 - **Expected**:
   - Brief summary is rendered as specified; no detailed file list appears in the conversation.
-  - The macOS window appears within the launch budget; total wall time from `/shepherd-mac-review` invocation to window-on-screen sits within `NFR-crp-macos-launch-time` plus context-generation time.
+  - The macOS window appears within the launch budget; total wall time from `/shepherd-review` invocation to window-on-screen sits within `NFR-crp-macos-launch-time` plus context-generation time.
   - File browser tab order matches priority ordering (`AC-sr-sorted-file-list`).
   - ReviewContextSection (overall) and ReviewContextPanel (per-file) render with visually distinct neutral vs review subsections.
   - On clicking Done, the application writes `~/.shepherd/sessions/<id>/prompt-output.md` containing exactly the 3 commented files.
@@ -131,18 +131,18 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 
 ---
 
-#### `TC-srm-coexistence` -- Web and macOS review commands coexist
+#### `TC-srm-coexistence` -- `/shepherd` and `/shepherd-review` coexist
 
 - **Type**: Manual
 - **Covers**: `AC-srm-coexists`, `FR-srm-coexists`, `FR-srm-command-file`
-- **Preconditions**: `./scripts/install-command.sh` has been run successfully on a macOS host with Swift available. Both `~/.claude/commands/shepherd-review.md` and `~/.claude/commands/shepherd-mac-review.md` symlinks should exist.
+- **Preconditions**: `./scripts/install-command.sh` has been run successfully on a macOS host with Swift available. Both `~/.claude/commands/shepherd.md` and `~/.claude/commands/shepherd-review.md` symlinks should exist.
 - **Steps**:
-  1. In a Claude Code session, type `/` and inspect the slash-command picker. Confirm both `/shepherd-review` and `/shepherd-mac-review` appear, alongside `/shepherd` and `/shepherd-mac`.
-  2. Invoke `/shepherd-review` on a small test branch and confirm the browser opens (web flow).
-  3. Close the browser. Invoke `/shepherd-mac-review` on the same branch and confirm the native macOS window opens (native flow).
+  1. In a Claude Code session, type `/` and inspect the slash-command picker. Confirm both `/shepherd` and `/shepherd-review` appear.
+  2. Invoke `/shepherd <file>` on a single file and confirm the native macOS window opens with that file.
+  3. Invoke `/shepherd-review` on the same branch and confirm the native macOS window opens with the changeset's reviewable files.
   4. Repeat in opencode if available -- confirm both skills register and behave the same way.
-- **Expected**: Each command launches its own surface independently. Invoking one does not stop or affect the other; both can be used in alternation across sessions.
-- **Pass criteria**: All four commands present, both review variants launch successfully against the same branch with no cross-interference.
+- **Expected**: Each command launches the native macOS app independently. Invoking one does not stop or affect the other; both can be used in alternation across sessions.
+- **Pass criteria**: Both commands present and launching the native app successfully with no cross-interference.
 
 ---
 
@@ -152,16 +152,16 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 
 - **Type**: Manual
 - **Covers**: `AC-srm-no-server`, `NFR-srm-no-server`
-- **Preconditions**: macOS host with no Vite dev server currently running. A test branch with at least 2 reviewable files. Terminal with `lsof` available.
+- **Preconditions**: macOS host with no local web server currently running. A test branch with at least 2 reviewable files. Terminal with `lsof` available.
 - **Steps**:
   1. Before invoking the command, run `lsof -iTCP -sTCP:LISTEN -P -n | sort > /tmp/before.txt`.
-  2. Invoke `/shepherd-mac-review` and wait for the native window to open and the AskUserQuestion prompt to appear.
+  2. Invoke `/shepherd-review` and wait for the native window to open and the AskUserQuestion prompt to appear.
   3. Run `lsof -iTCP -sTCP:LISTEN -P -n | sort > /tmp/after.txt`.
   4. Diff the two snapshots: `diff /tmp/before.txt /tmp/after.txt`.
-  5. Inspect the running process tree (`ps -ef | grep -E 'vite|node.*shepherd'`) and confirm no Vite or shepherd-web Node processes are present that were not present before.
+  5. Inspect the running process tree (e.g. `ps -ef | grep -E 'node|http'`) and confirm no local web-server process appeared as a result of the invocation.
   6. Cancel the session and close the window.
-- **Expected**: The diff shows no new TCP listeners attributable to the shepherd web variant. No Vite, Node, or HTTP-server process appears in the process tree as a result of the invocation.
-- **Pass criteria**: Zero new web-server bindings, zero new Vite/Node processes spawned by the macOS flow.
+- **Expected**: The diff shows no new TCP listeners attributable to the command. No web-server, Node, or HTTP-server process appears in the process tree as a result of the invocation.
+- **Pass criteria**: Zero new web-server bindings, zero new web-server processes spawned by the macOS flow.
 
 ---
 
@@ -171,8 +171,8 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-srm-session-isolation`
 - **Preconditions**: Two separate clones (or worktrees) of test repos, each with a different reviewable change set. Two Claude Code or opencode sessions, each cd'd into its own working directory.
 - **Steps**:
-  1. In session A (working directory A), invoke `/shepherd-mac-review`. Wait for native window A to open. Note the session ID printed in the brief summary -- call it `sid-A`.
-  2. Without closing window A, switch to session B (working directory B) and invoke `/shepherd-mac-review`. Wait for native window B to open. Note `sid-B`.
+  1. In session A (working directory A), invoke `/shepherd-review`. Wait for native window A to open. Note the session ID printed in the brief summary -- call it `sid-A`.
+  2. Without closing window A, switch to session B (working directory B) and invoke `/shepherd-review`. Wait for native window B to open. Note `sid-B`.
   3. Confirm `sid-A != sid-B`.
   4. Inspect `~/.shepherd/sessions/` on disk -- verify both `~/.shepherd/sessions/<sid-A>/session.json` and `~/.shepherd/sessions/<sid-B>/session.json` exist with disjoint `files[]` and disjoint `reviewContext`.
   5. In window A, add comments on one file and click Done. Confirm `~/.shepherd/sessions/<sid-A>/prompt-output.md` is created and `~/.shepherd/sessions/<sid-B>/prompt-output.md` does not exist yet.
@@ -191,12 +191,12 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-srm-cancel`
 - **Preconditions**: A test branch with at least 2 reviewable files.
 - **Steps**:
-  1. Invoke `/shepherd-mac-review`.
+  1. Invoke `/shepherd-review`.
   2. After the native window opens and the AskUserQuestion prompt appears in the agent conversation, select **Cancel**.
   3. Observe the agent conversation: the session should end immediately with no completion summary printed.
   4. Switch focus to the native window: it should still be open and fully interactive.
   5. The user closes the window manually using standard macOS chrome (red traffic-light or `Cmd+W`).
-  6. Optional: re-invoke `/shepherd-mac-review` and confirm a new session can be started immediately.
+  6. Optional: re-invoke `/shepherd-review` and confirm a new session can be started immediately.
 - **Expected**:
   - On Cancel, agent prints no summary and stops.
   - Window remains open after Cancel; closing is fully under user control.
@@ -211,9 +211,9 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-sr-interactive-prompt`, `AC-srm-cancel`
 - **Preconditions**: A test branch with at least 3 reviewable files.
 - **Steps**:
-  1. **Variant A -- Added comments**: Invoke `/shepherd-mac-review`, add comments on 1 file, click Done in the window, then select "Added comments" in the agent prompt. Verify the agent reads `~/.shepherd/sessions/<id>/prompt-output.md` and shows the standard summary and action menu.
-  2. **Variant B -- Reviewed, no comments**: Invoke `/shepherd-mac-review` again, click Done in the window without adding any comments, select "Reviewed, no comments". Verify the agent shows a summary noting zero comments and ends without offering an action menu.
-  3. **Variant C -- Cancel**: Invoke `/shepherd-mac-review` again, do not click Done in the window, select "Cancel" in the agent prompt. Verify per `TC-srm-cancel-keeps-window`.
+  1. **Variant A -- Added comments**: Invoke `/shepherd-review`, add comments on 1 file, click Done in the window, then select "Added comments" in the agent prompt. Verify the agent reads `~/.shepherd/sessions/<id>/prompt-output.md` and shows the standard summary and action menu.
+  2. **Variant B -- Reviewed, no comments**: Invoke `/shepherd-review` again, click Done in the window without adding any comments, select "Reviewed, no comments". Verify the agent shows a summary noting zero comments and ends without offering an action menu.
+  3. **Variant C -- Cancel**: Invoke `/shepherd-review` again, do not click Done in the window, select "Cancel" in the agent prompt. Verify per `TC-srm-cancel-keeps-window`.
 - **Expected**: All three branches produce the documented agent-side behavior. The native window's Done button is the trigger for branches A and B (per `FR-crp-macos-auto-close`); the agent does not write to or read from the native window.
 - **Pass criteria**: Each branch matches its expected agent response and on-disk side effects.
 
@@ -227,7 +227,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-srm-context-in-app`, `AC-sr-list-command`
 - **Preconditions**: A test branch with at least 3 reviewable files of meaningfully different content (e.g., a feature change, a refactor, and a test).
 - **Steps**:
-  1. Invoke `/shepherd-mac-review` and let the native window open.
+  1. Invoke `/shepherd-review` and let the native window open.
   2. With no file tab selected (or with the inspector overall area visible), locate the ReviewContextSection in the inspector. Verify it shows an "Overall Neutral Context" subsection and an "Overall Review Feedback" subsection that are visually distinct (different headers, different styling, or otherwise unambiguously separated).
   3. Select the first file tab. Locate the ReviewContextPanel for that file. Verify it shows the same neutral/review split scoped to this file.
   4. Inspect the contents: neutral subsection should be factual ("function `foo` was renamed to `bar`"); review subsection should be opinionated ("consider extracting this branch into a helper").
@@ -243,7 +243,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-srm-context-in-app`
 - **Preconditions**: Same as `TC-srm-context-in-app`.
 - **Steps**:
-  1. Open `/shepherd-mac-review` and wait for the window with multiple file tabs.
+  1. Open `/shepherd-review` and wait for the window with multiple file tabs.
   2. Note the per-file ReviewContextPanel content for the active (first) file.
   3. Click the second tab. Verify the ReviewContextPanel content updates to reflect the second file's per-file neutral and review entries.
   4. Click the third tab. Verify another update.
@@ -260,7 +260,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Preconditions**: Ability to invoke the launcher script directly with a known set of fixture files but **without** the `--context` flag.
 - **Steps**:
   1. Pick 2 small fixture files in the repo (e.g., `README.md` and `package.json`).
-  2. From a terminal: `./scripts/shepherd-launch-macos.sh /absolute/path/to/README.md /absolute/path/to/package.json` -- omit `--context`.
+  2. From a terminal: `./scripts/shepherd-launch.sh /absolute/path/to/README.md /absolute/path/to/package.json` -- omit `--context`.
   3. Wait for the native window to open.
   4. Verify both files load as tabs.
   5. Inspect the inspector overall area: ReviewContextSection should be hidden or rendered empty (per `AC-crp-context-graceful-missing`).
@@ -279,7 +279,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-sr-sorted-file-list`, `AC-srm-batch-open-native`, `FR-sr-priority-ordering`
 - **Preconditions**: A test branch whose changeset includes a mix of: a core source file (e.g., `src/app.tsx`), a config file (e.g., `vite.config.ts`), a doc (`README.md`), and a test file (`tests/app.test.ts`).
 - **Steps**:
-  1. Invoke `/shepherd-mac-review`.
+  1. Invoke `/shepherd-review`.
   2. In the native window's file browser, read the row order top-to-bottom.
 - **Expected**: The order is: core source, then config, then docs, then tests -- matching the priority tiers in `FR-sr-priority-ordering`. Within tiers, ordering is stable based on the agent's priority sort.
 - **Pass criteria**: Source files appear before config; config before docs; docs before tests; first tab is the highest-priority file.
@@ -292,14 +292,14 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 
 - **Type**: Manual
 - **Covers**: `AC-srm-install-symlink`, `FR-srm-install`, `FR-srm-command-file`
-- **Preconditions**: A clean macOS host with Swift toolchain installed but `~/.claude/commands/shepherd-mac-review.md` and `~/.config/opencode/skills/shepherd-mac-review/SKILL.md` not yet present (or removed for the test).
+- **Preconditions**: A clean macOS host with Swift toolchain installed but `~/.claude/commands/shepherd-review.md` and `~/.config/opencode/skills/shepherd-review/SKILL.md` not yet present (or removed for the test).
 - **Steps**:
   1. From the repo root, run `./scripts/install-command.sh`.
   2. Wait for the script to complete successfully.
-  3. Verify the symlink for the Claude command: `ls -l ~/.claude/commands/shepherd-mac-review.md` -- the output should show a symlink (`->`) pointing into the repo's `.claude/commands/shepherd-mac-review.md`.
-  4. Verify the opencode skill symlink: `ls -l ~/.config/opencode/skills/shepherd-mac-review/SKILL.md` -- should symlink into the repo's `.config/opencode/skills/shepherd-mac-review/SKILL.md`.
+  3. Verify the symlink for the Claude command: `ls -l ~/.claude/commands/shepherd-review.md` -- the output should show a symlink (`->`) pointing into the repo's `.claude/commands/shepherd-review.md`.
+  4. Verify the opencode skill symlink: `ls -l ~/.config/opencode/skills/shepherd-review/SKILL.md` -- should symlink into the repo's `.config/opencode/skills/shepherd-review/SKILL.md`.
   5. Resolve both with `readlink -f` and confirm they point inside the current repo.
-  6. Open a Claude Code session in any directory and confirm `/shepherd-mac-review` shows up in the slash-command picker.
+  6. Open a Claude Code session in any directory and confirm `/shepherd-review` shows up in the slash-command picker.
 - **Expected**: Both symlinks exist and resolve back into the repo. The slash command is discoverable globally.
 - **Pass criteria**: Symlinks present, resolve correctly, command available globally.
 
@@ -314,11 +314,11 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
   1. Move (or remove) any prebuilt binary at `engineering/apps/macos/.build/release/ShepherdApp` so the installer must attempt a build.
   2. Run the installer with a sanitized PATH that excludes Swift: `PATH=/usr/bin:/bin ./scripts/install-command.sh`.
   3. Observe stdout/stderr for warning messages.
-  4. Inspect the symlinks at `~/.claude/commands/`: confirm `shepherd.md` and `shepherd-review.md` (web variants) are present, and `shepherd-mac.md` / `shepherd-mac-review.md` are either absent or symlinked-but-noted-as-degraded depending on the script's policy (per `AC-srm-install-degraded`, the installer should report degraded status without aborting).
+  4. Inspect the symlinks at `~/.claude/commands/`: confirm `shepherd.md` and `shepherd-review.md` are present (the symlinks are created even when the toolchain is missing -- only the prebuild step is skipped, per `AC-srm-install-degraded`, and the installer reports degraded status without aborting).
   5. Confirm the script exit code: success (or a documented warning state), not a hard failure.
-  6. Confirm web `/shepherd-review` works in a Claude Code session.
-- **Expected**: Installer prints a clear warning that the macOS variants are unavailable due to a missing Swift toolchain, completes without aborting, and leaves the web commands fully usable.
-- **Pass criteria**: Web commands install and work; macOS commands either skipped or marked unavailable; installer exits with a non-failure status.
+  6. Invoke `/shepherd-review` in a Claude Code session and confirm it surfaces the "binary not found" error (the symlink resolves, but the prebuilt binary is absent).
+- **Expected**: Installer prints a clear warning that `/shepherd` and `/shepherd-review` are unavailable due to a missing Swift toolchain, completes without aborting, and exits with a non-failure status.
+- **Pass criteria**: Installer completes without aborting; `/shepherd` and `/shepherd-review` are reported unavailable; installer exits with a non-failure status.
 
 ---
 
@@ -328,9 +328,9 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-srm-install-git-pull`, `FR-srm-install`
 - **Preconditions**: `./scripts/install-command.sh` has been run successfully and the symlinks exist.
 - **Steps**:
-  1. Edit the source file `.claude/commands/shepherd-mac-review.md` in the repo to add a unique, harmless change to the prompt instructions (e.g., a new comment line at the top).
+  1. Edit the source file `.claude/commands/shepherd-review.md` in the repo to add a unique, harmless change to the prompt instructions (e.g., a new comment line at the top).
   2. Without re-running the installer, do **not** modify `~/.claude/commands/`.
-  3. Read `~/.claude/commands/shepherd-mac-review.md` directly (e.g., `cat ~/.claude/commands/shepherd-mac-review.md`).
+  3. Read `~/.claude/commands/shepherd-review.md` directly (e.g., `cat ~/.claude/commands/shepherd-review.md`).
   4. Verify the unique change is visible there immediately, because the user-level path is a symlink to the repo file.
   5. Revert the edit (or stage as-is for cleanup), then simulate a `git pull` by checking out a different commit and back, and confirm the user-level path always reflects the current repo state.
 - **Expected**: The user-level command file always reflects the repo file by virtue of being a symlink. No re-install needed after `git pull`.
@@ -344,10 +344,10 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 
 - **Type**: Manual
 - **Covers**: Binary-missing error path from `design/macos/shepherd-review.md` "Error Cases"
-- **Preconditions**: `/shepherd-mac-review` is installed (symlink present) but the prebuilt binary at `engineering/apps/macos/.build/release/ShepherdApp` has been deleted or moved.
+- **Preconditions**: `/shepherd-review` is installed (symlink present) but the prebuilt binary at `engineering/apps/macos/.build/release/ShepherdApp` has been deleted or moved.
 - **Steps**:
   1. Confirm the binary is absent: `ls engineering/apps/macos/.build/release/ShepherdApp` should fail.
-  2. From a Claude Code session, invoke `/shepherd-mac-review` on a branch with at least 1 reviewable file.
+  2. From a Claude Code session, invoke `/shepherd-review` on a branch with at least 1 reviewable file.
   3. Observe the agent conversation.
 - **Expected**: The launcher prints the documented error message ("macOS app binary not found at <path>. Re-run ./scripts/install-command.sh from the Shepherd repo to build it."). The agent surfaces this message to the user and stops the slash-command flow without attempting any further work.
 - **Pass criteria**: Error message appears verbatim; no native window opens; no AskUserQuestion prompt is presented; no session directory is left in a half-written state (or if it is, the launcher has cleaned it up per existing convention).
@@ -361,8 +361,8 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Preconditions**: A directory that is not inside a git repository (e.g., `/tmp/not-a-repo`).
 - **Steps**:
   1. Open a Claude Code session in the non-git directory.
-  2. Invoke `/shepherd-mac-review`.
-- **Expected**: The agent prints the documented error message: "Not a git repository. /shepherd-mac-review must be run from within a git repo." The flow stops without launching the native window.
+  2. Invoke `/shepherd-review`.
+- **Expected**: The agent prints the documented error message: "Not a git repository. /shepherd-review must be run from within a git repo." The flow stops without launching the native window.
 - **Pass criteria**: Error message printed; no window opens; no session JSON written.
 
 ---
@@ -374,7 +374,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Preconditions**: A clean checkout with no working-tree changes, no staged changes, no untracked files.
 - **Steps**:
   1. Run `git status` and confirm the tree is clean.
-  2. Invoke `/shepherd-mac-review` (default scope).
+  2. Invoke `/shepherd-review` (default scope).
 - **Expected**: The agent prints "No uncommitted changes to review." and stops. No native window opens.
 - **Pass criteria**: Message printed; no window; no session JSON written; crucially, no blank window appears.
 
@@ -387,7 +387,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Preconditions**: A branch whose only changes are excluded by filtering (e.g., only `package-lock.json` and `dist/bundle.js` modified).
 - **Steps**:
   1. Confirm via `git diff --name-only origin/main...HEAD` (or equivalent) that all changed files are filterable.
-  2. Invoke `/shepherd-mac-review`.
+  2. Invoke `/shepherd-review`.
 - **Expected**: The agent prints "No reviewable files found. All N changed files were filtered out (lockfiles, generated, binary)." and stops. No native window opens.
 - **Pass criteria**: Message printed with correct count; no window; no session JSON written.
 
@@ -401,7 +401,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-sr-skip-file`, `AC-sr-unified-prompt`
 - **Preconditions**: A test branch with 5 reviewable files.
 - **Steps**:
-  1. Invoke `/shepherd-mac-review`.
+  1. Invoke `/shepherd-review`.
   2. Add line comments on 2 of the 5 files. Leave the other 3 entirely uncommented.
   3. Click Done in the native window.
   4. Select "Added comments" in the agent prompt.
@@ -417,7 +417,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 - **Covers**: `AC-sr-quit-early`
 - **Preconditions**: A test branch with 5 reviewable files.
 - **Steps**:
-  1. Invoke `/shepherd-mac-review`.
+  1. Invoke `/shepherd-review`.
   2. Add a comment on only 1 of the 5 files (do not touch the other 4 tabs).
   3. Click Done immediately (do not visit any other tabs).
   4. Select "Added comments" in the agent prompt.
@@ -437,7 +437,7 @@ These cases verify the macOS-specific scope grammar — the commit-scoped modes 
 - **Preconditions**: A feature branch with at least one committed change relative to its parent AND at least one uncommitted edit (staged or unstaged) to a *different* file.
 - **Steps**:
   1. Note which file is changed only in the commit (call it `committed.ts`) and which is dirty in the working tree (`dirty.ts`).
-  2. Invoke `/shepherd-mac-review` with no argument.
+  2. Invoke `/shepherd-review` with no argument.
 - **Expected**: The review opens `dirty.ts` (and any other uncommitted change). `committed.ts` does NOT appear, because the default scope is working tree vs `HEAD`, not vs the branch base. The summary's `Reviewing:` line reads `all uncommitted changes`.
 - **Pass criteria**: Only uncommitted files open; committed-only files absent.
 
@@ -449,8 +449,8 @@ These cases verify the macOS-specific scope grammar — the commit-scoped modes 
 - **Covers**: `AC-srm-branch-scope`, `FR-srm-branch-scope`, `FR-srm-commit-mode-no-untracked`
 - **Preconditions**: A feature branch with 3 commits ahead of `main`, a clean working tree, and a separate change on `main` after the branch point (so two-dot vs three-dot would differ).
 - **Steps**:
-  1. Invoke `/shepherd-mac-review --branch`.
-  2. Separately invoke `/shepherd-mac-review --branch <other-base>` against a second base branch.
+  1. Invoke `/shepherd-review --branch`.
+  2. Separately invoke `/shepherd-review --branch <other-base>` against a second base branch.
 - **Expected**: For `--branch`, the review contains exactly the files changed by the 3 branch commits relative to the merge base with `main`; the post-divergence `main` change is NOT included (three-dot semantics). The scope label reads `commits on <branch> vs main`. For `--branch <other-base>`, the comparison base is `<other-base>`. Untracked files, if any, are excluded.
 - **Pass criteria**: File set matches `git diff --name-status main...HEAD`; base override honored; untracked excluded.
 
@@ -462,9 +462,9 @@ These cases verify the macOS-specific scope grammar — the commit-scoped modes 
 - **Covers**: `AC-srm-commit-scope`, `FR-srm-commit-scope`, `FR-srm-commit-mode-no-untracked`
 - **Preconditions**: A branch where `HEAD` and `HEAD~2` each touch distinct files; a repo that also has a known root commit for the root sub-check.
 - **Steps**:
-  1. Invoke `/shepherd-mac-review --commit` (no ref).
-  2. Invoke `/shepherd-mac-review --commit HEAD~2`.
-  3. (Root-commit sub-check) In a repo with a single root commit, invoke `/shepherd-mac-review --commit <root-sha>`.
+  1. Invoke `/shepherd-review --commit` (no ref).
+  2. Invoke `/shepherd-review --commit HEAD~2`.
+  3. (Root-commit sub-check) In a repo with a single root commit, invoke `/shepherd-review --commit <root-sha>`.
 - **Expected**: (1) reviews exactly the files in `HEAD` vs its parent; scope label `commit <short-sha> — <subject>`. (2) reviews the files in `HEAD~2` vs `HEAD~3`. (3) the root commit reviews against the empty tree — every file appears as newly added. Untracked working-tree files never appear.
 - **Pass criteria**: File set matches `git diff --name-status <ref>^ <ref>` (or empty-tree for root); untracked excluded.
 
@@ -476,10 +476,10 @@ These cases verify the macOS-specific scope grammar — the commit-scoped modes 
 - **Covers**: `AC-srm-range-scope`, `FR-srm-range-scope`, `FR-srm-commit-mode-no-untracked`
 - **Preconditions**: A branch with several commits so a meaningful range exists.
 - **Steps**:
-  1. Invoke `/shepherd-mac-review --range HEAD~3..HEAD`.
-  2. Invoke `/shepherd-mac-review --range HEAD~3...HEAD` (three-dot).
-  3. Invoke `/shepherd-mac-review --range bogusref..HEAD` (invalid endpoint).
-  4. Invoke `/shepherd-mac-review --range HEAD` (no `..`).
+  1. Invoke `/shepherd-review --range HEAD~3..HEAD`.
+  2. Invoke `/shepherd-review --range HEAD~3...HEAD` (three-dot).
+  3. Invoke `/shepherd-review --range bogusref..HEAD` (invalid endpoint).
+  4. Invoke `/shepherd-review --range HEAD` (no `..`).
 - **Expected**: (1) and (2) review the net diff across the range (matching `git diff --name-status HEAD~3..HEAD` / `...HEAD` respectively); scope label `commit range <range>`. (3) and (4) print the usage block and stop without launching the app. Untracked files excluded throughout.
 - **Pass criteria**: Valid ranges open the correct file set; invalid/malformed ranges produce usage + no window.
 
@@ -491,9 +491,9 @@ These cases verify the macOS-specific scope grammar — the commit-scoped modes 
 - **Covers**: `AC-srm-empty-no-launch`, `FR-srm-no-blank-window`
 - **Preconditions**: Ability to construct each empty case: clean tree (default), branch with no commits beyond base (`--branch` from the base tip), an empty/no-op commit (`--commit` on a commit that only changed a now-filtered file), and an empty range.
 - **Steps**:
-  1. With a clean tree, invoke `/shepherd-mac-review`.
-  2. From a branch even with `main`, invoke `/shepherd-mac-review --branch`.
-  3. Invoke `/shepherd-mac-review --range HEAD..HEAD`.
+  1. With a clean tree, invoke `/shepherd-review`.
+  2. From a branch even with `main`, invoke `/shepherd-review --branch`.
+  3. Invoke `/shepherd-review --range HEAD..HEAD`.
 - **Expected**: Each invocation prints a clear scope-specific message ("No uncommitted changes to review.", "No commits on <branch> relative to main. Nothing to review.", "No changes in range HEAD..HEAD. Nothing to review.") and stops. No `session.json` is written and no native window — blank or otherwise — opens.
 - **Pass criteria**: Correct message per scope; zero windows; no launcher invocation.
 
@@ -505,8 +505,8 @@ These cases verify the macOS-specific scope grammar — the commit-scoped modes 
 - **Covers**: `FR-srm-scope-modes`
 - **Preconditions**: Any git repo.
 - **Steps**:
-  1. Invoke `/shepherd-mac-review --bogus`.
-  2. Invoke `/shepherd-mac-review nonexistent-ref-xyz`.
+  1. Invoke `/shepherd-review --bogus`.
+  2. Invoke `/shepherd-review nonexistent-ref-xyz`.
 - **Expected**: Both print the full usage block (listing default, `--staged`, `--unstaged`, `--branch`, `--commit`, `--range`, `<ref>`) and stop. No window opens. (Note: `nonexistent-ref-xyz` falls through to the `<ref>` branch, fails `git rev-parse --verify`, and produces the usage message.)
 - **Pass criteria**: Usage block shown; no window.
 
@@ -514,7 +514,7 @@ These cases verify the macOS-specific scope grammar — the commit-scoped modes 
 
 ### Launcher Contract (Automated)
 
-These cases exercise `scripts/shepherd-launch-macos.sh` directly to verify the launcher honors the multi-file and `--context` contract that `/shepherd-mac-review` relies on. They are written as shell tests that can run in CI without the native binary actually launching (mock `ShepherdApp` invocation by setting an env var, or run on a macOS CI runner with the binary present and `--dry-run`-equivalent behavior, depending on how the launcher's existing tests are structured).
+These cases exercise `scripts/shepherd-launch.sh` directly to verify the launcher honors the multi-file and `--context` contract that `/shepherd-review` relies on. They are written as shell tests that can run in CI without the native binary actually launching (mock `ShepherdApp` invocation by setting an env var, or run on a macOS CI runner with the binary present and `--dry-run`-equivalent behavior, depending on how the launcher's existing tests are structured).
 
 #### `TC-srm-launcher-context-flag` -- Launcher with `--context` populates `reviewContext`
 
@@ -532,7 +532,7 @@ These cases exercise `scripts/shepherd-launch-macos.sh` directly to verify the l
        }
      }
      ```
-  2. Harness invokes: `./scripts/shepherd-launch-macos.sh --context /tmp/test-context.json /tmp/fixture-a.ts /tmp/fixture-b.ts`.
+  2. Harness invokes: `./scripts/shepherd-launch.sh --context /tmp/test-context.json /tmp/fixture-a.ts /tmp/fixture-b.ts`.
   3. Harness intercepts the eventual binary invocation (e.g., via env-var mock) and reads `~/.shepherd/sessions/<sid>/session.json`.
   4. Harness verifies the JSON structure: `files[]` has both fixtures in the order given, and `reviewContext` is non-null with overall and files entries that match the fixture.
 - **Expected**: `session.json` contains a populated `reviewContext` field whose overall and per-file content exactly mirrors the input fixture, and `files[]` lists both fixtures in input order.
@@ -543,12 +543,12 @@ These cases exercise `scripts/shepherd-launch-macos.sh` directly to verify the l
 #### `TC-srm-launcher-no-context-flag` -- Launcher without `--context` keeps backward compat
 
 - **Type**: Automated (shell)
-- **Covers**: `FR-srm-context-handoff` (backward compat for single-file `/shepherd-mac` callers)
+- **Covers**: `FR-srm-context-handoff` (backward compat for single-file `/shepherd` callers)
 - **Preconditions**: Launcher script checked in. One fixture file exists.
 - **Steps**:
-  1. Harness invokes: `./scripts/shepherd-launch-macos.sh /tmp/fixture-a.ts` (no `--context`).
+  1. Harness invokes: `./scripts/shepherd-launch.sh /tmp/fixture-a.ts` (no `--context`).
   2. Harness reads `~/.shepherd/sessions/<sid>/session.json`.
-- **Expected**: `session.json` contains `files[]` with the single fixture and `reviewContext` is `null` (matching the existing single-file `/shepherd-mac` behavior, so the binary's existing fall-through path applies).
+- **Expected**: `session.json` contains `files[]` with the single fixture and `reviewContext` is `null` (matching the existing single-file `/shepherd` behavior, so the binary's existing fall-through path applies).
 - **Pass criteria**: `reviewContext == null`; `files[]` has exactly the one fixture entry; no JSON parse errors.
 
 ---
@@ -559,13 +559,13 @@ The following edge cases are noted but covered by the test cases above rather th
 
 ### Concurrent invocations from different working directories
 
-- **Trigger**: Two `/shepherd-mac-review` invocations started in close succession from different repos or worktrees.
+- **Trigger**: Two `/shepherd-review` invocations started in close succession from different repos or worktrees.
 - **Expected behavior**: Each invocation gets its own session ID, its own `~/.shepherd/sessions/<id>/` directory, and its own native window. No file or context payload is shared between sessions.
 - **Test case**: `TC-srm-session-isolation`.
 
 ### Missing `--context` argument
 
-- **Trigger**: The launcher is invoked without `--context` -- e.g., from `/shepherd-mac` (single-file) or from a test harness.
+- **Trigger**: The launcher is invoked without `--context` -- e.g., from `/shepherd` (single-file) or from a test harness.
 - **Expected behavior**: `session.json` has `reviewContext: null`. The native binary detects null context and hides the ReviewContextSection / ReviewContextPanel surfaces.
 - **Test case**: `TC-srm-launcher-no-context-flag`, `TC-srm-context-graceful-missing`.
 
@@ -600,7 +600,7 @@ The following edge cases are noted but covered by the test cases above rather th
 
 ## Regression Considerations
 
-- **`/shepherd-mac` (single-file)**: Any change to the launcher's argument parsing or `session.json` schema must continue to support single-file invocation without the `--context` flag (`TC-srm-launcher-no-context-flag`).
-- **`/shepherd-review` (web)**: The macOS install path must not interfere with the web symlinks. `TC-srm-coexistence` verifies this; install-script changes should re-run the full install matrix.
+- **`/shepherd` (single-file)**: Any change to the launcher's argument parsing or `session.json` schema must continue to support single-file invocation without the `--context` flag (`TC-srm-launcher-no-context-flag`).
+- **Install symlinks**: The review command's install path must not disturb the `/shepherd` symlink. `TC-srm-coexistence` verifies both commands coexist; install-script changes should re-run the full install matrix.
 - **Native multi-file UI**: Changes to the file browser, ReviewContextSection, or ReviewContextPanel are owned by `qa/macos/code-review-prompt.md`. Changes there must not break the assumptions in `TC-srm-happy-path` (priority tab order, neutral/review subsection labels, Done auto-close).
 - **Session-scoping primitives**: Changes to `~/.shepherd/sessions/<id>/` layout (e.g., renaming `session.json` or `prompt-output.md`) cascade through `TC-srm-session-isolation`, `TC-srm-happy-path`, and the launcher tests.

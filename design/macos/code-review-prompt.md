@@ -783,6 +783,7 @@ Displays per-file review context within the Code Viewer Panel. Implements `FR-cr
   - **Review feedback**: Distinct styling to indicate it is the agent's opinion (`AC-crp-context-neutral-vs-review`). Uses a tinted background (subtle system yellow or orange tint) and an icon (SF Symbol `lightbulb`) before the section header. This visually separates factual changes from subjective feedback.
   - Both sections are read-only (`AC-crp-context-readonly`).
   - The collapse state persists across file switches (`AC-crp-context-sidebar-collapse`).
+  - **Height bound**: When expanded, the content area grows with content up to a maximum of 200pt, then scrolls internally. This guarantees the code viewer below always retains usable vertical space, so the user can always scroll to the bottom of the file regardless of how long the review feedback is.
 
 ---
 

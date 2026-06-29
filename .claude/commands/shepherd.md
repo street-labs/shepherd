@@ -10,7 +10,7 @@ Suggested arguments: <filepath>
 
 The file to open: `$ARGUMENTS`
 
-If no file argument was provided (empty or blank), respond with: "Usage: /shepherd-mac <filepath>" and stop.
+If no file argument was provided (empty or blank), respond with: "Usage: /shepherd <filepath>" and stop.
 
 Otherwise, do the following steps:
 
@@ -25,15 +25,15 @@ SHEPHERD_ROOT="$(cat ~/.shepherd/repo-path 2>/dev/null)"
 
 2. **Symlink resolution** (if installed via manual symlink):
 ```bash
-[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh" ] && SHEPHERD_ROOT="$(cd "$(dirname "$(readlink -f "$(echo ~/.config/opencode/skills/shepherd-mac/SKILL.md)")")"/../.. && pwd)"
+[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" ] && SHEPHERD_ROOT="$(cd "$(dirname "$(readlink -f "$(echo ~/.claude/commands/shepherd.md)")")"/../.. && pwd)"
 ```
 
 3. **Current repo fallback** (if running from within the Shepherd repo):
 ```bash
-[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh" ] && SHEPHERD_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" ] && SHEPHERD_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 ```
 
-If `$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh` still doesn't exist, output: "Could not find shepherd-launch-macos.sh. Run `./scripts/install-command.sh` from the Shepherd repo to set it up." and stop.
+If `$SHEPHERD_ROOT/scripts/shepherd-launch.sh` still doesn't exist, output: "Could not find shepherd-launch.sh. Run `./scripts/install-command.sh` from the Shepherd repo to set it up." and stop.
 
 Derive the session ID and clean stale session data before launching, so review context from a prior `/shepherd-review` doesn't leak through:
 
@@ -45,7 +45,7 @@ rm -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md ~/.shepherd/sessions/$SE
 Then run the launcher script. It validates the file, writes `session.json`, and launches the prebuilt macOS app:
 
 ```
-bash "$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh" $ARGUMENTS
+bash "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" $ARGUMENTS
 ```
 
 Relay the script's stdout as a summary message. If the script exits non-zero, relay its stderr as an error message instead.

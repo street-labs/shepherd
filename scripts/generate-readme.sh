@@ -169,7 +169,7 @@ shepherd/
 ├── product/          # PRDs, requirements, acceptance criteria
 ├── design/           # UI/UX specs, screen definitions
 ├── engineering/      # Tech specs, architecture, source code
-│   └── apps/web/     # CRPG web application (React + Vite)
+│   └── apps/macos/   # CRPG native macOS app (SwiftUI + TCA)
 ├── qa/               # Test plans, test cases, coverage matrices
 ├── scripts/          # Automation (traceability audit, test runner, demos)
 ├── docs/demos/       # README screenshots (captured via Playwright)

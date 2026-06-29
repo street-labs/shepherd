@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Installs the /shepherd, /shepherd-review, /shepherd-mac, and /shepherd-mac-review slash
-# commands globally for Claude Code and opencode by creating symlinks from
-# ~/.claude/commands/ and ~/.config/opencode/skills/ to this repo's command files.
+# Installs the /shepherd and /shepherd-review slash commands globally for
+# Claude Code and opencode by creating symlinks from ~/.claude/commands/ and
+# ~/.config/opencode/skills/ to this repo's command files.
 # Updates propagate automatically via git pull through the symlinks.
 
 set -euo pipefail
@@ -16,7 +16,7 @@ CLAUDE_CONFIG_BASE="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 CLAUDE_TARGET_DIR="$CLAUDE_CONFIG_BASE/commands"
 OPENCODE_TARGET_DIR="$HOME/.config/opencode/skills"
 
-COMMANDS=("shepherd" "shepherd-review" "shepherd-mac" "shepherd-mac-review")
+COMMANDS=("shepherd" "shepherd-review")
 
 # Parse flags
 FORCE=false
@@ -27,8 +27,7 @@ for arg in "$@"; do
       echo "Usage: ./scripts/install-command.sh [--force]"
       echo ""
       echo "Installs Shepherd tools globally:"
-      echo "  - /shepherd, /shepherd-review, /shepherd-mac, /shepherd-mac-review slash commands"
-      echo "    for Claude Code and opencode"
+      echo "  - /shepherd and /shepherd-review slash commands for Claude Code and opencode"
       echo "  - git land and git sync subcommands for worktree workflow"
       echo ""
       echo "Options:"
@@ -111,8 +110,9 @@ for SCRIPT in "${GIT_SCRIPTS[@]}"; do
 done
 
 # --- macOS app prebuild (FR-sc-mac-prebuild) ---
-# Build the ShepherdApp release binary so /shepherd-mac launches instantly.
-# Failure here is non-fatal: the web slash command still works without the macOS binary.
+# Build the ShepherdApp release binary so /shepherd launches instantly.
+# Failure here is non-fatal: the slash commands still install (they error at
+# launch time with a clear "binary not found" message until the build succeeds).
 
 MAC_APP_DIR="$REPO_ROOT/engineering/apps/macos"
 if [ -d "$MAC_APP_DIR" ]; then
@@ -123,19 +123,19 @@ if [ -d "$MAC_APP_DIR" ]; then
       echo "Built: $MAC_APP_DIR/.build/release/ShepherdApp"
     else
       # Non-fatal per FR-sc-mac-prebuild — warn but do not block install.
-      echo "Warning: macOS app build failed. /shepherd-mac and /shepherd-mac-review will not work until rebuilt." >&2
+      echo "Warning: macOS app build failed. /shepherd and /shepherd-review will not work until rebuilt." >&2
       echo "  Re-run from $MAC_APP_DIR: swift build -c release" >&2
     fi
   else
     echo ""
-    echo "Warning: 'swift' not found on PATH. /shepherd-mac and /shepherd-mac-review will not work until you install Swift and re-run this script." >&2
+    echo "Warning: 'swift' not found on PATH. /shepherd and /shepherd-review will not work until you install Swift and re-run this script." >&2
   fi
 fi
 
 echo ""
 if [ $INSTALLED -gt 0 ] || [ $ALREADY -gt 0 ]; then
   echo "Installed:"
-  echo "  Claude Code/opencode:  /shepherd, /shepherd-review, /shepherd-mac, /shepherd-mac-review"
+  echo "  Claude Code/opencode:  /shepherd, /shepherd-review"
   echo "  Git commands: git land, git sync"
   echo ""
   echo "Updates propagate automatically when you git pull this repo."
