@@ -4,21 +4,8 @@ A multi-agent coordination framework for building software through structured, s
 
 ## Demo
 
-### Empty State
-
-![Empty State](docs/demos/01-empty-state.png)
-
-### File Loaded
-
-![File Loaded](docs/demos/02-file-loaded.png)
-
-### With Comments
-
-![With Comments](docs/demos/03-with-comments.png)
-
-### Prompt Generated
-
-![Prompt Generated](docs/demos/04-prompt-generated.png)
+> Demo screenshots are being regenerated for the native macOS app. (The previous
+> images captured the retired web CRPG and have been removed.)
 
 ## What It Does
 
@@ -90,7 +77,7 @@ shepherd/
 │   └── apps/macos/   # CRPG native macOS app (SwiftUI + TCA)
 ├── qa/               # Test plans, test cases, coverage matrices
 ├── scripts/          # Automation (traceability audit, test runner, demos)
-├── docs/demos/       # README screenshots (captured via Playwright)
+├── docs/demos/       # README screenshots (macOS app captures — regen pending)
 ├── index.md          # Traceability index (slug → all references)
 ├── glossary.md       # Shared vocabulary
 └── decisions.md      # Append-only decision log
@@ -111,7 +98,6 @@ Changes always flow: **markdown → code**, never code → markdown.
 
 | Metric | Count |
 |--------|-------|
-| Requirement slugs | 298 |
-| Unit/integration tests | 237 |
-| E2E tests | 9 |
-| Product features | 104 |
+| Requirement slugs (FR/NFR/AC) | 386 |
+| Test cases (TC) | 155 |
+| Product feature specs | 9 |
