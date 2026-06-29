@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Installs the /shepherd and /shepherd-review slash commands globally for
-# Claude Code and opencode by creating symlinks from ~/.claude/commands/ and
-# ~/.config/opencode/skills/ to this repo's command files.
+# Claude Code, opencode, and pi by creating symlinks from ~/.claude/commands/,
+# ~/.config/opencode/skills/, and ~/.pi/agent/prompts/ to this repo's command files.
 # Updates propagate automatically via git pull through the symlinks.
 
 set -euo pipefail
@@ -15,6 +15,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CLAUDE_CONFIG_BASE="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 CLAUDE_TARGET_DIR="$CLAUDE_CONFIG_BASE/commands"
 OPENCODE_TARGET_DIR="$HOME/.config/opencode/skills"
+# pi (pi.dev) reads prompt templates from ~/.pi/agent/prompts/<name>.md and
+# expands them as /<name>; it supports $ARGUMENTS natively, so the same command
+# files serve as pi prompt templates.
+PI_TARGET_DIR="$HOME/.pi/agent/prompts"
 
 COMMANDS=("shepherd" "shepherd-review")
 
@@ -27,7 +31,7 @@ for arg in "$@"; do
       echo "Usage: ./scripts/install-command.sh [--force]"
       echo ""
       echo "Installs Shepherd tools globally:"
-      echo "  - /shepherd and /shepherd-review slash commands for Claude Code and opencode"
+      echo "  - /shepherd and /shepherd-review slash commands for Claude Code, opencode, and pi"
       echo "  - git land and git sync subcommands for worktree workflow"
       echo ""
       echo "Options:"
@@ -98,6 +102,9 @@ for CMD in "${COMMANDS[@]}"; do
   
   # opencode installation
   install_symlink "$REPO_ROOT/.config/opencode/skills/$CMD/SKILL.md" "$OPENCODE_TARGET_DIR/$CMD/SKILL.md"
+
+  # pi installation (prompt template — reuses the same command file, invoked as /$CMD)
+  install_symlink "$REPO_ROOT/.claude/commands/$CMD.md" "$PI_TARGET_DIR/$CMD.md"
 done
 
 # --- Git subcommands (git land, git sync) ---
@@ -135,7 +142,7 @@ fi
 echo ""
 if [ $INSTALLED -gt 0 ] || [ $ALREADY -gt 0 ]; then
   echo "Installed:"
-  echo "  Claude Code/opencode:  /shepherd, /shepherd-review"
+  echo "  Claude Code/opencode/pi:  /shepherd, /shepherd-review"
   echo "  Git commands: git land, git sync"
   echo ""
   echo "Updates propagate automatically when you git pull this repo."
