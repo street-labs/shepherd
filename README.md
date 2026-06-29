@@ -24,28 +24,28 @@ A multi-agent coordination framework for building software through structured, s
 
 **Shepherd** orchestrates work across four functional areas — Product, Design, Engineering, and QA — using slug-based requirement IDs and a traceability index that maps every requirement to its design spec, implementation, and test cases.
 
-The first app built with Shepherd is the **Code Review Prompt Generator (CRPG)**, a client-side web app that lets you annotate source code with inline comments and generate structured prompts for AI code review.
+The first app built with Shepherd is the **Code Review Prompt Generator (CRPG)**, a native macOS app (SwiftUI + TCA) that lets you annotate source code with inline comments and generate structured prompts for AI code review.
 
 ### CRPG Features
 
-- **File loading** — Paste, upload, or drag-and-drop source files
-- **Syntax highlighting** — c, cpp, css, go, html, java, javascript, json, markdown, plaintext, python, rust, typescript, yaml via Shiki
+- **File loading** — Open one or more source files; multi-file review with a file browser
+- **Syntax highlighting** — c, cpp, css, go, html, java, javascript, json, markdown, plaintext, python, rust, typescript, yaml via swift-tree-sitter
 - **Inline comments** — Click line numbers to annotate single lines or ranges
 - **Prompt generation** — Structured output with code snippets paired with your comments
-- **Diff view** — Compare working copy vs git HEAD, comment on changes
+- **Review context** — Per-file and overall context (neutral + agent review) shown alongside the diff
 - **Clipboard copy** — One-click copy of generated prompts
-- **Performance** — Virtualized scrolling for files up to 10,000 lines
-- **Privacy** — Fully client-side, no data leaves the browser
+- **Privacy** — Runs locally; no data leaves your machine
 
-### Slash Command
+### Slash Commands
 
 Launch the CRPG directly from Claude Code or opencode:
 
 ```
-/shepherd path/to/file.ts
+/shepherd-mac path/to/file.ts     # open a single file
+/shepherd-mac-review              # guided multi-file review of your changes
 ```
 
-Opens the CRPG in your browser with the file already loaded. Supports diff view against git HEAD.
+Opens the native macOS app with the file(s) already loaded.
 
 ## Install
 
@@ -55,7 +55,7 @@ Opens the CRPG in your browser with the file already loaded. Supports diff view 
 sq run personal-lstreet-shepherd install --full-clone
 ```
 
-This clones the repo, installs dependencies, and symlinks the `/shepherd` and `/shepherd-review` slash commands into `~/.claude/commands/` so they're available in any repo.
+This clones the repo and symlinks the `/shepherd-mac` and `/shepherd-mac-review` slash commands into `~/.claude/commands/` (and the opencode skills) so they're available in any repo.
 
 ### Manual install
 
@@ -64,35 +64,20 @@ This clones the repo, installs dependencies, and symlinks the `/shepherd` and `/
 git clone <repo-url>
 cd shepherd
 
-# Install dependencies
-cd engineering/apps/web
-npm install
-
-# Start dev server
-npm run dev
-```
-
-### Install the Claude Code slash command
-
-```bash
-# Available automatically when working inside this repo.
-# To install globally:
+# Symlink the slash commands and build the macOS app binary
 ./scripts/install-command.sh
 ```
+
+`install-command.sh` builds the native `ShepherdApp` release binary (requires the Swift toolchain) and symlinks the slash commands for Claude Code and opencode. Updates propagate via `git pull`.
 
 ## Testing
 
 ```bash
-cd engineering/apps/web
-
-# Unit and integration tests (237 tests)
-npm run test
-
-# E2E tests (Playwright, 9 tests)
-npm run test:e2e
+# macOS app tests
+./scripts/run-tests.sh        # or: just test
 
 # Traceability audit
-../../scripts/audit-traceability.sh
+./scripts/audit-traceability.sh
 ```
 
 ## Project Structure
@@ -102,7 +87,7 @@ shepherd/
 ├── product/          # PRDs, requirements, acceptance criteria
 ├── design/           # UI/UX specs, screen definitions
 ├── engineering/      # Tech specs, architecture, source code
-│   └── apps/web/     # CRPG web application (React + Vite)
+│   └── apps/macos/   # CRPG native macOS app (SwiftUI + TCA)
 ├── qa/               # Test plans, test cases, coverage matrices
 ├── scripts/          # Automation (traceability audit, test runner, demos)
 ├── docs/demos/       # README screenshots (captured via Playwright)
