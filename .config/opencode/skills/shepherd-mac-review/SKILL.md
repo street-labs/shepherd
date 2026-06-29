@@ -1,12 +1,12 @@
 Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 
-<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff -->
+<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window -->
 
 Allowed tools: Bash, Read, Write
 
 Arguments: $ARGUMENTS
 
-Suggested arguments: [--staged | --unstaged | <commit-or-branch>]
+Suggested arguments: [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
 
 ## Instructions
 
@@ -49,7 +49,7 @@ SHEPHERD_ROOT="$(cat ~/.shepherd/repo-path 2>/dev/null)"
 
 2. **Symlink resolution** (if installed via manual symlink):
 ```bash
-[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh" ] && SHEPHERD_ROOT="$(cd "$(dirname "$(readlink -f "$(echo ~/.config/opencode/skills/shepherd-mac-review/SKILL.md)")")"/../.. && pwd)"
+[ ! -f "$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh" ] && SHEPHERD_ROOT="$(cd "$(dirname "$(readlink -f "$(echo ~/.claude/commands/shepherd-mac-review.md)")")"/../.. && pwd)"
 ```
 
 3. **Current repo fallback** (if running from within the Shepherd repo):
@@ -59,12 +59,19 @@ SHEPHERD_ROOT="$(cat ~/.shepherd/repo-path 2>/dev/null)"
 
 If `$SHEPHERD_ROOT/scripts/shepherd-launch-macos.sh` still doesn't exist, output: "Could not find shepherd-launch-macos.sh. Run `./scripts/install-command.sh` from the Shepherd repo to set it up." and stop.
 
-Parse the argument: `$ARGUMENTS`
+Parse the argument: `$ARGUMENTS`. There are two families of scope: **working-tree** scopes (review what's on disk; include untracked files) and **commit** scopes (review committed history; never include untracked files). Match in this precedence order (first match wins):
 
-- If empty or blank → SCOPE = `working` (default: all uncommitted changes)
-- If `--staged` → SCOPE = `staged`
-- If `--unstaged` → SCOPE = `unstaged`
-- Otherwise → treat the argument as a git ref (commit, branch, tag). Verify it resolves:
+- If empty or blank → SCOPE = `working` (default: all uncommitted changes vs HEAD).
+- If `--staged` → SCOPE = `staged`.
+- If `--unstaged` → SCOPE = `unstaged`.
+- If the first token is `--branch` → SCOPE = `branch`. The optional second token is the base; `BASE` = that token or `main` if omitted. Verify the base resolves:
+  ```bash
+  git -C "$REPO_ROOT" rev-parse --verify "$BASE" 2>/dev/null
+  ```
+  If it does NOT resolve → output the usage message below and stop.
+- If the first token is `--commit` → SCOPE = `commit`. The optional second token is the ref; `REF` = that token or `HEAD` if omitted. Verify the ref resolves with `git -C "$REPO_ROOT" rev-parse --verify "$REF"`. If it does NOT resolve → usage message, stop. Then determine the parent base: if `git -C "$REPO_ROOT" rev-parse --verify "$REF^"` succeeds, set `COMMIT_BASE="$REF^"`; otherwise (root commit, no parent) set `COMMIT_BASE=4b825dc642cb6eb9a060e54bf8d69288fbee4904` (git's canonical empty-tree object).
+- If the first token is `--range` → SCOPE = `range`. The second token is `RANGE` and MUST contain `..` (two-dot `A..B` or three-dot `A...B`). Split it on `..`/`...` and verify each endpoint with `git -C "$REPO_ROOT" rev-parse --verify`. If `RANGE` has no `..`, or either endpoint fails to resolve → usage message, stop.
+- Otherwise → treat the whole argument as a git ref (commit, branch, tag). Verify it resolves:
   ```bash
   git -C "$REPO_ROOT" rev-parse --verify "$ARGUMENTS" 2>/dev/null
   ```
@@ -72,26 +79,27 @@ Parse the argument: `$ARGUMENTS`
   If it does NOT resolve → output the usage message below and stop.
 
 ```
-Usage: /shepherd-mac-review [--staged | --unstaged | <ref>]
+Usage: /shepherd-mac-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
 
-Review uncommitted changes in the macOS CRPG.
+Review changes in the macOS CRPG.
 
 Scopes:
-  (default)     All uncommitted changes (staged + unstaged + untracked)
-  --staged      Only staged changes
-  --unstaged    Only unstaged changes and untracked files
-  <ref>         Diff working tree against a commit, branch, or tag
+  (default)        All uncommitted changes (staged + unstaged + untracked) vs HEAD
+  --staged         Only staged changes
+  --unstaged       Only unstaged changes and untracked files
+  --branch [base]  Commits on the current branch vs <base> (default: main)
+  --commit [ref]   A single commit vs its parent (default: HEAD — your last commit)
+  --range <range>  A commit range, e.g. main..HEAD or v1.0..v1.1
+  <ref>            Working tree vs a commit, branch, or tag
 ```
 
 ---
 
 ### Step 2: Find changeset
 
-This tool reviews the **working copy** — what's dirty right now. No branch comparison logic.
+Run the appropriate git commands based on SCOPE. All commands use `git -C "$REPO_ROOT"`. **Working-tree scopes append untracked files; commit scopes never do.**
 
-Run the appropriate git commands based on SCOPE. All commands use `git -C "$REPO_ROOT"`.
-
-**SCOPE = `working`** (default):
+**SCOPE = `working`** (default — working tree vs HEAD):
 
 ```bash
 git -C "$REPO_ROOT" diff HEAD --name-status && git -C "$REPO_ROOT" diff --cached --name-status && git -C "$REPO_ROOT" ls-files --others --exclude-standard
@@ -111,21 +119,49 @@ git -C "$REPO_ROOT" diff --cached --name-status
 git -C "$REPO_ROOT" diff --name-status && git -C "$REPO_ROOT" ls-files --others --exclude-standard
 ```
 
-**SCOPE = `ref`**:
+**SCOPE = `ref`** (working tree vs an arbitrary ref):
 
 ```bash
 git -C "$REPO_ROOT" diff "$DIFF_REF" --name-status && git -C "$REPO_ROOT" ls-files --others --exclude-standard
 ```
 
-Merge and deduplicate all output by path. Untracked files (from `ls-files`) get change type `added`.
+**SCOPE = `branch`** (the current branch's commits vs `$BASE`, three-dot from the merge base — **no untracked**):
 
-If the combined output is empty, output: `No changes found.` and stop.
+```bash
+git -C "$REPO_ROOT" diff --name-status "$BASE"...HEAD
+```
+
+**SCOPE = `commit`** (a single commit vs its parent or the empty tree — **no untracked**):
+
+```bash
+git -C "$REPO_ROOT" diff --name-status "$COMMIT_BASE" "$REF"
+```
+
+**SCOPE = `range`** (net diff across a commit range — **no untracked**):
+
+```bash
+git -C "$REPO_ROOT" diff --name-status "$RANGE"
+```
+
+Merge and deduplicate all output by path. Untracked files (from `ls-files`, working-tree scopes only) get change type `added`.
 
 **Parse statuses:**
 
 - `M` = modified. `A` = added. `D` = deleted (exclude, count as filtered). `R` = renamed (use new path). `C` = added. `T` = modified.
 
 For untracked files, add as `added` unless already present.
+
+**Empty-changeset guard (`FR-srm-no-blank-window`).** If the combined output is empty (no changed files for this scope), output the scope-specific message below and **stop**. Do NOT write a session payload, do NOT invoke the launcher, do NOT open a window:
+
+| SCOPE | Message |
+|---|---|
+| `working` | `No uncommitted changes to review.` |
+| `staged` | `No staged changes to review.` |
+| `unstaged` | `No unstaged changes to review.` |
+| `ref` | `No changes relative to <ref>. Nothing to review.` |
+| `branch` | `No commits on <current-branch> relative to <base>. Nothing to review.` |
+| `commit` | `Commit <ref> has no changes to review.` |
+| `range` | `No changes in range <range>. Nothing to review.` |
 
 ---
 
@@ -143,7 +179,7 @@ A file is excluded if it matches **any** exclusion rule. **Exclusion rules take 
 
 **Snapshots**: `.snap`, `.snapshot`
 
-**Included config** (NOT excluded unless in an excluded directory): `vite.config.*`, `webpack.config.*`, `tsconfig.json`, `tsconfig.*.json`, `jest.config.*`, `vitest.config.*`, `eslint.config.*`, `.eslintrc.*`, `babel.config.*`, `rollup.config.*`, `esbuild.config.*`, `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `Makefile`, `Dockerfile`, `docker-compose.*`, `.env.example`, `.github/workflows/*`, `.gitlab-ci.yml`, `Jenkinsfile`, `.config/opencode/skills/*.md`
+**Included config** (NOT excluded unless in an excluded directory): `vite.config.*`, `webpack.config.*`, `tsconfig.json`, `tsconfig.*.json`, `jest.config.*`, `vitest.config.*`, `eslint.config.*`, `.eslintrc.*`, `babel.config.*`, `rollup.config.*`, `esbuild.config.*`, `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `Makefile`, `Dockerfile`, `docker-compose.*`, `.env.example`, `.github/workflows/*`, `.gitlab-ci.yml`, `Jenkinsfile`, `.claude/commands/*.md`
 
 If zero files remain after filtering, output: `No reviewable files found. All <N> changed files were filtered out (lockfiles, generated, binary).` and stop.
 
@@ -161,8 +197,11 @@ For files that have diffs, run **one** command with all paths, using the same di
 | `staged` | `git -C "$REPO_ROOT" diff --cached -- <path1> <path2> ...` |
 | `unstaged` | `git -C "$REPO_ROOT" diff -- <path1> <path2> ...` |
 | `ref` | `git -C "$REPO_ROOT" diff "$DIFF_REF" -- <path1> <path2> ...` |
+| `branch` | `git -C "$REPO_ROOT" diff "$BASE"...HEAD -- <path1> <path2> ...` |
+| `commit` | `git -C "$REPO_ROOT" diff "$COMMIT_BASE" "$REF" -- <path1> <path2> ...` |
+| `range` | `git -C "$REPO_ROOT" diff "$RANGE" -- <path1> <path2> ...` |
 
-For new/untracked files, read their contents using the Read tool (they have no diff to compare against — note them as entirely new).
+For new/untracked files (working-tree scopes only), read their contents using the Read tool (they have no diff to compare against — note them as entirely new). Commit scopes (`branch`, `commit`, `range`) have no untracked files.
 
 This gives you all the information you need in one Bash call plus Read calls for new files only. Use this to:
 1. Rank files by importance.
@@ -231,7 +270,17 @@ Opening <N> files in the macOS app for review.
 <M> files excluded (lockfiles, generated, binary).
 ```
 
-Where `<scope-label>` is: `all uncommitted changes`, `staged changes only`, `unstaged changes only`, or `changes vs <ref>`.
+Where `<scope-label>` is derived from SCOPE:
+
+| SCOPE | `<scope-label>` |
+|---|---|
+| `working` | `all uncommitted changes` |
+| `staged` | `staged changes only` |
+| `unstaged` | `unstaged changes only` |
+| `ref` | `changes vs <ref>` |
+| `branch` | `commits on <current-branch> vs <base>` |
+| `commit` | `commit <short-sha> — <subject>` (from `git show -s --format='%h — %s' "$REF"`) |
+| `range` | `commit range <range>` |
 
 The "excluded" line is omitted if zero files were filtered. **Do not use `AskUserQuestion` here — proceed directly to Step 5.**
 

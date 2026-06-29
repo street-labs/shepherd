@@ -25,17 +25,39 @@ The agent conversation is identical to `../web/shepherd-review.md`. Refer there 
 ## Command Syntax
 
 ```
-/shepherd-mac-review [--staged | --unstaged | <ref>]
+/shepherd-mac-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
 ```
 
-Argument semantics match the web variant exactly (`FR-sr-scope-argument`):
+The macOS variant adds three commit-scoped modes on top of the web variant's working-tree scopes (`FR-srm-scope-modes`, `FR-srm-branch-scope`, `FR-srm-commit-scope`, `FR-srm-range-scope`):
 
-- _no argument_ — all working-tree changes (staged + unstaged + untracked)
-- `--staged` — only staged changes
-- `--unstaged` — only unstaged + untracked
-- `<ref>` — diff working tree against a commit, branch, or tag
+| Argument | Scope label (shown in summary) | What it reviews |
+|---|---|---|
+| _no argument_ | `all uncommitted changes` | Working tree vs `HEAD` — staged + unstaged + untracked |
+| `--staged` | `staged changes only` | The git index |
+| `--unstaged` | `unstaged changes only` | Unstaged modifications + untracked |
+| `--branch [base]` | `commits on <branch> vs <base>` | The branch's own commits vs the merge base with `base` (default `main`) |
+| `--commit [ref]` | `commit <short-sha> — <subject>` | A single commit vs its parent (`ref` default `HEAD`) |
+| `--range <range>` | `commit range <range>` | The net diff across a git range (`A..B` or `A...B`) |
+| `<ref>` | `changes vs <ref>` | Working tree vs an arbitrary commit/branch/tag |
 
-Unrecognized argument prints the same usage block as the web variant, swapping `/shepherd-review` for `/shepherd-mac-review`.
+The working-tree scopes (no-argument, `--staged`, `--unstaged`, `<ref>`) include untracked files; the commit scopes (`--branch`, `--commit`, `--range`) do not (`FR-srm-commit-mode-no-untracked`). The scope label appears in the brief summary's `Reviewing:` line (see Conversation Surface).
+
+An unrecognized argument, a malformed `--range`, or a ref/base that does not resolve prints a usage block listing every scope and stops:
+
+```
+Usage: /shepherd-mac-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
+
+Review changes in the macOS CRPG.
+
+Scopes:
+  (default)        All uncommitted changes (staged + unstaged + untracked) vs HEAD
+  --staged         Only staged changes
+  --unstaged       Only unstaged changes and untracked files
+  --branch [base]  Commits on the current branch vs <base> (default: main)
+  --commit [ref]   A single commit vs its parent (default: HEAD — your last commit)
+  --range <range>  A commit range, e.g. main..HEAD or v1.0..v1.1
+  <ref>            Working tree vs a commit, branch, or tag
+```
 
 The command is implemented as `.claude/commands/shepherd-mac-review.md` plus an opencode skill at `.config/opencode/skills/shepherd-mac-review/SKILL.md`. Installed globally via `scripts/install-command.sh` (`AC-srm-install-symlink`).
 
@@ -90,6 +112,22 @@ The file browser sidebar lists the `files[]` entries in the order they appear in
 
 When the user adds comments and clicks Done, the prompt aggregator (`PromptBuilder` in `SharedModels`) emits one section per file in priority order, identical to the web variant's `FR-crp-multi-file-prompt-format`. Files without comments are omitted from the prompt.
 
+## Nothing to Review (Empty Changeset)
+
+Per `FR-srm-no-blank-window`, the agent never launches the native app when the selected scope resolves to zero reviewable files — this is the design fix for the "blank window" symptom. Before invoking the launcher, the agent checks the changed-file count (after filtering). If it is zero, it prints a scope-specific message and stops. No `session.json` is written, the launcher is not called, and no window appears. Messages by scope:
+
+| Scope | Message |
+|---|---|
+| default | `No uncommitted changes to review.` |
+| `--staged` | `No staged changes to review.` |
+| `--unstaged` | `No unstaged changes to review.` |
+| `--branch [base]` | `No commits on <branch> relative to <base>. Nothing to review.` |
+| `--commit [ref]` | `Commit <ref> has no changes to review.` |
+| `--range <range>` | `No changes in range <range>. Nothing to review.` |
+| any scope, all filtered | `No reviewable files found. All <N> changed files were filtered out (lockfiles, generated, binary).` |
+
+When the agent *does* launch, it first clears any stale `prompt-output.md` and overwrites `session.json` for the session ID, so a reused window (same project root) reflects the current invocation rather than leftover tabs from a prior review (`FR-srm-no-blank-window` clause 2; consistent with `AC-crp-macos-window-deduplicate`).
+
 ## Error Cases
 
 All error messages match the web variant verbatim, with two macOS-only additions:
@@ -132,7 +170,15 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `FR-sr-completion-summary` | Conversation Surface (inherited summary + feedback menu) |
 | `FR-sr-command-file` | Command Syntax — supplanted by `FR-srm-command-file` |
 | `FR-sr-install` | Command Syntax (install reference) — supplanted by `FR-srm-install` |
-| `FR-sr-scope-argument` | Command Syntax |
+| `FR-sr-scope-argument` | Command Syntax — superseded on macOS by `FR-srm-scope-modes` |
+| `FR-srm-scope-modes` | Command Syntax (scope table, usage block) |
+| `FR-srm-branch-scope` | Command Syntax (`--branch` row) |
+| `FR-srm-commit-scope` | Command Syntax (`--commit` row) |
+| `FR-srm-range-scope` | Command Syntax (`--range` row) |
+| `FR-srm-commit-mode-no-untracked` | Command Syntax (untracked-files note) |
+| `FR-srm-no-blank-window` | Nothing to Review (Empty Changeset) |
+| `AC-srm-default-scope`, `AC-srm-branch-scope`, `AC-srm-commit-scope`, `AC-srm-range-scope`, `AC-srm-commit-excludes-untracked` | Command Syntax (scope table) |
+| `AC-srm-empty-no-launch` | Nothing to Review (Empty Changeset) |
 | `FR-sr-git-required` | Conversation Surface (inherited error message) |
 | `AC-sr-happy-path` | Conversation Surface + Launch and Handoff (full flow) |
 | `AC-sr-auto-open` | Conversation Surface (no confirmation prompt) |

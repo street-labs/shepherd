@@ -2258,3 +2258,75 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-install-git-pull`
+
+### `FR-srm-scope-modes`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-default-scope`, `TC-srm-scope-invalid`, `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope`
+
+### `FR-srm-branch-scope`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-branch-scope`
+
+### `FR-srm-commit-scope`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-commit-scope`
+
+### `FR-srm-range-scope`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-range-scope`
+
+### `FR-srm-commit-mode-no-untracked`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope`
+
+### `FR-srm-no-blank-window`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`, `.claude/commands/shepherd-mac-review.md`, `.config/opencode/skills/shepherd-mac-review/SKILL.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-empty-no-launch`, `TC-srm-no-changes`
+
+### `AC-srm-default-scope`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-default-scope`
+
+### `AC-srm-branch-scope`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-branch-scope`
+
+### `AC-srm-commit-scope`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-commit-scope`
+
+### `AC-srm-range-scope`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-range-scope`
+
+### `AC-srm-commit-excludes-untracked`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope`
+
+### `AC-srm-empty-no-launch`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-empty-no-launch`, `TC-srm-no-changes`
