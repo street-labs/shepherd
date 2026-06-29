@@ -6,7 +6,7 @@
 
 A macOS variant of the Shepherd Review slash command (`/shepherd-mac-review`) that orchestrates the same multi-file code review workflow but launches the native macOS Code Review Prompt Generator instead of the browser-based one. The two commands coexist — developers choose per-invocation which surface they want to review in. Like `/shepherd` and `/shepherd-mac`, the choice is explicit; there is no automatic platform detection.
 
-Behaviorally the macOS variant matches the shared spec: the same changeset detection, filtering, priority ordering, structured-context generation (overall + per-file, neutral + review), brief conversation summary, auto-open, interactive prompt, and feedback handoff. The only differences are how files are launched and how context is delivered to the review surface — the web flow uses URL parameters and a Vite plugin endpoint; the macOS flow writes a session JSON payload to disk and launches the prebuilt native binary, identical to the existing `/shepherd-mac` handoff contract.
+Behaviorally the macOS variant matches the shared spec for filtering, priority ordering, structured-context generation (overall + per-file, neutral + review), brief conversation summary, auto-open, interactive prompt, and feedback handoff. It differs in two areas. First, the launch and context-delivery mechanism — the web flow uses URL parameters and a Vite plugin endpoint; the macOS flow writes a session JSON payload to disk and launches the prebuilt native binary, identical to the existing `/shepherd-mac` handoff contract. Second, the macOS variant has a richer set of **review scope modes**: in addition to the working-tree scopes, it can review a branch against a base, a single commit, or a commit range — letting the developer review committed history, not just the working copy. These modes are defined in the "Review scope modes" section below and supersede the shared `FR-sr-changeset-detection` / `FR-sr-scope-argument` for `/shepherd-mac-review`.
 
 ## User Stories
 
@@ -14,6 +14,9 @@ The macOS variant adds one platform-choice user story on top of the shared spec'
 
 ### US-SRM-1: Choose the macOS surface for batch review
 **As a** developer who prefers the native macOS CRPG over the web app, **I want to** invoke `/shepherd-mac-review` instead of `/shepherd-review`, **so that** every reviewable file in my changeset opens as a tab in the native app, with structured context displayed in the native UI, without launching a browser or running a local web server.
+
+### US-SRM-2: Review committed history, not just the working copy
+**As a** developer reviewing my own work before opening a PR, **I want to** review my whole branch against `main`, or a single commit, or a range of commits — not only my uncommitted edits, **so that** I can do a focused review of exactly the slice of history I care about. When I have nothing uncommitted, I want a clear message rather than a blank review window.
 
 All other shared user stories (`US-SR-1` through `US-SR-9`) apply to the macOS variant unchanged — the review experience itself is the same.
 
@@ -23,7 +26,6 @@ All other shared user stories (`US-SR-1` through `US-SR-9`) apply to the macOS v
 
 The following shared requirements apply identically on macOS:
 
-- `FR-sr-changeset-detection` — Detect the changeset of the current branch
 - `FR-sr-file-filtering` — Filter out uninteresting files
 - `FR-sr-priority-ordering` — Sort files by review importance
 - `FR-sr-changeset-overview` — Generate a structured changeset overview
@@ -32,7 +34,6 @@ The following shared requirements apply identically on macOS:
 - `FR-sr-iteration-loop` — Auto-open all files in a single review session (one tab per file in the native window; the AskUserQuestion / Done / Cancel flow is identical)
 - `FR-sr-feedback-collection` — Receive unified multi-file feedback via session-scoped `prompt-output.md`
 - `FR-sr-completion-summary` — Display a review summary and feedback handoff
-- `FR-sr-scope-argument` — Optional scope argument (`--staged`, `--unstaged`, `<ref>`)
 - `FR-sr-git-required` — Requires a git repository
 - `NFR-sr-startup-speed` — Fast changeset detection and context generation
 - `NFR-sr-no-dependencies` — No additional dependencies (the prebuilt native binary is provided by the existing `/shepherd-mac` infrastructure, not a new runtime dependency)
@@ -40,6 +41,10 @@ The following shared requirements apply identically on macOS:
 - `NFR-sr-cross-platform` — Not a constraint here; the git commands themselves remain cross-platform, but the launch path is macOS-only by design (see `NFR-srm-platform-restriction` below)
 
 ### Modified on macOS
+
+- **`FR-sr-changeset-detection`** — The shared spec defines the default changeset as the working tree compared to the merge base of the current branch and `main`. On macOS the default is narrower and matches what developers actually use day-to-day: the working tree compared to `HEAD` (uncommitted work only). Branch-vs-base review is still available, but as an explicit opt-in mode rather than the default. The macOS detection rules — including which modes include untracked files — are defined by `FR-srm-scope-modes` below, which supersedes `FR-sr-changeset-detection` for `/shepherd-mac-review`.
+
+- **`FR-sr-scope-argument`** — The shared spec defines three scopes (default working-tree-vs-main, `--staged`, `--unstaged`). The macOS variant keeps the working-tree scopes but redefines the default (uncommitted vs `HEAD`, not vs `main`) and adds three commit-scoped modes — branch, single commit, and commit range — plus a bare `<ref>` mode. The full macOS scope grammar is defined by `FR-srm-scope-modes`, `FR-srm-branch-scope`, `FR-srm-commit-scope`, and `FR-srm-range-scope` below, which supersede `FR-sr-scope-argument` for `/shepherd-mac-review`.
 
 - **`FR-sr-command-file`** — Implementation surface is the same (a Claude Code or opencode custom command file plus opencode skill), but the command name is `/shepherd-mac-review` and the command file lives at `.claude/commands/shepherd-mac-review.md` with a peer opencode skill at `.config/opencode/skills/shepherd-mac-review/SKILL.md`. See `FR-srm-command-file`.
 
@@ -92,6 +97,46 @@ The install script (`scripts/install-command.sh`) is extended to:
 
 If the Swift toolchain is missing or the build fails, the installer reports the degraded state without aborting the install of the web commands. `/shepherd-mac` and `/shepherd-mac-review` both become unavailable until the user installs Swift and re-runs the installer; the web variants remain usable.
 
+### Review scope modes
+
+These requirements define what `/shepherd-mac-review` reviews. They supersede the shared `FR-sr-changeset-detection` and `FR-sr-scope-argument` for the macOS variant. Every mode produces a list of changed files that then flows through the same filtering (`FR-sr-file-filtering`), priority ordering (`FR-sr-priority-ordering`), and context generation (`FR-sr-changeset-overview`, `FR-sr-per-file-context`) as before — only the *source* of the changed-file list differs by mode.
+
+#### `FR-srm-scope-modes` — Scope is selected by an optional argument
+The command accepts an optional argument that selects one of several review scopes. There are two families:
+
+**Working-tree scopes** review what is currently on disk relative to a base, and include untracked new files (not yet `git add`ed) as `added`:
+
+- **Default (no argument)** — All uncommitted changes: staged + unstaged + untracked, compared to `HEAD`. This is the everyday "review what I'm about to commit" case.
+- **`--staged`** — Only staged changes (the git index).
+- **`--unstaged`** — Only unstaged modifications plus untracked files.
+- **`<ref>`** — The working tree compared to an arbitrary commit, branch, or tag. Includes untracked files.
+
+**Commit scopes** review committed history and do **not** include untracked files (see `FR-srm-commit-mode-no-untracked`):
+
+- **`--branch [base]`** — The commits on the current branch, relative to a base branch (see `FR-srm-branch-scope`).
+- **`--commit [ref]`** — A single commit (see `FR-srm-commit-scope`).
+- **`--range <range>`** — A range of commits (see `FR-srm-range-scope`).
+
+If an unrecognized argument or malformed value is provided, the command prints a usage message listing all scopes and stops. Deleted files are excluded from the review list in every mode (nothing to open), and renamed files use their new path — identical to the shared spec.
+
+#### `FR-srm-branch-scope` — Review the current branch against a base
+With `--branch [base]`, the command reviews the changes introduced by the current branch's own commits relative to a base branch, using the merge base (divergence point) so that commits landed on the base after the branch diverged are not shown. The base defaults to `main` and may be overridden by an explicit argument (e.g. `--branch develop`). This is the answer to "show me everything my branch changes versus main, excluding my uncommitted edits." If the base does not resolve to a valid ref, the command prints a usage/error message and stops. If the current branch has no commits beyond the merge base (nothing to review), the empty-changeset behavior of `FR-srm-no-blank-window` applies.
+
+#### `FR-srm-commit-scope` — Review a single commit
+With `--commit [ref]`, the command reviews the changes introduced by exactly one commit — the difference between that commit and its parent. The ref defaults to `HEAD`, so `--commit` with no argument reviews the most recent commit ("review my last commit"). An explicit ref (e.g. `--commit abc123` or `--commit HEAD~2`) reviews that commit. If the commit is a root commit (no parent), the command reviews it against the empty tree (every line is an addition). If the ref does not resolve, the command prints a usage/error message and stops.
+
+#### `FR-srm-range-scope` — Review a range of commits
+With `--range <range>`, the command reviews the aggregate changes across a span of commits. The range is expressed in standard git range syntax — two-dot (`A..B`, changes reachable from `B` but not `A`) or three-dot (`A...B`, changes since the merge base). Both endpoints must resolve to valid refs; otherwise the command prints a usage/error message and stops. The review shows the net diff across the range, not a per-commit breakdown.
+
+#### `FR-srm-commit-mode-no-untracked` — Commit scopes exclude untracked files
+The commit scopes (`--branch`, `--commit`, `--range`) review committed history only and therefore do **not** include untracked working-tree files in the changeset. Untracked files are included only in the working-tree scopes (default, `--unstaged`, `<ref>`). This keeps a commit-scoped review faithful to what is actually recorded in the commits being reviewed.
+
+#### `FR-srm-no-blank-window` — Never open an empty or stale review window
+The command must never launch the native app with nothing to review. Two guarantees:
+
+1. **Empty changeset never launches** — If the selected scope yields zero changed files (or zero *reviewable* files after filtering), the command prints a clear, scope-specific message explaining that there is nothing to review and stops **without** launching the native app. The message names the scope so the user understands why (e.g. no uncommitted changes, no commits on the branch versus the base, an empty commit, or an empty range). This prevents the failure mode where the app opens to a blank window because the changeset was empty.
+2. **Each launch reflects the current changeset** — When the command does launch, it refreshes the session payload and clears any stale prompt output from a previous run, so a reused window shows the files for the current invocation, never leftover state from an earlier review.
+
 ## macOS-Specific Non-Functional Requirements
 
 #### `NFR-srm-launch-budget` — Launch within the macOS app budget
@@ -126,6 +171,20 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 - [ ] **Done writes session-scoped prompt** `AC-srm-prompt-roundtrip`: Given the user has reviewed files in the native window and added comments, when the user clicks Done, then the application writes the unified multi-file prompt to `~/.shepherd/sessions/<session-id>/prompt-output.md`, and the agent — after the user selects "Added comments" from the interactive prompt — reads that file and presents the standard completion summary and feedback action menu (apply, discuss, save, nothing).
 
 - [ ] **Cancel ends without summary** `AC-srm-cancel`: Given the macOS window is open, when the user selects "Cancel" in the agent's interactive prompt, then the session ends immediately, no summary is shown, and the user remains free to close the application window manually.
+
+### Review scope modes
+
+- [ ] **Default reviews uncommitted work** `AC-srm-default-scope`: Given a branch with both committed changes and uncommitted edits, when the user invokes `/shepherd-mac-review` with no argument, then the review contains the uncommitted changes (staged + unstaged + untracked) relative to `HEAD` and does not include changes that exist only in already-committed history.
+
+- [ ] **Branch scope reviews branch commits** `AC-srm-branch-scope`: Given a feature branch with 3 commits ahead of `main` and a clean working tree, when the user invokes `/shepherd-mac-review --branch`, then the review contains exactly the files changed by those 3 commits relative to the merge base with `main`, and excludes files changed on `main` after the branch diverged. Given `--branch develop`, the comparison base is `develop` instead of `main`.
+
+- [ ] **Single commit scope reviews one commit** `AC-srm-commit-scope`: Given the user invokes `/shepherd-mac-review --commit` with no ref, then the review contains exactly the files changed by the most recent commit (`HEAD` versus its parent). Given `--commit <ref>`, the review contains the files changed by that commit. Given the target is a root commit with no parent, the review treats every file as newly added.
+
+- [ ] **Range scope reviews a commit span** `AC-srm-range-scope`: Given the user invokes `/shepherd-mac-review --range A..B` with valid refs `A` and `B`, then the review contains the net set of files changed across that range. Given an endpoint that does not resolve, the command prints a usage/error message and does not launch the app.
+
+- [ ] **Commit scopes exclude untracked files** `AC-srm-commit-excludes-untracked`: Given an untracked file exists in the working tree, when the user invokes any commit-scoped mode (`--branch`, `--commit`, or `--range`), then the untracked file does not appear in the review list. The same file does appear when the default or `--unstaged` scope is used.
+
+- [ ] **Empty changeset shows a message, no window** `AC-srm-empty-no-launch`: Given the selected scope yields no reviewable files (e.g. a clean working tree on the default scope, a branch with no commits beyond its base, an empty commit, or all files filtered out), when the user invokes the command, then a clear scope-specific message is printed, no native window opens, and no blank window appears.
 
 ### Install
 

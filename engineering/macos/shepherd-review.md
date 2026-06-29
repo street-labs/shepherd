@@ -34,8 +34,8 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 
 | File | Change | Purpose |
 |---|---|---|
-| `.claude/commands/shepherd-mac-review.md` | **NEW** | Claude Code prompt that orchestrates the review and invokes the macOS launcher with `--context`. |
-| `.config/opencode/skills/shepherd-mac-review/SKILL.md` | **NEW** | Opencode mirror of the Claude command. |
+| `.claude/commands/shepherd-mac-review.md` | **MODIFIED** | Claude Code prompt that orchestrates the review and invokes the macOS launcher with `--context`. Extended with the commit-scoped modes (`--branch`/`--commit`/`--range`) and the empty-changeset guard. |
+| `.config/opencode/skills/shepherd-mac-review/SKILL.md` | **MODIFIED** | Opencode mirror of the Claude command (kept byte-aligned, including the new scope modes). |
 | `scripts/shepherd-launch-macos.sh` | **MODIFIED** | Accept optional `--context <path>` before positional file args; inline its JSON into `session.json.reviewContext`. |
 | `scripts/install-command.sh` | **MODIFIED** | Append `"shepherd-mac-review"` to the `COMMANDS` array; update help text and final summary. |
 | `engineering/apps/macos/Sources/SharedModels/SessionData.swift` | **UNCHANGED** | Already declares `reviewContext: ReviewContext?`. |
@@ -76,6 +76,61 @@ Two pragmatic reasons:
 The agent writes the context to a temp file (e.g. `mktemp -t shepherd-review-context.XXXXXX.json`) and passes its path to the launcher. The launcher reads the file, validates it parses (best-effort: a quick `python3 -c 'import json,sys; json.load(open(sys.argv[1]))'` or equivalent — on failure we fall back to embedding the raw bytes and let Swift's `Codable` decoder reject it on load), and substitutes its content for the literal `null` in the generated `session.json`. The agent deletes the temp file after launch returns.
 
 ---
+
+## Review Scope Modes — git command mapping
+
+`FR-srm-scope-modes` and its sub-requirements are realized entirely in the command prompt (`.claude/commands/shepherd-mac-review.md` and the opencode mirror) — no Swift or launcher change. The agent parses `$ARGUMENTS`, selects a `SCOPE`, and runs the matching git commands. All commands use `git -C "$REPO_ROOT"` per the CWD rule. The changed-file list each mode produces then flows unchanged through filtering, ordering, and context generation.
+
+Argument parsing precedence (first match wins):
+
+1. empty/blank → `working`
+2. `--staged` → `staged`
+3. `--unstaged` → `unstaged`
+4. `--branch [base]` → `branch`, `BASE="${base:-main}"`
+5. `--commit [ref]` → `commit`, `REF="${ref:-HEAD}"`
+6. `--range <range>` → `range`, `RANGE="<range>"` (must contain `..`)
+7. otherwise treat the token as a ref; if `git rev-parse --verify` succeeds → `ref`, else print usage and stop
+
+### Changed-file detection per scope
+
+| SCOPE | Name-status command(s) | Untracked appended? |
+|---|---|---|
+| `working` | `git diff HEAD --name-status` + `git diff --cached --name-status` | yes (`git ls-files --others --exclude-standard`) |
+| `staged` | `git diff --cached --name-status` | no |
+| `unstaged` | `git diff --name-status` | yes |
+| `ref` | `git diff "$DIFF_REF" --name-status` | yes |
+| `branch` | `git diff --name-status "$BASE"...HEAD` | **no** (`FR-srm-commit-mode-no-untracked`) |
+| `commit` | `git diff --name-status "$PARENT" "$REF"` | **no** |
+| `range` | `git diff --name-status "$RANGE"` | **no** |
+
+### Diff-base command per scope (Step "read all diffs")
+
+The per-file diff command must use the same base as detection so the diffs match the file list:
+
+| SCOPE | Diff command |
+|---|---|
+| `working` | `git diff HEAD -- <paths>` |
+| `staged` | `git diff --cached -- <paths>` |
+| `unstaged` | `git diff -- <paths>` |
+| `ref` | `git diff "$DIFF_REF" -- <paths>` |
+| `branch` | `git diff "$BASE"...HEAD -- <paths>` |
+| `commit` | `git diff "$PARENT" "$REF" -- <paths>` |
+| `range` | `git diff "$RANGE" -- <paths>` |
+
+### Validation and edge cases
+
+- **`--branch` base resolution** — `git rev-parse --verify "$BASE"` must succeed; otherwise usage/error + stop. The three-dot form (`"$BASE"...HEAD`) diffs from the merge base, so commits landed on `base` after divergence are excluded (`FR-srm-branch-scope`). `git merge-base --is-ancestor`/empty-output is handled by the empty-changeset guard, not a special case.
+- **`--commit` parent / root commit** — resolve `REF` (default `HEAD`) via `git rev-parse --verify`. Determine the parent: if `git rev-parse --verify "$REF^" ` succeeds, `PARENT="$REF^"`; if it fails (root commit, no parent), use the canonical empty-tree object `PARENT=4b825dc642cb6eb9a060e54bf8d69288fbee4904` so every line counts as an addition (`FR-srm-commit-scope`). The short-sha and subject for the scope label come from `git show -s --format='%h — %s' "$REF"`.
+- **`--range` validation** — the argument must contain `..`. Split on `..`/`...`, `git rev-parse --verify` each endpoint; any failure → usage/error + stop. The range string is then passed verbatim to `git diff` (`FR-srm-range-scope`).
+- **Untracked exclusion** — only `working`, `unstaged`, and `ref` append `git ls-files --others --exclude-standard`. The commit scopes and `staged` never do (`FR-srm-commit-mode-no-untracked`).
+
+### Empty-changeset guard and fresh session (`FR-srm-no-blank-window`)
+
+After detection + filtering, the command computes the reviewable-file count. **If it is zero, the command prints the scope-specific message (see design spec "Nothing to Review") and stops — it does not write `session.json`, does not invoke `shepherd-launch-macos.sh`, and no window opens.** This is the deterministic fix for the blank-window symptom: a blank window can only appear if the launcher is invoked with no files or with stale state, and this guard removes the first case.
+
+For the non-empty path, before invoking the launcher the command removes any stale `~/.shepherd/sessions/$SESSION_ID/prompt-output.md` (already done today) and the launcher overwrites `session.json` for the session ID (existing behavior). Together these satisfy clause 2 of `FR-srm-no-blank-window`: a reused window (same project-root basename) always reflects the current invocation.
+
+> Note (operational): the prebuilt `ShepherdApp` binary is produced at install time (`FR-srm-install`). Editing Swift sources without re-running `./scripts/install-command.sh` leaves a stale binary — a separate cause of "the app looks wrong" that is not a `/shepherd-mac-review` behavior bug. The empty-changeset guard above addresses the changeset-driven blank window; binary staleness is resolved by rebuilding.
 
 ## Coexistence and Concurrency
 
@@ -194,8 +249,14 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-multi-file-launch` | scripts/shepherd-launch-macos.sh; .claude/commands/shepherd-mac-review.md | implemented |
 | `FR-srm-context-handoff` | scripts/shepherd-launch-macos.sh; .claude/commands/shepherd-mac-review.md | implemented |
 | `FR-srm-install` | scripts/install-command.sh | implemented |
+| `FR-srm-scope-modes` | .claude/commands/shepherd-mac-review.md; .config/opencode/skills/shepherd-mac-review/SKILL.md | implemented |
+| `FR-srm-branch-scope` | .claude/commands/shepherd-mac-review.md; .config/opencode/skills/shepherd-mac-review/SKILL.md | implemented |
+| `FR-srm-commit-scope` | .claude/commands/shepherd-mac-review.md; .config/opencode/skills/shepherd-mac-review/SKILL.md | implemented |
+| `FR-srm-range-scope` | .claude/commands/shepherd-mac-review.md; .config/opencode/skills/shepherd-mac-review/SKILL.md | implemented |
+| `FR-srm-commit-mode-no-untracked` | .claude/commands/shepherd-mac-review.md; .config/opencode/skills/shepherd-mac-review/SKILL.md | implemented |
+| `FR-srm-no-blank-window` | .claude/commands/shepherd-mac-review.md; .config/opencode/skills/shepherd-mac-review/SKILL.md | implemented |
 
-All rows are `implemented`: the launcher's `--context` flag, both prompt files, and the install-script `COMMANDS` array entry are in place, with inline `Implements:` markers citing the macOS-specific FR slugs.
+All rows are `implemented`: the launcher's `--context` flag, both prompt files (including the scope-mode parsing, git command mapping, and empty-changeset guard), and the install-script `COMMANDS` array entry are in place, with inline `Implements:` markers citing the macOS-specific FR slugs. The scope-mode FRs live in the command prompt files only — no Swift or launcher change.
 
 ---
 
@@ -237,6 +298,12 @@ The `--context` flag adds a single file read in the launcher and a single substr
 | `FR-srm-multi-file-launch` | Technical Approach; Why session.json; Implementation Plan step 1 |
 | `FR-srm-context-handoff` | Technical Approach; Why session.json; Why `--context <file>`; Implementation Plan step 1 |
 | `FR-srm-install` | Components / Files Touched; Implementation Plan steps 4–5 |
+| `FR-srm-scope-modes` | Review Scope Modes — git command mapping (argument parsing precedence; detection table) |
+| `FR-srm-branch-scope` | Review Scope Modes (`branch` row; `"$BASE"...HEAD`; base resolution) |
+| `FR-srm-commit-scope` | Review Scope Modes (`commit` row; parent / root-commit empty-tree handling) |
+| `FR-srm-range-scope` | Review Scope Modes (`range` row; `..` validation) |
+| `FR-srm-commit-mode-no-untracked` | Review Scope Modes (untracked-append column / exclusion note) |
+| `FR-srm-no-blank-window` | Review Scope Modes (empty-changeset guard and fresh session) |
 | `NFR-srm-launch-budget` | Performance |
 | `NFR-srm-no-server` | Technical Approach; Why session.json (no Vite endpoint) |
 | `NFR-srm-platform-restriction` | Out of Scope (no fallback); install script Swift-toolchain check inherits the degraded branch |

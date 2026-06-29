@@ -41,6 +41,12 @@ Coexistence with the web variant is verified by checking both commands continue 
 | `AC-srm-install-symlink` | `TC-srm-install-symlink` | Not started |
 | `AC-srm-install-degraded` | `TC-srm-install-degraded-no-swift` | Not started |
 | `AC-srm-install-git-pull` | `TC-srm-install-git-pull` | Not started |
+| `AC-srm-default-scope` | `TC-srm-default-scope` | Not started |
+| `AC-srm-branch-scope` | `TC-srm-branch-scope` | Not started |
+| `AC-srm-commit-scope` | `TC-srm-commit-scope` | Not started |
+| `AC-srm-range-scope` | `TC-srm-range-scope` | Not started |
+| `AC-srm-commit-excludes-untracked` | `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope` | Not started |
+| `AC-srm-empty-no-launch` | `TC-srm-empty-no-launch`, `TC-srm-no-changes` | Not started |
 
 ### Shared Acceptance Criteria — Applicability on macOS
 
@@ -75,6 +81,12 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `FR-srm-multi-file-launch` | `TC-srm-happy-path`, `TC-srm-launcher-context-flag` | Not started |
 | `FR-srm-context-handoff` | `TC-srm-launcher-context-flag`, `TC-srm-launcher-no-context-flag`, `TC-srm-context-in-app` | Not started |
 | `FR-srm-install` | `TC-srm-install-symlink`, `TC-srm-install-degraded-no-swift`, `TC-srm-install-git-pull` | Not started |
+| `FR-srm-scope-modes` | `TC-srm-default-scope`, `TC-srm-scope-invalid`, `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope` | Not started |
+| `FR-srm-branch-scope` | `TC-srm-branch-scope` | Not started |
+| `FR-srm-commit-scope` | `TC-srm-commit-scope` | Not started |
+| `FR-srm-range-scope` | `TC-srm-range-scope` | Not started |
+| `FR-srm-commit-mode-no-untracked` | `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope` | Not started |
+| `FR-srm-no-blank-window` | `TC-srm-empty-no-launch`, `TC-srm-no-changes` | Not started |
 | `NFR-srm-launch-budget` | `TC-srm-happy-path` (timed observation) | Not started |
 | `NFR-srm-no-server` | `TC-srm-no-server` | Not started |
 | `NFR-srm-platform-restriction` | not directly tested -- exercised by `TC-srm-install-degraded-no-swift` | Inherent |
@@ -358,13 +370,13 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 #### `TC-srm-no-changes` -- No changes produces a clear message
 
 - **Type**: Manual
-- **Covers**: `AC-sr-no-changes`, `FR-sr-changeset-detection`
-- **Preconditions**: A clean checkout of `main` with no working-tree changes, no staged changes, no untracked files.
+- **Covers**: `AC-sr-no-changes`, `AC-srm-empty-no-launch`, `FR-srm-no-blank-window`
+- **Preconditions**: A clean checkout with no working-tree changes, no staged changes, no untracked files.
 - **Steps**:
   1. Run `git status` and confirm the tree is clean.
-  2. Invoke `/shepherd-mac-review`.
-- **Expected**: The agent prints "No changes found relative to main." (or the equivalent macOS variant of that message) and stops. No native window opens.
-- **Pass criteria**: Message printed; no window; no session JSON written.
+  2. Invoke `/shepherd-mac-review` (default scope).
+- **Expected**: The agent prints "No uncommitted changes to review." and stops. No native window opens.
+- **Pass criteria**: Message printed; no window; no session JSON written; crucially, no blank window appears.
 
 ---
 
@@ -411,6 +423,92 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
   4. Select "Added comments" in the agent prompt.
 - **Expected**: The session proceeds with whatever comments exist. The unified prompt contains the 1 commented file. The agent does not warn about "remaining files" or block the user. The summary numbers reflect 5 files opened, 1 with comments.
 - **Pass criteria**: Single-file unified prompt; no warnings; clean completion summary.
+
+---
+
+### Review Scope Modes
+
+These cases verify the macOS-specific scope grammar — the commit-scoped modes and the empty-changeset guard — that supersedes the shared `FR-sr-scope-argument` on macOS.
+
+#### `TC-srm-default-scope` -- Default reviews uncommitted work only
+
+- **Type**: Manual
+- **Covers**: `AC-srm-default-scope`, `FR-srm-scope-modes`
+- **Preconditions**: A feature branch with at least one committed change relative to its parent AND at least one uncommitted edit (staged or unstaged) to a *different* file.
+- **Steps**:
+  1. Note which file is changed only in the commit (call it `committed.ts`) and which is dirty in the working tree (`dirty.ts`).
+  2. Invoke `/shepherd-mac-review` with no argument.
+- **Expected**: The review opens `dirty.ts` (and any other uncommitted change). `committed.ts` does NOT appear, because the default scope is working tree vs `HEAD`, not vs the branch base. The summary's `Reviewing:` line reads `all uncommitted changes`.
+- **Pass criteria**: Only uncommitted files open; committed-only files absent.
+
+---
+
+#### `TC-srm-branch-scope` -- Branch mode reviews branch commits vs base
+
+- **Type**: Manual
+- **Covers**: `AC-srm-branch-scope`, `FR-srm-branch-scope`, `FR-srm-commit-mode-no-untracked`
+- **Preconditions**: A feature branch with 3 commits ahead of `main`, a clean working tree, and a separate change on `main` after the branch point (so two-dot vs three-dot would differ).
+- **Steps**:
+  1. Invoke `/shepherd-mac-review --branch`.
+  2. Separately invoke `/shepherd-mac-review --branch <other-base>` against a second base branch.
+- **Expected**: For `--branch`, the review contains exactly the files changed by the 3 branch commits relative to the merge base with `main`; the post-divergence `main` change is NOT included (three-dot semantics). The scope label reads `commits on <branch> vs main`. For `--branch <other-base>`, the comparison base is `<other-base>`. Untracked files, if any, are excluded.
+- **Pass criteria**: File set matches `git diff --name-status main...HEAD`; base override honored; untracked excluded.
+
+---
+
+#### `TC-srm-commit-scope` -- Single-commit mode reviews one commit
+
+- **Type**: Manual
+- **Covers**: `AC-srm-commit-scope`, `FR-srm-commit-scope`, `FR-srm-commit-mode-no-untracked`
+- **Preconditions**: A branch where `HEAD` and `HEAD~2` each touch distinct files; a repo that also has a known root commit for the root sub-check.
+- **Steps**:
+  1. Invoke `/shepherd-mac-review --commit` (no ref).
+  2. Invoke `/shepherd-mac-review --commit HEAD~2`.
+  3. (Root-commit sub-check) In a repo with a single root commit, invoke `/shepherd-mac-review --commit <root-sha>`.
+- **Expected**: (1) reviews exactly the files in `HEAD` vs its parent; scope label `commit <short-sha> — <subject>`. (2) reviews the files in `HEAD~2` vs `HEAD~3`. (3) the root commit reviews against the empty tree — every file appears as newly added. Untracked working-tree files never appear.
+- **Pass criteria**: File set matches `git diff --name-status <ref>^ <ref>` (or empty-tree for root); untracked excluded.
+
+---
+
+#### `TC-srm-range-scope` -- Range mode reviews a commit span
+
+- **Type**: Manual
+- **Covers**: `AC-srm-range-scope`, `FR-srm-range-scope`, `FR-srm-commit-mode-no-untracked`
+- **Preconditions**: A branch with several commits so a meaningful range exists.
+- **Steps**:
+  1. Invoke `/shepherd-mac-review --range HEAD~3..HEAD`.
+  2. Invoke `/shepherd-mac-review --range HEAD~3...HEAD` (three-dot).
+  3. Invoke `/shepherd-mac-review --range bogusref..HEAD` (invalid endpoint).
+  4. Invoke `/shepherd-mac-review --range HEAD` (no `..`).
+- **Expected**: (1) and (2) review the net diff across the range (matching `git diff --name-status HEAD~3..HEAD` / `...HEAD` respectively); scope label `commit range <range>`. (3) and (4) print the usage block and stop without launching the app. Untracked files excluded throughout.
+- **Pass criteria**: Valid ranges open the correct file set; invalid/malformed ranges produce usage + no window.
+
+---
+
+#### `TC-srm-empty-no-launch` -- Empty scope shows a message, never a blank window
+
+- **Type**: Manual
+- **Covers**: `AC-srm-empty-no-launch`, `FR-srm-no-blank-window`
+- **Preconditions**: Ability to construct each empty case: clean tree (default), branch with no commits beyond base (`--branch` from the base tip), an empty/no-op commit (`--commit` on a commit that only changed a now-filtered file), and an empty range.
+- **Steps**:
+  1. With a clean tree, invoke `/shepherd-mac-review`.
+  2. From a branch even with `main`, invoke `/shepherd-mac-review --branch`.
+  3. Invoke `/shepherd-mac-review --range HEAD..HEAD`.
+- **Expected**: Each invocation prints a clear scope-specific message ("No uncommitted changes to review.", "No commits on <branch> relative to main. Nothing to review.", "No changes in range HEAD..HEAD. Nothing to review.") and stops. No `session.json` is written and no native window — blank or otherwise — opens.
+- **Pass criteria**: Correct message per scope; zero windows; no launcher invocation.
+
+---
+
+#### `TC-srm-scope-invalid` -- Unrecognized argument prints usage
+
+- **Type**: Manual
+- **Covers**: `FR-srm-scope-modes`
+- **Preconditions**: Any git repo.
+- **Steps**:
+  1. Invoke `/shepherd-mac-review --bogus`.
+  2. Invoke `/shepherd-mac-review nonexistent-ref-xyz`.
+- **Expected**: Both print the full usage block (listing default, `--staged`, `--unstaged`, `--branch`, `--commit`, `--range`, `<ref>`) and stop. No window opens. (Note: `nonexistent-ref-xyz` falls through to the `<ref>` branch, fails `git rev-parse --verify`, and produces the usage message.)
+- **Pass criteria**: Usage block shown; no window.
 
 ---
 
