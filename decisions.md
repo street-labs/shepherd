@@ -383,6 +383,14 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: Users invoke `/shepherd` and `/shepherd-review`. After pulling, run `./scripts/install-command.sh` to refresh the symlinks (the old `~/.claude/commands/shepherd-mac*.md` symlinks become dangling and can be removed). The macOS specs still carry "variant"/"coexist" framing and a few now-dated slug descriptions; reframing them to canonical (and retiring the coexistence slugs) is a tracked follow-up. pi prompt-template support is the next follow-up.
 **Slug references**: (none — rename + reference fixes; no slugs added, renamed, or retired)
 
+## 2026-06-29 — Add pi (pi.dev) as a third slash-command install target
+**Context**: Shepherd's `/shepherd` and `/shepherd-review` commands were available in Claude Code and opencode. The team uses pi (pi.dev), a third agentic coding harness, and wants the commands there too.
+**Decision**: Symlink the existing command files (`.claude/commands/<name>.md`) into pi's prompt-template directory `~/.pi/agent/prompts/<name>.md` via `install-command.sh`, exposing them as pi prompt templates invoked `/shepherd` and `/shepherd-review`. No pi-specific command copy is created — pi supports the `$ARGUMENTS` token natively, so the same file serves all three harnesses.
+**Alternatives considered**: (a) Author dedicated pi prompt-template files with `description`/`argument-hint` frontmatter — rejected to avoid maintaining a THIRD copy of the (long) command body, which would drift (the opencode SKILL.md copy is already a sync burden). (b) Use pi "skills" (`/skill:name`, progressive disclosure) instead of prompt templates — rejected; prompt templates give the exact `/shepherd` / `/shepherd-review` invocation parity with the other harnesses.
+**Rationale**: Symlinking the single source file is DRY, propagates via `git pull` like the existing targets, and pi's native `$ARGUMENTS` support means the command body works unmodified. The only tradeoff is that the Claude-style header lines (`Allowed tools:`, `Suggested arguments:`) appear as benign prompt text in pi and pi's picker shows no description — acceptable; a frontmatter wrapper can be added later if the UX warrants it.
+**Consequences**: `install-command.sh` now creates symlinks in `~/.pi/agent/prompts/` alongside the Claude Code and opencode targets. Running `./scripts/install-command.sh` (or re-running with `--force`) wires up all three harnesses. README, CLAUDE.md, and the macOS slash-command engineering spec document pi as a supported target.
+**Slug references**: (none — extends the existing install mechanism; no new slugs)
+
 <!--
 Entry template:
 

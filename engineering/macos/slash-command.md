@@ -63,9 +63,13 @@ The post-launch flow (`AskUserQuestion` with Added comments / No comments / Canc
 
 The opencode skill `.config/opencode/skills/shepherd/SKILL.md` mirrors the Claude command file, using the same launcher.
 
+### pi prompt template — `~/.pi/agent/prompts/shepherd.md`
+
+pi (pi.dev) discovers prompt templates from `~/.pi/agent/prompts/<name>.md` and expands them as `/<name>`. Because pi supports `$ARGUMENTS` natively (the same token the Claude command uses), the installer symlinks the existing `.claude/commands/<name>.md` file directly into pi's prompts directory — no separate pi-specific copy is maintained. Updates propagate via `git pull` like the other two targets.
+
 ### Installer changes — `scripts/install-command.sh`
 
-1. Add `shepherd` to the `COMMANDS` array so symlinks are created for both Claude Code and opencode.
+1. Add `shepherd` to the `COMMANDS` array so symlinks are created for Claude Code (`~/.claude/commands/`), opencode (`~/.config/opencode/skills/`), and pi (`~/.pi/agent/prompts/`).
 2. After symlinks, add a prebuild step:
    ```bash
    if command -v swift >/dev/null 2>&1; then

@@ -38,7 +38,7 @@ The first app built with Shepherd is the **Code Review Prompt Generator (CRPG)**
 
 ### Slash Commands
 
-Launch the CRPG directly from Claude Code or opencode:
+Launch the CRPG directly from Claude Code, opencode, or pi:
 
 ```
 /shepherd path/to/file.ts     # open a single file
@@ -55,7 +55,7 @@ Opens the native macOS app with the file(s) already loaded.
 sq run personal-lstreet-shepherd install --full-clone
 ```
 
-This clones the repo and symlinks the `/shepherd` and `/shepherd-review` slash commands into `~/.claude/commands/` (and the opencode skills) so they're available in any repo.
+This clones the repo and symlinks the `/shepherd` and `/shepherd-review` slash commands into `~/.claude/commands/`, the opencode skills, and pi prompt templates (`~/.pi/agent/prompts/`) so they're available in any repo.
 
 ### Manual install
 
@@ -68,7 +68,7 @@ cd shepherd
 ./scripts/install-command.sh
 ```
 
-`install-command.sh` builds the native `ShepherdApp` release binary (requires the Swift toolchain) and symlinks the slash commands for Claude Code and opencode. Updates propagate via `git pull`.
+`install-command.sh` builds the native `ShepherdApp` release binary (requires the Swift toolchain) and symlinks the slash commands for Claude Code (`~/.claude/commands/`), opencode (`~/.config/opencode/skills/`), and pi (`~/.pi/agent/prompts/`). pi expands the same command files as `/shepherd` / `/shepherd-review` prompt templates (it supports `$ARGUMENTS` natively). Updates propagate via `git pull`.
 
 ## Testing
 
