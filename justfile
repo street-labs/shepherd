@@ -1,6 +1,6 @@
 # shepherd - see README.md (source of truth). pdeq-framework project; agent
-# coordinator config lives in CLAUDE.md (imports .pdeq/CLAUDE.md). Two platforms:
-# web (engineering/apps/web, pnpm/vite) and macos (engineering/apps/macos, Swift/TCA).
+# coordinator config lives in CLAUDE.md (imports .pdeq/CLAUDE.md). One platform:
+# macos (engineering/apps/macos, Swift/TCA).
 
 # Default: list recipes
 default:
@@ -10,10 +10,10 @@ default:
 setup:
     ./scripts/bootstrap.sh
 
-# Run the web app locally (vite dev server).
+# Build the macOS app (release binary used by the slash commands).
 dev:
-    cd engineering/apps/web && pnpm dev
+    cd engineering/apps/macos && swift build -c release
 
-# Run the web test suite (vitest). macOS app tests run from Xcode/swift.
+# Run the macOS app test suite.
 test:
-    cd engineering/apps/web && pnpm test
+    ./scripts/run-tests.sh

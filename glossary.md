@@ -5,7 +5,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Every agent must check this glossary before introducing a new term.** If a concept already has a name here, use it. If you need a new term, add it here first.
 
 ## Code Review Prompt Generator (CRPG)
-**Definition**: The core application of the Shepherd project. An application that lets developers load one or more source files, annotate them with inline comments, and generate a single structured prompt for AI coding assistants. Supports multiple files simultaneously in a file browser sidebar. Available as a local web app and (planned) as a standalone CLI.
+**Definition**: The core application of the Shepherd project. A native macOS application (SwiftUI + TCA) that lets developers load one or more source files, annotate them with inline comments, and generate a single structured prompt for AI coding assistants. Supports multiple files simultaneously in a file browser sidebar.
 **Also known as**: CRPG, the app
 **Not to be confused with**: The slash command (which is a launcher for the CRPG, not the CRPG itself)
 
@@ -35,9 +35,9 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Preamble (which is only one section of the generated prompt)
 
 ## Session
-**Definition**: The current working state of the application: all loaded files, all inline comments across those files, and the preamble. A session exists only in browser memory and is lost on page reload (v1). A session can contain multiple files simultaneously. Each session is identified by a unique Session ID when launched via the `/shepherd` or `/shepherd-review` slash commands.
+**Definition**: The current working state of the application: all loaded files, all inline comments across those files, and the preamble. A session exists only in the app's in-memory state for the lifetime of the window and is not persisted across relaunch (v1). A session can contain multiple files simultaneously. Each session is identified by a unique Session ID when launched via the `/shepherd-mac` or `/shepherd-mac-review` slash commands.
 **Also known as**: Review session
-**Not to be confused with**: Browser session or authentication session, Session ID (which is the unique identifier for a session, not the session state itself)
+**Not to be confused with**: Session ID (which is the unique identifier for a session, not the session state itself)
 
 ## Line Range
 **Definition**: A contiguous selection of two or more lines to which a single inline comment can be attached. Displayed as lines N-M in the generated prompt.
@@ -55,7 +55,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: The code viewer (which replaces the drop zone after a file is loaded)
 
 ## Syntax Highlighting
-**Definition**: The application of color-coded formatting to source code tokens (keywords, strings, comments, types) based on the detected programming language. Powered by Shiki using TextMate grammars.
+**Definition**: The application of color-coded formatting to source code tokens (keywords, strings, comments, types) based on the detected programming language. Powered by a native TreeSitter-based highlighter (swift-tree-sitter).
 **Also known as**: Code coloring, code highlighting
 **Not to be confused with**: Line highlighting (the background color applied to hovered, selected, or focused lines)
 
@@ -85,29 +85,14 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: The sidebar panel (which is the right-side panel containing the preamble and prompt preview)
 
 ## Slash Command
-**Definition**: A shortcut invoked by typing `/shepherd <filepath>` in a supported AI coding agent (e.g., Claude Code or opencode). Launches the CRPG web app with the specified file auto-loaded. Implemented as a Claude Code or opencode custom command (`.claude/commands/shepherd.md`) for in-repo use, and as a standalone CLI binary for global use.
+**Definition**: A shortcut invoked by typing `/shepherd-mac <filepath>` in a supported AI coding agent (e.g., Claude Code or opencode). Launches the macOS CRPG app with the specified file auto-loaded. Implemented as a Claude Code or opencode custom command (`.claude/commands/shepherd-mac.md`).
 **Also known as**: Custom command, agent command
 **Not to be confused with**: Shell commands (executed in a terminal, not an agent conversation)
 
 ## Launcher Script
-**Definition**: A shell script (`scripts/shepherd-launch.sh`) that encapsulates all slash command logic — file validation, server lifecycle management, URL encoding, and browser opening — in a single invocation. The slash command delegates to this script to minimize AI agent overhead and achieve sub-2-second warm launch times.
-**Also known as**: shepherd-launch.sh, launch script
-**Not to be confused with**: The slash command itself (which is the `.claude/commands/shepherd.md` prompt file that invokes the launcher script)
-
-## File-Serving API
-**Definition**: A localhost-only HTTP endpoint (`GET /api/file?path=<encoded-path>`) exposed by the local server that reads a file from the filesystem and returns its content as plain text. Used by the CRPG web app to load files specified via URL parameters from the slash command.
-**Also known as**: File API, local file endpoint
-**Not to be confused with**: The CRPG's in-browser file loading (drag-drop, upload, paste), which does not involve a server
-
-## Server Lock File
-**Definition**: A file at `~/.shepherd/servers/<project-hash>.lock` that records the PID and port of a running Vite dev server instance for a specific project/worktree. Used to detect and reuse existing servers. Each worktree gets its own lock file, identified by a hash of the project directory path. Enables per-project server isolation and explicit shutdown via `--stop`.
-**Also known as**: Server lockfile, PID file
-**Not to be confused with**: `pnpm-lock.yaml` (dependency lockfile), Session Directory (which is session-scoped, not server-scoped)
-
-## Auto-Load
-**Definition**: The behavior where the CRPG web app automatically loads a file on startup when a `?file=<path>` URL query parameter is present. Bypasses the normal drop zone interaction. Clears any existing session without confirmation.
-**Also known as**: URL-based file loading, query parameter loading
-**Not to be confused with**: Manual file loading (drag-drop, upload, paste via the drop zone)
+**Definition**: A shell script (`scripts/shepherd-launch-macos.sh`) that encapsulates all slash command logic — file validation, writing the session's `session.json` payload, and launching the prebuilt `ShepherdApp` binary with `--session <id>` — in a single invocation. The slash command delegates to this script to minimize AI agent overhead and achieve fast launch times.
+**Also known as**: shepherd-launch-macos.sh, launch script
+**Not to be confused with**: The slash command itself (which is the `.claude/commands/shepherd-mac.md` prompt file that invokes the launcher script)
 
 ## Working Copy
 **Definition**: The current on-disk version of a file, including any uncommitted modifications. In the context of the diff view, the working copy is compared against the baseline (git HEAD) to produce the diff.
@@ -115,12 +100,12 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Baseline (the git HEAD version), staged changes (git index — not used in v1)
 
 ## Diff View
-**Definition**: An alternative viewing mode in the CRPG that displays a unified diff between a file's git HEAD version (baseline) and its current working copy on disk. Shows added lines (green), removed lines (red), and context lines, with collapsible unchanged sections. Only available for files loaded via the slash command (server-loaded files).
+**Definition**: An alternative viewing mode in the CRPG that displays a unified diff between a file's git HEAD version (baseline) and its current working copy on disk. Shows added lines (green), removed lines (red), and context lines, with collapsible unchanged sections. Only available for files loaded via the slash command.
 **Also known as**: Diff mode, working copy diff
 **Not to be confused with**: File view (the default full-file viewing mode), side-by-side diff (not supported in v1)
 
 ## Baseline
-**Definition**: The reference version of a file used for diff computation. In v1, this is always the git HEAD version of the file, fetched via the `/api/file/head` endpoint.
+**Definition**: The reference version of a file used for diff computation. In v1, this is always the git HEAD version of the file.
 **Also known as**: HEAD version, original version
 **Not to be confused with**: Working copy (the current on-disk version of the file)
 
@@ -140,7 +125,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Changed lines (added or removed lines within a hunk)
 
 ## View Mode Toggle
-**Definition**: A segmented control in the toolbar that switches between "File" (full-file view) and "Diff" (unified diff view) modes. Disabled when the file was not loaded via the server (paste/upload files have no baseline to diff against). Switching modes clears comments with a confirmation dialog.
+**Definition**: A segmented control in the toolbar that switches between "File" (full-file view) and "Diff" (unified diff view) modes. Disabled when the file was not loaded via the slash command (paste/open files have no baseline to diff against). Switching modes clears comments with a confirmation dialog.
 **Also known as**: Mode toggle, File/Diff toggle, ViewModeToggle (component name)
 **Not to be confused with**: Rendered/Raw Toggle (which controls how content is displayed, not what content is shown), the toolbar action buttons (Copy, Clear)
 
@@ -150,9 +135,9 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Line number (used in file view for comment anchoring)
 
 ## Shepherd Review
-**Definition**: A slash command (`/shepherd-review`) that orchestrates a multi-file code review workflow within an AI coding agent conversation. Discovers the changeset of the current branch vs main, filters out uninteresting files, and batch-opens all reviewable files in a single CRPG session via the launcher script's multi-file support.
+**Definition**: A slash command (`/shepherd-mac-review`) that orchestrates a multi-file code review workflow within an AI coding agent conversation. Discovers the changeset of the current branch vs main, filters out uninteresting files, and batch-opens all reviewable files in a single CRPG session via the launcher script's multi-file support.
 **Also known as**: Review command, batch review
-**Not to be confused with**: The `/shepherd` command (which opens a single file), or the CRPG itself (the web app used to annotate files)
+**Not to be confused with**: The `/shepherd-mac` command (which opens a single file), or the CRPG itself (the macOS app used to annotate files)
 
 ## Changeset
 **Definition**: The set of files that have been modified, added, renamed, or deleted on the current branch relative to the base branch (typically `main`). Determined using `git diff --name-status` against the merge base.
@@ -165,32 +150,27 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Git's `--diff-filter` flag (which filters by change type like added/deleted)
 
 ## Merge Base
-**Definition**: The most recent common ancestor commit between the current branch and a base branch (typically `main`). Used by `/shepherd-review` to determine the exact point where the feature branch diverged, ensuring only branch-specific changes are included in the changeset. Computed via `git merge-base HEAD main`.
+**Definition**: The most recent common ancestor commit between the current branch and a base branch (typically `main`). Used by `/shepherd-mac-review` to determine the exact point where the feature branch diverged, ensuring only branch-specific changes are included in the changeset. Computed via `git merge-base HEAD main`.
 **Also known as**: Branch point, divergence point
 **Not to be confused with**: The tip of the base branch (which may have moved forward since the branch was created)
 
 ## Review Iteration Loop
-**Definition**: The workflow in `/shepherd-review` where the agent discovers the changeset, filters files, prints a changeset overview with per-file context, and batch-opens all reviewable files in the CRPG. The user reviews files at their own pace using the CRPG's file browser, then clicks Done to return a unified prompt. The agent processes the feedback and presents a completion summary.
+**Definition**: The workflow in `/shepherd-mac-review` where the agent discovers the changeset, filters files, prints a changeset overview with per-file context, and batch-opens all reviewable files in the CRPG. The user reviews files at their own pace using the CRPG's file browser, then clicks Done to return a unified prompt. The agent processes the feedback and presents a completion summary.
 **Also known as**: Review loop, batch-open loop
 **Not to be confused with**: The engineering-QA iteration loop (which is a development process, not a user-facing feature)
 
 ## Slash Command Mode
-**Definition**: The operational state of the CRPG when it was launched via the `/shepherd` slash command (i.e., the file was loaded from a `?file=` URL parameter via the local server API). In this mode, the Done button is visible in the toolbar, enabling the prompt feedback loop. The CRPG typically opens in an app-mode browser window (no address bar or tabs). The mode is tracked in the app's state and resets when the session is cleared.
-**Also known as**: Server mode, agent-connected mode
-**Not to be confused with**: Standalone mode (when the CRPG is used via paste/upload/drag-drop without the slash command)
-
-## App-Mode Window
-**Definition**: A browser window opened with Chrome/Chromium's `--app` flag that removes all browser chrome (address bar, tab strip, navigation buttons). The CRPG appears as a standalone application rather than a website. App-mode windows allow `window.close()` to work, enabling auto-close after the Done action. If Chrome is not available, the CRPG falls back to a regular browser tab.
-**Also known as**: Chromeless window, standalone window, app window
-**Not to be confused with**: A regular browser tab (which has address bar, tabs, and does not allow `window.close()`)
+**Definition**: The operational state of the CRPG when it was launched via the `/shepherd-mac` slash command (i.e., the files were loaded from the launcher-written `session.json` payload). In this mode, the Done button is visible in the toolbar, enabling the prompt feedback loop. The mode is tracked in the app's state and resets when the session is cleared.
+**Also known as**: Agent-connected mode
+**Not to be confused with**: Standalone mode (when the CRPG is used via paste/open/drag-drop without the slash command)
 
 ## Prompt Handoff
-**Definition**: The mechanism by which the generated prompt is sent from the CRPG web app back to the AI coding agent. The CRPG POSTs the prompt to the local server's `/api/prompt-output` endpoint, which writes it to `~/.shepherd/prompt-output.md`. A file watcher running in the agent's terminal detects the file and feeds its contents back to the agent.
+**Definition**: The mechanism by which the generated prompt is sent from the macOS app back to the AI coding agent. When the user clicks Done, the app writes the prompt directly to the session's `prompt-output.md` file, which the agent reads after the interactive prompt.
 **Also known as**: Feedback loop, prompt return path
 **Not to be confused with**: Prompt copy (which puts the prompt on the clipboard for manual pasting)
 
 ## Prompt Output File
-**Definition**: A session-scoped temporary file at `~/.shepherd/sessions/<session-id>/prompt-output.md` used as the handoff mechanism between the CRPG and the AI agent. Written by the server when the user clicks Done, read by the agent after the interactive prompt, and deleted immediately after reading. Stale session directories from previous sessions (older than 24 hours) are cleaned up on each new slash command invocation.
+**Definition**: A session-scoped temporary file at `~/.shepherd/sessions/<session-id>/prompt-output.md` used as the handoff mechanism between the CRPG and the AI agent. Written by the macOS app when the user clicks Done, read by the agent after the interactive prompt, and deleted immediately after reading. Stale session directories from previous sessions (older than 24 hours) are cleaned up on each new slash command invocation.
 **Also known as**: Output file, handoff file
 **Not to be confused with**: The generated prompt (which is the content written to the file, not the file itself), Session Directory (which is the parent directory containing this file)
 
@@ -215,7 +195,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Diff Line Identifier (used in diff view), line number (used in raw/file view)
 
 ## Rendered Diff
-**Definition**: A viewing mode for markdown files that shows changes between HEAD and working copy as formatted HTML with visual annotations — green highlights for additions, strikethrough with red background for removals, and inline word-level change markers for modifications. Combines the rendered view with the diff view. Only available for markdown files loaded via the server.
+**Definition**: A viewing mode for markdown files that shows changes between HEAD and working copy as formatted HTML with visual annotations — green highlights for additions, strikethrough with red background for removals, and inline word-level change markers for modifications. Combines the rendered view with the diff view. Only available for markdown files loaded via the slash command.
 **Also known as**: Rendered diff view, visual diff, formatted diff
 **Not to be confused with**: Raw diff (which shows unified diff of markdown source with +/- line prefixes)
 
@@ -260,9 +240,9 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Tailwind CSS utility classes (which are used for layout and spacing, not theming colors)
 
 ## Platform
-**Definition**: A target runtime environment for the CRPG application. Each platform has its own tech stack, build system, and may have platform-specific UI/UX. The current platforms are: web (browser-based) and macOS (native app, planned).
+**Definition**: A target runtime environment for the CRPG application. Each platform has its own tech stack, build system, and may have platform-specific UI/UX. The only platform is macOS (a native SwiftUI app). A web platform existed previously but has been removed.
 **Also known as**: Target platform
-**Not to be confused with**: Operating system (a platform is more specific — "web" runs on multiple OSes, "macOS" is one OS with a native app)
+**Not to be confused with**: Operating system (a platform is more specific — "macOS" is one OS with a native app)
 
 ## Shared Product Spec
 **Definition**: A product spec file at the top level of `product/` (e.g., `product/code-review-prompt.md`). Contains platform-neutral requirements describing what a feature does. Design, engineering, and QA specs do not have shared base specs — they are always platform-specific.
@@ -275,14 +255,14 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Shared product spec (which lives at the top level of `product/`)
 
 ## Session Directory
-**Definition**: A directory at `~/.shepherd/sessions/<session-id>/` that holds session-scoped files. On the web variant the primary file is `prompt-output.md` (CRPG → agent) and `review-context.json` (agent → CRPG, served by the Vite plugin). On the macOS variant the directory holds `session.json` (the launcher-written payload that `ShepherdApp` reads at startup, with `reviewContext` embedded inline) and `prompt-output.md` (written when the user clicks Done). Created on demand. Cleaned up after the agent reads the output, or after 24 hours if stale. Each `/shepherd`, `/shepherd-mac`, `/shepherd-review`, or `/shepherd-mac-review` invocation gets its own session directory, identified by its unique Session ID.
+**Definition**: A directory at `~/.shepherd/sessions/<session-id>/` that holds session-scoped files. The directory holds `session.json` (the launcher-written payload that `ShepherdApp` reads at startup, with `reviewContext` embedded inline) and `prompt-output.md` (written when the user clicks Done). Created on demand. Cleaned up after the agent reads the output, or after 24 hours if stale. Each `/shepherd-mac` or `/shepherd-mac-review` invocation gets its own session directory, identified by its unique Session ID.
 **Also known as**: Session folder, session-scoped directory
-**Not to be confused with**: Session (which is the in-browser working state, not a filesystem directory), Server Lock File (which is per-project, not per-session)
+**Not to be confused with**: Session (which is the in-memory working state, not a filesystem directory)
 
 ## Session ID
-**Definition**: A human-readable identifier derived from the working directory path, used to scope session state for each `/shepherd` or `/shepherd-review` invocation. The session ID is the slugified basename of the project/worktree directory (e.g., `my-project`, `shepherd-1`). The same worktree always produces the same session ID, providing deterministic session isolation. Used to scope the browser window, URL routing, and prompt output file path. Passed via URL query parameter (`?session=<id>`) and included in the agent's output. Not related to browser session cookies or authentication.
+**Definition**: A human-readable identifier derived from the working directory path, used to scope session state for each `/shepherd-mac` or `/shepherd-mac-review` invocation. The session ID is the slugified basename of the project/worktree directory (e.g., `my-project`, `shepherd-1`). The same worktree always produces the same session ID, providing deterministic session isolation. Used to scope the session directory and prompt output file path. Passed to the app via the `--session <id>` launch argument and included in the agent's output.
 **Also known as**: Session identifier, project slug
-**Not to be confused with**: Session (which is the working state identified by the session ID), process ID (PID, used in server lock files)
+**Not to be confused with**: Session (which is the working state identified by the session ID)
 
 ## FileBrowser
 **Definition**: A vertical sidebar panel (default 240px, user-resizable via `FR-crp-panel-resize`) on the left side of the CRPG layout in multi-file mode. Presents all loaded files in a nested directory tree (similar to GitHub's pull request file browser). Within each directory, unreviewed files appear before reviewed files. Each file row shows the file name, comment count badge, review toggle, and remove button. Hovering a file row shows a tooltip with the full path, language, and review status (`FR-crp-file-tooltip`). The header contains a review progress indicator and an "Add file" button. Appears when two or more files are loaded; collapses to single-file layout when only one file remains.
@@ -295,7 +275,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Loaded files (all files in the session, most of which may be inactive)
 
 ## Review Context
-**Definition**: Structured data generated by the `/shepherd-review` (web) or `/shepherd-mac-review` (macOS) command and displayed in the CRPG UI. Contains two distinct parts for the overall changeset and for each file: neutral context (factual description of what changed) and review feedback (the AI agent's subjective assessment). Files map keys are the same absolute path strings used in the file list, so the application can match per-file context to its tab. The web variant passes the data via a separate `review-context.json` served by a Vite plugin endpoint. The macOS variant inlines the same data into the launcher's `session.json` payload (the `reviewContext` field on `SessionData`) so the native binary loads it in a single read.
+**Definition**: Structured data generated by the `/shepherd-mac-review` command and displayed in the CRPG UI. Contains two distinct parts for the overall changeset and for each file: neutral context (factual description of what changed) and review feedback (the AI agent's subjective assessment). Files map keys are the same absolute path strings used in the file list, so the application can match per-file context to its tab. The launcher inlines the data into the session's `session.json` payload (the `reviewContext` field on `SessionData`) so the native binary loads it in a single read.
 **Also known as**: Context data, review context data
 **Not to be confused with**: Inline comments (which are user-authored annotations, not agent-generated context)
 
@@ -310,12 +290,12 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Neutral context (which is purely factual), inline comments (which are user-authored)
 
 ## Review Context Panel
-**Definition**: A collapsible UI component in the CRPG that displays review context data. Positioned inside the Code Viewer Panel. Contains two sections: overall changeset context (visible for all tabs) and per-file context (switches when the user changes tabs). Each section shows neutral context and review feedback as visually distinct sub-sections. Only visible when context data is available (slash command mode with shepherd-review).
+**Definition**: A collapsible UI component in the CRPG that displays review context data. Positioned inside the Code Viewer Panel. Contains two sections: overall changeset context (visible for all tabs) and per-file context (switches when the user changes tabs). Each section shows neutral context and review feedback as visually distinct sub-sections. Only visible when context data is available (slash command mode with shepherd-mac-review).
 **Also known as**: ReviewContextPanel (component name), context panel
 **Not to be confused with**: Prompt Preview (which shows the generated prompt, not review context)
 
 ## Reviewed Status
-**Definition**: A per-file boolean flag indicating whether the user considers a file "reviewed." Defaults to unreviewed for all files. Toggled manually by the user — the application never auto-marks a file. Persists within the browser session but not across page reloads. Independent of whether the file has comments. Used to drive file grouping in the FileBrowser sidebar, visual indicators, and the progress indicator.
+**Definition**: A per-file boolean flag indicating whether the user considers a file "reviewed." Defaults to unreviewed for all files. Toggled manually by the user — the application never auto-marks a file. Persists within the session but not across relaunch. Independent of whether the file has comments. Used to drive file grouping in the FileBrowser sidebar, visual indicators, and the progress indicator.
 **Also known as**: Review status, reviewed flag
 **Not to be confused with**: Review feedback (the AI agent's assessment), inline comments (user annotations on specific lines)
 
@@ -345,7 +325,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: FileHeader (which is the single-file mode header), file breadcrumb (a different UI pattern with clickable path segments)
 
 ## File Tooltip
-**Definition**: A tooltip that appears when the user hovers over a file row in the FileBrowser sidebar. Shows the full untruncated file path, detected language, and review status (e.g., "src/utils/helpers.ts -- TypeScript" or "config.json -- JSON -- Reviewed"). Uses the native browser `title` attribute. Essential because the sidebar has limited width and file names are commonly truncated. Implements `FR-crp-file-tooltip`.
+**Definition**: A tooltip that appears when the user hovers over a file row in the FileBrowser sidebar. Shows the full untruncated file path, detected language, and review status (e.g., "src/utils/helpers.ts -- TypeScript" or "config.json -- JSON -- Reviewed"). Uses a native tooltip. Essential because the sidebar has limited width and file names are commonly truncated. Implements `FR-crp-file-tooltip`.
 **Also known as**: File row tooltip
 **Not to be confused with**: Comment tooltips (which show comment text), button tooltips (which show keyboard shortcuts)
 
@@ -365,7 +345,7 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Inline comments (which are line-specific), per-file instructions (not supported in v1)
 
 ## ReviewContextSidebar
-**Definition**: A collapsible component in the right sidebar that displays the overall changeset context (neutral description of what changed and the AI agent's review feedback) provided by the shepherd-review command. Positioned at the top of the sidebar, above the Overall Comment input. Only visible when review context data is available. Per-file context is shown separately in the ReviewContextPanel within the code viewer.
+**Definition**: A collapsible component in the right sidebar that displays the overall changeset context (neutral description of what changed and the AI agent's review feedback) provided by the shepherd-mac-review command. Positioned at the top of the sidebar, above the Overall Comment input. Only visible when review context data is available. Per-file context is shown separately in the ReviewContextPanel within the code viewer.
 **Also known as**: ReviewContextSidebar (component name), sidebar context section
 **Not to be confused with**: ReviewContextPanel (which displays per-file context in the code viewer), Sidebar Panel (the entire right-side panel)
 
@@ -390,14 +370,13 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: JavaScript reducers (similar concept, different ecosystem)
 
 ## TreeSitter
-**Definition**: A native syntax highlighting engine used in the macOS app. Parses source code using language-specific grammars to produce syntax tokens. Runs on a background thread to avoid blocking UI rendering. Supports all 13 required programming languages. The web platform uses Shiki (which is built on TreeSitter WASM); the macOS platform uses swift-tree-sitter (native TreeSitter bindings).
+**Definition**: A native syntax highlighting engine used in the macOS app. Parses source code using language-specific grammars to produce syntax tokens. Runs on a background thread to avoid blocking UI rendering. Supports all 13 required programming languages. The macOS platform uses swift-tree-sitter (native TreeSitter bindings).
 **Also known as**: swift-tree-sitter (Swift bindings), TreeSitterHighlighter (the app's singleton)
-**Not to be confused with**: Shiki (the web platform's syntax highlighter)
 
 ## Inspector (macOS)
 **Definition**: The right sidebar panel in the macOS app. Contains the ReviewContextSection (overall changeset context), Overall Comment editor, and Preview/All Comments tabs. Default width 340pt. Uses native macOS sidebar material and styling. The term "inspector" follows macOS conventions for detail/configuration sidebars.
 **Also known as**: Inspector sidebar, right sidebar (macOS)
-**Not to be confused with**: Sidebar (generic term used on web), file browser sidebar (the left panel in multi-file mode)
+**Not to be confused with**: Sidebar (the generic term), file browser sidebar (the left panel in multi-file mode)
 
 ## Source List
 **Definition**: A macOS sidebar style using vibrant background material under the sidebar appearance. The macOS file browser sidebar uses source list styling — standard for file/navigation trees in macOS apps. Provides selection highlighting, hover states, and tree disclosure indicators following macOS conventions.

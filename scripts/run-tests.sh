@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
 #
-# Run unit and integration tests for the web app.
-# Used by the pre-commit hook and available for manual use.
+# Run the test suite for the macOS app.
+# Available for manual use and via `just test`.
 #
 # Exit codes:
-#   0 — all tests pass
+#   0 — all tests pass (or Swift toolchain unavailable — skipped)
 #   1 — one or more tests failed
 
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || dirname "$(dirname "$0")")"
-WEB_APP="$ROOT/engineering/apps/web"
+MAC_APP="$ROOT/engineering/apps/macos"
 
-if [ ! -d "$WEB_APP" ]; then
-  echo "Web app directory not found at $WEB_APP"
+if [ ! -d "$MAC_APP" ]; then
+  echo "macOS app directory not found at $MAC_APP"
   exit 1
 fi
 
-echo "Running unit and integration tests..."
+if ! command -v swift >/dev/null 2>&1; then
+  echo "Swift toolchain not found on PATH — skipping macOS tests."
+  exit 0
+fi
+
+echo "Running macOS app tests (swift test)..."
 echo ""
 
-cd "$WEB_APP"
-npm run test
+cd "$MAC_APP"
+swift test

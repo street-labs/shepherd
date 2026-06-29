@@ -1,5 +1,0 @@
-{
-  "name": "shepherd",
-  "description": "Open the Code Review Prompt Generator (CRPG) with the specified file.",
-  "trigger": "shepherd"
-}

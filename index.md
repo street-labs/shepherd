@@ -17,477 +17,477 @@ Each entry lists a requirement slug and every artifact that references it:
 
 ### `FR-crp-file-load`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-paste-happy`, `TC-crp-load-upload-happy`, `TC-crp-load-drag-drop-happy`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-load-paste-happy`, `TC-crp-macos-load-open-panel-single`, `TC-crp-macos-load-drag-drop-single`, `TC-crp-macos-binary-rejected-open-panel`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-load-paste-happy`, `TC-crp-macos-load-open-panel-single`, `TC-crp-macos-load-drag-drop-single`, `TC-crp-macos-binary-rejected-open-panel`
 
 ### `FR-crp-file-display`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-file-with-empty-lines`, `TC-crp-edge-file-with-very-long-lines`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-display-line-numbers`, `TC-crp-macos-file-display-preserves-whitespace`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-display-line-numbers`, `TC-crp-macos-file-display-preserves-whitespace`
 
 ### `FR-crp-syntax-highlight`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/languageDetect.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-syntax-highlight-typescript`, `TC-crp-syntax-highlight-unknown-fallback`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-syntax-highlight-detected`, `TC-crp-macos-syntax-highlight-all-languages`, `TC-crp-macos-syntax-highlight-fallback`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-syntax-highlight-detected`, `TC-crp-macos-syntax-highlight-all-languages`, `TC-crp-macos-syntax-highlight-fallback`
 
 ### `FR-crp-line-comment-create`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-single-line-happy`, `TC-crp-add-comment-line-range-happy`, `TC-crp-edge-multiple-comments-same-line`, `TC-crp-edge-very-long-comment-text`, `TC-crp-edge-rapid-successive-comments`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-single-line`, `TC-crp-macos-add-comment-gutter-indicator`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-single-line`, `TC-crp-macos-add-comment-gutter-indicator`
 
 ### `FR-crp-line-comment-edit`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edit-comment-happy`, `TC-crp-edit-comment-stays-on-line`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-edit-comment-happy`, `TC-crp-macos-edit-comment-stays-on-line`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-edit-comment-happy`, `TC-crp-macos-edit-comment-stays-on-line`
 
 ### `FR-crp-line-comment-delete`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-delete-comment-happy`, `TC-crp-delete-comment-gutter-clears`, `TC-crp-delete-comment-count-decrements`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-delete-comment-happy`, `TC-crp-macos-delete-comment-gutter-clears`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-delete-comment-happy`, `TC-crp-macos-delete-comment-gutter-clears`
 
 ### `FR-crp-comment-indicator`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-gutter-indicator`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-delete-comment-gutter-clears`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-gutter-indicator`, `TC-crp-macos-delete-comment-gutter-clears`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-gutter-indicator`, `TC-crp-macos-delete-comment-gutter-clears`
 
 ### `FR-crp-comment-count`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-count-increments`, `TC-crp-delete-comment-count-decrements`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-comment-count-global`, `TC-crp-macos-comment-count-increments`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-comment-count-global`, `TC-crp-macos-comment-count-increments`
 
 ### `FR-crp-prompt-preamble`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-overall-comment-label`, `TC-crp-macos-overall-comment-in-prompt`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-overall-comment-label`, `TC-crp-macos-overall-comment-in-prompt`
 
 ### `FR-crp-prompt-generate`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`, `engineering/apps/web/src/store/appStore.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-no-comments-disabled`, `TC-crp-edge-prompt-gen-performance`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-auto-regenerates`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-auto-regenerates`
 
 ### `FR-crp-prompt-preview`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-preview-matches-copy-exact`, `TC-crp-edge-stale-prompt-indicator`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-preview-live`, `TC-crp-macos-prompt-no-comments-placeholder`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-preview-live`, `TC-crp-macos-prompt-no-comments-placeholder`
 
 ### `FR-crp-prompt-copy`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/clipboard.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-copy-clipboard-happy`, `TC-crp-copy-clipboard-toast`, `TC-crp-edge-clipboard-permission-denied`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-copy-clipboard-happy`, `TC-crp-macos-copy-toolbar-animation`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-copy-clipboard-happy`, `TC-crp-macos-copy-toolbar-animation`
 
 ### `FR-crp-prompt-format`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`, `TC-crp-generate-prompt-structure-line-order`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-edge-special-characters-in-comments`, `TC-crp-edge-untitled-file-prompt`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-structure-no-preamble`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-structure-no-preamble`
 
 ### `FR-crp-clear-session`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-clear-confirmation-shows-dialog`, `TC-crp-clear-confirmation-cancel-preserves`, `TC-crp-clear-confirmation-confirm-clears`, `TC-crp-clear-no-confirm-empty-happy`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-clear-confirmation-dialog`, `TC-crp-macos-clear-no-confirm-empty`, `TC-crp-macos-multi-file-clear-all`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-clear-confirmation-dialog`, `TC-crp-macos-clear-no-confirm-empty`, `TC-crp-macos-multi-file-clear-all`
 
 ### `FR-crp-filename-display`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-paste-with-filename`, `TC-crp-load-upload-shows-filename`, `TC-crp-edge-untitled-file-prompt`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: —
 
 ### `FR-crp-line-range-comment`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-line-range-happy`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-keyboard-range-select`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-line-range`, `TC-crp-macos-add-comment-line-range-gutter`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-line-range`, `TC-crp-macos-add-comment-line-range-gutter`
 
 ### `FR-crp-comment-navigation`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-navigation-next-happy`, `TC-crp-comment-navigation-prev-happy`, `TC-crp-comment-navigation-wrap-around`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-nav-next`, `TC-crp-macos-comment-nav-prev`, `TC-crp-macos-comment-nav-wrap`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-nav-next`, `TC-crp-macos-comment-nav-prev`, `TC-crp-macos-comment-nav-wrap`
 
 ### `NFR-crp-large-file-perf`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-large-file-scroll-no-jank`, `TC-crp-large-file-scroll-warning-banner`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-large-file-scroll-smooth`, `TC-crp-macos-large-file-load-time`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-large-file-scroll-smooth`, `TC-crp-macos-large-file-load-time`
 
 ### `NFR-crp-render-time`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-initial-render-time`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-render-time-under-500ms`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-render-time-under-500ms`
 
 ### `NFR-crp-prompt-gen-time`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-prompt-gen-performance`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-gen-time-under-300ms`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-gen-time-under-300ms`
 
 ### `NFR-crp-client-only`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-client-side-only`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-no-network-traffic`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-no-network-traffic`
 
 ### `NFR-crp-browser-support`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-cross-browser-clipboard`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-crp-responsive-layout`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-responsive-below-1024`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-crp-accessibility-keyboard`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-keyboard-add-comment-happy`, `TC-crp-keyboard-range-select`, `TC-crp-edge-focus-management-editor`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-keyboard-add-comment`, `TC-crp-macos-keyboard-open-file`, `TC-crp-macos-keyboard-copy-prompt`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-keyboard-add-comment`, `TC-crp-macos-keyboard-open-file`, `TC-crp-macos-keyboard-copy-prompt`
 
 ### `NFR-crp-no-data-persistence`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edge-no-data-persistence`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: —
 
 ### `AC-crp-load-paste`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-paste-happy`, `TC-crp-load-paste-with-filename`, `TC-crp-load-paste-empty-rejected`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-load-paste-happy`, `TC-crp-macos-load-paste-empty-clipboard`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-load-paste-happy`, `TC-crp-macos-load-paste-empty-clipboard`
 
 ### `AC-crp-load-upload`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-upload-happy`, `TC-crp-load-upload-shows-filename`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-load-open-panel-single`, `TC-crp-macos-load-open-panel-multi`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-load-open-panel-single`, `TC-crp-macos-load-open-panel-multi`
 
 ### `AC-crp-load-drag-drop`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-load-drag-drop-happy`, `TC-crp-load-drag-drop-hover-state`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-load-drag-drop-single`, `TC-crp-macos-load-drag-drop-multi`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-load-drag-drop-single`, `TC-crp-macos-load-drag-drop-multi`
 
 ### `AC-crp-syntax-highlight-detected`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-syntax-highlight-typescript`, `TC-crp-syntax-highlight-unknown-fallback`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-syntax-highlight-detected`, `TC-crp-macos-syntax-highlight-fallback`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-syntax-highlight-detected`, `TC-crp-macos-syntax-highlight-fallback`
 
 ### `AC-crp-add-comment-single-line`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-single-line-happy`, `TC-crp-add-comment-gutter-indicator`, `TC-crp-add-comment-count-increments`, `TC-crp-edge-multiple-comments-same-line`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-single-line`, `TC-crp-macos-add-comment-gutter-indicator`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-single-line`, `TC-crp-macos-add-comment-gutter-indicator`
 
 ### `AC-crp-add-comment-line-range`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-add-comment-line-range-happy`, `TC-crp-add-comment-line-range-gutter-indicators`, `TC-crp-add-comment-line-range-prompt-format`, `TC-crp-keyboard-range-select`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-line-range`, `TC-crp-macos-add-comment-line-range-gutter`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-add-comment-line-range`, `TC-crp-macos-add-comment-line-range-gutter`
 
 ### `AC-crp-edit-comment`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-edit-comment-happy`, `TC-crp-edit-comment-stays-on-line`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-edit-comment-happy`, `TC-crp-macos-edit-comment-stays-on-line`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-edit-comment-happy`, `TC-crp-macos-edit-comment-stays-on-line`
 
 ### `AC-crp-delete-comment`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-delete-comment-happy`, `TC-crp-delete-comment-gutter-clears`, `TC-crp-delete-comment-count-decrements`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-delete-comment-happy`, `TC-crp-macos-delete-comment-gutter-clears`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-delete-comment-happy`, `TC-crp-macos-delete-comment-gutter-clears`
 
 ### `AC-crp-generate-prompt-structure`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-structure-happy`, `TC-crp-generate-prompt-structure-no-preamble`, `TC-crp-generate-prompt-structure-line-order`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-structure-no-preamble`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-structure-no-preamble`
 
 ### `AC-crp-generate-prompt-no-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-generate-prompt-no-comments-disabled`, `TC-crp-generate-prompt-no-comments-after-delete-all`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-no-comments-placeholder`, `TC-crp-macos-prompt-clears-after-delete-all`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-prompt-no-comments-placeholder`, `TC-crp-macos-prompt-clears-after-delete-all`
 
 ### `AC-crp-copy-clipboard`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/clipboard.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-copy-clipboard-happy`, `TC-crp-copy-clipboard-toast`, `TC-crp-edge-clipboard-permission-denied`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-copy-clipboard-happy`, `TC-crp-macos-copy-toolbar-animation`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-copy-clipboard-happy`, `TC-crp-macos-copy-toolbar-animation`
 
 ### `AC-crp-preview-matches-copy`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-preview-matches-copy-exact`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-preview-matches-copy`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-preview-matches-copy`
 
 ### `AC-crp-clear-confirmation`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-clear-confirmation-shows-dialog`, `TC-crp-clear-confirmation-cancel-preserves`, `TC-crp-clear-confirmation-confirm-clears`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-clear-confirmation-dialog`, `TC-crp-macos-clear-cancel-preserves`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-clear-confirmation-dialog`, `TC-crp-macos-clear-cancel-preserves`
 
 ### `AC-crp-clear-no-confirm-empty`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-clear-no-confirm-empty-happy`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-clear-no-confirm-empty`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-clear-no-confirm-empty`
 
 ### `AC-crp-empty-state`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-empty-state-instructions`, `TC-crp-empty-state-buttons-disabled`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-empty-state-instructions`, `TC-crp-macos-empty-state-buttons-disabled`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-empty-state-instructions`, `TC-crp-macos-empty-state-buttons-disabled`
 
 ### `AC-crp-large-file-scroll`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-large-file-scroll-no-jank`, `TC-crp-large-file-scroll-warning-banner`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-large-file-scroll-smooth`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-large-file-scroll-smooth`
 
 ### `AC-crp-comment-navigation-next`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-navigation-next-happy`, `TC-crp-comment-navigation-prev-happy`, `TC-crp-comment-navigation-wrap-around`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-nav-next`, `TC-crp-macos-comment-nav-prev`, `TC-crp-macos-comment-nav-wrap`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-nav-next`, `TC-crp-macos-comment-nav-prev`, `TC-crp-macos-comment-nav-wrap`
 
 ### `AC-crp-keyboard-add-comment`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-keyboard-add-comment-happy`, `TC-crp-keyboard-range-select`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-keyboard-add-comment`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-keyboard-add-comment`
 
 ### `AC-crp-binary-file-rejected`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/lib/binaryDetect.test.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-binary-file-rejected-upload`, `TC-crp-binary-file-rejected-drag-drop`, `TC-crp-binary-file-rejected-no-crash`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-binary-rejected-open-panel`, `TC-crp-macos-binary-rejected-drag-drop`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-binary-rejected-open-panel`, `TC-crp-macos-binary-rejected-drag-drop`
 
 ### `FR-sc-invoke-command`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-help-flag`, `TC-sc-install-claude-code-command`, `TC-sc-edge-exit-codes`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-file-resolution`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-absolute-path-inrepo`, `TC-sc-absolute-path-standalone`, `TC-sc-resolve-relative-path`, `TC-sc-resolve-symlink`, `TC-sc-edge-spaces-in-path`, `TC-sc-edge-unicode-filename`, `TC-sc-edge-very-long-path`, `TC-sc-path-handling-windows`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-file-validation`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-file-not-found-cli`, `TC-sc-binary-rejected-cli`, `TC-sc-permission-denied-cli`, `TC-sc-directory-rejected-cli`, `TC-sc-large-file-warning-cli`, `TC-sc-output-errors-stderr`, `TC-sc-edge-empty-file`, `TC-sc-edge-file-with-only-null-bytes`, `TC-sc-edge-symlink-to-directory`, `TC-sc-edge-file-deleted-after-validation`, `TC-sc-edge-exit-codes`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-app-serve`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-server-starts-available-port`, `TC-sc-server-serves-static-assets`, `TC-sc-server-reuse-lockfile`, `TC-sc-edge-port-in-use`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-browser-open`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-browser-open-url`, `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-edge-browser-open-fails`, `TC-sc-app-window-chrome`, `TC-sc-app-window-browser-fallback`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-auto-load-file`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/apps/web/src/App.tsx`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-auto-load-from-url-param`, `TC-sc-auto-load-clears-url-param`, `TC-sc-auto-load-error-state`, `TC-sc-auto-load-no-param`, `TC-sc-session-clear-on-new-file`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-file-api`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-api-200-valid-file`, `TC-sc-api-400-missing-param`, `TC-sc-api-403-permission`, `TC-sc-api-403-non-localhost`, `TC-sc-api-404-not-found`, `TC-sc-api-404-directory`, `TC-sc-api-415-binary`, `TC-sc-api-headers`, `TC-sc-api-path-traversal`, `TC-sc-edge-api-concurrent-requests`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-install`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`, `TC-sc-install-claude-code-command`
+- **Design**: —
+- **Engineering**: `scripts/install-command.sh`
+- **QA**: —
 
 ### `FR-sc-server-shutdown`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-lockfile-write`, `TC-sc-lockfile-stale-cleanup`, `TC-sc-idle-shutdown-fires`, `TC-sc-idle-shutdown-resets`, `TC-sc-explicit-stop-running`, `TC-sc-explicit-stop-not-running`, `TC-sc-signal-handler-cleanup`, `TC-sc-server-reuse-lockfile`, `TC-sc-edge-concurrent-invocations`, `TC-sc-edge-lockfile-directory-missing`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-output-feedback`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-standalone`, `TC-sc-no-args-usage`, `TC-sc-output-success-format`, `TC-sc-output-reuse-note`, `TC-sc-output-errors-stderr`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-launcher-script`
 - **Defined in**: `product/slash-command.md`
 - **Design**: N/A (no visual changes)
-- **Engineering**: `engineering/web/slash-command.md` -> `scripts/shepherd-launch.sh`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`, `TC-sc-single-tool-call`, `TC-sc-launcher-script-validation`, `TC-sc-launcher-server-start`
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-sc-launch-speed`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-speed-cold`, `TC-sc-launch-speed-warm`, `TC-sc-launcher-warm-launch`, `TC-sc-launcher-cold-launch`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-sc-no-global-deps`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-install-global`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-sc-cross-platform`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`, `TC-sc-path-handling-windows`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-sc-localhost-only`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-server-binds-localhost`, `TC-sc-api-403-non-localhost`, `TC-sc-api-path-traversal`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-sc-no-telemetry`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-no-outbound-network`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-sc-minimal-footprint`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-package-size`, `TC-sc-server-memory`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-launch-happy-path`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/apps/web/src/App.tsx`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launch-happy-inrepo`, `TC-sc-launch-happy-standalone`, `TC-sc-auto-load-from-url-param`, `TC-sc-api-200-valid-file`, `TC-sc-output-success-format`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-absolute-path`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-absolute-path-inrepo`, `TC-sc-absolute-path-standalone`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-file-not-found`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-file-not-found-cli`, `TC-sc-file-not-found-api`, `TC-sc-api-404-not-found`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-binary-file-rejected`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-binary-rejected-cli`, `TC-sc-binary-rejected-api`, `TC-sc-api-415-binary`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-permission-denied`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-permission-denied-cli`, `TC-sc-permission-denied-api`, `TC-sc-api-403-permission`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-directory-rejected`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-directory-rejected-cli`, `TC-sc-directory-rejected-api`, `TC-sc-api-404-directory`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-no-args-usage`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-no-args-usage`, `TC-sc-help-flag`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-large-file-warning`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-large-file-warning-cli`, `TC-sc-large-file-warning-e2e`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-server-reuse`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-server-reuse-lockfile`, `TC-sc-server-reuse-output`, `TC-sc-output-reuse-note`, `TC-sc-edge-concurrent-invocations`, `TC-sc-server-reuse-same-worktree`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-server-manual-stop`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-explicit-stop-running`, `TC-sc-explicit-stop-not-running`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-install-global`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/install-command.sh`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-install-global`, `TC-sc-install-binary-on-path`
+- **Design**: —
+- **Engineering**: `scripts/install-command.sh`
+- **QA**: —
 
 ### `AC-sc-install-symlink`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `scripts/install-command.sh`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-install-symlink`, `TC-sc-install-update-propagation`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-session-clear-on-new-file`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/hooks/useFileFromUrl.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-clear-on-new-file`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-cross-platform-open`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-cross-platform-macos`, `TC-sc-cross-platform-linux`, `TC-sc-cross-platform-windows`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-standalone-window`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-app-window-chrome`, `TC-sc-app-window-chromium-fallback`, `TC-sc-app-window-browser-fallback`, `TC-sc-app-window-subsequent`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-warm-launch-2s`
 - **Defined in**: `product/slash-command.md`
 - **Design**: N/A (no visual changes)
-- **Engineering**: `engineering/web/slash-command.md` -> `scripts/shepherd-launch.sh`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launcher-warm-launch`
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-cold-launch-8s`
 - **Defined in**: `product/slash-command.md`
 - **Design**: N/A (no visual changes)
-- **Engineering**: `engineering/web/slash-command.md` -> `scripts/shepherd-launch.sh`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-launcher-cold-launch`
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-single-tool-call`
 - **Defined in**: `product/slash-command.md`
 - **Design**: N/A (no visual changes)
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`, `scripts/shepherd-launch.sh`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-single-tool-call`
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-mac-invoke-command`
 - **Defined in**: `product/macos/slash-command.md`
@@ -552,1395 +552,1395 @@ Each entry lists a requirement slug and every artifact that references it:
 
 ### `FR-diff-mode-toggle`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-keyboard-toggle-modes`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-mode-availability`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-paste-disabled`, `TC-diff-upload-disabled`, `TC-diff-drag-drop-disabled`, `TC-diff-disabled-tooltip`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-baseline-fetch`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-loading-state`, `TC-diff-api-head-happy`, `TC-diff-api-head-untracked-404`, `TC-diff-api-head-not-git-repo`, `TC-diff-api-head-binary-415`, `TC-diff-api-head-missing-path`, `TC-diff-api-head-git-unavailable`, `TC-diff-api-routing-no-collision`, `TC-diff-error-network-failure`, `TC-diff-error-git-unavailable`, `TC-diff-error-file-outside-git`, `TC-diff-no-git-history-all-added`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-compute`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`, `TC-diff-compute-all-removed`, `TC-diff-compute-every-line-changed`, `TC-diff-compute-no-newline-at-end`, `TC-diff-compute-performance-10k`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-display`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-line-numbers-added`, `TC-diff-line-numbers-removed`, `TC-diff-line-numbers-context`, `TC-diff-syntax-highlight-happy`, `TC-diff-syntax-highlight-removed-lines`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-collapse`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`, `TC-diff-no-git-history-no-collapse`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-expand`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-expand-then-comment-happy`, `TC-diff-keyboard-expand-section`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-comment-create`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/store/appStore.test.ts`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`, `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`, `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`, `TC-diff-keyboard-add-comment`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-comment-on-range`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-range-same-type`, `TC-diff-comment-range-mixed-types`, `TC-diff-comment-range-blocked-by-collapsed`, `TC-diff-keyboard-range-select`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-prompt-format`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-empty-state`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-no-changes-empty-state`, `TC-diff-no-changes-switch-to-file`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-diff-refresh`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-refresh-happy`, `TC-diff-refresh-with-comments-confirm`, `TC-diff-refresh-with-comments-cancel`, `TC-diff-refresh-no-comments`, `TC-diff-error-file-deleted-refresh`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-diff-compute-perf`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/diffCompute.test.ts`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-compute-performance-10k`, `TC-diff-compute-perf-large-file`, `TC-diff-compute-every-line-changed`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-diff-render-perf`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-render-perf-scroll`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-diff-client-compute`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-compute-correct-hunks`, `TC-diff-compute-empty-diff`, `TC-diff-compute-all-added`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-diff-baseline-fetch-speed`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-api-head-happy`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-diff-accessibility`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-diff-keyboard`, `TC-diff-expand-section-keyboard`, `TC-diff-keyboard-toggle-modes`, `TC-diff-keyboard-navigate-lines`, `TC-diff-keyboard-add-comment`, `TC-diff-keyboard-range-select`, `TC-diff-keyboard-comment-navigation`, `TC-diff-keyboard-expand-section`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-toggle-to-diff`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-diff-happy`, `TC-diff-toggle-to-diff-keyboard`, `TC-diff-toggle-to-diff-loading-state`, `TC-diff-keyboard-toggle-modes`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-toggle-to-file`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-toggle-to-file-happy`, `TC-diff-toggle-to-file-no-comments`, `TC-diff-keyboard-toggle-modes`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-collapse-default`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-collapse-default-happy`, `TC-diff-collapse-gap-boundary`, `TC-diff-collapse-leading-trailing`, `TC-diff-collapse-adjacent-hunks-small-gap`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-expand-section`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-expand-section-click`, `TC-diff-expand-section-keyboard`, `TC-diff-expand-section-no-recollapse`, `TC-diff-keyboard-expand-section`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-comment-added-line`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-added-line-happy`, `TC-diff-comment-added-line-label`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-comment-removed-line`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-removed-line-happy`, `TC-diff-comment-removed-line-label`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-comment-context-line`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-context-line-happy`, `TC-diff-comment-context-line-label`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-prompt-includes-diff`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`, `engineering/apps/web/src/lib/promptBuilder.test.ts`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-prompt-includes-diff-happy`, `TC-diff-prompt-diff-notation`, `TC-diff-prompt-comment-labels`, `TC-diff-prompt-collapsed-markers`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-no-git-history`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-no-git-history-all-added`, `TC-diff-no-git-history-no-collapse`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-no-changes`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-no-changes-empty-state`, `TC-diff-no-changes-switch-to-file`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-paste-upload-disabled`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-paste-disabled`, `TC-diff-upload-disabled`, `TC-diff-drag-drop-disabled`, `TC-diff-disabled-tooltip`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-line-numbers`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-line-numbers-added`, `TC-diff-line-numbers-removed`, `TC-diff-line-numbers-context`, `TC-diff-compute-correct-hunks`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-syntax-highlight`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-syntax-highlight-happy`, `TC-diff-syntax-highlight-removed-lines`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-refresh-updates`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-refresh-happy`, `TC-diff-refresh-with-comments-confirm`, `TC-diff-refresh-with-comments-cancel`, `TC-diff-refresh-no-comments`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-switch-clears-comments`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-switch-clears-comments-confirm`, `TC-diff-switch-clears-comments-cancel`, `TC-diff-switch-no-comments-no-dialog`, `TC-diff-toggle-to-file-no-comments`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-comment-range`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-comment-range-same-type`, `TC-diff-comment-range-mixed-types`, `TC-diff-comment-range-blocked-by-collapsed`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-diff-expand-then-comment`
 - **Defined in**: `product/diff-view.md`
-- **Design**: `design/web/diff-view.md`
-- **Engineering**: `engineering/web/diff-view.md`
-- **QA**: `qa/web/diff-view.md` -> `TC-diff-expand-then-comment-happy`, `TC-diff-expand-then-comment-gutter-hover`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sr-changeset-detection`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`, `TC-sr-changeset-merge-base`, `TC-sr-renamed-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-file-filtering`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-lockfiles`, `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`, `TC-sr-filters-binary`, `TC-sr-filters-ide-files`, `TC-sr-filters-snapshot-files`, `TC-sr-includes-config-files`, `TC-sr-unknown-file-included`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-file-list-display`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-file-list-format`, `TC-sr-sorted-file-list`, `TC-sr-file-list-exclusion-count`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-iteration-loop`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`, `TC-sr-batch-open-all-tabs`, `TC-sr-tab-order-matches-priority`, `TC-sr-implicit-skip`, `TC-sr-done-at-any-point`, `TC-sr-unified-prompt-return`, `TC-sr-no-comments-done`, `TC-sr-interactive-prompt-options`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-interactive-prompt-options`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-interactive-prompt-options`
 
 ### `FR-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-command-file`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-command-file-exists`; `qa/macos/shepherd-review.md` -> `TC-srm-coexistence`, `TC-srm-install-symlink`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-coexistence`, `TC-srm-install-symlink`
 
 ### `FR-sr-install`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `scripts/install-command.sh`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-install-global-symlink`; `qa/macos/shepherd-review.md` -> `TC-srm-install-symlink`, `TC-srm-install-degraded-no-swift`, `TC-srm-install-git-pull`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-install-symlink`, `TC-srm-install-degraded-no-swift`, `TC-srm-install-git-pull`
 
 ### `FR-sr-scope-argument`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-scope-staged`, `TC-sr-scope-unstaged`, `TC-sr-scope-invalid`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `FR-sr-multi-file-launch`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `scripts/shepherd-launch.sh`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-launch-all-files`, `TC-sr-batch-open-all-tabs`, `TC-sr-multi-file-url-params`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-launcher-context-flag`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-launcher-context-flag`
 
 ### `FR-sr-per-file-context`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`; `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`, `TC-srm-context-tab-switch`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`, `TC-srm-context-tab-switch`
 
 ### `FR-sr-changeset-overview`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`; `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`
 
 ### `FR-sr-priority-ordering`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`; `qa/macos/shepherd-review.md` -> `TC-srm-priority-tab-order`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-priority-tab-order`
 
 ### `FR-sr-feedback-collection`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-unified-prompt-return`, `TC-sr-feedback-action-apply`, `TC-sr-feedback-action-save`, `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-interactive-prompt-options`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-interactive-prompt-options`
 
 ### `FR-sr-git-required`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md` -> `.claude/commands/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-not-git-repo`; `qa/macos/shepherd-review.md` -> `TC-srm-not-git-repo`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-not-git-repo`
 
 ### `NFR-sr-startup-speed`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-startup-speed`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `NFR-sr-no-dependencies`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-no-external-dependencies`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: —
 
 ### `NFR-sr-agent-native`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `NFR-sr-cross-platform`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-cross-platform-git-commands`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: —
 
 ### `AC-sr-happy-path`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-happy-path-batch-open`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-filters-lockfiles`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-lockfiles`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-filters-generated`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-generated-dirs`, `TC-sr-filters-generated-extensions`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-filters-binary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-filters-binary`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-includes-config`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-includes-config-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-excludes-deleted`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-excludes-deleted-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-skip-file`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-implicit-skip`; `qa/macos/shepherd-review.md` -> `TC-srm-skip-file`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-skip-file`
 
 ### `AC-sr-quit-early`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-done-at-any-point`, `TC-sr-interactive-prompt-cancel`; `qa/macos/shepherd-review.md` -> `TC-srm-quit-early`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-quit-early`
 
 ### `AC-sr-no-changes`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-no-changes-on-main`, `TC-sr-no-changes-no-divergence`; `qa/macos/shepherd-review.md` -> `TC-srm-no-changes`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-no-changes`
 
 ### `AC-sr-all-filtered`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-all-filtered`; `qa/macos/shepherd-review.md` -> `TC-srm-all-filtered`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-all-filtered`
 
 ### `AC-sr-not-git-repo`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-not-git-repo`; `qa/macos/shepherd-review.md` -> `TC-srm-not-git-repo`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-not-git-repo`
 
 ### `AC-sr-invokes-shepherd`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-launch-all-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-list-command`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-changeset-overview-with-context`; `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`
 
 ### `AC-sr-completion-summary`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-completion-summary-full`, `TC-sr-completion-summary-no-feedback`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-sorted-file-list`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-sorted-file-list`, `TC-sr-tab-order-matches-priority`; `qa/macos/shepherd-review.md` -> `TC-srm-priority-tab-order`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-priority-tab-order`
 
 ### `AC-sr-batch-open`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-batch-open-all-tabs`, `TC-sr-batch-launch-all-files`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-priority-tab-order`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-priority-tab-order`
 
 ### `AC-sr-unified-prompt`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-unified-prompt-return`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-skip-file`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`, `TC-srm-skip-file`
 
 ### `AC-sr-install-global`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-install-global-symlink`; `qa/macos/shepherd-review.md` -> `TC-srm-install-symlink`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-install-symlink`
 
 ### `FR-crp-done-action`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/apps/web/src/hooks/useFileFromUrl.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-reset-on-comment-add`, `TC-crp-done-reset-on-comment-edit`, `TC-crp-done-reset-on-comment-delete`, `TC-crp-done-reset-on-preamble-change`, `TC-crp-done-resend-after-failure`, `TC-crp-done-rapid-double-click`, `TC-crp-done-copy-still-works`, `TC-crp-done-auto-close-app-mode`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-sends-prompt`, `TC-crp-macos-done-auto-close-reliable`, `TC-crp-macos-done-disabled-no-comments`, `TC-crp-macos-done-hidden-standalone`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-sends-prompt`, `TC-crp-macos-done-auto-close-reliable`, `TC-crp-macos-done-disabled-no-comments`, `TC-crp-macos-done-hidden-standalone`
 
 ### `FR-crp-prompt-handoff`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/web/slash-command.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-happy`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-sends-prompt`, `TC-crp-macos-done-fallback-clipboard`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-sends-prompt`, `TC-crp-macos-done-fallback-clipboard`
 
 ### `AC-crp-done-sends-prompt`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-keyboard-shortcut`, `TC-crp-done-clipboard-parallel`, `TC-crp-done-auto-close-clipboard`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-sends-prompt`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-sends-prompt`
 
 ### `AC-crp-done-confirmation`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-happy`, `TC-crp-done-auto-close-fallback`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-sends-prompt`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-sends-prompt`
 
 ### `AC-crp-done-auto-close`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-auto-close-app-mode`, `TC-crp-done-auto-close-fallback`, `TC-crp-done-auto-close-clipboard`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-auto-close-reliable`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-auto-close-reliable`
 
 ### `AC-crp-done-fallback-clipboard`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/store/appStore.ts`, `engineering/apps/web/src/lib/clipboard.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-fallback-clipboard`, `TC-crp-done-resend-after-failure`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-fallback-clipboard`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-fallback-clipboard`
 
 ### `AC-crp-done-disabled-no-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-disabled-no-comments`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-disabled-no-comments`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-disabled-no-comments`
 
 ### `AC-crp-done-standalone-hidden`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/Toolbar.tsx`, `engineering/apps/web/src/store/appStore.ts`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-done-hidden-standalone`, `TC-crp-done-hidden-after-clear`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-hidden-standalone`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-done-hidden-standalone`
 
 ### `FR-sc-prompt-receive`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-detects-file`, `TC-sc-watcher-deletes-after-read`, `TC-sc-feedback-loop-e2e`, `TC-sc-feedback-loop-resend`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-prompt-output-api`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-prompt-api-write-happy`, `TC-sc-prompt-api-creates-dir`, `TC-sc-prompt-api-overwrites`, `TC-sc-prompt-api-localhost-only`, `TC-sc-prompt-api-method-check`, `TC-sc-prompt-api-no-collision`, `TC-sc-feedback-loop-e2e`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-prompt-cleanup`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-cleanup-stale`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-sc-watcher-low-overhead`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-timeout`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-prompt-received`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-detects-file`, `TC-sc-feedback-loop-e2e`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-prompt-watcher-timeout`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-timeout`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-prompt-cleanup-stale`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `.claude/commands/shepherd.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-watcher-cleanup-stale`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-prompt-output-api-success`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-prompt-api-write-happy`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-prompt-output-api-localhost-only`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md` -> `engineering/apps/web/src/vite-plugins/fileApiPlugin.ts`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-prompt-api-localhost-only`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-detect-markdown`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-detect-md-ext`, `TC-mdr-detect-mdx-ext`, `TC-mdr-detect-markdown-ext`, `TC-mdr-detect-mdown-ext`, `TC-mdr-detect-mkdn-ext`, `TC-mdr-detect-mkd-ext`, `TC-mdr-detect-uppercase-ext`, `TC-mdr-detect-non-md-hidden`, `TC-mdr-detect-no-extension`, `TC-mdr-detect-md-in-directory`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-render-toggle`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-toggle-click-rendered`, `TC-mdr-toggle-click-raw`, `TC-mdr-toggle-keyboard`, `TC-mdr-toggle-default-raw`, `TC-mdr-toggle-persists-session`, `TC-mdr-toggle-resets-new-file`, `TC-mdr-toggle-independent-file-diff`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-render-commonmark`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-render-headings`, `TC-mdr-render-paragraphs-bold-italic`, `TC-mdr-render-links`, `TC-mdr-render-unordered-lists`, `TC-mdr-render-ordered-lists`, `TC-mdr-render-nested-lists`, `TC-mdr-render-blockquotes`, `TC-mdr-render-horizontal-rules`, `TC-mdr-render-images`, `TC-mdr-render-images-broken`, `TC-mdr-render-inline-code`, `TC-mdr-render-html-blocks-safe`, `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`, `TC-mdr-render-gfm-autolinks`, `TC-mdr-render-code-blocks-highlighted`, `TC-mdr-render-code-blocks-no-lang`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-render-styling`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-style-body-typography`, `TC-mdr-style-heading-hierarchy`, `TC-mdr-style-code-block-theme`, `TC-mdr-style-table-styling`, `TC-mdr-style-max-width`, `TC-mdr-style-blockquote`, `TC-mdr-style-links`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-element-id`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-element-id-deterministic`, `TC-mdr-element-id-positional`, `TC-mdr-element-id-all-block-types`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-rendered-comment-create`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-comment-paragraph`, `TC-mdr-comment-heading`, `TC-mdr-comment-list-item`, `TC-mdr-comment-code-block`, `TC-mdr-comment-table`, `TC-mdr-comment-blockquote`, `TC-mdr-comment-multiple-same-element`, `TC-mdr-comment-hover-affordance`, `TC-mdr-comment-cmd-click`, `TC-mdr-comment-bubble-label`, `TC-mdr-comment-count-increments`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-rendered-comment-prompt`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-prompt-raw-source-lines`, `TC-mdr-prompt-element-type`, `TC-mdr-prompt-format-structure`, `TC-mdr-prompt-multiple-comments-order`, `TC-mdr-prompt-no-preamble`, `TC-mdr-prompt-with-preamble`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-switch-comments`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-switch-with-comments-confirm`, `TC-mdr-switch-with-comments-cancel`, `TC-mdr-switch-no-comments-immediate`, `TC-mdr-switch-preamble-preserved`, `TC-mdr-switch-raw-to-rendered`, `TC-mdr-switch-rendered-to-raw`, `TC-mdr-switch-rendered-file-to-rendered-diff`, `TC-mdr-switch-rendered-diff-to-rendered-file`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-raw-diff-unchanged`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-raw-file-identical`, `TC-mdr-raw-diff-identical`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-rendered-diff-display`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-added-block`, `TC-mdr-rdiff-removed-block`, `TC-mdr-rdiff-modified-block-word-diff`, `TC-mdr-rdiff-unchanged-block`, `TC-mdr-rdiff-no-changes`, `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-fallback-dismiss`, `TC-mdr-rdiff-loading-spinner`, `TC-mdr-rdiff-timeout-fallback`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-rendered-diff-comment`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-comment-added`, `TC-mdr-rdiff-comment-removed`, `TC-mdr-rdiff-comment-modified`, `TC-mdr-rdiff-comment-unchanged`, `TC-mdr-rdiff-comment-anchor-qualifier`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-mdr-rendered-diff-prompt`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-prompt-modified-old-new`, `TC-mdr-rdiff-prompt-added-new-only`, `TC-mdr-rdiff-prompt-removed-old-only`, `TC-mdr-rdiff-prompt-heading-format`, `TC-mdr-rdiff-prompt-document-order`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-mdr-render-perf`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-perf-render-5k`, `TC-mdr-perf-render-10k`, `TC-mdr-perf-render-ui-block`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-mdr-render-scroll-perf`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-perf-scroll-smooth`, `TC-mdr-perf-scroll-content-visibility`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-mdr-rendered-diff-perf`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-perf-rdiff-5k`, `TC-mdr-perf-rdiff-10k`, `TC-mdr-perf-rdiff-timeout`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-mdr-xss-safety`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-xss-script-tag`, `TC-mdr-xss-event-handler`, `TC-mdr-xss-javascript-url`, `TC-mdr-xss-iframe`, `TC-mdr-xss-svg-script`, `TC-mdr-xss-data-url`, `TC-mdr-xss-safe-html-preserved`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-mdr-client-only`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-client-only-no-requests`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-mdr-accessibility`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-a11y-keyboard-nav`, `TC-mdr-a11y-keyboard-comment`, `TC-mdr-a11y-screen-reader-elements`, `TC-mdr-a11y-screen-reader-diff`, `TC-mdr-a11y-focus-on-mode-switch`, `TC-mdr-a11y-aria-toggle`, `TC-mdr-a11y-aria-rendered-content`, `TC-mdr-a11y-aria-diff-annotations`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-toggle-appears`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-toggle-click-rendered`, `TC-mdr-toggle-default-raw`, `TC-mdr-detect-md-ext`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-toggle-hidden-non-md`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-detect-non-md-hidden`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-render-basic`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-render-headings`, `TC-mdr-render-paragraphs-bold-italic`, `TC-mdr-render-links`, `TC-mdr-render-unordered-lists`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-render-gfm`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-render-code-blocks`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-render-code-blocks-highlighted`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-raw-unchanged`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-raw-file-identical`, `TC-mdr-raw-diff-identical`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-comment-rendered-element`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-comment-paragraph`, `TC-mdr-comment-hover-affordance`, `TC-mdr-comment-bubble-label`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-comment-heading`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-comment-heading`, `TC-mdr-prompt-raw-source-lines`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-comment-prompt-format`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-prompt-raw-source-lines`, `TC-mdr-prompt-format-structure`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-switch-clears-comments`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-switch-with-comments-confirm`, `TC-mdr-switch-with-comments-cancel`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-switch-no-comments`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-switch-no-comments-immediate`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-rendered-diff-additions`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-added-block`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-rendered-diff-removals`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-removed-block`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-rendered-diff-modifications`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-modified-block-word-diff`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-rendered-diff-comment`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-comment-added`, `TC-mdr-rdiff-comment-modified`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-rendered-diff-prompt`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-prompt-modified-old-new`, `TC-mdr-rdiff-prompt-added-new-only`, `TC-mdr-rdiff-prompt-removed-old-only`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-html-sanitized`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-xss-script-tag`, `TC-mdr-xss-event-handler`, `TC-mdr-xss-javascript-url`, `TC-mdr-xss-iframe`, `TC-mdr-xss-svg-script`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-large-file-renders`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-perf-render-5k`, `TC-mdr-perf-scroll-smooth`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-keyboard-comment`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-a11y-keyboard-comment`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-mdr-diff-fallback`
 - **Defined in**: `product/markdown-render.md`
-- **Design**: `design/web/markdown-render.md`
-- **Engineering**: `engineering/web/markdown-render.md`
-- **QA**: `qa/web/markdown-render.md` -> `TC-mdr-rdiff-fallback-banner`, `TC-mdr-rdiff-fallback-switch-link`, `TC-mdr-rdiff-timeout-fallback`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-dm-system-preference`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-system-dark-default`, `TC-dm-system-light-default`, `TC-dm-system-no-preference`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-dm-manual-toggle`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-to-dark`, `TC-dm-toggle-to-light`, `TC-dm-toggle-to-system`, `TC-dm-toggle-keyboard`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-dm-persistence`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-persist-dark-reload`, `TC-dm-persist-system-reload`, `TC-dm-persist-no-localstorage`, `TC-dm-persist-corrupt-value`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-dm-realtime-tracking`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-realtime-os-dark-to-light`, `TC-dm-realtime-manual-ignores-os`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-dm-full-surface-coverage`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`, `TC-dm-surface-drop-zone`, `TC-dm-surface-diff-view`, `TC-dm-surface-dialogs`, `TC-dm-surface-toasts`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-dm-css-custom-properties`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-dm-no-fouc`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-no-fouc-dark`, `TC-dm-no-fouc-system`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-dm-smooth-transition`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-transition-smooth`, `TC-dm-transition-no-initial`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-dm-syntax-highlight-both-themes`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-syntax-dark-readable`, `TC-dm-syntax-light-readable`, `TC-dm-syntax-no-reparse`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-dm-contrast-ratios`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-a11y-contrast-light`, `TC-dm-a11y-contrast-dark`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `NFR-dm-no-performance-impact`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-perf-no-regression`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-default-respects-system`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-system-dark-default`, `TC-dm-no-fouc-dark`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-default-light-system`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-system-light-default`, `TC-dm-system-no-preference`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-toggle-to-dark`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-to-dark`, `TC-dm-transition-smooth`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-toggle-to-light`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-to-light`, `TC-dm-transition-smooth`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-toggle-to-system`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-to-system`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-persistence-survives-reload`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-persist-dark-reload`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-persistence-system-survives-reload`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-persist-system-reload`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-realtime-os-change`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-realtime-os-dark-to-light`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-manual-ignores-os`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-realtime-manual-ignores-os`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-syntax-highlight-dark`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-syntax-dark-readable`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-syntax-highlight-light`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-syntax-light-readable`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-all-surfaces-themed`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-toolbar`, `TC-dm-surface-code-viewer`, `TC-dm-surface-comments`, `TC-dm-surface-sidebar`, `TC-dm-surface-drop-zone`, `TC-dm-surface-diff-view`, `TC-dm-surface-dialogs`, `TC-dm-surface-toasts`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-diff-view-themed`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-diff-view`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-drop-zone-themed`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-drop-zone`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-dialog-themed`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-surface-dialogs`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-no-fouc`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-no-fouc-dark`, `TC-dm-no-fouc-system`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-localstorage-unavailable`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-persist-no-localstorage`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-dm-keyboard-toggle`
 - **Defined in**: `product/dark-mode.md`
-- **Design**: `design/web/dark-mode.md`
-- **Engineering**: `engineering/web/dark-mode.md`
-- **QA**: `qa/web/dark-mode.md` -> `TC-dm-toggle-keyboard`, `TC-dm-a11y-toggle-aria`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-crp-multi-file-load`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`, `TC-crp-multi-file-drop-multiple-happy`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-load-adds`, `TC-crp-macos-multi-file-drop-multiple`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-load-adds`, `TC-crp-macos-multi-file-drop-multiple`
 
 ### `FR-crp-multi-file-nav`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-tab-shows-info`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-switch-preserves`, `TC-crp-macos-file-tree-disambiguates-same-name`, `TC-crp-macos-file-tree-collapse-expand`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-switch-preserves`, `TC-crp-macos-file-tree-disambiguates-same-name`, `TC-crp-macos-file-tree-collapse-expand`
 
 ### `FR-crp-multi-file-remove`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-no-comments-immediate`, `TC-crp-multi-file-remove-active-switches`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-remove-with-comments`, `TC-crp-macos-multi-file-remove-no-comments`, `TC-crp-macos-multi-file-remove-last-empty`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-remove-with-comments`, `TC-crp-macos-multi-file-remove-no-comments`, `TC-crp-macos-multi-file-remove-last-empty`
 
 ### `FR-crp-multi-file-prompt`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-prompt-structure`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-prompt-structure`
 
 ### `FR-crp-multi-file-prompt-format`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`, `TC-crp-multi-file-prompt-order`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-prompt-structure`, `TC-crp-macos-multi-file-prompt-omits-uncommented`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-prompt-structure`, `TC-crp-macos-multi-file-prompt-omits-uncommented`
 
 ### `AC-crp-multi-file-load-adds`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-load-second`, `TC-crp-multi-file-load-paste-adds`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-load-adds`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-load-adds`
 
 ### `AC-crp-multi-file-drop-multiple`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-drop-multiple-happy`, `TC-crp-multi-file-drop-mixed-binary`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-drop-multiple`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-drop-multiple`
 
 ### `AC-crp-multi-file-nav-preserves-state`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-switch-preserves-comments`, `TC-crp-multi-file-switch-preserves-scroll`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-switch-preserves`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-switch-preserves`
 
 ### `AC-crp-multi-file-remove-with-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-remove-with-comments-confirm`, `TC-crp-multi-file-remove-with-comments-cancel`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-remove-with-comments`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-remove-with-comments`
 
 ### `AC-crp-multi-file-remove-no-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-remove-no-comments-immediate`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-remove-no-comments`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-remove-no-comments`
 
 ### `AC-crp-multi-file-prompt-structure`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-prompt-structure-happy`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-prompt-structure`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-prompt-structure`
 
 ### `AC-crp-multi-file-prompt-omits-uncommented`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-prompt-omits-uncommented`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-prompt-omits-uncommented`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-prompt-omits-uncommented`
 
 ### `AC-crp-multi-file-comment-count`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-comment-count-global`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-comment-count-global`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-comment-count-global`
 
 ### `AC-crp-multi-file-clear-all`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-clear-all-confirm`, `TC-crp-multi-file-clear-all-resets`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-clear-all`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-clear-all`
 
 ### `AC-crp-multi-file-empty-after-remove-last`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-multi-file-remove-last-empty-state`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-remove-last-empty`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-multi-file-remove-last-empty`
 
 ### `AC-crp-file-path-display`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tree-disambiguates-same-name`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tree-disambiguates-same-name`
 
 ### `AC-crp-file-path-single-dir`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tree-single-dir`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tree-single-dir`
 
 ### `FR-sr-context-handoff`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-context-handoff`; `qa/macos/shepherd-review.md` -> `TC-srm-launcher-context-flag`, `TC-srm-launcher-no-context-flag`, `TC-srm-context-in-app`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-launcher-context-flag`, `TC-srm-launcher-no-context-flag`, `TC-srm-context-in-app`
 
 ### `AC-sr-context-in-crpg`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-context-in-crpg`; `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`, `TC-srm-context-tab-switch`, `TC-srm-context-graceful-missing`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-context-in-app`, `TC-srm-context-tab-switch`, `TC-srm-context-graceful-missing`
 
 ### `AC-sr-auto-open`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-auto-open`; `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-happy-path`
 
 ### `AC-sr-interactive-prompt`
 - **Defined in**: `product/shepherd-review.md`
-- **Design**: `design/web/shepherd-review.md`, `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/web/shepherd-review.md`, `engineering/macos/shepherd-review.md`
-- **QA**: `qa/web/shepherd-review.md` -> `TC-sr-interactive-prompt-options`, `TC-sr-interactive-prompt-cancel`; `qa/macos/shepherd-review.md` -> `TC-srm-interactive-prompt-options`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-interactive-prompt-options`
 
 ### `FR-crp-review-context-receive`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-graceful-missing`, `TC-crp-context-overall-visible`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-graceful-missing`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-graceful-missing`
 
 ### `FR-crp-review-context-display`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-overall-visible`, `TC-crp-context-per-file-visible`, `TC-crp-context-neutral-vs-review`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-neutral-vs-review`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-neutral-vs-review`
 
 ### `FR-crp-review-context-overall`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-overall-visible`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-sidebar-collapse`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-sidebar-collapse`
 
 ### `FR-crp-review-context-per-file`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-per-file-visible`, `TC-crp-context-per-file-switches`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-per-file-switches`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-per-file-switches`
 
 ### `AC-crp-context-overall-visible`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-overall-visible`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-overall-visible`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-overall-visible`
 
 ### `AC-crp-context-per-file-visible`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-per-file-visible`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-per-file-visible`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-per-file-visible`
 
 ### `AC-crp-context-per-file-switches`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-per-file-switches`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-per-file-switches`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-per-file-switches`
 
 ### `AC-crp-context-neutral-vs-review`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-neutral-vs-review`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-neutral-vs-review`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-neutral-vs-review`
 
 ### `AC-crp-context-graceful-missing`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-graceful-missing`, `TC-crp-context-sidebar-hidden`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-graceful-missing`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-graceful-missing`
 
 ### `AC-crp-context-readonly`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-readonly`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-readonly`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-readonly`
 
 ### `FR-crp-file-reviewed-toggle`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard`, `TC-crp-reviewed-edge-rapid-toggle`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-mark-reviewed-happy`, `TC-crp-macos-unmark-reviewed-happy`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-mark-reviewed-happy`, `TC-crp-macos-unmark-reviewed-happy`
 
 ### `FR-crp-file-reviewed-visual`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-unmark-reviewed-happy`, `TC-crp-reviewed-visual-tab-states`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-mark-reviewed-happy`, `TC-crp-macos-unmark-reviewed-happy`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-mark-reviewed-happy`, `TC-crp-macos-unmark-reviewed-happy`
 
 ### `FR-crp-file-reviewed-grouping`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`, `TC-crp-reviewed-new-file-unreviewed`, `TC-crp-reviewed-edge-single-file-reviewed`, `TC-crp-reviewed-edge-add-after-all-reviewed`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-grouping-tree`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-grouping-tree`
 
 ### `FR-crp-file-reviewed-progress`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`, `TC-crp-reviewed-remove-file-discards`, `TC-crp-reviewed-edge-add-after-all-reviewed`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-progress-count`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-progress-count`
 
 ### `FR-crp-file-reviewed-persistence`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-survives-tab-switch`, `TC-crp-reviewed-clear-session-resets`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-survives-tab-switch`, `TC-crp-macos-reviewed-clear-session-resets`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-survives-tab-switch`, `TC-crp-macos-reviewed-clear-session-resets`
 
 ### `AC-crp-file-mark-reviewed`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-mark-reviewed-happy`, `TC-crp-mark-reviewed-via-tab`, `TC-crp-mark-reviewed-keyboard`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-mark-reviewed-happy`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-mark-reviewed-happy`
 
 ### `AC-crp-file-unmark-reviewed`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-unmark-reviewed-happy`, `TC-crp-mark-reviewed-keyboard`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-unmark-reviewed-happy`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-unmark-reviewed-happy`
 
 ### `AC-crp-file-reviewed-grouping`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-grouping-display`, `TC-crp-reviewed-grouping-all-reviewed`, `TC-crp-reviewed-grouping-none-reviewed`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-grouping-tree`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-grouping-tree`
 
 ### `AC-crp-file-reviewed-progress-count`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-progress-display`, `TC-crp-reviewed-progress-updates`, `TC-crp-reviewed-progress-hidden-single`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-progress-count`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-progress-count`
 
 ### `AC-crp-file-reviewed-survives-tab-switch`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-survives-tab-switch`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-survives-tab-switch`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-survives-tab-switch`
 
 ### `AC-crp-file-reviewed-with-comments`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-independent-of-comments`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-independent-of-comments`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-independent-of-comments`
 
 ### `AC-crp-file-reviewed-clear-session`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-reviewed-clear-session-resets`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-clear-session-resets`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-reviewed-clear-session-resets`
 
 ### `FR-crp-review-context-collapsible`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
 - **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-sidebar-collapse`
 
 ### `AC-crp-context-sidebar-collapse`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-context-sidebar-collapse`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-sidebar-collapse`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-sidebar-collapse`
 
 ### `AC-crp-overall-comment-label`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-overall-comment-label`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-overall-comment-label`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-overall-comment-label`
 
 ### `AC-crp-overall-comment-in-prompt`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-overall-comment-in-prompt`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-overall-comment-in-prompt`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-overall-comment-in-prompt`
 
 ### `FR-crp-comment-summary`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-summary-shows-all`, `TC-crp-comment-summary-realtime`, `TC-crp-comment-summary-empty`, `TC-crp-comment-summary-click-navigates`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-summary-shows-all`, `TC-crp-macos-comment-summary-realtime`, `TC-crp-macos-comment-summary-empty`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-summary-shows-all`, `TC-crp-macos-comment-summary-realtime`, `TC-crp-macos-comment-summary-empty`
 
 ### `AC-crp-comment-summary-shows-all`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-summary-shows-all`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-summary-shows-all`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-summary-shows-all`
 
 ### `AC-crp-comment-summary-realtime`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-summary-realtime`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-summary-realtime`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-summary-realtime`
 
 ### `AC-crp-comment-summary-empty`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-comment-summary-empty`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-summary-empty`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-comment-summary-empty`
 
 ### `FR-crp-line-wrap`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`, `TC-crp-line-wrap-keyboard-shortcut`, `TC-crp-line-wrap-gutter-alignment`, `TC-crp-line-wrap-range-selection`, `TC-crp-line-wrap-comment-navigation`, `TC-crp-line-wrap-toggle-disabled-empty`, `TC-crp-line-wrap-toggle-performance`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-toggle-on`, `TC-crp-macos-line-wrap-toggle-off`, `TC-crp-macos-line-wrap-default-on`, `TC-crp-macos-line-wrap-persists-session`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-toggle-on`, `TC-crp-macos-line-wrap-toggle-off`, `TC-crp-macos-line-wrap-default-on`, `TC-crp-macos-line-wrap-persists-session`
 
 ### `AC-crp-line-wrap-toggle`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-toggle-on`, `TC-crp-line-wrap-toggle-off`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-toggle-on`, `TC-crp-macos-line-wrap-toggle-off`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-toggle-on`, `TC-crp-macos-line-wrap-toggle-off`
 
 ### `AC-crp-line-wrap-preserves-line-numbers`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-line-numbers`, `TC-crp-line-wrap-gutter-alignment`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-preserves-line-numbers`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-preserves-line-numbers`
 
 ### `AC-crp-line-wrap-comment-target`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-comment-click`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-comment-target`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-comment-target`
 
 ### `AC-crp-line-wrap-default-on`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-default-on`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-default-on`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-default-on`
 
 ### `AC-crp-line-wrap-persists-session`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-line-wrap-persists-file-switch`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-persists-session`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-line-wrap-persists-session`
 
 ### `FR-sc-session-id`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`, `engineering/web/code-review-prompt.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-id-generated`, `TC-sc-session-id-deterministic`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-dynamic-port`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-dynamic-port`, `TC-sc-separate-servers-different-worktrees`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-session-scoped-output`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`, `engineering/web/shepherd-review.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-scoped-output-path`; `qa/web/shepherd-review.md` -> `TC-sr-concurrent-review-sessions`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-concurrent-windows`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-concurrent-sessions-happy`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-sc-session-cleanup`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-cleanup-after-read`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-crp-session-identity`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/web/slash-command.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/slash-command.md`, `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-session-identity-window-title`, `TC-crp-session-identity-standalone`; `qa/web/slash-command.md` -> `TC-sc-window-title-shows-project`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-session-identity-title`, `TC-crp-macos-session-identity-standalone`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-session-identity-title`, `TC-crp-macos-session-identity-standalone`
 
 ### `AC-sc-concurrent-sessions`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-concurrent-sessions-happy`; `qa/web/shepherd-review.md` -> `TC-sr-concurrent-review-sessions`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `AC-sc-session-output-isolation`
 - **Defined in**: `product/slash-command.md`
-- **Design**: `design/web/slash-command.md`
-- **Engineering**: `engineering/web/slash-command.md`
-- **QA**: `qa/web/slash-command.md` -> `TC-sc-session-output-isolation`
+- **Design**: —
+- **Engineering**: —
+- **QA**: —
 
 ### `FR-crp-panel-resize`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-drag`, `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`, `TC-crp-panel-resize-double-click-reset`, `TC-crp-panel-resize-persists-file-switch`, `TC-crp-panel-resize-keyboard`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-drag`, `TC-crp-macos-panel-resize-min-max`, `TC-crp-macos-panel-resize-double-click-reset`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-drag`, `TC-crp-macos-panel-resize-min-max`, `TC-crp-macos-panel-resize-double-click-reset`
 
 ### `FR-crp-active-file-path`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-active-file-path-visible`, `TC-crp-active-file-path-switches`, `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-pasted-file`, `TC-crp-active-file-path-transition`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-active-file-path-visible`, `TC-crp-macos-active-file-path-switches`, `TC-crp-macos-active-file-path-hidden-single`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-active-file-path-visible`, `TC-crp-macos-active-file-path-switches`, `TC-crp-macos-active-file-path-hidden-single`
 
 ### `FR-crp-file-tooltip`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-reviewed-status`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tooltip-full-path`, `TC-crp-macos-file-tooltip-reviewed-status`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tooltip-full-path`, `TC-crp-macos-file-tooltip-reviewed-status`
 
 ### `AC-crp-panel-resize-drag`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-drag`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-drag`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-drag`
 
 ### `AC-crp-panel-resize-bounds`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-min-bound`, `TC-crp-panel-resize-max-bound`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-min-max`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-min-max`
 
 ### `AC-crp-panel-resize-double-click`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-double-click-reset`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-double-click-reset`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-double-click-reset`
 
 ### `AC-crp-panel-resize-persists`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-panel-resize-persists-file-switch`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-persists-file-switch`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-panel-resize-persists-file-switch`
 
 ### `AC-crp-panel-resize-keyboard`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`
+- **Design**: —
+- **Engineering**: —
 - **QA**: _coverage TBD_
 
 ### `AC-crp-active-file-path-visible`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-active-file-path-visible`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-active-file-path-visible`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-active-file-path-visible`
 
 ### `AC-crp-active-file-path-switches`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-active-file-path-switches`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-active-file-path-switches`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-active-file-path-switches`
 
 ### `AC-crp-active-file-path-single-file`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-active-file-path-hidden-single`, `TC-crp-active-file-path-transition`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-active-file-path-hidden-single`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-active-file-path-hidden-single`
 
 ### `AC-crp-file-tooltip-full-path`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-file-tooltip-shows-path`, `TC-crp-file-tooltip-pasted-file`, `TC-crp-file-tooltip-truncated-name`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tooltip-full-path`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tooltip-full-path`
 
 ### `AC-crp-file-tooltip-reviewed`
 - **Defined in**: `product/code-review-prompt.md`
-- **Design**: `design/web/code-review-prompt.md`, `design/macos/code-review-prompt.md`
-- **Engineering**: `engineering/web/code-review-prompt.md`, `engineering/apps/web/src/components/FileBrowser.tsx`, `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/web/code-review-prompt.md` -> `TC-crp-file-tooltip-reviewed-status`; `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tooltip-reviewed-status`
+- **Design**: `design/macos/code-review-prompt.md`
+- **Engineering**: `engineering/macos/code-review-prompt.md`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-file-tooltip-reviewed-status`
 ### `FR-crp-macos-window-management`
 - **Defined in**: `product/macos/code-review-prompt.md`
 - **Design**: `design/macos/code-review-prompt.md`
