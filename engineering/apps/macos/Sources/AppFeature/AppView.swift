@@ -26,8 +26,6 @@ public struct AppView: View {
                     sidebar: {
                         FileBrowserView(
                             store: store.scope(state: \.fileBrowser, action: \.fileBrowser),
-                            files: store.files,
-                            allComments: store.allComments,
                             activeFileID: store.activeFileID
                         )
                         .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 500)
@@ -67,8 +65,6 @@ public struct AppView: View {
             store: store.scope(state: \.inspector, action: \.inspector),
             overallComment: $store.overallComment,
             generatedPrompt: store.prompt.generatedPrompt,
-            allComments: store.allComments,
-            files: store.files,
             reviewContext: store.reviewContextData,
             reviewContextStore: store.scope(state: \.reviewContext, action: \.reviewContext)
         )

@@ -14,19 +14,13 @@ import IdentifiedCollections
 /// `collapsedDirs`.
 public struct FileBrowserView: View {
     let store: StoreOf<FileBrowserFeature>
-    let files: IdentifiedArrayOf<FileNode>
-    let allComments: IdentifiedArrayOf<Comment>
     let activeFileID: FileNode.ID?
 
     public init(
         store: StoreOf<FileBrowserFeature>,
-        files: IdentifiedArrayOf<FileNode>,
-        allComments: IdentifiedArrayOf<Comment>,
         activeFileID: FileNode.ID?
     ) {
         self.store = store
-        self.files = files
-        self.allComments = allComments
         self.activeFileID = activeFileID
     }
 
@@ -91,7 +85,7 @@ public struct FileBrowserView: View {
 
     @ViewBuilder
     private func fileRow(_ leaf: FileTreeNode.FileLeaf, depth: Int) -> some View {
-        let commentCount = allComments.filter { $0.fileID == leaf.fileID }.count
+        let commentCount = store.allComments.filter { $0.fileID == leaf.fileID }.count
         HStack(spacing: 4) {
             Image(systemName: leaf.isReviewed ? "checkmark.circle.fill" : "doc.text")
                 .foregroundStyle(leaf.isReviewed ? .green : .secondary)
@@ -111,7 +105,7 @@ public struct FileBrowserView: View {
         // Indent past the directory chevron so files align under their folder's name.
         .padding(.leading, CGFloat(depth) * 14 + 16)
         .tag("file:\(leaf.fileID)")
-        .help(files[id: leaf.fileID]?.filePath ?? leaf.name)
+        .help(store.files[id: leaf.fileID]?.filePath ?? leaf.name)
         .contextMenu {
             Button("Toggle Reviewed") {
                 store.send(.toggleFileReviewed(leaf.fileID))
@@ -125,8 +119,8 @@ public struct FileBrowserView: View {
 
     @ViewBuilder
     private var reviewProgressView: some View {
-        let reviewed = files.filter(\.isReviewed).count
-        let total = files.count
+        let reviewed = store.files.filter(\.isReviewed).count
+        let total = store.files.count
         if total > 0 {
             Text("\(reviewed)/\(total) reviewed")
                 .font(.caption)

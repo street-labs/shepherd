@@ -8,15 +8,23 @@ import Foundation
 public struct InspectorFeature {
     @ObservableState
     public struct State: Equatable {
+        /// Loaded files — shared with AppFeature (read here for the All Comments tab).
+        @Shared public var files: IdentifiedArrayOf<FileNode>
+        /// All comments — shared with AppFeature (read here for the All Comments tab).
+        @Shared public var allComments: IdentifiedArrayOf<Comment>
         /// Active tab: preview or all comments.
         public var activeTab: InspectorTab = .preview
         /// Whether the overall review context section is collapsed.
         public var isReviewContextCollapsed: Bool = false
 
         public init(
+            files: Shared<IdentifiedArrayOf<FileNode>> = Shared(value: []),
+            allComments: Shared<IdentifiedArrayOf<Comment>> = Shared(value: []),
             activeTab: InspectorTab = .preview,
             isReviewContextCollapsed: Bool = false
         ) {
+            self._files = files
+            self._allComments = allComments
             self.activeTab = activeTab
             self.isReviewContextCollapsed = isReviewContextCollapsed
         }

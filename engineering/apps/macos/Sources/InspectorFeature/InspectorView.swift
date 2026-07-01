@@ -10,8 +10,6 @@ public struct InspectorView: View {
     @Bindable var store: StoreOf<InspectorFeature>
     @Binding var overallComment: String
     let generatedPrompt: String?
-    let allComments: IdentifiedArrayOf<Comment>
-    let files: IdentifiedArrayOf<FileNode>
     let reviewContext: ReviewContext?
     let reviewContextStore: StoreOf<ReviewContextFeature>
 
@@ -19,16 +17,12 @@ public struct InspectorView: View {
         store: StoreOf<InspectorFeature>,
         overallComment: Binding<String>,
         generatedPrompt: String?,
-        allComments: IdentifiedArrayOf<Comment>,
-        files: IdentifiedArrayOf<FileNode>,
         reviewContext: ReviewContext?,
         reviewContextStore: StoreOf<ReviewContextFeature>
     ) {
         self.store = store
         self._overallComment = overallComment
         self.generatedPrompt = generatedPrompt
-        self.allComments = allComments
-        self.files = files
         self.reviewContext = reviewContext
         self.reviewContextStore = reviewContextStore
     }
@@ -73,8 +67,8 @@ public struct InspectorView: View {
                 PromptPreviewView(prompt: generatedPrompt)
             case .allComments:
                 CommentSummaryView(
-                    comments: allComments,
-                    files: files,
+                    comments: store.allComments,
+                    files: store.files,
                     onCommentTapped: { id in
                         store.send(.commentSummaryCommentTapped(id))
                     }

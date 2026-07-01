@@ -259,6 +259,21 @@ struct AppFeatureTests {
         #expect(store.state.comment.editorState != nil)
     }
 
+    @Test("Shared files/comments are connected across parent and children")
+    func sharedStateConnected() {
+        let state = AppFeature.State()
+        state.$files.withLock { $0 = [FileNode(id: UUID(), name: "a.ts", content: "x")] }
+        state.$allComments.withLock {
+            $0 = [SharedModels.Comment(fileID: UUID(), startLine: 1, endLine: 1, text: "c")]
+        }
+        // The child features read files/allComments from the SAME @Shared storage, so no
+        // view-param threading is needed. If the wiring broke, these would be empty.
+        #expect(state.fileBrowser.files.count == 1)
+        #expect(state.fileBrowser.allComments.count == 1)
+        #expect(state.inspector.files.count == 1)
+        #expect(state.inspector.allComments.count == 1)
+    }
+
     @Test("Toggle file reviewed")
     func toggleFileReviewed() async {
         let fileID = UUID()

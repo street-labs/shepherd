@@ -60,10 +60,8 @@ public struct AppFeature {
 
         public init(
             session: SessionFeature.State = SessionFeature.State(),
-            fileBrowser: FileBrowserFeature.State = FileBrowserFeature.State(),
             codeViewer: CodeViewerFeature.State = CodeViewerFeature.State(),
             comment: CommentFeature.State = CommentFeature.State(),
-            inspector: InspectorFeature.State = InspectorFeature.State(),
             prompt: PromptFeature.State = PromptFeature.State(),
             reviewContext: ReviewContextFeature.State = ReviewContextFeature.State(),
             files: Shared<IdentifiedArrayOf<FileNode>> = Shared(value: []),
@@ -76,10 +74,12 @@ public struct AppFeature {
             self._files = files
             self._allComments = allComments
             self.session = session
-            self.fileBrowser = fileBrowser
+            // fileBrowser and inspector read files/allComments via @Shared — construct them
+            // with the same shared storage so no explicit view-param threading is needed.
+            self.fileBrowser = FileBrowserFeature.State(files: files, allComments: allComments)
             self.codeViewer = codeViewer
             self.comment = comment
-            self.inspector = inspector
+            self.inspector = InspectorFeature.State(files: files, allComments: allComments)
             self.prompt = prompt
             self.reviewContext = reviewContext
             self.activeFileID = activeFileID

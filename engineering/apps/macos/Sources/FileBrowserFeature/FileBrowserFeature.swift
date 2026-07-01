@@ -9,15 +9,23 @@ import Foundation
 public struct FileBrowserFeature {
     @ObservableState
     public struct State: Equatable {
+        /// Loaded files — shared with AppFeature (read here to render the tree/tooltips).
+        @Shared public var files: IdentifiedArrayOf<FileNode>
+        /// All comments — shared with AppFeature (read here for per-file comment counts).
+        @Shared public var allComments: IdentifiedArrayOf<Comment>
         /// Set of collapsed directory paths.
         public var collapsedDirs: Set<String> = []
         /// The computed file tree (rebuilt when files or review status changes).
         public var fileTree: [FileTreeNode] = []
 
         public init(
+            files: Shared<IdentifiedArrayOf<FileNode>> = Shared(value: []),
+            allComments: Shared<IdentifiedArrayOf<Comment>> = Shared(value: []),
             collapsedDirs: Set<String> = [],
             fileTree: [FileTreeNode] = []
         ) {
+            self._files = files
+            self._allComments = allComments
             self.collapsedDirs = collapsedDirs
             self.fileTree = fileTree
         }
