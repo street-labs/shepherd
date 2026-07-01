@@ -384,6 +384,9 @@ struct AppFeature {
         @Shared var files: IdentifiedArrayOf<FileNode>
         @Shared var allComments: IdentifiedArrayOf<Comment>
         var activeFileID: FileNode.ID?
+        // Deliberately NOT @Shared: overallComment is a single bound scalar whose change drives
+        // prompt regeneration via BindingReducer (`case .binding(\.overallComment)`). @Shared
+        // values mutate through `withLock` and emit no binding action, which would break that hook.
         var overallComment: String = ""
         var generatedPrompt: String?
         var lineWrapEnabled: Bool = true
