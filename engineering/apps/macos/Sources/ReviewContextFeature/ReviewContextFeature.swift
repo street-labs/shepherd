@@ -23,7 +23,7 @@ public struct ReviewContextFeature {
 
     @CasePathable
     public enum Action: Equatable {
-        case collapseToggled
+        case expandedChanged(Bool)
         case activeFileContextUpdated(ReviewContext.ContextPair?)
     }
 
@@ -32,8 +32,11 @@ public struct ReviewContextFeature {
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .collapseToggled:
-                state.isCollapsed.toggle()
+            // Write the exact requested value — never toggle. A value-ignoring toggle
+            // makes the DisclosureGroup binding getter disagree with the value SwiftUI
+            // just wrote, driving an infinite re-layout loop (flicker + scroll starvation).
+            case let .expandedChanged(isExpanded):
+                state.isCollapsed = !isExpanded
                 return .none
             case let .activeFileContextUpdated(context):
                 state.activeFileContext = context

@@ -157,6 +157,13 @@ let package = Package(
             ]
         ),
         .testTarget(
+            name: "ReviewContextFeatureTests",
+            dependencies: [
+                "ReviewContextFeature",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            ]
+        ),
+        .testTarget(
             name: "PromptFeatureTests",
             dependencies: [
                 "PromptFeature",

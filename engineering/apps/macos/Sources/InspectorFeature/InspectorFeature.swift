@@ -25,7 +25,7 @@ public struct InspectorFeature {
     @CasePathable
     public enum Action: Equatable {
         case tabChanged(InspectorTab)
-        case reviewContextCollapseToggled
+        case reviewContextExpandedChanged(Bool)
         case commentSummaryCommentTapped(Comment.ID)
     }
 
@@ -38,8 +38,11 @@ public struct InspectorFeature {
                 state.activeTab = tab
                 return .none
 
-            case .reviewContextCollapseToggled:
-                state.isReviewContextCollapsed.toggle()
+            // Write the exact requested value — never toggle. A value-ignoring toggle
+            // makes the DisclosureGroup binding getter disagree with the value SwiftUI
+            // just wrote, driving an infinite re-layout loop (flicker + scroll starvation).
+            case let .reviewContextExpandedChanged(isExpanded):
+                state.isReviewContextCollapsed = !isExpanded
                 return .none
 
             case .commentSummaryCommentTapped:

@@ -72,6 +72,38 @@ struct PromptBuilderTests {
         #expect(!prompt.contains("## Instructions"))
     }
 
+    @Test("Out-of-range comment line indices are clamped without crashing")
+    func outOfRangeCommentDoesNotCrash() {
+        // File shrank to 2 lines but a stale comment still references lines 5-6.
+        let file = makeFile(content: "line one\nline two")
+        let comment = makeComment(startLine: 5, endLine: 6, text: "stale reference")
+
+        let result = PromptBuilder.build(
+            files: [file],
+            comments: [comment],
+            overallComment: ""
+        )
+
+        // Regression: previously crashed with "Range requires lowerBound <= upperBound".
+        #expect(result != nil)
+        #expect(result!.contains("**Comment:** stale reference"))
+    }
+
+    @Test("Comment with endLine before startLine does not crash")
+    func invertedCommentRangeDoesNotCrash() {
+        let file = makeFile()
+        let comment = makeComment(startLine: 3, endLine: 1, text: "inverted range")
+
+        let result = PromptBuilder.build(
+            files: [file],
+            comments: [comment],
+            overallComment: ""
+        )
+
+        #expect(result != nil)
+        #expect(result!.contains("**Comment:** inverted range"))
+    }
+
     @Test("Includes Instructions section when preamble is provided")
     func preambleIncluded() {
         let file = makeFile()

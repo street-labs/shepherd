@@ -15,7 +15,7 @@ public struct ReviewContextPanelView: View {
             DisclosureGroup(
                 isExpanded: Binding(
                     get: { !store.isCollapsed },
-                    set: { _ in store.send(.collapseToggled) }
+                    set: { store.send(.expandedChanged($0)) }
                 )
             ) {
                 ScrollView {
