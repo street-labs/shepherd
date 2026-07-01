@@ -523,7 +523,7 @@ struct FileBrowserFeature {
     @CasePathable
     enum Action: Equatable {
         case fileSelected(FileNode.ID)
-        case toggleDirectoryCollapsed(String)
+        case directoryExpandedChanged(path: String, isExpanded: Bool)
         case toggleFileReviewed(FileNode.ID)
         case removeFileRequested(FileNode.ID)
         case fileTreeRebuilt([FileTreeNode])
@@ -535,8 +535,12 @@ struct FileBrowserFeature {
             case .fileSelected:
                 // Handled by parent (AppFeature) to update activeFileID
                 return .none
-            case let .toggleDirectoryCollapsed(dirPath):
-                if state.collapsedDirs.contains(dirPath) {
+            // Directory rows use a DisclosureGroup whose isExpanded binding must write the
+            // exact requested value. A value-ignoring toggle makes the binding getter
+            // disagree with SwiftUI's write and drives an infinite re-layout loop (row
+            // ghosting / flicker) — the same class of bug as the review-context panels.
+            case let .directoryExpandedChanged(dirPath, isExpanded):
+                if isExpanded {
                     state.collapsedDirs.remove(dirPath)
                 } else {
                     state.collapsedDirs.insert(dirPath)

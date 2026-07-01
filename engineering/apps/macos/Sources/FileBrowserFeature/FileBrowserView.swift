@@ -53,7 +53,7 @@ public struct FileBrowserView: View {
                 DisclosureGroup(
                     isExpanded: Binding(
                         get: { !store.collapsedDirs.contains(dir.path) },
-                        set: { _ in store.send(.toggleDirectoryCollapsed(dir.path)) }
+                        set: { store.send(.directoryExpandedChanged(path: dir.path, isExpanded: $0)) }
                     )
                 ) {
                     ForEach(dir.children) { child in

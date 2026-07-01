@@ -923,8 +923,9 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
   1. Click the disclosure triangle on a directory node to collapse it.
   2. Verify the files within are hidden.
   3. Click again to expand.
-  4. Switch files and return.
-- **Expected**: The collapse state toggles correctly. Files within a collapsed directory are hidden. The collapse state persists across file switches within the session.
+  4. Expand/collapse several directory nodes repeatedly and observe the rows.
+  5. Switch files and return.
+- **Expected**: The collapse state toggles correctly. Files within a collapsed directory are hidden. The collapse state persists across file switches within the session. Rows render cleanly with **no ghosting/overlapping labels, flicker, or re-layout churn** (regression: the directory `DisclosureGroup` binding writes the exact expanded value via `directoryExpandedChanged(path:isExpanded:)` and must not feed back on itself).
 - **Status**: Not started
 
 ---
