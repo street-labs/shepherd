@@ -41,7 +41,7 @@ public struct AppFeature {
         public var reviewContext: ReviewContextFeature.State
 
         // Shared state (accessible by multiple children)
-        public var files: IdentifiedArrayOf<FileNode> = []
+        @Shared public var files: IdentifiedArrayOf<FileNode>
         public var allComments: IdentifiedArrayOf<Comment> = []
         public var activeFileID: FileNode.ID?
         public var overallComment: String = ""
@@ -66,13 +66,14 @@ public struct AppFeature {
             inspector: InspectorFeature.State = InspectorFeature.State(),
             prompt: PromptFeature.State = PromptFeature.State(),
             reviewContext: ReviewContextFeature.State = ReviewContextFeature.State(),
-            files: IdentifiedArrayOf<FileNode> = [],
+            files: Shared<IdentifiedArrayOf<FileNode>> = Shared(value: []),
             allComments: IdentifiedArrayOf<Comment> = [],
             activeFileID: FileNode.ID? = nil,
             overallComment: String = "",
             lineWrapEnabled: Bool = true,
             reviewContextData: ReviewContext? = nil
         ) {
+            self._files = files
             self.session = session
             self.fileBrowser = fileBrowser
             self.codeViewer = codeViewer
@@ -80,7 +81,6 @@ public struct AppFeature {
             self.inspector = inspector
             self.prompt = prompt
             self.reviewContext = reviewContext
-            self.files = files
             self.allComments = allComments
             self.activeFileID = activeFileID
             self.overallComment = overallComment
@@ -243,7 +243,7 @@ public struct AppFeature {
                         language: language,
                         content: item.content
                     )
-                    state.files.append(fileNode)
+                    state.$files.withLock { _ = $0.append(fileNode) }
                     // Select the first loaded file if none is active
                     if state.activeFileID == nil {
                         state.activeFileID = fileNode.id
@@ -307,7 +307,7 @@ public struct AppFeature {
             // MARK: - Alert Actions
 
             case .alert(.presented(.clearConfirmed)):
-                state.files = []
+                state.$files.withLock { $0 = [] }
                 state.allComments = []
                 state.activeFileID = nil
                 state.overallComment = ""
@@ -399,7 +399,7 @@ public struct AppFeature {
                 return .send(.reviewContext(.activeFileContextUpdated(nil)))
 
             case let .fileBrowser(.toggleFileReviewed(fileID)):
-                state.files[id: fileID]?.isReviewed.toggle()
+                state.$files.withLock { $0[id: fileID]?.isReviewed.toggle() }
                 return .send(.rebuildFileTree)
 
             case let .fileBrowser(.removeFileRequested(fileID)):
@@ -413,7 +413,7 @@ public struct AppFeature {
 
             case let .codeViewer(.scrolledToLine(line)):
                 if let activeID = state.activeFileID {
-                    state.files[id: activeID]?.scrollOffset = line
+                    state.$files.withLock { $0[id: activeID]?.scrollOffset = line }
                 }
                 return .none
 
@@ -510,7 +510,7 @@ public struct AppFeature {
     // MARK: - Helpers
 
     private func removeFile(id: FileNode.ID, state: inout State) -> Effect<Action> {
-        state.files.remove(id: id)
+        state.$files.withLock { _ = $0.remove(id: id) }
         state.allComments = IdentifiedArrayOf(uniqueElements: state.allComments.filter { $0.fileID != id })
 
         // Update active file

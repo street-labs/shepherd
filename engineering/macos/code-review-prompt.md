@@ -377,8 +377,11 @@ struct AppFeature {
         var codeViewer = CodeViewerFeature.State()
         var inspector = InspectorFeature.State()
 
-        // Shared state (accessible by multiple children)
-        var files: IdentifiedArrayOf<FileNode> = []
+        // Shared state (accessible by multiple children). Cross-feature state that children
+        // read/write is modeled with the Sharing library's `@Shared` (non-keyed `Shared(value:)`,
+        // fully test-isolated) rather than being hand-threaded through view initializers.
+        // Mutated via `state.$files.withLock { … }`; asserted in tests via `$0.$files.withLock`.
+        @Shared var files: IdentifiedArrayOf<FileNode>
         var allComments: IdentifiedArrayOf<Comment> = []
         var activeFileID: FileNode.ID?
         var overallComment: String = ""

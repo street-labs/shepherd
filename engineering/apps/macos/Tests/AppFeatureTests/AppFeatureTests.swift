@@ -29,14 +29,14 @@ struct AppFeatureTests {
         store.exhaustivity = .off
 
         await store.send(.filesLoaded([LoadedFile(content: "const x = 1;", name: "test.ts", url: nil)])) {
-            $0.files = [
+            $0.$files.withLock { $0 = [
                 FileNode(
                     id: testUUID,
                     name: "test.ts",
                     language: .typescript,
                     content: "const x = 1;"
                 )
-            ]
+            ] }
             $0.activeFileID = testUUID
         }
     }
@@ -45,7 +45,7 @@ struct AppFeatureTests {
     func clearSessionConfirmation() async {
         let fileID = UUID()
         let store = TestStore(initialState: AppFeature.State(
-            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
             activeFileID: fileID
         )) {
             AppFeature()
@@ -74,7 +74,7 @@ struct AppFeatureTests {
     func clearSessionConfirmed() async {
         let fileID = UUID()
         var initialState = AppFeature.State(
-            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
             allComments: [SharedModels.Comment(fileID: fileID, startLine: 1, endLine: 1, text: "hi")],
             activeFileID: fileID,
             overallComment: "preamble"
@@ -100,7 +100,7 @@ struct AppFeatureTests {
 
         await store.send(.alert(.presented(.clearConfirmed))) {
             $0.alert = nil
-            $0.files = []
+            $0.$files.withLock { $0 = [] }
             $0.allComments = []
             $0.activeFileID = nil
             $0.overallComment = ""
@@ -111,7 +111,7 @@ struct AppFeatureTests {
     func removeFileNoComments() async {
         let fileID = UUID()
         let store = TestStore(initialState: AppFeature.State(
-            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
             activeFileID: fileID
         )) {
             AppFeature()
@@ -121,7 +121,7 @@ struct AppFeatureTests {
         store.exhaustivity = .off
 
         await store.send(.removeFileRequested(fileID)) {
-            $0.files = []
+            $0.$files.withLock { $0 = [] }
             $0.activeFileID = nil
         }
     }
@@ -130,7 +130,7 @@ struct AppFeatureTests {
     func removeFileWithComments() async {
         let fileID = UUID()
         let store = TestStore(initialState: AppFeature.State(
-            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
             allComments: [SharedModels.Comment(fileID: fileID, startLine: 1, endLine: 1, text: "comment")],
             activeFileID: fileID
         )) {
@@ -173,7 +173,7 @@ struct AppFeatureTests {
         let fileID = UUID()
         let commentID = UUID(uuidString: "00000000-0000-0000-0000-0000000000aa")!
         var initialState = AppFeature.State(
-            files: [FileNode(id: fileID, name: "test.ts", content: "x\ny\nz")],
+            files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x\ny\nz")]),
             activeFileID: fileID
         )
         initialState.comment.editorState = .creating(anchorLine: 2, endLine: 2)
@@ -208,7 +208,7 @@ struct AppFeatureTests {
         let fileID = UUID()
         let commentID = UUID()
         var initialState = AppFeature.State(
-            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
             allComments: [SharedModels.Comment(
                 id: commentID,
                 fileID: fileID,
@@ -239,7 +239,7 @@ struct AppFeatureTests {
     func submitWhitespaceComment() async {
         let fileID = UUID()
         var initialState = AppFeature.State(
-            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
             activeFileID: fileID
         )
         initialState.comment.editorState = .creating(anchorLine: 1, endLine: 1)
@@ -261,7 +261,7 @@ struct AppFeatureTests {
     func toggleFileReviewed() async {
         let fileID = UUID()
         let store = TestStore(initialState: AppFeature.State(
-            files: [FileNode(id: fileID, name: "test.ts", content: "x", isReviewed: false)]
+            files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x", isReviewed: false)])
         )) {
             AppFeature()
         } withDependencies: {
@@ -270,7 +270,7 @@ struct AppFeatureTests {
         store.exhaustivity = .off
 
         await store.send(.fileBrowser(.toggleFileReviewed(fileID))) {
-            $0.files[id: fileID]?.isReviewed = true
+            $0.$files.withLock { $0[id: fileID]?.isReviewed = true }
         }
     }
 }
