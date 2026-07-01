@@ -42,7 +42,7 @@ public struct AppFeature {
 
         // Shared state (accessible by multiple children)
         @Shared public var files: IdentifiedArrayOf<FileNode>
-        public var allComments: IdentifiedArrayOf<Comment> = []
+        @Shared public var allComments: IdentifiedArrayOf<Comment>
         public var activeFileID: FileNode.ID?
         public var overallComment: String = ""
         public var lineWrapEnabled: Bool = true
@@ -67,13 +67,14 @@ public struct AppFeature {
             prompt: PromptFeature.State = PromptFeature.State(),
             reviewContext: ReviewContextFeature.State = ReviewContextFeature.State(),
             files: Shared<IdentifiedArrayOf<FileNode>> = Shared(value: []),
-            allComments: IdentifiedArrayOf<Comment> = [],
+            allComments: Shared<IdentifiedArrayOf<Comment>> = Shared(value: []),
             activeFileID: FileNode.ID? = nil,
             overallComment: String = "",
             lineWrapEnabled: Bool = true,
             reviewContextData: ReviewContext? = nil
         ) {
             self._files = files
+            self._allComments = allComments
             self.session = session
             self.fileBrowser = fileBrowser
             self.codeViewer = codeViewer
@@ -81,7 +82,6 @@ public struct AppFeature {
             self.inspector = inspector
             self.prompt = prompt
             self.reviewContext = reviewContext
-            self.allComments = allComments
             self.activeFileID = activeFileID
             self.overallComment = overallComment
             self.lineWrapEnabled = lineWrapEnabled
@@ -179,17 +179,19 @@ public struct AppFeature {
                 guard let fileID = state.activeFileID else { return .none }
                 let start = min(anchorLine, endLine)
                 let end = max(anchorLine, endLine)
-                state.allComments.append(
-                    Comment(
-                        id: uuid(),
-                        fileID: fileID,
-                        startLine: start,
-                        endLine: end,
-                        text: trimmed
+                state.$allComments.withLock {
+                    _ = $0.append(
+                        Comment(
+                            id: uuid(),
+                            fileID: fileID,
+                            startLine: start,
+                            endLine: end,
+                            text: trimmed
+                        )
                     )
-                )
+                }
             case let .editing(commentID):
-                state.allComments[id: commentID]?.text = trimmed
+                state.$allComments.withLock { $0[id: commentID]?.text = trimmed }
             }
             return .merge(
                 .send(.regeneratePrompt),
@@ -308,7 +310,7 @@ public struct AppFeature {
 
             case .alert(.presented(.clearConfirmed)):
                 state.$files.withLock { $0 = [] }
-                state.allComments = []
+                state.$allComments.withLock { $0 = [] }
                 state.activeFileID = nil
                 state.overallComment = ""
                 state.codeViewer = CodeViewerFeature.State()
@@ -428,7 +430,7 @@ public struct AppFeature {
                 return .none
 
             case let .comment(.deleteComment(commentID)):
-                state.allComments.remove(id: commentID)
+                state.$allComments.withLock { _ = $0.remove(id: commentID) }
                 return .merge(
                     .send(.regeneratePrompt),
                     .send(.rebuildFileTree)
@@ -511,7 +513,7 @@ public struct AppFeature {
 
     private func removeFile(id: FileNode.ID, state: inout State) -> Effect<Action> {
         state.$files.withLock { _ = $0.remove(id: id) }
-        state.allComments = IdentifiedArrayOf(uniqueElements: state.allComments.filter { $0.fileID != id })
+        state.$allComments.withLock { $0 = IdentifiedArrayOf(uniqueElements: $0.filter { $0.fileID != id }) }
 
         // Update active file
         if state.activeFileID == id {

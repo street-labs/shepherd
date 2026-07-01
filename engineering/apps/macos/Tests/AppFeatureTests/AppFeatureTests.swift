@@ -75,7 +75,7 @@ struct AppFeatureTests {
         let fileID = UUID()
         var initialState = AppFeature.State(
             files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
-            allComments: [SharedModels.Comment(fileID: fileID, startLine: 1, endLine: 1, text: "hi")],
+            allComments: Shared(value: [SharedModels.Comment(fileID: fileID, startLine: 1, endLine: 1, text: "hi")]),
             activeFileID: fileID,
             overallComment: "preamble"
         )
@@ -101,7 +101,7 @@ struct AppFeatureTests {
         await store.send(.alert(.presented(.clearConfirmed))) {
             $0.alert = nil
             $0.$files.withLock { $0 = [] }
-            $0.allComments = []
+            $0.$allComments.withLock { $0 = [] }
             $0.activeFileID = nil
             $0.overallComment = ""
         }
@@ -131,7 +131,7 @@ struct AppFeatureTests {
         let fileID = UUID()
         let store = TestStore(initialState: AppFeature.State(
             files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
-            allComments: [SharedModels.Comment(fileID: fileID, startLine: 1, endLine: 1, text: "comment")],
+            allComments: Shared(value: [SharedModels.Comment(fileID: fileID, startLine: 1, endLine: 1, text: "comment")]),
             activeFileID: fileID
         )) {
             AppFeature()
@@ -188,16 +188,18 @@ struct AppFeatureTests {
         store.exhaustivity = .off
 
         await store.send(.comment(.submitComment)) {
-            $0.allComments = [
-                SharedModels.Comment(
-                    id: commentID,
-                    fileID: fileID,
-                    startLine: 2,
-                    endLine: 2,
-                    text: "Rename this",
-                    createdAt: $0.allComments.first?.createdAt ?? Date()
-                )
-            ]
+            $0.$allComments.withLock { comments in
+                comments = [
+                    SharedModels.Comment(
+                        id: commentID,
+                        fileID: fileID,
+                        startLine: 2,
+                        endLine: 2,
+                        text: "Rename this",
+                        createdAt: comments.first?.createdAt ?? Date()
+                    )
+                ]
+            }
             $0.comment.editorState = nil
             $0.comment.editorText = ""
         }
@@ -209,13 +211,13 @@ struct AppFeatureTests {
         let commentID = UUID()
         var initialState = AppFeature.State(
             files: Shared(value: [FileNode(id: fileID, name: "test.ts", content: "x")]),
-            allComments: [SharedModels.Comment(
+            allComments: Shared(value: [SharedModels.Comment(
                 id: commentID,
                 fileID: fileID,
                 startLine: 1,
                 endLine: 1,
                 text: "old"
-            )],
+            )]),
             activeFileID: fileID
         )
         initialState.comment.editorState = .editing(commentID: commentID)
@@ -229,7 +231,7 @@ struct AppFeatureTests {
         store.exhaustivity = .off
 
         await store.send(.comment(.submitComment)) {
-            $0.allComments[id: commentID]?.text = "new text"
+            $0.$allComments.withLock { $0[id: commentID]?.text = "new text" }
             $0.comment.editorState = nil
             $0.comment.editorText = ""
         }

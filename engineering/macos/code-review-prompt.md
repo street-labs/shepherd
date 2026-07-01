@@ -382,7 +382,7 @@ struct AppFeature {
         // fully test-isolated) rather than being hand-threaded through view initializers.
         // Mutated via `state.$files.withLock { … }`; asserted in tests via `$0.$files.withLock`.
         @Shared var files: IdentifiedArrayOf<FileNode>
-        var allComments: IdentifiedArrayOf<Comment> = []
+        @Shared var allComments: IdentifiedArrayOf<Comment>
         var activeFileID: FileNode.ID?
         var overallComment: String = ""
         var generatedPrompt: String?
