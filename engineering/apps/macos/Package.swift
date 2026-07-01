@@ -1,6 +1,14 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
+
+// Warnings-as-errors for every target. Upstream API *deprecations* (e.g. the Dependencies
+// library's `unimplemented`) are kept as warnings so a dependency bump can't hard-break the
+// build; those are migrated deliberately (see the @DependencyClient follow-up in Phase 2).
+let warningsAsErrors: [SwiftSetting] = [
+    .treatAllWarnings(as: .error),
+    .treatWarning("DeprecatedDeclaration", as: .warning),
+]
 
 let package = Package(
     name: "Shepherd",
@@ -10,7 +18,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.17.0"),
-        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
         .package(url: "https://github.com/pointfreeco/swift-identified-collections", from: "1.1.0"),
     ],
@@ -21,7 +28,8 @@ let package = Package(
             dependencies: [
                 .product(name: "IdentifiedCollections", package: "swift-identified-collections"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
 
         // MARK: - Dependency Clients
@@ -31,7 +39,8 @@ let package = Package(
                 "SharedModels",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
-            path: "Sources/Dependencies"
+            path: "Sources/Dependencies",
+            swiftSettings: warningsAsErrors
         ),
 
         // MARK: - Feature Modules
@@ -40,7 +49,8 @@ let package = Package(
             dependencies: [
                 "SharedModels",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .target(
             name: "CodeViewerFeature",
@@ -48,14 +58,16 @@ let package = Package(
                 "SharedModels",
                 "ShepherdDependencies",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .target(
             name: "CommentFeature",
             dependencies: [
                 "SharedModels",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .target(
             name: "InspectorFeature",
@@ -64,7 +76,8 @@ let package = Package(
                 "PromptFeature",
                 "ReviewContextFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .target(
             name: "PromptFeature",
@@ -72,7 +85,8 @@ let package = Package(
                 "SharedModels",
                 "ShepherdDependencies",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .target(
             name: "SessionFeature",
@@ -80,14 +94,16 @@ let package = Package(
                 "SharedModels",
                 "ShepherdDependencies",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .target(
             name: "ReviewContextFeature",
             dependencies: [
                 "SharedModels",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .target(
             name: "AppFeature",
@@ -102,7 +118,8 @@ let package = Package(
                 "SessionFeature",
                 "ReviewContextFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
 
         // MARK: - App Executable
@@ -110,7 +127,8 @@ let package = Package(
             name: "ShepherdApp",
             dependencies: ["AppFeature"],
             path: "ShepherdApp",
-            exclude: ["Resources/Info.plist"]
+            exclude: ["Resources/Info.plist"],
+            swiftSettings: warningsAsErrors
         ),
 
         // MARK: - Tests
@@ -119,49 +137,56 @@ let package = Package(
             dependencies: [
                 "SharedModels",
                 .product(name: "CustomDump", package: "swift-custom-dump"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "AppFeatureTests",
             dependencies: [
                 "AppFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "FileBrowserFeatureTests",
             dependencies: [
                 "FileBrowserFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "CodeViewerFeatureTests",
             dependencies: [
                 "CodeViewerFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "CommentFeatureTests",
             dependencies: [
                 "CommentFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "InspectorFeatureTests",
             dependencies: [
                 "InspectorFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "ReviewContextFeatureTests",
             dependencies: [
                 "ReviewContextFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "PromptFeatureTests",
@@ -169,7 +194,8 @@ let package = Package(
                 "PromptFeature",
                 "ShepherdDependencies",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
         .testTarget(
             name: "SessionFeatureTests",
@@ -177,7 +203,8 @@ let package = Package(
                 "SessionFeature",
                 "ShepherdDependencies",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
-            ]
+            ],
+            swiftSettings: warningsAsErrors
         ),
     ]
 )
