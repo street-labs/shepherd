@@ -63,7 +63,7 @@ public struct SessionFeature {
                 state.sessionID = sessionID
                 state.isSlashCommandMode = sessionID != nil
                 guard let sessionID else { return .none }
-                return .run { send in
+                return .run { [sessionClient] send in
                     let data = try await sessionClient.loadSession(sessionID)
                     await send(.sessionDataLoaded(data))
                 } catch: { error, send in

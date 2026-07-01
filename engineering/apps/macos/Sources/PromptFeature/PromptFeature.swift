@@ -40,7 +40,7 @@ public struct PromptFeature {
             switch action {
             case let .regenerateRequested(files, comments, overallComment):
                 state.isGenerating = true
-                return .run { send in
+                return .run { [promptGenerator] send in
                     let prompt = await promptGenerator.generate(files, comments, overallComment)
                     await send(.promptGenerated(prompt))
                 }
