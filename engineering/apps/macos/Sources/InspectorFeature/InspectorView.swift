@@ -7,7 +7,7 @@ import ReviewContextFeature
 
 /// Right sidebar: review context + overall comment + tabs (preview / all comments)
 public struct InspectorView: View {
-    let store: StoreOf<InspectorFeature>
+    @Bindable var store: StoreOf<InspectorFeature>
     @Binding var overallComment: String
     let generatedPrompt: String?
     let allComments: IdentifiedArrayOf<Comment>
@@ -60,10 +60,7 @@ public struct InspectorView: View {
             Divider()
 
             // Tab picker
-            Picker("View", selection: Binding(
-                get: { store.activeTab },
-                set: { store.send(.tabChanged($0)) }
-            )) {
+            Picker("View", selection: $store.activeTab.sending(\.tabChanged)) {
                 Text("Preview").tag(InspectorTab.preview)
                 Text("All Comments").tag(InspectorTab.allComments)
             }
