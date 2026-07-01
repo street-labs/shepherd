@@ -506,6 +506,8 @@ struct AppFeature {
 
 Manages the file tree sidebar, file selection, review status, and resize behavior.
 
+**Sidebar rendering.** The tree is rendered as a **flat list of visible rows** (each row carries its indentation depth; descendants of a collapsed directory are omitted), not as recursive `DisclosureGroup`s nested inside the `List`. Nested disclosures in a macOS `List` miscalculate row frames (rows overlap / labels ghost), and arbitrary-depth recursion in the row builder forces `AnyView`, which erases the view identity `List` needs for correct row reuse. Directory rows own a manual chevron and drive collapse via `directoryExpandedChanged`; collapse keys are the directory's **full path from the tree root**, so same-named directories at different depths never collide.
+
 ```swift
 /// Implements: FR-crp-multi-file-nav, FR-crp-panel-resize, FR-crp-file-reviewed-toggle,
 /// FR-crp-file-reviewed-visual, FR-crp-file-reviewed-grouping, FR-crp-file-reviewed-progress,
@@ -523,7 +525,7 @@ struct FileBrowserFeature {
     @CasePathable
     enum Action: Equatable {
         case fileSelected(FileNode.ID)
-        case toggleDirectoryCollapsed(String)
+        case directoryExpandedChanged(path: String, isExpanded: Bool)
         case toggleFileReviewed(FileNode.ID)
         case removeFileRequested(FileNode.ID)
         case fileTreeRebuilt([FileTreeNode])
@@ -535,8 +537,12 @@ struct FileBrowserFeature {
             case .fileSelected:
                 // Handled by parent (AppFeature) to update activeFileID
                 return .none
-            case let .toggleDirectoryCollapsed(dirPath):
-                if state.collapsedDirs.contains(dirPath) {
+            // Directory rows use a DisclosureGroup whose isExpanded binding must write the
+            // exact requested value. A value-ignoring toggle makes the binding getter
+            // disagree with SwiftUI's write and drives an infinite re-layout loop (row
+            // ghosting / flicker) — the same class of bug as the review-context panels.
+            case let .directoryExpandedChanged(dirPath, isExpanded):
+                if isExpanded {
                     state.collapsedDirs.remove(dirPath)
                 } else {
                     state.collapsedDirs.insert(dirPath)
@@ -749,7 +755,7 @@ struct InspectorFeature {
     @CasePathable
     enum Action: Equatable {
         case tabChanged(InspectorTab)
-        case reviewContextCollapseToggled
+        case reviewContextExpandedChanged(Bool)
         case commentSummaryCommentTapped(Comment.ID)
     }
 
@@ -760,8 +766,12 @@ struct InspectorFeature {
                 state.activeTab = tab
                 return .none
 
-            case .reviewContextCollapseToggled:
-                state.isReviewContextCollapsed.toggle()
+            // Write the exact requested value — never toggle. The DisclosureGroup
+            // isExpanded binding must round-trip its value; a value-ignoring toggle
+            // makes the getter disagree with SwiftUI's requested value, which drives
+            // an infinite re-layout loop (flicker + compositor thrash).
+            case let .reviewContextExpandedChanged(isExpanded):
+                state.isReviewContextCollapsed = !isExpanded
                 return .none
 
             case .commentSummaryCommentTapped:
@@ -896,6 +906,16 @@ struct SessionFeature {
 
 Manages the per-file review context display state.
 
+**Collapse binding contract.** Both the per-file panel and the overall inspector
+section render their collapsible container with a SwiftUI `DisclosureGroup` bound to
+an `isExpanded` binding derived from `!isCollapsed`. The collapse action is
+**value-carrying** (`expandedChanged(Bool)`) and the reducer writes the exact value
+(`isCollapsed = !isExpanded`). It must never be a value-ignoring toggle: a toggle makes
+the binding getter disagree with the value SwiftUI just wrote, so SwiftUI re-writes to
+reconcile, which toggles again — an infinite layout-invalidation loop that flickers and
+starves scrolling. This surfaces only in the review flow because these panels render
+only when review-context data is present.
+
 ```swift
 /// Implements: FR-crp-review-context-display, FR-crp-review-context-per-file,
 /// FR-crp-review-context-collapsible
@@ -911,15 +931,16 @@ struct ReviewContextFeature {
 
     @CasePathable
     enum Action: Equatable {
-        case collapseToggled
+        case expandedChanged(Bool)
         case activeFileContextUpdated(ReviewContext.ContextPair?)
     }
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .collapseToggled:
-                state.isCollapsed.toggle()
+            // Write the exact requested value — never toggle (see Collapse binding contract).
+            case let .expandedChanged(isExpanded):
+                state.isCollapsed = !isExpanded
                 return .none
             case let .activeFileContextUpdated(context):
                 state.activeFileContext = context
@@ -1216,9 +1237,12 @@ enum PromptBuilder {
             var fileSection = "## File: \(name) (\(lang))\n\n### Requested Changes\n"
 
             for comment in fileComments {
-                let startIdx = comment.startLine - 1
-                let endIdx = min(comment.endLine - 1, file.lines.count - 1)
-                let snippet = file.lines[startIdx...endIdx].joined(separator: "\n")
+                // Clamp defensively: a comment may reference lines outside the current
+                // file (stale comment after content shrank, or malformed endLine <
+                // startLine). An unguarded range would form lowerBound > upperBound and
+                // crash prompt generation, which runs on every edit via regeneratePrompt.
+                let range = snippetRange(for: comment, lineCount: file.lines.count)
+                let snippet = file.lines[range].joined(separator: "\n")
 
                 fileSection += "\n```\(lang)\n\(snippet)\n```\n\(comment.text)\n"
             }
@@ -1228,10 +1252,15 @@ enum PromptBuilder {
 
         return sections.joined(separator: "\n\n")
     }
+
+    /// Half-open snippet range, clamped so out-of-range comments yield an empty snippet
+    /// instead of crashing. `start = clamp(startLine-1, 0...count)`, `end = clamp(endLine,
+    /// start...count)`.
+    private static func snippetRange(for comment: Comment, lineCount: Int) -> Range<Int> { ... }
 }
 ```
 
-The prompt format is identical to the web version (`FR-crp-prompt-format`, `FR-crp-multi-file-prompt-format`), ensuring interoperability when users switch between platforms.
+The prompt format is identical to the web version (`FR-crp-prompt-format`, `FR-crp-multi-file-prompt-format`), ensuring interoperability when users switch between platforms. Snippet extraction is **crash-safe**: comment line indices are clamped to the file's current line count, so a stale or malformed comment produces an empty snippet rather than an invalid `Range` fatal error (`FR-crp-prompt-generate`).
 
 ---
 

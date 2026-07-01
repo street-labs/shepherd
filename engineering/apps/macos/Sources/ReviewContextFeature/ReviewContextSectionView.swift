@@ -5,19 +5,19 @@ import SharedModels
 public struct ReviewContextSectionView: View {
     let context: ReviewContext.ContextPair
     let isCollapsed: Bool
-    let onToggle: () -> Void
+    let onExpandedChange: (Bool) -> Void
 
-    public init(context: ReviewContext.ContextPair, isCollapsed: Bool, onToggle: @escaping () -> Void) {
+    public init(context: ReviewContext.ContextPair, isCollapsed: Bool, onExpandedChange: @escaping (Bool) -> Void) {
         self.context = context
         self.isCollapsed = isCollapsed
-        self.onToggle = onToggle
+        self.onExpandedChange = onExpandedChange
     }
 
     public var body: some View {
         DisclosureGroup(
             isExpanded: Binding(
                 get: { !isCollapsed },
-                set: { _ in onToggle() }
+                set: { onExpandedChange($0) }
             )
         ) {
             VStack(alignment: .leading, spacing: 8) {

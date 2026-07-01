@@ -7,28 +7,33 @@ import Foundation
 @Suite("FileBrowserFeature")
 @MainActor
 struct FileBrowserFeatureTests {
-    @Test("Toggle directory collapsed adds to set")
-    func toggleCollapse() async {
+    @Test("Collapsing a directory writes the exact value (never toggles)")
+    func directoryCollapsed() async {
         let store = TestStore(initialState: FileBrowserFeature.State()) {
             FileBrowserFeature()
         }
 
-        await store.send(.toggleDirectoryCollapsed("src")) {
+        // Collapse.
+        await store.send(.directoryExpandedChanged(path: "src", isExpanded: false)) {
             $0.collapsedDirs = ["src"]
         }
+        // Regression: repeating the same value is a no-op (SET semantics, not toggle).
+        // A value-ignoring toggle here caused the directory DisclosureGroup binding loop.
+        await store.send(.directoryExpandedChanged(path: "src", isExpanded: false))
     }
 
-    @Test("Toggle collapsed directory again removes from set")
-    func toggleUnCollapse() async {
+    @Test("Expanding a collapsed directory removes it from the set")
+    func directoryExpanded() async {
         let store = TestStore(initialState: FileBrowserFeature.State(
             collapsedDirs: ["src"]
         )) {
             FileBrowserFeature()
         }
 
-        await store.send(.toggleDirectoryCollapsed("src")) {
+        await store.send(.directoryExpandedChanged(path: "src", isExpanded: true)) {
             $0.collapsedDirs = []
         }
+        await store.send(.directoryExpandedChanged(path: "src", isExpanded: true))
     }
 
     @Test("File tree rebuilt updates state")

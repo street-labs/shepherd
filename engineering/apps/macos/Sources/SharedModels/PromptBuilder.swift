@@ -66,9 +66,7 @@ public enum PromptBuilder {
         }
 
         let changeEntries = sorted.map { comment -> String in
-            let startIdx = comment.startLine - 1
-            let endIdx = min(comment.endLine, file.lines.count)
-            let codeLines = Array(file.lines[startIdx..<endIdx])
+            let codeLines = Array(file.lines[snippetRange(for: comment, lineCount: file.lines.count)])
             let codeSnippet = codeLines.joined(separator: "\n")
             let indentedSnippet = codeSnippet.split(separator: "\n", omittingEmptySubsequences: false)
                 .joined(separator: "\n  ")
@@ -108,9 +106,7 @@ public enum PromptBuilder {
             }
 
             let changeEntries = sorted.map { comment -> String in
-                let startIdx = comment.startLine - 1
-                let endIdx = min(comment.endLine, file.lines.count)
-                let codeLines = Array(file.lines[startIdx..<endIdx])
+                let codeLines = Array(file.lines[snippetRange(for: comment, lineCount: file.lines.count)])
                 let codeSnippet = codeLines.joined(separator: "\n")
                 let indentedSnippet = codeSnippet.split(separator: "\n", omittingEmptySubsequences: false)
                     .joined(separator: "\n  ")
@@ -121,5 +117,19 @@ public enum PromptBuilder {
         }
 
         return sections.joined(separator: "\n\n")
+    }
+
+    /// Clamped half-open line range for a comment's referenced snippet.
+    ///
+    /// A comment can reference lines outside the current file — e.g. a stale comment left
+    /// after the file's content shrank, or a malformed `endLine < startLine`. Without
+    /// clamping, `startLine - 1 ..< min(endLine, count)` can form an invalid range
+    /// (lowerBound > upperBound) and crash prompt generation, which runs on every edit via
+    /// `regeneratePrompt`. Clamping yields an empty snippet for out-of-range comments
+    /// instead of crashing.
+    private static func snippetRange(for comment: Comment, lineCount: Int) -> Range<Int> {
+        let start = max(0, min(comment.startLine - 1, lineCount))
+        let end = max(start, min(comment.endLine, lineCount))
+        return start..<end
     }
 }

@@ -40,7 +40,7 @@ public struct InspectorView: View {
                 ReviewContextSectionView(
                     context: reviewContext.overall,
                     isCollapsed: store.isReviewContextCollapsed,
-                    onToggle: { store.send(.reviewContextCollapseToggled) }
+                    onExpandedChange: { store.send(.reviewContextExpandedChanged($0)) }
                 )
                 Divider()
             }

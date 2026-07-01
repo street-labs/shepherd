@@ -146,7 +146,7 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
 | `FR-crp-line-range-comment` | `TC-crp-macos-add-comment-line-range`, `TC-crp-macos-add-comment-line-range-gutter` | Not started |
 | `FR-crp-comment-navigation` | `TC-crp-macos-comment-nav-next`, `TC-crp-macos-comment-nav-prev`, `TC-crp-macos-comment-nav-wrap` | Not started |
 | `FR-crp-prompt-preamble` | `TC-crp-macos-overall-comment-label`, `TC-crp-macos-overall-comment-in-prompt` | Not started |
-| `FR-crp-prompt-generate` | `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-auto-regenerates` | Not started |
+| `FR-crp-prompt-generate` | `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-auto-regenerates`, `TC-crp-macos-prompt-out-of-range-comment` | Not started |
 | `FR-crp-prompt-preview` | `TC-crp-macos-prompt-preview-live`, `TC-crp-macos-prompt-no-comments-placeholder` | Not started |
 | `FR-crp-prompt-copy` | `TC-crp-macos-copy-clipboard-happy`, `TC-crp-macos-copy-toolbar-animation` | Not started |
 | `FR-crp-prompt-format` | `TC-crp-macos-prompt-structure-happy`, `TC-crp-macos-prompt-structure-no-preamble` | Not started |
@@ -744,6 +744,23 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
 
 ---
 
+#### `TC-crp-macos-prompt-out-of-range-comment` -- Prompt generation is crash-safe for out-of-range comment lines
+- **Type**: Unit
+- **Traces**: `FR-crp-prompt-generate`
+- **Preconditions**: A file is loaded whose current content has fewer lines than a comment references (e.g. a 2-line file with a comment on lines 5-6), or a comment whose `endLine` precedes its `startLine`.
+- **Steps**:
+  1. Build a prompt for a file + an out-of-range comment.
+  2. Build a prompt for a file + a comment with `endLine` < `startLine`.
+- **Expected**: Neither call crashes (no "Range requires lowerBound <= upperBound" fatal error). The out-of-range comment's referenced-code snippet is empty, but its comment text is still present in the prompt.
+- **Status**: Pass
+
+#### Test Execution Results
+- **Status**: Pass
+- **TC slug**: `TC-crp-macos-prompt-out-of-range-comment`
+- **Observed**: `PromptBuilder.build` returns a non-nil prompt containing the comment text; snippet is empty. Covered by `outOfRangeCommentDoesNotCrash` and `invertedCommentRangeDoesNotCrash` in `PromptBuilderTests`.
+
+---
+
 #### `TC-crp-macos-prompt-gen-time-under-300ms` -- Prompt generation completes within 300ms
 - **Type**: Integration
 - **Traces**: `NFR-crp-prompt-gen-time`
@@ -906,8 +923,9 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
   1. Click the disclosure triangle on a directory node to collapse it.
   2. Verify the files within are hidden.
   3. Click again to expand.
-  4. Switch files and return.
-- **Expected**: The collapse state toggles correctly. Files within a collapsed directory are hidden. The collapse state persists across file switches within the session.
+  4. Expand/collapse several directory nodes repeatedly and observe the rows.
+  5. Switch files and return.
+- **Expected**: The collapse state toggles correctly. Files within a collapsed directory are hidden. The collapse state persists across file switches within the session. Rows render cleanly with **no ghosting/overlapping labels, flicker, or re-layout churn** (regression: the directory `DisclosureGroup` binding writes the exact expanded value via `directoryExpandedChanged(path:isExpanded:)` and must not feed back on itself).
 - **Status**: Not started
 
 ---
@@ -1132,7 +1150,8 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
   4. Verify the collapse state persists.
   5. Click to expand again.
   6. Verify the full content reappears.
-- **Expected**: Collapse and expand toggle works. Collapse state persists across file switches. Content fully collapses to save vertical space and fully restores on expand.
+  7. Expand and collapse repeatedly (including the per-file panel over the code viewer) and observe the window.
+- **Expected**: Collapse and expand toggle works. Collapse state persists across file switches. Content fully collapses to save vertical space and fully restores on expand. Each expand/collapse settles immediately in the requested state with **no flicker, no continuous re-layout, and no loss of scrolling** in any pane (regression: the `DisclosureGroup` binding writes the exact expanded value and must not feed back on itself — see `expandedChanged(Bool)` in the engineering spec).
 - **Status**: Not started
 
 ---
@@ -1798,6 +1817,11 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
 - **Trigger**: User types only spaces and newlines in the Overall Comment field.
 - **Expected behavior**: The whitespace-only preamble is treated as empty and does not appear in the generated prompt (no "Instructions" section).
 - **Test case**: `TC-crp-macos-overall-comment-in-prompt`
+
+### Comment references a line beyond the current file
+- **Trigger**: A comment's `startLine`/`endLine` fall outside the file's current line count (e.g. a stale comment after the file content shrank, or a malformed inverted range), then a prompt is generated.
+- **Expected behavior**: Prompt generation does not crash. The referenced-code snippet for the out-of-range comment is empty; the comment text is still included. All in-range comments render normally.
+- **Test case**: `TC-crp-macos-prompt-out-of-range-comment`
 
 ### Session directory write failure during Done
 - **Trigger**: The session directory is not writable (e.g., permissions issue) when the user clicks Done.

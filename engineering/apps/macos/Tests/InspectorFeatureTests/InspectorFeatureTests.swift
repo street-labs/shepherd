@@ -22,7 +22,7 @@ struct InspectorFeatureTests {
         }
     }
 
-    @Test("Review context collapse toggled")
+    @Test("Review context expanded change writes the exact value (never toggles)")
     func reviewContextCollapse() async {
         let store = TestStore(initialState: InspectorFeature.State(
             isReviewContextCollapsed: false
@@ -30,13 +30,18 @@ struct InspectorFeatureTests {
             InspectorFeature()
         }
 
-        await store.send(.reviewContextCollapseToggled) {
+        // Collapse
+        await store.send(.reviewContextExpandedChanged(false)) {
             $0.isReviewContextCollapsed = true
         }
-
-        await store.send(.reviewContextCollapseToggled) {
+        // Regression: repeating the same value is a no-op (SET semantics, not toggle).
+        // A value-ignoring toggle here is what caused the DisclosureGroup binding loop.
+        await store.send(.reviewContextExpandedChanged(false))
+        // Expand
+        await store.send(.reviewContextExpandedChanged(true)) {
             $0.isReviewContextCollapsed = false
         }
+        await store.send(.reviewContextExpandedChanged(true))
     }
 
     @Test("Comment summary tap is forwarded")
