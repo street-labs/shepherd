@@ -4,7 +4,7 @@ import AppKit
 
 /// Toolbar items: Open, Line Wrap toggle, Copy Prompt, Done (conditional)
 struct ToolbarView: ToolbarContent {
-    let store: StoreOf<AppFeature>
+    @Bindable var store: StoreOf<AppFeature>
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
@@ -17,10 +17,7 @@ struct ToolbarView: ToolbarContent {
         }
 
         ToolbarItem(placement: .primaryAction) {
-            Toggle(isOn: Binding(
-                get: { store.lineWrapEnabled },
-                set: { _ in store.send(.toggleLineWrap) }
-            )) {
+            Toggle(isOn: $store.lineWrapEnabled) {
                 Label("Line Wrap", systemImage: "text.word.spacing")
             }
             .help("Toggle line wrapping")
