@@ -221,7 +221,7 @@ public struct AppFeature {
             // MARK: - File Loading
 
             case let .filesDropped(urls):
-                return .run { send in
+                return .run { [fileClient] send in
                     let results = try await fileClient.readFiles(urls)
                     let mapped = results.map { LoadedFile(content: $0.content, name: $0.name, url: $0.url) }
                     await send(.filesLoaded(mapped))
@@ -256,7 +256,7 @@ public struct AppFeature {
                 )
 
             case .pasteFileFromClipboard:
-                return .run { send in
+                return .run { [clipboardClient] send in
                     guard let text = await clipboardClient.readText(),
                           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                     await send(.filesLoaded([LoadedFile(content: text, name: "Untitled", url: nil)]))
@@ -329,7 +329,7 @@ public struct AppFeature {
 
             case .copyPrompt:
                 guard let prompt = state.prompt.generatedPrompt else { return .none }
-                return .run { send in
+                return .run { [clipboardClient] send in
                     await clipboardClient.copyText(prompt)
                     await send(.promptCopied)
                 }
@@ -341,7 +341,7 @@ public struct AppFeature {
                 guard let prompt = state.prompt.generatedPrompt,
                       let sessionID = state.session.sessionID else { return .none }
                 state.session.doneState = .sending
-                return .run { send in
+                return .run { [clipboardClient, sessionClient] send in
                     // Always copy to clipboard first as fallback
                     await clipboardClient.copyText(prompt)
                     do {
@@ -354,7 +354,7 @@ public struct AppFeature {
 
             case .promptHandoffSucceeded:
                 state.session.doneState = .sent
-                return .run { _ in
+                return .run { [windowClient] _ in
                     await windowClient.closeWindow()
                 }
 
@@ -380,7 +380,7 @@ public struct AppFeature {
             // MARK: - Window Lifecycle
 
             case .windowAppeared:
-                return .run { [sessionID = state.session.sessionID] _ in
+                return .run { [windowClient, sessionID = state.session.sessionID] _ in
                     await windowClient.configureAutosave(sessionID)
                 }
 
@@ -526,7 +526,7 @@ public struct AppFeature {
 
     private func highlightActiveFile(state: State) -> Effect<Action> {
         guard let activeFile = state.activeFile else { return .none }
-        return .run { [content = activeFile.content, language = activeFile.language] send in
+        return .run { [syntaxHighlighter, content = activeFile.content, language = activeFile.language] send in
             let tokens = await syntaxHighlighter.highlight(content, language)
             await send(.codeViewer(.syntaxHighlightingCompleted(tokens)))
         }

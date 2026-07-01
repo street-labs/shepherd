@@ -30,6 +30,7 @@ The core architectural idea mirrors the web version: the user loads one or more 
 | Distribution | Signed `.app` bundle + Homebrew cask | Developer ID signing + notarization via `notarytool`. Homebrew cask formula for `brew install --cask shepherd`. |
 | Minimum target | macOS 14 (Sonoma) | Required for modern SwiftUI APIs (`@Observable`, improved `NavigationSplitView`, `Inspector`). `NFR-crp-macos-min-version` |
 | Package manager | SPM (Swift Package Manager) | Native to the Swift ecosystem. No external tool dependencies. Supports local packages for feature modules. |
+| Language mode | Swift 6 (complete strict concurrency) | The package builds under `swift-tools-version: 6.0`, so every target uses the Swift 6 language mode with complete data-race checking. TCA effects capture their dependencies explicitly (`.run { [dependency] send in … }`) so the `@Sendable` effect closure never captures the non-Sendable reducer `self`. |
 
 ---
 
