@@ -30,26 +30,10 @@ public struct FileBrowserView: View {
         self.activeFileID = activeFileID
     }
 
-    /// A single visible row: a tree node plus its indentation depth. Descendants of a
-    /// collapsed directory are omitted.
-    private struct Row: Identifiable {
-        let node: FileTreeNode
-        let depth: Int
-        var id: String { node.id }
-    }
-
-    private var visibleRows: [Row] {
-        var rows: [Row] = []
-        func walk(_ nodes: [FileTreeNode], _ depth: Int) {
-            for node in nodes {
-                rows.append(Row(node: node, depth: depth))
-                if case let .directory(dir) = node, !store.collapsedDirs.contains(dir.path) {
-                    walk(dir.children, depth + 1)
-                }
-            }
-        }
-        walk(store.fileTree, 0)
-        return rows
+    /// Rows the sidebar renders (collapsed directories hide their descendants). Computed by the
+    /// pure `FileTreeFlattener` so the order/depth logic is unit-testable.
+    private var visibleRows: [FileTreeFlattener.VisibleRow] {
+        FileTreeFlattener.visibleRows(tree: store.fileTree, collapsedDirs: store.collapsedDirs)
     }
 
     public var body: some View {
@@ -64,7 +48,7 @@ public struct FileBrowserView: View {
                 }
             }
         )) {
-            ForEach(visibleRows) { row in
+            ForEach(visibleRows, id: \.node.id) { row in
                 switch row.node {
                 case let .directory(dir):
                     directoryRow(dir, depth: row.depth)
