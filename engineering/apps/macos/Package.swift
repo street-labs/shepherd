@@ -2,12 +2,13 @@
 
 import PackageDescription
 
-// Warnings-as-errors for every target. Upstream API *deprecations* (e.g. the Dependencies
-// library's `unimplemented`) are kept as warnings so a dependency bump can't hard-break the
-// build; those are migrated deliberately (see the @DependencyClient follow-up in Phase 2).
+// Warnings-as-errors for every target — including deprecations. The dependency clients use
+// the @DependencyClient macro so there are no `unimplemented` deprecations to exempt. If an
+// upstream dependency bump ever introduces a new deprecation and blocks the build, the fix is
+// to migrate the call (preferred) or temporarily add `.treatWarning("DeprecatedDeclaration",
+// as: .warning)` here.
 let warningsAsErrors: [SwiftSetting] = [
     .treatAllWarnings(as: .error),
-    .treatWarning("DeprecatedDeclaration", as: .warning),
 ]
 
 let package = Package(

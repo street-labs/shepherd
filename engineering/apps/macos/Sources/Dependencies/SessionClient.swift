@@ -4,19 +4,12 @@ import SharedModels
 
 /// Session directory operations.
 /// Implements: FR-crp-prompt-handoff, FR-crp-macos-slash-command-launch
+@DependencyClient
 public struct SessionClient: Sendable {
     /// Load session data from ~/.shepherd/sessions/<session-id>/
     public var loadSession: @Sendable (String) async throws -> SessionData
     /// Write prompt output to the session directory.
     public var writePromptOutput: @Sendable (String, String) async throws -> Void
-
-    public init(
-        loadSession: @escaping @Sendable (String) async throws -> SessionData,
-        writePromptOutput: @escaping @Sendable (String, String) async throws -> Void
-    ) {
-        self.loadSession = loadSession
-        self.writePromptOutput = writePromptOutput
-    }
 }
 
 extension SessionClient: DependencyKey {
@@ -35,10 +28,7 @@ extension SessionClient: DependencyKey {
         }
     )
 
-    public static let testValue = SessionClient(
-        loadSession: unimplemented("SessionClient.loadSession"),
-        writePromptOutput: unimplemented("SessionClient.writePromptOutput")
-    )
+    public static let testValue = Self()
 }
 
 extension DependencyValues {
