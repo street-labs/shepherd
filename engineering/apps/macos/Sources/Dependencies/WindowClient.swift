@@ -3,24 +3,16 @@ import ComposableArchitecture
 
 /// Window management operations.
 /// Implements: FR-crp-macos-window-management, FR-crp-macos-auto-close
+@DependencyClient
 public struct WindowClient: Sendable {
     /// Close the frontmost window.
     public var closeWindow: @Sendable () async -> Void
     /// Bring a window with a given session ID to the front.
     /// Returns true if an existing window was found and activated.
-    public var bringWindowToFront: @Sendable (String) async -> Bool
+    /// (Non-throwing, non-Void endpoint: @DependencyClient requires an explicit default.)
+    public var bringWindowToFront: @Sendable (String) async -> Bool = { _ in false }
     /// Configure window geometry persistence for a session.
     public var configureAutosave: @Sendable (String?) async -> Void
-
-    public init(
-        closeWindow: @escaping @Sendable () async -> Void,
-        bringWindowToFront: @escaping @Sendable (String) async -> Bool,
-        configureAutosave: @escaping @Sendable (String?) async -> Void
-    ) {
-        self.closeWindow = closeWindow
-        self.bringWindowToFront = bringWindowToFront
-        self.configureAutosave = configureAutosave
-    }
 }
 
 extension WindowClient: DependencyKey {
@@ -51,11 +43,7 @@ extension WindowClient: DependencyKey {
         }
     )
 
-    public static let testValue = WindowClient(
-        closeWindow: unimplemented("WindowClient.closeWindow"),
-        bringWindowToFront: unimplemented("WindowClient.bringWindowToFront"),
-        configureAutosave: unimplemented("WindowClient.configureAutosave")
-    )
+    public static let testValue = Self()
 }
 
 extension DependencyValues {

@@ -31,7 +31,7 @@ The core architectural idea mirrors the web version: the user loads one or more 
 | Minimum target | macOS 14 (Sonoma) | Required for modern SwiftUI APIs (`@Observable`, improved `NavigationSplitView`, `Inspector`). `NFR-crp-macos-min-version` |
 | Package manager | SPM (Swift Package Manager) | Native to the Swift ecosystem. No external tool dependencies. Supports local packages for feature modules. |
 | Language mode | Swift 6 (complete strict concurrency) | The package builds under `swift-tools-version: 6.2`, so every target uses the Swift 6 language mode with complete data-race checking. TCA effects capture their dependencies explicitly (`.run { [dependency] send in … }`) so the `@Sendable` effect closure never captures the non-Sendable reducer `self`. Concurrent callbacks (e.g. drag-drop `loadItem` completions) accumulate through a `LockIsolated` box instead of a captured `var`. |
-| Warnings | Treated as errors | Every target sets `swiftSettings: [.treatAllWarnings(as: .error)]`. Upstream API **deprecations** are exempted (`.treatWarning("DeprecatedDeclaration", as: .warning)`) so a dependency bump can't hard-break the build; those deprecations (the Dependencies library's `unimplemented` test stubs) are migrated deliberately by adopting `@DependencyClient`. |
+| Warnings | Treated as errors (incl. deprecations) | Every target sets `swiftSettings: [.treatAllWarnings(as: .error)]` with no exemptions. This is possible because the dependency clients use the `@DependencyClient` macro (no hand-written `unimplemented` test stubs to deprecate). If an upstream bump ever introduces a new deprecation and blocks the build, migrate the call or temporarily re-add `.treatWarning("DeprecatedDeclaration", as: .warning)`. |
 
 ---
 
@@ -958,6 +958,15 @@ struct ReviewContextFeature {
 ## Dependencies (via `@Dependency`)
 
 All side effects are modeled as TCA dependencies. Each dependency has a live implementation and a test/preview implementation.
+
+**Clients use the `@DependencyClient` macro.** Each client struct is annotated with
+`@DependencyClient`, which synthesizes the public memberwise `init` and default
+"unimplemented" endpoints, so `testValue` is simply `Self()`. This removes hand-written
+`unimplemented(...)` stubs (and their deprecations — see the Warnings decision above).
+Non-throwing, non-`Void`, non-`Optional` endpoints must declare an explicit default (e.g.
+`var bringWindowToFront: @Sendable (String) async -> Bool = { _ in false }`). The listings
+below are illustrative sketches; the annotation and `testValue = Self()` shape is the
+authoritative convention.
 
 ### FileClient
 

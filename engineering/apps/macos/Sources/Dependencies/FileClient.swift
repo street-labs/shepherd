@@ -5,6 +5,7 @@ import SharedModels
 /// File system operations.
 /// Implements: FR-crp-file-load, FR-crp-macos-file-open-panel,
 /// FR-crp-macos-drag-drop-finder, FR-crp-macos-sandboxed-file-access
+@DependencyClient
 public struct FileClient: Sendable {
     /// Read a file's content. Returns (content, fileName, url).
     public var readFile: @Sendable (URL) async throws -> (String, String, URL)
@@ -12,16 +13,6 @@ public struct FileClient: Sendable {
     public var isBinaryFile: @Sendable (URL) async throws -> Bool
     /// Read all files from a list of URLs. Filters out binary files.
     public var readFiles: @Sendable ([URL]) async throws -> [(content: String, name: String, url: URL)]
-
-    public init(
-        readFile: @escaping @Sendable (URL) async throws -> (String, String, URL),
-        isBinaryFile: @escaping @Sendable (URL) async throws -> Bool,
-        readFiles: @escaping @Sendable ([URL]) async throws -> [(content: String, name: String, url: URL)]
-    ) {
-        self.readFile = readFile
-        self.isBinaryFile = isBinaryFile
-        self.readFiles = readFiles
-    }
 }
 
 public enum FileClientError: Error, LocalizedError {
@@ -66,11 +57,7 @@ extension FileClient: DependencyKey {
         }
     )
 
-    public static let testValue = FileClient(
-        readFile: unimplemented("FileClient.readFile"),
-        isBinaryFile: unimplemented("FileClient.isBinaryFile"),
-        readFiles: unimplemented("FileClient.readFiles")
-    )
+    public static let testValue = Self()
 }
 
 extension DependencyValues {

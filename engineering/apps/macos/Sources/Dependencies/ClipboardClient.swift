@@ -3,19 +3,12 @@ import ComposableArchitecture
 
 /// System pasteboard operations.
 /// Implements: FR-crp-prompt-copy, FR-crp-macos-clipboard
+@DependencyClient
 public struct ClipboardClient: Sendable {
     /// Copy text to the system clipboard.
     public var copyText: @Sendable (String) async -> Void
     /// Read plain text from the system clipboard (for paste-to-load).
     public var readText: @Sendable () async -> String?
-
-    public init(
-        copyText: @escaping @Sendable (String) async -> Void,
-        readText: @escaping @Sendable () async -> String?
-    ) {
-        self.copyText = copyText
-        self.readText = readText
-    }
 }
 
 extension ClipboardClient: DependencyKey {
@@ -33,10 +26,7 @@ extension ClipboardClient: DependencyKey {
         }
     )
 
-    public static let testValue = ClipboardClient(
-        copyText: unimplemented("ClipboardClient.copyText"),
-        readText: unimplemented("ClipboardClient.readText")
-    )
+    public static let testValue = Self()
 }
 
 extension DependencyValues {
