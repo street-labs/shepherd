@@ -21,6 +21,7 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.17.0"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
         .package(url: "https://github.com/pointfreeco/swift-identified-collections", from: "1.1.0"),
+        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
     ],
     targets: [
         // MARK: - Shared Models
@@ -138,6 +139,7 @@ let package = Package(
             dependencies: [
                 "SharedModels",
                 .product(name: "CustomDump", package: "swift-custom-dump"),
+                .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
             ],
             swiftSettings: warningsAsErrors
         ),
