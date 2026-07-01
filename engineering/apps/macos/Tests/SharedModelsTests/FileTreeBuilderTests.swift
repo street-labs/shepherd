@@ -97,12 +97,8 @@ struct FileTreeBuilderTests {
     func fullyReviewedDir() {
         let f1 = FileNode(name: "a.ts", filePath: "/p/src/a.ts", content: "a", isReviewed: true)
         let f2 = FileNode(name: "b.ts", filePath: "/p/src/b.ts", content: "b", isReviewed: true)
-        let tree = FileTreeBuilder.buildFileTree(files: [f1, f2])
-
-        // Both files are reviewed, tree should show them at root (common prefix stripped)
-        // Actually they're in /p/src/, so prefix is /p/src/ and they're at root level
-        // No directory node wrapping them since prefix is fully stripped
-        // Let's check with a deeper structure
+        // Use a structure with a shared prefix (/p) so directory nodes remain after the
+        // common prefix (/p) is stripped — f1/f2/f3 land under src/ and lib/.
         let f3 = FileNode(name: "c.ts", filePath: "/p/lib/c.ts", content: "c", isReviewed: true)
         let tree2 = FileTreeBuilder.buildFileTree(files: [f1, f2, f3])
 

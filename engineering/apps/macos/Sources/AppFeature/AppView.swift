@@ -75,7 +75,9 @@ public struct AppView: View {
     }
 
     private func handleDrop(providers: [NSItemProvider]) {
-        var urls: [URL] = []
+        // loadItem completions run concurrently, so accumulate through a lock-isolated
+        // box rather than mutating a captured `var` (a data race under strict concurrency).
+        let urls = LockIsolated<[URL]>([])
         let group = DispatchGroup()
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier("public.file-url") {
@@ -83,15 +85,16 @@ public struct AppView: View {
                 provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { data, _ in
                     if let data = data as? Data,
                        let url = URL(dataRepresentation: data, relativeTo: nil) {
-                        urls.append(url)
+                        urls.withValue { $0.append(url) }
                     }
                     group.leave()
                 }
             }
         }
         group.notify(queue: .main) {
-            if !urls.isEmpty {
-                store.send(.filesDropped(urls))
+            let collected = urls.value
+            if !collected.isEmpty {
+                store.send(.filesDropped(collected))
             }
         }
     }
