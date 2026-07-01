@@ -42,7 +42,7 @@ public enum FileTreeBuilder {
         }
 
         // Build nested tree
-        let tree = buildTree(from: stripped)
+        let tree = buildTree(from: stripped, parentPath: "")
 
         return sortNodes(rootFiles + tree)
     }
@@ -64,7 +64,7 @@ public enum FileTreeBuilder {
         return prefix
     }
 
-    private static func buildTree(from entries: [(file: FileNode, components: [String])]) -> [FileTreeNode] {
+    private static func buildTree(from entries: [(file: FileNode, components: [String])], parentPath: String) -> [FileTreeNode] {
         // Group by first component
         var directories: [String: [(file: FileNode, components: [String])]] = [:]
         var leafFiles: [FileTreeNode] = []
@@ -87,9 +87,11 @@ public enum FileTreeBuilder {
         // Build directory nodes
         var dirNodes: [FileTreeNode] = []
         for (dirName, children) in directories.sorted(by: { $0.key < $1.key }) {
-            let childTree = buildTree(from: children)
+            // Full path from the tree root so each directory node has a unique id/collapse
+            // key. Same-named directories at different depths must not collide.
+            let dirPath = parentPath.isEmpty ? dirName : "\(parentPath)/\(dirName)"
+            let childTree = buildTree(from: children, parentPath: dirPath)
             let allReviewed = allFilesReviewed(in: childTree)
-            let dirPath = dirName // Simplified path for collapse tracking
             dirNodes.append(.directory(FileTreeNode.DirectoryNode(
                 name: dirName,
                 path: dirPath,

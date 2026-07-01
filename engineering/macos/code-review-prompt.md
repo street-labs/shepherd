@@ -506,6 +506,8 @@ struct AppFeature {
 
 Manages the file tree sidebar, file selection, review status, and resize behavior.
 
+**Sidebar rendering.** The tree is rendered as a **flat list of visible rows** (each row carries its indentation depth; descendants of a collapsed directory are omitted), not as recursive `DisclosureGroup`s nested inside the `List`. Nested disclosures in a macOS `List` miscalculate row frames (rows overlap / labels ghost), and arbitrary-depth recursion in the row builder forces `AnyView`, which erases the view identity `List` needs for correct row reuse. Directory rows own a manual chevron and drive collapse via `directoryExpandedChanged`; collapse keys are the directory's **full path from the tree root**, so same-named directories at different depths never collide.
+
 ```swift
 /// Implements: FR-crp-multi-file-nav, FR-crp-panel-resize, FR-crp-file-reviewed-toggle,
 /// FR-crp-file-reviewed-visual, FR-crp-file-reviewed-grouping, FR-crp-file-reviewed-progress,
