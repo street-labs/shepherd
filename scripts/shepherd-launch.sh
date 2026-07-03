@@ -152,11 +152,42 @@ json_escape() {
   printf '}\n'
 } > "$SESSION_FILE"
 
-# --- Launch the binary detached ---
+# --- Wrap the binary in a .app bundle and launch it ---
+#
+# A bare Mach-O SwiftUI executable does not reliably render its content on macOS:
+# the window chrome (toolbar/title) draws but the SwiftUI body stays blank. Wrapping
+# the binary in a minimal .app bundle and launching via `open -n` gives it full app
+# treatment (proper activation + render-server connection), which renders reliably.
+# The bundle is refreshed from the current binary on every launch.
+# Implements: FR-sc-mac-launch, FR-sc-mac-session-handoff
+APP_BUNDLE="$MAC_APP_DIR/.build/Shepherd.app"
+mkdir -p "$APP_BUNDLE/Contents/MacOS"
+cp -f "$BINARY" "$APP_BUNDLE/Contents/MacOS/ShepherdApp"
+cat > "$APP_BUNDLE/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key><string>ShepherdApp</string>
+  <key>CFBundleIdentifier</key><string>com.shepherd.app</string>
+  <key>CFBundleName</key><string>Shepherd</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>CFBundleVersion</key><string>1</string>
+  <key>LSMinimumSystemVersion</key><string>14.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSPrincipalClass</key><string>NSApplication</string>
+  <key>CFBundleURLTypes</key>
+  <array><dict>
+    <key>CFBundleURLSchemes</key><array><string>shepherd</string></array>
+    <key>CFBundleURLName</key><string>com.shepherd.app</string>
+  </dict></array>
+</dict>
+</plist>
+PLIST
 
-# nohup + & so the GUI process outlives this script.
-nohup "$BINARY" --session "$SESSION_ID" >/dev/null 2>&1 &
-disown || true
+# -n: new instance per launch (mirrors the previous detached-process behavior).
+open -n "$APP_BUNDLE" --args --session "$SESSION_ID"
 
 # --- Print summary (matches shepherd-launch.sh contract) ---
 
