@@ -1,0 +1,107 @@
+import SwiftUI
+import ComposableArchitecture
+import SharedModels
+import CommentFeature
+
+/// ScrollView + LazyVStack for virtualized line rendering
+public struct CodeViewerView: View {
+    let store: StoreOf<CodeViewerFeature>
+    let file: FileNode
+    let comments: [Comment]
+    let lineWrapEnabled: Bool
+    let commentStore: StoreOf<CommentFeature>
+
+    public init(
+        store: StoreOf<CodeViewerFeature>,
+        file: FileNode,
+        comments: [Comment],
+        lineWrapEnabled: Bool,
+        commentStore: StoreOf<CommentFeature>
+    ) {
+        self.store = store
+        self.file = file
+        self.comments = comments
+        self.lineWrapEnabled = lineWrapEnabled
+        self.commentStore = commentStore
+    }
+
+    /// Map line numbers to comments covering that line
+    private var commentsByLine: [Int: [Comment]] {
+        var result: [Int: [Comment]] = [:]
+        for comment in comments {
+            for line in comment.startLine...comment.endLine {
+                result[line, default: []].append(comment)
+            }
+        }
+        return result
+    }
+
+    public var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(file.lines.enumerated()), id: \.offset) { index, line in
+                        let lineNumber = index + 1
+                        let hasComment = commentsByLine[lineNumber] != nil
+                        let isInSelection = store.selectedRange?.contains(lineNumber) == true
+
+                        VStack(spacing: 0) {
+                            LineView(
+                                lineNumber: lineNumber,
+                                content: line,
+                                hasComment: hasComment,
+                                isSelected: isInSelection,
+                                isFocused: store.focusedLine == lineNumber,
+                                lineWrapEnabled: lineWrapEnabled
+                            )
+                            .id(lineNumber)
+                            .onTapGesture {
+                                store.send(.lineClicked(lineNumber))
+                            }
+
+                            // Show comments attached to this line
+                            let lineComments = commentsByLine[lineNumber] ?? []
+                            ForEach(lineComments) { comment in
+                                if comment.startLine == lineNumber {
+                                    CommentBubbleView(
+                                        comment: comment,
+                                        onEdit: { commentStore.send(.editComment(comment.id)) },
+                                        onDelete: { commentStore.send(.deleteComment(comment.id)) }
+                                    )
+                                    .padding(.leading, 60)
+                                    .padding(.trailing, 12)
+                                    .padding(.vertical, 2)
+                                }
+                            }
+
+                            // Inline editor (if creating at this line)
+                            if case let .creating(anchor, end) = commentStore.editorState,
+                               min(anchor, end) == lineNumber {
+                                InlineCommentEditorView(store: commentStore)
+                                    .padding(.leading, 60)
+                                    .padding(.trailing, 12)
+                                    .padding(.vertical, 4)
+                            }
+
+                            // Inline editor (if editing a comment at this line)
+                            if case let .editing(commentID) = commentStore.editorState,
+                               lineComments.contains(where: { $0.id == commentID && $0.startLine == lineNumber }) {
+                                InlineCommentEditorView(store: commentStore)
+                                    .padding(.leading, 60)
+                                    .padding(.trailing, 12)
+                                    .padding(.vertical, 4)
+                            }
+                        }
+                    }
+                }
+                .font(.system(.body, design: .monospaced))
+            }
+            .onChange(of: file.id) { _, _ in
+                // Restore scroll position when switching files
+                if file.scrollOffset > 0 {
+                    proxy.scrollTo(file.scrollOffset, anchor: .top)
+                }
+            }
+        }
+    }
+}

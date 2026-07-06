@@ -1,0 +1,5 @@
+{
+  "name": "shepherd-review",
+  "description": "Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.",
+  "trigger": "shepherd-review"
+}

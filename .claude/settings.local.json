@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(fp:*)",
+      "Read(~/.fiberplane/**)",
+      "Edit(~/.fiberplane/**)",
+      "Bash(rm /Users/ldstreet/Development/shepherd/.claude/commands/shepherd.md.tmp /Users/ldstreet/Development/shepherd/.claude/commands/shepherd-review.md.tmp)",
+      "Bash(rm /Users/ldstreet/Development/shepherd/scripts/audit-traceability.sh /Users/ldstreet/Development/shepherd/scripts/audit-lanes.sh /Users/ldstreet/Development/shepherd/scripts/merge-decisions.sh)",
+      "Bash(rm /Users/ldstreet/Development/shepherd/.claude/commands/kickoff.md /Users/ldstreet/Development/shepherd/.claude/commands/impact.md /Users/ldstreet/Development/shepherd/.claude/commands/status.md)",
+      "Bash(rm -rf /Users/ldstreet/Development/shepherd/.claude/skills/fp-implement /Users/ldstreet/Development/shepherd/.claude/skills/fp-plan /Users/ldstreet/Development/shepherd/.claude/skills/fp-review)",
+      "Bash(rm /Users/ldstreet/Development/shepherd/product/CLAUDE.md /Users/ldstreet/Development/shepherd/design/CLAUDE.md /Users/ldstreet/Development/shepherd/engineering/CLAUDE.md /Users/ldstreet/Development/shepherd/qa/CLAUDE.md)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fp hook detect",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

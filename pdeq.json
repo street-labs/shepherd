@@ -1,0 +1,40 @@
+{
+  "pdeqVersion": "0.7.0",
+  "specsRoot": ".",
+  "codeRoot": ".",
+  "platforms": [
+    "macos"
+  ],
+  "harnesses": [
+    "claude"
+  ],
+  "laneAudit": {
+    "vendors": [],
+    "protocols": [],
+    "platforms": [],
+    "libraries": [],
+    "exclude": [
+      "macOS",
+      "Linux",
+      "Windows",
+      "JavaScript",
+      "TypeScript",
+      "Python",
+      "Go",
+      "Rust",
+      "Java",
+      "C",
+      "C++",
+      "HTML",
+      "CSS",
+      "JSON",
+      "YAML",
+      "Markdown",
+      "npm",
+      "pnpm",
+      "webpack",
+      "Vite",
+      "yarn"
+    ]
+  }
+}

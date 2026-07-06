@@ -1,0 +1,12 @@
+decisions-pending.md
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Fiberplane local issue tracking
+.fp/
+
+# Internal local tooling (fp) — not part of the open-source project
+FP_CLAUDE.md
+.claude/skills/fp-*
