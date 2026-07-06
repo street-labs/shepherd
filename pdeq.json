@@ -29,7 +29,12 @@
       "CSS",
       "JSON",
       "YAML",
-      "Markdown"
+      "Markdown",
+      "npm",
+      "pnpm",
+      "webpack",
+      "Vite",
+      "yarn"
     ]
   }
 }

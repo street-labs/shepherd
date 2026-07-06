@@ -242,6 +242,6 @@ The rendered view must be navigable via keyboard. Commentable elements must be r
 - **`FR-diff-compute`**: The raw diff computation is unchanged. The rendered diff uses a higher-level AST diff but still relies on the baseline/working-copy data model.
 - **`NFR-crp-client-only`**: All rendering and diffing is client-side.
 - **`NFR-crp-large-file-perf`**: The rendered view must meet comparable scrolling performance targets.
-- **Markdown parsing library**: A client-side CommonMark + GFM parser is required (e.g., `unified` with `remark-parse` and `remark-gfm`, or `markdown-it` with GFM plugin). Selection is an engineering decision.
-- **HTML sanitization library**: A client-side HTML sanitizer is required (e.g., `DOMPurify` or `rehype-sanitize`). Selection is an engineering decision.
+- **Markdown parsing**: A client-side CommonMark + GFM parser is required. The specific parser is an engineering decision.
+- **HTML sanitization**: Rendered markdown must be sanitized client-side before display. The specific sanitizer is an engineering decision.
 - **AST diff library or algorithm**: For rendered diff, an algorithm to diff markdown ASTs is required. This may be a custom implementation based on tree edit distance or a simpler block-matching heuristic. Selection and approach are engineering decisions.
