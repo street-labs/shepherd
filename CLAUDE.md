@@ -1,8 +1,8 @@
-@.pdeq/CLAUDE.md
+@.pdeq/AGENTS.md
 
 # Shepherd — Project-Specific Overrides
 
-The framework above (imported from `.pdeq/CLAUDE.md`) defines the coordinator agent. Below are Shepherd-specific additions.
+The framework above (imported from `.pdeq/AGENTS.md`) defines the coordinator agent. Below are Shepherd-specific additions.
 
 ## Platforms
 
@@ -16,7 +16,7 @@ Source code lives at `engineering/apps/macos/`. (The browser-based `web` platfor
 
 ## Project-Specific Slash Commands
 
-These extend the framework commands (`/kickoff`, `/impact`, `/status`, `/bootstrap`, `/migrate`):
+These extend the framework commands (`/pdeq-kickoff`, `/pdeq-impact`, `/pdeq-status`, `/pdeq-bootstrap`, `/pdeq-migrate`):
 
 - **`/shepherd <file>`** — Open the macOS Code Review Prompt Generator (CRPG) with the specified file.
 - **`/shepherd-review`** — Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.

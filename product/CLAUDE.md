@@ -1,1 +1,1 @@
-@../.pdeq/product/CLAUDE.md
+@../.pdeq/product/AGENTS.md

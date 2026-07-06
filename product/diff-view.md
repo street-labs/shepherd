@@ -6,7 +6,7 @@ An alternative viewing mode for the Code Review Prompt Generator (CRPG) that sho
 
 This feature is motivated by the primary use case of the CRPG: a developer is working alongside an AI coding agent that modifies files. After the agent makes changes, the developer wants to review what changed, annotate specific additions or removals, and generate a prompt with feedback. Viewing the full file obscures what actually changed. A diff view surfaces exactly the information the reviewer needs.
 
-The diff view is an alternative mode alongside the existing file view. It is available only for files loaded via the `/shepherd` slash command (which provides server-side file access), because computing the diff requires fetching both the working copy and the git HEAD version from the local filesystem. Files loaded via paste, upload, or drag-and-drop do not have a baseline to diff against, so diff view is unavailable for those files.
+The diff view is an alternative mode alongside the existing file view. It is available only for files loaded via the `/shepherd` slash command (which provides server-side file access), because computing the diff requires fetching both the working copy and the git HEAD version from the local filesystem. Files provided directly by the user — such as pasted or uploaded content — do not have a baseline to diff against, so diff view is unavailable for those files.
 
 ## User Stories
 
@@ -36,7 +36,7 @@ The diff view is an alternative mode alongside the existing file view. It is ava
 The application provides a toggle control (e.g., a segmented button or tab) that switches between "File" view (the existing full-file code viewer) and "Diff" view (the unified diff viewer). The toggle is visible in the toolbar area whenever a file is loaded. Switching modes preserves the preamble but does not preserve comments, because comments are anchored to different line models in each mode (absolute line numbers in file view vs. diff line identifiers in diff view). Switching modes displays a confirmation dialog if any comments exist, warning the user that comments will be cleared.
 
 #### `FR-diff-mode-availability` -- Diff view is only available for server-loaded files
-The diff view toggle is only enabled when the file was loaded via the file-serving API (i.e., via the `/shepherd` slash command or a `?file=` URL parameter). For files loaded via paste, upload, or drag-and-drop, the toggle is visible but disabled, with a tooltip explaining that diff view requires the file to be loaded from the local filesystem via the slash command.
+The diff view toggle is only enabled when the file was loaded via the file-serving API (i.e., via the `/shepherd` slash command or a `?file=` URL parameter). For files provided directly by the user (such as pasted or uploaded content), the toggle is visible but disabled, and communicates that diff view requires the file to be loaded from the local filesystem via the slash command.
 
 #### `FR-diff-baseline-fetch` -- Fetch the git HEAD version of a file
 When the user activates diff view (or when a server-loaded file is first loaded and diff view is the active mode), the application fetches the git HEAD version of the file from the server. The server provides this via a dedicated endpoint. The endpoint design is an engineering decision. If the file has no git history (untracked file), the endpoint returns a 404 and the application treats the entire file as added (the diff shows all lines as additions with no removals). If the file is unchanged from HEAD, the application shows an "No changes" empty state.
@@ -122,7 +122,7 @@ All diff view interactions — toggling diff mode, expanding collapsed sections,
 **Given** a file loaded via the slash command is identical to its git HEAD version, **when** the user activates diff view, **then** the diff view displays "No changes detected" and the user can switch to file view.
 
 #### `AC-diff-paste-upload-disabled` -- Diff toggle is disabled for paste/upload files
-**Given** a file is loaded via paste or upload (not via the slash command), **when** the user looks at the toolbar, **then** the diff view toggle is visible but disabled, with a tooltip explaining that diff view requires a server-loaded file.
+**Given** a file is loaded via paste or upload (not via the slash command), **when** the user looks at the toolbar, **then** the diff view toggle is visible but disabled, and an explanation indicates that diff view requires a server-loaded file.
 
 #### `AC-diff-line-numbers` -- Diff shows old and new line numbers
 **Given** the diff view is active, **when** the user looks at any diff line, **then** added lines show only a new (right) line number, removed lines show only an old (left) line number, and context lines show both old and new line numbers.
@@ -144,7 +144,7 @@ All diff view interactions — toggling diff mode, expanding collapsed sections,
 
 ## Open Questions
 
-1. **Context line count configuration**: The default context is 3 lines (matching GitHub). Should this be user-configurable (e.g., a dropdown allowing 1, 3, 5, 10, or "all")? If so, where does the control live? For v1, a fixed default of 3 lines is assumed. Configuration can be added later.
+1. **Context line count configuration**: The default context is 3 lines (matching GitHub). Should this be user-configurable (e.g., selectable among 1, 3, 5, 10, or "all")? If so, where does that choice surface? For v1, a fixed default of 3 lines is assumed. Configuration can be added later.
 
 2. **Word-level diff highlighting**: GitHub highlights the specific changed words/characters within changed lines (intraline diff). Should this feature include word-level highlighting within added/removed lines, or is line-level highlighting sufficient for v1? Line-level is assumed for v1 to keep scope tight.
 
@@ -167,7 +167,7 @@ All diff view interactions — toggling diff mode, expanding collapsed sections,
 - **`FR-crp-line-comment-create`**: The comment creation interaction in diff view mirrors the existing file view interaction.
 - **`FR-crp-line-range-comment`**: Range commenting in diff view extends the existing range comment mechanism.
 - **`FR-crp-prompt-format`**: The diff-aware prompt format builds on the existing structured prompt format, adapting it for diff context.
-- **`FR-sc-file-api`**: The existing file-serving API endpoint is extended with a new `/api/file/head` endpoint to serve the git HEAD version.
+- **`FR-sc-file-api`**: The existing file-serving mechanism is extended to also provide the git HEAD version of a file. The specific endpoint design is an engineering decision.
 - **`FR-sc-auto-load-file`**: Diff view relies on the server-loaded file mechanism to know the file's path, which is needed to fetch the HEAD version.
 - **`NFR-crp-client-only`**: The diff computation must happen client-side. The server provides raw file content only.
 - **`NFR-crp-large-file-perf`**: The diff view must meet the same scrolling performance targets as the file view.

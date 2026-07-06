@@ -39,9 +39,9 @@ The following shared requirements apply identically on macOS:
 - `FR-crp-review-context-per-file` — Display per-file context
 - `FR-crp-review-context-collapsible` — Collapsible review context
 - `FR-crp-comment-summary` — All Comments summary view
-- `FR-crp-panel-resize` — Resizable file browser sidebar
+- `FR-crp-panel-resize` — Resizable file browser pane
 - `FR-crp-active-file-path` — Display active file path at top of code viewer
-- `FR-crp-file-tooltip` — File row tooltip with full path and metadata
+- `FR-crp-file-tooltip` — Reveal a file row's full path and metadata on demand
 - `FR-crp-file-reviewed-toggle` — Mark/unmark a file as reviewed
 - `FR-crp-file-reviewed-visual` — Visual distinction for reviewed files
 - `FR-crp-file-reviewed-grouping` — Review status within the directory tree
@@ -56,7 +56,7 @@ The following shared requirements apply identically on macOS:
 
 ### Modified on macOS
 
-- **`FR-crp-file-load`** — File loading behavior is the same (paste, upload, drag-and-drop), but macOS adds a native file open panel and Finder drag-and-drop. See `FR-crp-macos-file-open-panel` and `FR-crp-macos-drag-drop-finder`.
+- **`FR-crp-file-load`** — File loading behavior is the same (paste, upload, dragging files into the window), but macOS adds a native file open panel and the ability to load files directly from Finder. See `FR-crp-macos-file-open-panel` and `FR-crp-macos-drag-drop-finder`.
 
 - **`FR-crp-done-action`** — The Done action behavior is the same, but on macOS the auto-close is reliable (no platform restrictions like the web). See `FR-crp-macos-auto-close`.
 
@@ -66,7 +66,7 @@ The following shared requirements apply identically on macOS:
 
 - **`NFR-crp-browser-support`** — Not applicable. This is a native application, not a browser-based application.
 
-- **`NFR-crp-responsive-layout`** — Not applicable. The macOS app uses a native resizable window rather than a browser viewport. See `FR-crp-macos-window-management` for window sizing behavior.
+- **`NFR-crp-responsive-layout`** — Not applicable. The macOS app uses a native resizable window rather than a layout that must adapt to a variable display width. See `FR-crp-macos-window-management` for window sizing behavior.
 
 ## macOS-Specific Functional Requirements
 
@@ -95,7 +95,7 @@ The user can open files using the native macOS file open panel. The panel suppor
 
 ### `FR-crp-macos-drag-drop-finder` -- Drag and drop from Finder
 
-The user can drag one or more files from Finder and drop them onto the application window to load them. Drag-and-drop works on any valid drop target area within the window (consistent with the shared spec's drag-and-drop behavior). Files loaded via drag-and-drop use their actual file system path for display and prompt generation. A visual indicator shows when files are being dragged over a valid drop target.
+The user can drag one or more files from Finder and drop them onto the application window to load them. Loading by dragging works on any valid drop target area within the window (consistent with the shared spec's file-dragging behavior). Files loaded this way use their actual file system path for display and prompt generation. A visual indicator shows when files are being dragged over a valid drop target.
 
 ### `FR-crp-macos-clipboard` -- Native clipboard integration
 
@@ -115,11 +115,11 @@ The application can be launched by the CLI with a session ID to open directly in
 
 ### `FR-crp-macos-standalone-mode` -- Standalone mode without session
 
-When the application is launched without a session ID (for example, by opening it from Finder or the Dock), it opens in standalone mode. In standalone mode, the user loads files via the file open panel, paste, or drag-and-drop. The Copy button is the primary action; the Done button is not shown. This matches the standalone behavior described in the shared spec.
+When the application is launched without a session ID (for example, by opening it from Finder or the Dock), it opens in standalone mode. In standalone mode, the user loads files via the file open panel, paste, or by dragging files into the window. The Copy button is the primary action; the Done button is not shown. This matches the standalone behavior described in the shared spec.
 
 ### `FR-crp-macos-sandboxed-file-access` -- Secure file access
 
-When the application is distributed as a standalone bundle outside the App Store, it handles file access permissions appropriately. Files opened via the file open panel or drag-and-drop are accessible through the standard security mechanisms. The application does not require blanket file system access — it only accesses files the user has explicitly selected or the session directory. If a file cannot be read due to permissions, the application shows a clear error message.
+When the application is distributed as a standalone bundle outside the App Store, it handles file access permissions appropriately. Files opened via the file open panel or by dragging them into the window are accessible through the standard security mechanisms. The application does not require blanket file system access — it only accesses files the user has explicitly selected or the session directory. If a file cannot be read due to permissions, the application shows a clear error message.
 
 ### `FR-crp-macos-distribution` -- Application distribution
 
@@ -217,4 +217,4 @@ The application requires macOS 14 (Sonoma) or later. Users on earlier macOS vers
 
 3. **Session recovery on relaunch**: When the application quits with open session windows (e.g., due to a system restart), should it offer to reopen those sessions on next launch? This is deferred consistent with `NFR-crp-no-data-persistence`, but it is a natural future enhancement for the native app.
 
-4. **Homebrew cask naming**: The distribution mentions Homebrew cask as an installation method. The cask name and tap location are engineering/distribution decisions, but product should confirm the desired install experience (e.g., `brew install --cask shepherd`).
+4. **Homebrew cask naming**: The distribution mentions Homebrew cask as an installation method. The cask name and repository location are engineering/distribution decisions, but product should confirm the desired install experience (e.g., `brew install --cask shepherd`).

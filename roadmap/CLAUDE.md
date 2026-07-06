@@ -1,1 +1,1 @@
-@../.pdeq/roadmap/CLAUDE.md
+@../.pdeq/roadmap/AGENTS.md

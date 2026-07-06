@@ -1,1 +1,0 @@
-../../.pdeq/.claude/commands/migrate.md

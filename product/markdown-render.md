@@ -46,7 +46,7 @@ Non-markdown files continue to show only raw views (the rendered/raw toggle is h
 ### Functional Requirements
 
 #### `FR-mdr-detect-markdown` -- Detect markdown files for rendered view availability
-When a file is loaded, the application detects whether it is a markdown file by checking the file extension (case-insensitive). Recognized extensions are: `.md`, `.mdx`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`. This detection uses the same mechanism as the existing language detection in `FR-crp-syntax-highlight`, which already identifies Markdown as a supported language. When a markdown file is detected, the rendered/raw toggle becomes available. For non-markdown files, the toggle is not rendered in the DOM (hidden, not disabled — unlike the diff toggle which shows as disabled for paste/upload files per `FR-diff-mode-availability`).
+When a file is loaded, the application detects whether it is a markdown file by checking the file extension (case-insensitive). Recognized extensions are: `.md`, `.mdx`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`. This detection uses the same mechanism as the existing language detection in `FR-crp-syntax-highlight`, which already identifies Markdown as a supported language. When a markdown file is detected, the rendered/raw toggle becomes available. For non-markdown files, the toggle is not present at all (hidden, not disabled — unlike the diff toggle which shows as disabled for paste/upload files per `FR-diff-mode-availability`).
 
 #### `FR-mdr-render-toggle` -- Toggle between rendered and raw views
 The application provides a toggle control (e.g., a segmented button or icon toggle) that switches between "Raw" view (the existing syntax-highlighted code viewer) and "Rendered" view (the formatted HTML output). The toggle is located in the toolbar, adjacent to the existing File/Diff toggle. The default view for markdown files is **Raw** (consistent with the existing behavior — rendering is opt-in, not a surprise). The toggle state persists within the session but resets when a new file is loaded.
@@ -81,7 +81,7 @@ The identifiers must be **deterministic** — rendering the same markdown source
 
 #### `FR-mdr-rendered-comment-create` -- Create comments on rendered elements
 In the rendered view, the user can add inline comments anchored to specific rendered elements. The interaction model differs from the raw view's line-number-based clicking:
-- The user hovers over a rendered block element (paragraph, heading, list item, code block, table, blockquote, image). A subtle highlight and a comment icon appear on hover, indicating the element is commentable. Tables are commentable as a whole unit (not per-row); the comment anchors to the entire table element.
+- When the user directs attention to a rendered block element (paragraph, heading, list item, code block, table, blockquote, image), a subtle highlight and a comment affordance appear, indicating the element is commentable. Tables are commentable as a whole unit (not per-row); the comment anchors to the entire table element.
 - Clicking the comment icon (or the element itself, with a modifier key like Cmd/Ctrl+click) opens the inline comment editor anchored to that element.
 - The comment is associated with the element's stable identifier (`FR-mdr-element-id`).
 - Multiple comments can be attached to the same element.
@@ -141,13 +141,13 @@ The rendered view must scroll smoothly for markdown files up to 10,000 lines. Un
 The AST-level diff computation (parse both versions, diff the ASTs, compute word-level diffs for modified blocks) must complete within 1 second for files up to 5,000 lines. For files between 5,000 and 10,000 lines, the computation should complete within 3 seconds. A visual indication of computation in progress is shown. If the computation exceeds 5 seconds, the application cancels it and falls back to raw diff view with a message explaining that the file is too large for rendered diff.
 
 #### `NFR-mdr-xss-safety` -- Rendered markdown must be XSS-safe
-The markdown renderer must sanitize the HTML output to prevent cross-site scripting (XSS) attacks. This is especially important because markdown can contain embedded HTML blocks. The sanitization must strip: `<script>` tags, event handler attributes (e.g., `onclick`, `onerror`), `javascript:` URLs, and any other active content vectors. The sanitization must be applied *after* rendering but *before* insertion into the DOM. This is a security requirement, not a feature — it is not optional.
+The markdown renderer must sanitize the HTML output to prevent cross-site scripting (XSS) attacks. This is especially important because markdown can contain embedded HTML blocks. The sanitization must strip: `<script>` tags, event handler attributes (e.g., `onclick`, `onerror`), `javascript:` URLs, and any other active content vectors. The sanitization must be applied *after* rendering but *before* the output is inserted into the live view. This is a security requirement, not a feature — it is not optional.
 
 #### `NFR-mdr-client-only` -- Rendered view is client-side only
 Consistent with `NFR-crp-client-only`, all markdown rendering, AST diffing, and comment anchoring happen locally. No markdown content is sent to any external service.
 
 #### `NFR-mdr-accessibility` -- Rendered view accessibility
-The rendered view must be navigable via keyboard. Commentable elements must be focusable via Tab key. The comment icon must be reachable via keyboard (not hover-only). Screen readers must be able to read the rendered content. Diff annotations (added, removed) must be announced to screen readers using appropriate ARIA labels, not just communicated via color.
+The rendered view must be navigable via keyboard. Commentable elements must be reachable through keyboard navigation. The commenting affordance must be reachable via keyboard, not solely by pointer. Screen readers must be able to read the rendered content. Diff annotations (added, removed) must be announced to screen readers using appropriate ARIA labels, not just communicated via color.
 
 ## Acceptance Criteria
 
@@ -234,11 +234,11 @@ The rendered view must be navigable via keyboard. Commentable elements must be f
 ## Dependencies
 
 - **`FR-crp-syntax-highlight`**: The rendered view's fenced code blocks reuse the same syntax highlighting engine.
-- **`FR-crp-file-display`**: The rendered view occupies the same code viewer area and shares the layout (sidebar, toolbar).
+- **`FR-crp-file-display`**: The rendered view occupies the same code viewer area and shares the surrounding application layout.
 - **`FR-crp-line-comment-create`**: The rendered view's comment creation interaction is modeled after the existing line-comment interaction, adapted for element-based anchoring.
 - **`FR-crp-prompt-format`**: The rendered view's prompt generation follows the same structural format, with element-type annotations instead of line numbers.
 - **`FR-diff-mode-toggle`**: The rendered/raw toggle is independent of but adjacent to the File/Diff toggle. Both toggles coexist in the toolbar.
-- **`FR-diff-baseline-fetch`**: The rendered diff view requires the HEAD version, fetched via the same `/api/file/head` endpoint.
+- **`FR-diff-baseline-fetch`**: The rendered diff view requires the HEAD version, fetched through the same baseline-retrieval mechanism as the raw diff.
 - **`FR-diff-compute`**: The raw diff computation is unchanged. The rendered diff uses a higher-level AST diff but still relies on the baseline/working-copy data model.
 - **`NFR-crp-client-only`**: All rendering and diffing is client-side.
 - **`NFR-crp-large-file-perf`**: The rendered view must meet comparable scrolling performance targets.

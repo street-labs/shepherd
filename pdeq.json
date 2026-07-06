@@ -1,6 +1,35 @@
 {
-  "pdeqVersion": "0.2.0",
+  "pdeqVersion": "0.7.0",
   "specsRoot": ".",
   "codeRoot": ".",
-  "platforms": ["macos"]
+  "platforms": [
+    "macos"
+  ],
+  "harnesses": [
+    "claude"
+  ],
+  "laneAudit": {
+    "vendors": [],
+    "protocols": [],
+    "platforms": [],
+    "libraries": [],
+    "exclude": [
+      "macOS",
+      "Linux",
+      "Windows",
+      "JavaScript",
+      "TypeScript",
+      "Python",
+      "Go",
+      "Rust",
+      "Java",
+      "C",
+      "C++",
+      "HTML",
+      "CSS",
+      "JSON",
+      "YAML",
+      "Markdown"
+    ]
+  }
 }

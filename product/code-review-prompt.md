@@ -60,7 +60,7 @@ The user can load a file into the viewer by either pasting file content into a t
 The loaded file is displayed in a read-only viewer with sequential line numbers starting at 1. Each line is individually addressable (clickable). The viewer must preserve the original indentation, whitespace, and line breaks of the source file in a readable format suitable for code. By default, long lines wrap visually within the code content area (`FR-crp-line-wrap`). The user can toggle wrapping off to enable horizontal scrolling instead.
 
 #### `FR-crp-line-wrap` -- Toggle line wrapping in the code viewer
-The user can toggle line wrapping on or off in the code viewer. When line wrapping is enabled, long lines wrap visually within the code content area so that no horizontal scrollbar is needed for the code. Wrapped lines do not create new line numbers — each line number corresponds to a single logical line in the source file and appears only once, aligned to the first visual row of the wrapped content. The gutter (comment indicators) also aligns with the first visual row. Line wrapping does not affect commenting behavior — clicking on any visual row of a wrapped line targets the same logical line number. The toggle preference persists within the session (consistent with `NFR-crp-no-data-persistence`) — switching files and switching back does not reset the setting. The default state is wrapping ON (line wrapping enabled), so users can always read long lines without horizontal scrolling out of the box. When wrapping is disabled, the code content area uses horizontal scrolling for long lines. The gutter and line-number columns remain unaffected by the toggle.
+The user can toggle line wrapping on or off in the code viewer. When line wrapping is enabled, long lines wrap visually within the code content area so that horizontal scrolling is not needed for the code. Wrapped lines do not create new line numbers — each line number corresponds to a single logical line in the source file and appears only once, aligned to the first visual row of the wrapped content. The gutter (comment indicators) also aligns with the first visual row. Line wrapping does not affect commenting behavior — clicking on any visual row of a wrapped line targets the same logical line number. The toggle preference persists within the session (consistent with `NFR-crp-no-data-persistence`) — switching files and switching back does not reset the setting. The default state is wrapping ON (line wrapping enabled), so users can always read long lines without horizontal scrolling out of the box. When wrapping is disabled, the code content area uses horizontal scrolling for long lines. The gutter and line-number columns remain unaffected by the toggle.
 
 #### `FR-crp-syntax-highlight` -- Syntax highlighting
 The file viewer applies syntax highlighting based on the detected or specified language. The application must support at minimum these 13 languages: JavaScript, TypeScript, Python, Go, Rust, Java, C, C++, HTML, CSS, JSON, YAML, and Markdown. Multiple file extensions (e.g., `.js`, `.jsx`, `.mjs`, `.cjs`) may map to the same language. If the language cannot be detected, the file is displayed as plain text (the fallback) without highlighting.
@@ -110,7 +110,7 @@ The prompt does not include the full file content or line numbers. Instead, each
 When multiple files have comments, the format extends to include multiple file sections. See `FR-crp-multi-file-prompt-format` for the multi-file structure.
 
 #### `FR-crp-done-action` -- Done action that signals annotation is complete
-When the user clicks "Done", the combined multi-file prompt (same content as what Copy would produce) is sent to the local server for handoff back to the AI agent. The prompt is also copied to the system clipboard as a fallback. The Done button is only enabled when at least one inline comment exists on any file (same condition as the Copy button per `FR-crp-prompt-copy`). After a successful send, the application attempts to close its window. If the window cannot be closed (platform restrictions), the application shows a confirmation state indicating the prompt has been sent and instructs the user to switch back to the terminal. The Done button is only visible when the CRPG is running in slash command mode (served by the local server); when loaded standalone (paste/upload/drag-and-drop), the Done button is not shown and the Copy button remains the primary action.
+When the user clicks "Done", the combined multi-file prompt (same content as what Copy would produce) is sent to the local server for handoff back to the AI agent. The prompt is also copied to the system clipboard as a fallback. The Done button is only enabled when at least one inline comment exists on any file (same condition as the Copy button per `FR-crp-prompt-copy`). After a successful send, the application attempts to close its window. If the window cannot be closed (platform restrictions), the application shows a confirmation state indicating the prompt has been sent and instructs the user to switch back to the terminal. The Done button is only visible when the CRPG is running in slash command mode (served by the local server); when loaded standalone (paste/upload/file drop), the Done button is not shown and the Copy button remains the primary action.
 
 #### `FR-crp-prompt-handoff` -- Prompt handoff to agent via server
 When the Done action is triggered, the CRPG sends the generated prompt text to the local server for handoff back to the AI agent, including the session ID. The server writes this to the session-scoped output location (`~/.shepherd/sessions/<session-id>/prompt-output.md`). The transport mechanism is an engineering decision. This is only available in slash command mode, not when loaded standalone. If the handoff fails, the prompt is still copied to the clipboard and the user is informed to paste manually.
@@ -122,7 +122,7 @@ When the CRPG is launched via the slash command with a session ID, it displays t
 The user can clear the current session — removing ALL loaded files, all comments across all files, and the preamble — and return to the initial empty state. This is the "nuclear option" that resets everything. The application must ask for confirmation before clearing if any comments exist on any file. For removing an individual file without clearing the entire session, see `FR-crp-multi-file-remove`. Clearing a session affects only the current window's in-memory state. Other concurrent sessions (in other windows with different session IDs) are not affected.
 
 #### `FR-crp-filename-display` -- Display file name
-When a file is loaded via upload or drag-and-drop, the application displays the file name above or near the viewer. When content is pasted, the user can optionally provide a file name.
+When a file is loaded via upload or file drop, the application displays the file name above or near the viewer. When content is pasted, the user can optionally provide a file name.
 
 #### `FR-crp-line-range-comment` -- Comment on a range of lines
 The user can select a contiguous range of lines and attach a single comment to that range, rather than only a single line. The generated prompt must indicate the full line range for such comments.
@@ -131,10 +131,10 @@ The user can select a contiguous range of lines and attach a single comment to t
 The user can step through comments sequentially (next/previous) to review them in line order. Navigating to a comment scrolls the viewer to the relevant line and highlights it. Navigation wraps around: pressing "next" on the last comment navigates to the first comment, and pressing "previous" on the first comment navigates to the last comment.
 
 #### `FR-crp-multi-file-load` -- Load multiple files for review
-The user can load additional files into an existing session. Each file is loaded independently (paste, upload, drag-and-drop, or via the slash command API). Files accumulate in the session — loading a new file does not replace the current one. Each loaded file maintains its own set of comments, line numbers, and syntax highlighting independently. There is no hard limit on the number of files, but performance may degrade past 20 files (consistent with `NFR-crp-large-file-perf`).
+The user can load additional files into an existing session. Each file is loaded independently (paste, upload, file drop, or via the slash command API). Files accumulate in the session — loading a new file does not replace the current one. Each loaded file maintains its own set of comments, line numbers, and syntax highlighting independently. There is no hard limit on the number of files, but performance may degrade past 20 files (consistent with `NFR-crp-large-file-perf`).
 
 #### `FR-crp-multi-file-nav` -- Navigate between loaded files
-The application provides a file browser sidebar panel that presents all loaded files in a **nested directory tree** and lets the user switch between them. Files are organized under their parent directories, showing the full directory hierarchy. Directories are displayed as collapsible tree nodes; files are leaf nodes under their parent directory. The tree structure makes it immediately clear where each file is located — files with the same name in different directories (e.g., `src/utils/helpers.ts` and `lib/helpers.ts`) are naturally distinguished by their position in the tree. The currently active file is displayed in the main viewer. Switching files preserves all comments and state for the previously viewed file. Each file node in the tree must show: (a) the file name, (b) the number of comments on that file, and (c) which file is currently active (highlighted). Files loaded via paste (with no directory path) appear at the root level of the tree or under a "(pasted)" group. Directories can be collapsed and expanded to manage visual space; the collapse state persists during the session. The sidebar layout scales naturally to sessions with many files (10+) because nested directories keep the tree compact.
+The application provides a file navigator panel that presents all loaded files in a **nested directory tree** and lets the user switch between them. Files are organized under their parent directories, showing the full directory hierarchy. Directories are displayed as collapsible tree nodes; files are leaf nodes under their parent directory. The tree structure makes it immediately clear where each file is located — files with the same name in different directories (e.g., `src/utils/helpers.ts` and `lib/helpers.ts`) are naturally distinguished by their position in the tree. The currently active file is displayed in the main viewer. Switching files preserves all comments and state for the previously viewed file. Each file node in the tree must show: (a) the file name, (b) the number of comments on that file, and (c) which file is currently active (highlighted). Files loaded via paste (with no directory path) appear at the root level of the tree or under a "(pasted)" group. Directories can be collapsed and expanded to manage visual space; the collapse state persists during the session. The file navigator layout scales naturally to sessions with many files (10+) because nested directories keep the tree compact.
 
 #### `FR-crp-multi-file-remove` -- Remove a file from the session
 The user can remove an individual file from the session without clearing the entire session. Removing a file also removes all comments associated with it. If the removed file was the active file, the application switches to another loaded file (or returns to the empty state if no files remain). If the file has comments, a confirmation is shown before removal.
@@ -156,31 +156,31 @@ When the CRPG receives review context data (from the shepherd-review command), i
 Both parts are read-only — the user cannot edit them. They serve as reference material while the user adds their own inline comments.
 
 #### `FR-crp-review-context-overall` -- Display overall changeset context
-The CRPG displays an overall changeset summary (neutral context + review feedback) that applies to the entire review session, not tied to a specific file. This orients the user on the scope and purpose of the changes before they dive into individual files. The overall context is visible regardless of which file is active in the file browser.
+The CRPG displays an overall changeset summary (neutral context + review feedback) that applies to the entire review session, not tied to a specific file. This orients the user on the scope and purpose of the changes before they dive into individual files. The overall context is visible regardless of which file is active in the file navigator panel.
 
 #### `FR-crp-review-context-per-file` -- Display per-file context
 Each file displays context specific to that file (neutral context + review feedback). When the user switches files, the context updates to show the relevant file's context. Files without context data (e.g., files loaded via paste/upload/drag-drop that were not part of the shepherd-review invocation) simply don't show the context panel — no empty or placeholder state is needed.
 
-#### `FR-crp-review-context-collapsible` -- Collapsible review context in the sidebar
-The review context sections in the right sidebar (overall changeset context) must be collapsible and expandable, similar to the per-file context panel in the code viewer area. This allows users to reclaim vertical space in the sidebar when they don't need to reference the context. The collapse state must persist during the session — it should not reset when the user switches between file tabs. Each section (neutral context and review feedback) may collapse independently, or the entire sidebar context area may collapse as a unit — this is a design decision. The collapse/expand controls must be clearly visible and discoverable.
+#### `FR-crp-review-context-collapsible` -- Collapsible review context in the context area
+The review context sections in the review context area (overall changeset context) must be collapsible and expandable, similar to the per-file context panel in the code viewer area. This allows users to reclaim vertical space in the context area when they don't need to reference the context. The collapse state must persist during the session — it should not reset when the user switches between file tabs. Each section (neutral context and review feedback) may collapse independently, or the entire review context area may collapse as a unit — this is a design decision. The collapse/expand controls must be clearly visible and discoverable.
 
 #### `FR-crp-comment-summary` -- All Comments summary view
-The CRPG provides an "All Comments" summary view that shows every comment across all loaded files, organized by file. For each comment, the summary shows: the file name, the line number(s) or element reference, and the comment text. The summary is read-only — viewing only; editing happens in the file's code viewer. The summary updates in real-time as comments are added, edited, or deleted on any file. When no comments exist, the summary shows an appropriate empty state message (e.g., "No comments yet"). The summary is accessible from the sidebar area and can be toggled or accessed alongside the prompt preview. Files with zero comments are not listed in the summary.
+The CRPG provides an "All Comments" summary view that shows every comment across all loaded files, organized by file. For each comment, the summary shows: the file name, the line number(s) or element reference, and the comment text. The summary is read-only — viewing only; editing happens in the file's code viewer. The summary updates in real-time as comments are added, edited, or deleted on any file. When no comments exist, the summary shows an appropriate empty state message (e.g., "No comments yet"). The summary is accessible from the review context area and can be toggled or accessed alongside the prompt preview. Files with zero comments are not listed in the summary.
 
-#### `FR-crp-panel-resize` -- Resizable file browser sidebar
-The file browser sidebar panel (which presents loaded files in a directory tree) must be user-resizable by dragging its right edge. This allows the user to widen the panel to see longer file paths and directory names, or narrow it to give more space to the code viewer. The resize handle is positioned at the boundary between the file browser and the code viewer panel. The panel has a minimum width (to remain usable) and a maximum width (to ensure the code viewer retains enough space). The resize preference persists within the current session (consistent with `NFR-crp-no-data-persistence`). A quick-reset mechanism restores the panel to its default width. The resize interaction must be smooth with no visible layout jank.
+#### `FR-crp-panel-resize` -- Resizable file navigator
+The file navigator panel (which presents loaded files in a directory tree) must be user-resizable by dragging its right edge. This allows the user to widen the panel to see longer file paths and directory names, or narrow it to give more space to the code viewer. The resize handle is positioned at the boundary between the file navigator and the code viewer panel. The panel has a minimum width (to remain usable) and a maximum width (to ensure the code viewer retains enough space). The resize preference persists within the current session (consistent with `NFR-crp-no-data-persistence`). A quick-reset mechanism restores the panel to its default width. The resize interaction must be smooth with no visible layout jank.
 
 #### `FR-crp-active-file-path` -- Display active file path at top of code viewer
-When multiple files are loaded (multi-file mode), the full path of the currently active file is displayed at the top of the code viewer panel. This provides persistent context about which file the user is viewing and commenting on, without requiring them to look at the file browser sidebar. The path updates immediately when the user switches files. In single-file mode, the existing FileHeader already provides this context. The path display is read-only and non-interactive (not editable). When a file was loaded via paste with no file name, the path display shows "Untitled" (or the user-given name if one was provided).
+When multiple files are loaded (multi-file mode), the full path of the currently active file is displayed at the top of the code viewer panel. This provides persistent context about which file the user is viewing and commenting on, without requiring them to look at the file navigator panel. The path updates immediately when the user switches files. In single-file mode, the existing FileHeader already provides this context. The path display is read-only and non-interactive (not editable). When a file was loaded via paste with no file name, the path display shows "Untitled" (or the user-given name if one was provided).
 
-#### `FR-crp-file-tooltip` -- File row tooltip with full path and metadata
-When the user hovers over a file row in the file browser sidebar, a tooltip displays the full untruncated file path, the detected language, and the review status. This ensures the user can always read the complete path even when file names are truncated due to the sidebar width. For pasted files, the tooltip shows "Untitled" or the user-given name. This tooltip is essential because the sidebar has limited width and file names are commonly truncated.
+#### `FR-crp-file-tooltip` -- File row detail reveal with full path and metadata
+When the user points at or focuses a file row in the file navigator, a transient detail overlay reveals the full untruncated file path, the detected language, and the review status. This ensures the user can always read the complete path even when file names are truncated due to the file navigator's limited width. For pasted files, the detail overlay shows "Untitled" or the user-given name. This detail is essential because the file navigator has limited width and file names are commonly truncated.
 
 #### `FR-crp-file-reviewed-toggle` -- Mark/unmark a file as reviewed
-The user can toggle an individual file's review status between "unreviewed" (default) and "reviewed". This is a manual action — the application never automatically marks a file as reviewed. The toggle is available for every loaded file regardless of whether the file has comments, context data, or was loaded via any particular method (paste, upload, drag-drop, slash command, shepherd-review). In a single-file session, the toggle is still available but the grouping and progress features (`FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`) may have limited utility. The toggle mechanism is a design decision (could be a checkbox in the file browser, a button in the toolbar, a keyboard shortcut, or some combination), but it must be reachable without switching away from the current file.
+The user can toggle an individual file's review status between "unreviewed" (default) and "reviewed". This is a manual action — the application never automatically marks a file as reviewed. The toggle is available for every loaded file regardless of whether the file has comments, context data, or was loaded via any particular method (paste, upload, drag-drop, slash command, shepherd-review). In a single-file session, the toggle is still available but the grouping and progress features (`FR-crp-file-reviewed-grouping`, `FR-crp-file-reviewed-progress`) may have limited utility. The toggle mechanism is a design decision (could be a toggle control in the file navigator, a button in a toolbar, a keyboard shortcut, or some combination), but it must be reachable without switching away from the current file.
 
 #### `FR-crp-file-reviewed-visual` -- Visual distinction for reviewed files
-Files that are marked as reviewed must have a visually distinct treatment in the file browser sidebar. The visual treatment must be obvious at a glance — a user scanning the file browser should be able to instantly tell which files are reviewed and which are not without hovering or clicking. Possible treatments include (but are not limited to): a checkmark icon, muted/dimmed text, a different background color, or a strikethrough on the file name. The specific visual treatment is a design decision. The currently active file's entry still shows its reviewed/unreviewed state even while active.
+Files that are marked as reviewed must have a visually distinct treatment in the file navigator panel. The visual treatment must be obvious at a glance — a user scanning the file navigator panel should be able to instantly tell which files are reviewed and which are not without hovering or clicking. Possible treatments include (but are not limited to): a checkmark icon, muted/dimmed text, a different background color, or a strikethrough on the file name. The specific visual treatment is a design decision. The currently active file's entry still shows its reviewed/unreviewed state even while active.
 
 #### `FR-crp-file-reviewed-grouping` -- Review status within the directory tree
 Within each directory in the tree, unreviewed files should be prominently positioned. Reviewed files are visually distinguished from unreviewed files at their tree position — they are NOT moved to a separate "Reviewed" group. The directory tree structure is the primary organizational axis; review status is a secondary visual layer on top of it. The user can still click on a reviewed file to view it, add comments to it, or unmark it. When all files in a directory are reviewed, the directory node itself must show a reviewed indicator (e.g., a checkmark) so that a collapsed, fully-reviewed directory clearly communicates its status at a glance. The "To Review" / "Reviewed" section headers from the previous flat-list design are removed — they are replaced by the directory tree structure with per-file reviewed indicators.
@@ -205,17 +205,17 @@ Prompt generation must complete within 300ms for files up to 10,000 lines with u
 #### `NFR-crp-client-only` -- Client-side only architecture
 All processing happens locally — no file content or comments leave the user's machine. In slash command mode, the CRPG communicates with the local server for file loading (`FR-sc-file-api`) and prompt handoff (`FR-crp-prompt-handoff`). No data leaves the local machine.
 
-#### `NFR-crp-browser-support` -- Browser compatibility (web-specific; see `web/code-review-prompt.md`)
+#### `NFR-crp-browser-support` -- Runtime environment compatibility (web-specific; see `web/code-review-prompt.md`)
 The application must work in the latest stable versions of Chrome, Firefox, Safari, and Edge.
 
 #### `NFR-crp-responsive-layout` -- Responsive layout (web-specific; see `web/code-review-prompt.md`)
-The application must be usable on viewports from 1024px wide and above. Below 1024px, the application may show a message recommending a wider viewport. It is not required to support mobile.
+The application must be usable at or above a minimum supported display width. Below that width, the application may show a message recommending a wider display area. It is not required to support mobile.
 
 #### `NFR-crp-accessibility-keyboard` -- Keyboard accessibility
 Core workflows (load file, add comment, generate prompt, copy prompt) must be achievable via keyboard alone without requiring mouse interaction.
 
 #### `NFR-crp-no-data-persistence` -- No data persistence requirement
-The application is not required to persist sessions across page reloads in this initial version. Session data is held in memory only. This is an explicit scoping decision. Sessions are now identifiable via a session ID (see `FR-sc-session-id`), but the session ID is used only for routing (URL-based window targeting) and prompt handoff (writing to the session-scoped output path). The session ID does not enable persistence — all in-browser state (loaded files, comments, preamble) is still lost on page reload.
+The application is not required to persist sessions across page reloads in this initial version. Session data is held in memory only. This is an explicit scoping decision. Sessions are now identifiable via a session ID (see `FR-sc-session-id`), but the session ID is used only for routing (URL-based window targeting) and prompt handoff (writing to the session-scoped output path). The session ID does not enable persistence — all in-memory state (loaded files, comments, preamble) is still lost on page reload.
 
 ## Acceptance Criteria
 
@@ -262,7 +262,7 @@ The application is not required to persist sessions across page reloads in this 
 **Given** a file is loaded but no comments exist, **when** the user clicks the clear/reset button, **then** the session clears immediately without a confirmation dialog.
 
 #### `AC-crp-empty-state` -- Empty state displays load instructions
-**Given** no file is loaded, **when** the user first opens the application, **then** the viewer area displays instructions for how to load a file (paste, upload, or drag-and-drop), and the copy button is disabled.
+**Given** no file is loaded, **when** the user first opens the application, **then** the viewer area displays instructions for how to load a file (paste, upload, or file drop), and the copy button is disabled.
 
 #### `AC-crp-large-file-scroll` -- Large file scrolls without jank
 **Given** a file with 10,000 lines is loaded, **when** the user scrolls through the viewer, **then** scrolling is smooth with no visible stutter or frame drops exceeding 200ms.
@@ -292,7 +292,7 @@ The application is not required to persist sessions across page reloads in this 
 **Given** no inline comments exist, **then** the Done button is disabled (same condition as the Copy button).
 
 #### `AC-crp-done-standalone-hidden` -- Done button hidden in standalone mode
-**Given** the CRPG is not running in slash command mode (e.g., loaded via paste/upload/drag-and-drop, no local server), **then** the Done button is not shown. The Copy button remains the primary action.
+**Given** the CRPG is not running in slash command mode (e.g., loaded via paste/upload/file drop, no local server), **then** the Done button is not shown. The Copy button remains the primary action.
 
 #### `AC-crp-multi-file-load-adds` -- Loading a second file adds it to the session
 **Given** a file "utils.ts" is loaded, **when** the user uploads "helpers.ts", **then** both files are available in the session, and the user can switch between them.
@@ -325,10 +325,10 @@ The application is not required to persist sessions across page reloads in this 
 **Given** only one file is loaded, **when** the user removes it, **then** the application returns to the initial empty state.
 
 #### `AC-crp-file-path-display` -- Directory tree distinguishes same-named files
-**Given** two files with the same name but different directories are loaded (e.g., `src/utils/helpers.ts` and `lib/helpers.ts`), **when** the user views the file browser sidebar, **then** the files appear under their respective directory nodes in the tree, making them immediately distinguishable by their position in the hierarchy.
+**Given** two files with the same name but different directories are loaded (e.g., `src/utils/helpers.ts` and `lib/helpers.ts`), **when** the user views the file navigator, **then** the files appear under their respective directory nodes in the tree, making them immediately distinguishable by their position in the hierarchy.
 
 #### `AC-crp-file-path-single-dir` -- Directory tree shown for files in a single directory
-**Given** all loaded files reside in the same directory, **when** the user views the file browser sidebar, **then** the files appear under that directory node in the tree. The directory structure is always shown regardless of whether multiple directories are present.
+**Given** all loaded files reside in the same directory, **when** the user views the file navigator, **then** the files appear under that directory node in the tree. The directory structure is always shown regardless of whether multiple directories are present.
 
 #### `AC-crp-context-overall-visible` -- Overall changeset context is visible
 **Given** the CRPG is opened via shepherd-review with context data, **when** the user views any file, **then** an overall changeset context section is visible showing both neutral context and review feedback with visually distinct styling.
@@ -348,11 +348,11 @@ The application is not required to persist sessions across page reloads in this 
 #### `AC-crp-context-readonly` -- Context is read-only
 **Given** context is displayed (neutral or review feedback), **then** the user cannot edit the neutral context or review feedback text. They are read-only reference material.
 
-#### `AC-crp-context-sidebar-collapse` -- Sidebar review context can be collapsed and expanded
-**Given** the CRPG is opened via shepherd-review with context data, **when** the user clicks the collapse control on the sidebar review context, **then** the context content collapses to just a header bar. Clicking again expands it back. The collapse state survives tab switches — switching to another file and back does not reset the collapse state.
+#### `AC-crp-context-sidebar-collapse` -- Review context area can be collapsed and expanded
+**Given** the CRPG is opened via shepherd-review with context data, **when** the user clicks the collapse control on the review context area, **then** the context content collapses to just a header bar. Clicking again expands it back. The collapse state survives tab switches — switching to another file and back does not reset the collapse state.
 
 #### `AC-crp-overall-comment-label` -- Overall Comment field labeling
-**Given** the sidebar is visible, **then** the field formerly labeled "Preamble" is now labeled "Overall Comment" with a description or placeholder text indicating that it applies to all files in the session and will be included at the top of the generated prompt.
+**Given** the review context area is visible, **then** the field formerly labeled "Preamble" is now labeled "Overall Comment" with a description or placeholder text indicating that it applies to all files in the session and will be included at the top of the generated prompt.
 
 #### `AC-crp-overall-comment-in-prompt` -- Overall Comment appears once in multi-file prompt
 **Given** the user has typed text in the Overall Comment field and added inline comments on two files, **when** the prompt is generated, **then** the overall comment text appears once at the top of the prompt in the "Instructions" section, not duplicated per file.
@@ -367,13 +367,13 @@ The application is not required to persist sessions across page reloads in this 
 **Given** no comments exist on any file, **when** the user views the All Comments summary area, **then** a message like "No comments yet" is shown instead of an empty list.
 
 #### `AC-crp-file-mark-reviewed` -- Marking a file changes its visual state
-**Given** a file is loaded and currently unreviewed, **when** the user marks it as reviewed, **then** the file's entry in the file browser sidebar immediately displays the reviewed visual treatment (e.g., checkmark, muted styling) at its current position in the directory tree. The file remains in its directory position and does not move to a separate group.
+**Given** a file is loaded and currently unreviewed, **when** the user marks it as reviewed, **then** the file's entry in the file navigator immediately displays the reviewed visual treatment (e.g., checkmark, muted styling) at its current position in the directory tree. The file remains in its directory position and does not move to a separate group.
 
 #### `AC-crp-file-unmark-reviewed` -- User can unmark a reviewed file
 **Given** a file is marked as reviewed, **when** the user toggles its reviewed status again, **then** the file returns to the unreviewed visual state at its current position in the directory tree. This confirms the reviewed status is a toggle, not a one-way action.
 
 #### `AC-crp-file-reviewed-grouping` -- Reviewed files shown with indicators in the directory tree
-**Given** 5 files are loaded across multiple directories and 2 are marked as reviewed, **then** the file browser sidebar shows all files in their directory tree positions. Within each directory, unreviewed files appear before reviewed files. Reviewed files have visual indicators (checkmark, muted text) distinguishing them from unreviewed files. There are no separate "To Review" / "Reviewed" section headers.
+**Given** 5 files are loaded across multiple directories and 2 are marked as reviewed, **then** the file navigator shows all files in their directory tree positions. Within each directory, unreviewed files appear before reviewed files. Reviewed files have visual indicators (checkmark, muted text) distinguishing them from unreviewed files. There are no separate "To Review" / "Reviewed" section headers.
 
 #### `AC-crp-file-reviewed-progress-count` -- Progress indicator shows correct count
 **Given** 7 files are loaded and 3 have been marked as reviewed, **then** the progress indicator shows "3/7" (or equivalent). **When** the user marks a 4th file as reviewed, **then** the indicator updates to "4/7". **When** the user unmarks one file, **then** it updates to "3/7". **When** the user removes a reviewed file from the session, **then** it updates to "2/6". **When** the user adds a new file, **then** it updates to "2/7" (new files default to unreviewed).
@@ -387,38 +387,38 @@ The application is not required to persist sessions across page reloads in this 
 #### `AC-crp-file-reviewed-clear-session` -- Clear session resets reviewed statuses
 **Given** 3 files are marked as reviewed, **when** the user clears the session (per `FR-crp-clear-session`), **then** all files are removed and all reviewed statuses are discarded. If the user then loads new files, they all start as unreviewed.
 
-#### `AC-crp-panel-resize-drag` -- File browser sidebar can be resized by dragging
-**Given** two or more files are loaded and the file browser sidebar is visible, **when** the user clicks and drags the right edge of the file browser, **then** the sidebar width changes smoothly following the mouse, and the code viewer panel adjusts to fill the remaining space.
+#### `AC-crp-panel-resize-drag` -- File navigator can be resized by dragging
+**Given** two or more files are loaded and the file navigator is visible, **when** the user clicks and drags the right edge of the file navigator, **then** the file navigator width changes smoothly following the mouse, and the code viewer panel adjusts to fill the remaining space.
 
 #### `AC-crp-panel-resize-bounds` -- Resize respects minimum and maximum width
-**Given** the user is dragging the file browser resize handle, **when** they drag below the minimum width, **then** the sidebar stops shrinking and stays at the minimum. **When** they drag beyond the maximum width, **then** the sidebar stops growing and stays at the maximum. The code viewer always retains enough width to be usable.
+**Given** the user is dragging the file navigator resize handle, **when** they drag below the minimum width, **then** the file navigator stops shrinking and stays at the minimum. **When** they drag beyond the maximum width, **then** the file navigator stops growing and stays at the maximum. The code viewer always retains enough width to be usable.
 
 #### `AC-crp-panel-resize-double-click` -- Double-click resets to default width
-**Given** the file browser sidebar has been resized to a non-default width, **when** the user triggers the quick-reset mechanism, **then** the sidebar returns to its default width.
+**Given** the file navigator has been resized to a non-default width, **when** the user triggers the quick-reset mechanism, **then** the file navigator returns to its default width.
 
 #### `AC-crp-panel-resize-persists` -- Resize preference persists within the session
-**Given** the user resizes the file browser to 350px, **when** they switch between files, **then** the file browser remains at 350px. Consistent with `NFR-crp-no-data-persistence`, the width resets to default on page reload.
+**Given** the user resizes the file navigator to a custom width, **when** they switch between files, **then** the file navigator remains at that custom width. Consistent with `NFR-crp-no-data-persistence`, the width resets to default on page reload.
 
-#### `AC-crp-panel-resize-keyboard` -- File browser sidebar can be resized via keyboard
-**Given** keyboard focus is on the resize handle, **when** the user presses left/right arrow keys, **then** the sidebar width adjusts in fixed increments. Pressing Home/End sets the sidebar to its minimum/maximum width. The handle exposes `role="separator"` with current value attributes for assistive technology.
+#### `AC-crp-panel-resize-keyboard` -- File navigator can be resized via keyboard
+**Given** keyboard focus is on the resize handle, **when** the user presses left/right arrow keys, **then** the file navigator width adjusts in fixed increments. Pressing Home/End sets the file navigator to its minimum/maximum width. The handle exposes `role="separator"` with current value attributes for assistive technology.
 
 #### `AC-crp-active-file-path-visible` -- Active file path is displayed at top of code viewer in multi-file mode
 **Given** two or more files are loaded and the user is viewing `src/components/FileBrowser.tsx`, **then** the full path `src/components/FileBrowser.tsx` is displayed at the top of the code viewer panel, above the code content.
 
 #### `AC-crp-active-file-path-switches` -- File path updates when switching files
-**Given** the active file path shows `src/utils/helpers.ts`, **when** the user clicks on a different file in the file browser, **then** the path immediately updates to show the new file's path.
+**Given** the active file path shows `src/utils/helpers.ts`, **when** the user clicks on a different file in the file navigator, **then** the path immediately updates to show the new file's path.
 
 #### `AC-crp-active-file-path-single-file` -- File path header not shown in single-file mode
 **Given** only one file is loaded, **then** the existing FileHeader is shown (not the new path header). The active file path header only appears in multi-file mode (when two or more files are loaded).
 
-#### `AC-crp-file-tooltip-full-path` -- Hovering over a file row shows full path in tooltip
-**Given** a file `src/components/deeply/nested/VeryLongComponentName.tsx` is loaded, **when** the user hovers over its row in the file browser sidebar, **then** a tooltip appears showing the full path, detected language, and review status (e.g., "src/components/deeply/nested/VeryLongComponentName.tsx — TypeScript").
+#### `AC-crp-file-tooltip-full-path` -- Pointing at a file row reveals full path
+**Given** a file `src/components/deeply/nested/VeryLongComponentName.tsx` is loaded, **when** the user points at or focuses its row in the file navigator, **then** a detail overlay reveals the full path, detected language, and review status (e.g., "src/components/deeply/nested/VeryLongComponentName.tsx — TypeScript").
 
-#### `AC-crp-file-tooltip-reviewed` -- Tooltip reflects review status
-**Given** a file is marked as reviewed, **when** the user hovers over its file row, **then** the tooltip includes the review status (e.g., "src/utils.ts — TypeScript — Reviewed").
+#### `AC-crp-file-tooltip-reviewed` -- Detail overlay reflects review status
+**Given** a file is marked as reviewed, **when** the user points at or focuses its file row, **then** the detail overlay includes the review status (e.g., "src/utils.ts — TypeScript — Reviewed").
 
-#### `AC-crp-line-wrap-toggle` -- Enabling line wrapping removes horizontal scrollbar
-**Given** a file with long lines is loaded, **when** the user enables line wrapping, **then** long lines wrap within the code content area and no horizontal scrollbar appears for the code.
+#### `AC-crp-line-wrap-toggle` -- Enabling line wrapping removes horizontal scrolling
+**Given** a file with long lines is loaded, **when** the user enables line wrapping, **then** long lines wrap within the code content area and no horizontal scrolling is needed for the code.
 
 #### `AC-crp-line-wrap-preserves-line-numbers` -- Wrapped lines retain a single line number
 **Given** line wrapping is enabled and a long line wraps to 3 visual rows, **then** only one line number is displayed (aligned to the first visual row) and the next logical line's number follows correctly (no gaps, no duplicated numbers).
@@ -438,13 +438,13 @@ The application is not required to persist sessions across page reloads in this 
 
 2. **~~Multi-file support~~** (Resolved): Multi-file support is now included in this spec. See `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-multi-file-prompt`, and `FR-crp-multi-file-prompt-format`.
 
-3. **Session persistence**: Should sessions survive a page reload (e.g., via localStorage)? This PRD explicitly defers persistence (`NFR-crp-no-data-persistence`), but it is a natural v2 candidate.
+3. **Session persistence**: Should sessions survive a page reload (e.g., via on-device persistent storage)? This PRD explicitly defers persistence (`NFR-crp-no-data-persistence`), but it is a natural v2 candidate.
 
 4. **Diff view mode**: Should the tool support viewing a diff (two versions of a file) rather than a single file? This is deferred for now but could align well with the "code review" metaphor.
 
 5. **Prompt template customization**: Should advanced users be able to edit the prompt template itself (e.g., change section headers, reorder sections, add custom instructions)? Deferred to a future iteration.
 
-6. **File loading from URL or GitHub**: Should the tool support loading a file directly from a URL or GitHub repo? This PRD scopes to local-only loading (paste, upload, drag-and-drop).
+6. **File loading from URL or GitHub**: Should the tool support loading a file directly from a URL or GitHub repo? This PRD scopes to local-only loading (paste, upload, file drop).
 
 7. **Maximum file size**: `NFR-crp-large-file-perf` sets a 10,000-line target. Should we enforce a hard upper limit (e.g., 50,000 lines) beyond which the file is rejected?
 
@@ -452,9 +452,9 @@ The application is not required to persist sessions across page reloads in this 
 
 9. **Per-file preamble**: Should users be able to add per-file instructions in addition to the global preamble? V1 assumes a single global preamble only.
 
-10. **Maximum file count**: Should there be a hard limit on the number of files that can be loaded? V1 has no hard limit but acknowledges performance may degrade past 20 files. The file browser sidebar handles larger file counts much better than the previous tab bar approach, since it uses vertical scrolling rather than horizontal compression, but very large sessions (50+ files) may still warrant a limit or lazy-rendering strategy.
+10. **Maximum file count**: Should there be a hard limit on the number of files that can be loaded? V1 has no hard limit but acknowledges performance may degrade past 20 files. The file navigator handles larger file counts much better than the previous tab bar approach, since it uses vertical scrolling rather than horizontal compression, but very large sessions (50+ files) may still warrant a limit or lazy-rendering strategy.
 
-11. **~~Review context layout placement~~** (Resolved): The file browser sidebar provides a natural home for overall changeset context (e.g., in a collapsible section above the file list). Per-file context is displayed alongside the code viewer when a file is selected. The sidebar + code viewer + prompt panel form a three-column layout. This three-column layout has implications for screen real estate on smaller viewports (see `NFR-crp-responsive-layout`, which already sets a 1024px minimum). Design should determine whether the sidebar collapses, overlays, or uses a different treatment at narrower widths within the supported range.
+11. **~~Review context layout placement~~** (Resolved): The file navigator provides a natural home for overall changeset context (e.g., in a collapsible section above the file list). Per-file context is displayed alongside the code viewer when a file is selected. The file navigator + code viewer + prompt panel form a three-column layout. This three-column layout has implications for screen real estate at narrower widths (see `NFR-crp-responsive-layout`, which already sets a minimum supported width). Design should determine whether the file navigator collapses, overlays, or uses a different treatment at narrower widths within the supported range.
 
 ## Dependencies
 

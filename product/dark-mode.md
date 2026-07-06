@@ -23,7 +23,7 @@ The CRPG currently renders in a fixed light color scheme with no theming system.
 **As a** developer, **I want** the app to switch themes automatically when I change my OS appearance setting (while the app is on "system" mode), **so that** the app stays in sync without a page reload.
 
 ### US-dm-5: All surfaces are themed consistently
-**As a** developer, **I want** every part of the UI (code viewer, toolbar, sidebar, comment bubbles, drop zone, diff view, dialogs) to respect the active theme, **so that** there are no jarring light-on-dark or dark-on-light mismatches.
+**As a** developer, **I want** every visible surface of the app to respect the active theme, **so that** there are no jarring light-on-dark or dark-on-light mismatches.
 
 ## Requirements
 
@@ -44,12 +44,12 @@ When the active theme selection is "system", the application listens for OS pref
 #### `FR-dm-full-surface-coverage` -- Theme applies to all UI surfaces
 The active theme must be applied to every visual surface of the application, including but not limited to:
 - **Toolbar**: background, text, icons, button states
-- **Code viewer**: background, line numbers, gutter indicators, hover/selection highlights
+- **Code viewer**: background, line numbers, gutter indicators, emphasis and selection states
 - **Syntax highlighting**: Syntax highlighting must switch between appropriate light and dark variants
 - **Comment bubbles**: background, text, border, action button states
 - **Inline comment editor**: input background, border, placeholder text, buttons
 - **Sidebar**: preamble input, prompt preview panel, section headers
-- **Drop zone**: background, border, icon, instructional text, drag-hover state
+- **Drop zone**: background, border, icon, instructional text, active drag-target state
 - **Diff view**: added-line backgrounds, removed-line backgrounds, context lines, collapsed section separators
 - **Dialogs**: confirmation dialogs (clear session, switch mode), backdrop
 - **Scrollbars**: styled scrollbars must adapt to the active theme
@@ -113,13 +113,13 @@ The theming system must not degrade existing performance benchmarks. Specificall
 **Given** a TypeScript file is loaded and the app is in light mode, **when** the user views the code, **then** syntax highlighting uses a light-appropriate color palette with all tokens clearly visible against the light background.
 
 #### `AC-dm-all-surfaces-themed` -- Every UI surface respects the theme
-**Given** the app is in dark mode with a file loaded, comments placed, and the sidebar open, **when** the user inspects every visible surface (toolbar, code viewer, comment bubbles, gutter, sidebar, prompt preview, preamble input), **then** all surfaces use dark mode colors with no light-mode holdouts.
+**Given** the app is in dark mode with a file loaded, comments placed, and the full workspace displayed, **when** the user inspects every visible surface, **then** all surfaces use dark mode colors with no light-mode holdouts.
 
 #### `AC-dm-diff-view-themed` -- Diff view respects the theme
 **Given** the app is in dark mode and diff view is active, **when** the user inspects the diff view, **then** added-line backgrounds, removed-line backgrounds, context lines, collapsed section separators, and line numbers all use dark-mode-appropriate colors that remain distinguishable.
 
 #### `AC-dm-drop-zone-themed` -- Drop zone respects the theme
-**Given** the app is in dark mode with no file loaded, **when** the user views the drop zone empty state, **then** the drop zone background, border, icon, and text use dark mode colors. **When** the user drags a file over the drop zone, **then** the drag-hover state also uses dark mode colors.
+**Given** the app is in dark mode with no file loaded, **when** the user views the drop zone empty state, **then** the drop zone background, border, icon, and text use dark mode colors. **When** the user drags a file over the drop zone, **then** the active drag-target state also uses dark mode colors.
 
 #### `AC-dm-dialog-themed` -- Dialogs respect the theme
 **Given** the app is in dark mode and the user has placed comments, **when** the user clicks Clear and the confirmation dialog appears, **then** the dialog background, text, buttons, and backdrop overlay all use dark mode colors.

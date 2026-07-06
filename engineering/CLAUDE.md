@@ -1,1 +1,1 @@
-@../.pdeq/engineering/CLAUDE.md
+@../.pdeq/engineering/AGENTS.md
