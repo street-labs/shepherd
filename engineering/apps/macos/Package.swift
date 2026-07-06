@@ -151,6 +151,16 @@ let package = Package(
             ],
             swiftSettings: warningsAsErrors
         ),
+        // Demo screenshot capture (gated by CAPTURE_DEMOS=1; see scripts/capture-demos.sh).
+        .testTarget(
+            name: "DemoCaptureTests",
+            dependencies: [
+                "AppFeature",
+                "SharedModels",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+            ]
+        ),
         .testTarget(
             name: "FileBrowserFeatureTests",
             dependencies: [
