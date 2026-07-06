@@ -1622,7 +1622,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/code-review-prompt.md`
 - **Design**: `design/macos/code-review-prompt.md`
 - **Engineering**: `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-per-file-switches`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-per-file-initial`, `TC-crp-macos-context-per-file-switches`
 
 ### `AC-crp-context-overall-visible`
 - **Defined in**: `product/code-review-prompt.md`
@@ -1945,7 +1945,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/macos/code-review-prompt.md`
 - **Design**: `design/macos/code-review-prompt.md`
 - **Engineering**: `engineering/macos/code-review-prompt.md`
-- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-window-multi-session`, `TC-crp-macos-window-restore-geometry`, `TC-crp-macos-window-min-size`, `TC-crp-macos-close-last-window-keeps-running`
+- **QA**: `qa/macos/code-review-prompt.md` -> `TC-crp-macos-window-multi-session`, `TC-crp-macos-window-restore-geometry`, `TC-crp-macos-window-min-size`, `TC-crp-macos-window-fits-screen`, `TC-crp-macos-close-last-window-keeps-running`
 
 ### `FR-crp-macos-menu-bar`
 - **Defined in**: `product/macos/code-review-prompt.md`

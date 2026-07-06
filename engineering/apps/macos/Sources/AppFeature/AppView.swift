@@ -12,6 +12,7 @@ import ReviewContextFeature
 /// Conditional layout: empty -> FileDropZone, 1 file -> HSplitView, 2+ -> NavigationSplitView
 public struct AppView: View {
     @Bindable public var store: StoreOf<AppFeature>
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     public init(store: StoreOf<AppFeature>) {
         self.store = store
@@ -22,7 +23,12 @@ public struct AppView: View {
             if store.files.isEmpty {
                 FileDropZoneView(store: store)
             } else if store.isMultiFile {
+                // Force the sidebar column visible. With the default `.automatic`
+                // visibility, the file-browser column intermittently launches collapsed
+                // (the sidebar appears empty even though the file tree is populated).
+                // Pinning `columnVisibility` to `.all` keeps it reliably on screen.
                 NavigationSplitView(
+                    columnVisibility: $columnVisibility,
                     sidebar: {
                         FileBrowserView(
                             store: store.scope(state: \.fileBrowser, action: \.fileBrowser),

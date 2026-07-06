@@ -391,6 +391,61 @@ This log provides **historical context for how the project evolved** — why cho
 **Consequences**: `install-command.sh` now creates symlinks in `~/.pi/agent/prompts/` alongside the Claude Code and opencode targets. Running `./scripts/install-command.sh` (or re-running with `--force`) wires up all three harnesses. README, CLAUDE.md, and the macOS slash-command engineering spec document pi as a supported target.
 **Slug references**: (none — extends the existing install mechanism; no new slugs)
 
+## Bound the macOS window's ideal size (fix off-screen review windows)
+**Context**: `/shepherd-review` windows opened thousands of points tall with their
+bottom far below the screen, and the code viewer would not scroll. Root cause: the
+code viewer is a `ScrollView` whose ideal height equals its content (the whole file).
+Because each session gets its own `setFrameAutosaveName` key, every review run is a
+"first launch" with no remembered frame, so SwiftUI sized the new window to the content's
+ideal — i.e. the full file height.
+**Decision**: Bound the root `AppView`'s ideal frame (`idealHeight: 800`, `maxHeight: .infinity`)
+and set `.defaultSize(width: 1280, height: 800)` on the `WindowGroup` in `ShepherdApp.swift`.
+Windows now open at a usable on-screen size, the code viewer scrolls normally, and windows
+stay freely resizable with per-session geometry restoration intact.
+**Alternatives considered**: capping the code viewer's height directly (rejected — the window
+should own its size, not the content); removing the per-session autosave (rejected — it is a
+real feature and not the root cause). Traceability: `FR-crp-macos-window-management`,
+regression test `TC-crp-macos-window-fits-screen`.
+## Per-file review context shows for the initially-active file
+**Context**: The per-file review-context panel only appeared after the user switched
+files. Root cause: `activeFileContextUpdated` was sent only from
+`fileBrowser.fileSelected`, never for the file made active during `filesLoaded`, so on
+launch the initially-active file had no context pushed.
+**Decision**: Added a shared `activeFileContextEffect(state:)` helper in `AppFeature` that
+resolves the active file's per-file context and pushes it. It runs both on `filesLoaded`
+(so the first file shows its context immediately) and on `fileSelected` (unchanged
+behavior). Traceability: `FR-crp-review-context-per-file`, regression test
+`TC-crp-macos-context-per-file-initial`.
+## Window sizing via scene .defaultSize (not a frame around AppView) + force sidebar visible
+**Update to the window-sizing decision above.** The first implementation wrapped `AppView`
+in a bounding `.frame(...)`. Since `AppView` is a `NavigationSplitView` in multi-file mode,
+wrapping it in a frame collapses the sidebar column (file browser renders empty). Revised to
+constrain the window at the **scene** level with `.defaultSize(1280x800)` +
+`.windowResizability(.contentMinSize)` — verified to bound a fresh long-file window to
+1280x800 without touching the split view's layout.
+**Sidebar visibility.** Separately, the multi-file `NavigationSplitView` intermittently
+launched with its sidebar collapsed (empty file list despite a populated tree — a
+long-standing SwiftUI rendering quirk, cf. the earlier "render reliably" / "row ghosting"
+fixes). Pinned `columnVisibility` to `.all` via `@State` in `AppView` to keep the sidebar
+reliably visible. Traceability: `FR-crp-multi-file-nav`.
+## CORRECTED: giant review window = uncapped overall review-context section (not content-driven window sizing)
+**Supersedes the two window-sizing entries above.** Deeper investigation (reproduced with
+instrumentation) found the real cause of the multi-thousand-point window was NOT the code
+viewer's content height. It was `ReviewContextSectionView` (the overall changeset context in
+the inspector), which rendered agent-review text with no height cap. Long review text grew
+that view unbounded → grew the inspector column → forced the window taller than the screen
+(measured >50,000pt). SwiftUI continuously resizes a WindowGroup window to fit content's
+minimum, so window-level clamps / minSize overrides / setFrame all lose — AppKit re-grows the
+window. Fix is at the view: cap it in `ScrollView { … }.frame(maxHeight: 220)`, mirroring the
+per-file panel's 200pt cap.
+Also from this session:
+- `.windowResizability(.contentMinSize)` was tried and REJECTED — it ties window min to
+  content min, reintroducing the bug. Kept only `.defaultSize(1280x800)` at the scene level.
+- Blank-until-resize: a fresh SwiftUI window stays blank until first resized; `WindowClient`
+  nudges the window 1pt on launch (~200ms) to force the layout pass.
+- Sidebar defensively pinned to `columnVisibility: .all`.
+Traceability: `FR-crp-macos-window-management`, `FR-crp-review-context-overall`.
+
 <!--
 Entry template:
 

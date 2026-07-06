@@ -252,6 +252,7 @@ public struct AppFeature {
                 return .merge(
                     .send(.rebuildFileTree),
                     .send(.regeneratePrompt),
+                    activeFileContextEffect(state: state),
                     highlightActiveFile(state: state)
                 )
 
@@ -391,12 +392,8 @@ public struct AppFeature {
 
             case let .fileBrowser(.fileSelected(fileID)):
                 state.activeFileID = fileID
-                // Update per-file review context
-                if let filePath = state.files[id: fileID]?.filePath {
-                    let context = state.reviewContextData?.files[filePath]
-                    return .send(.reviewContext(.activeFileContextUpdated(context)))
-                }
-                return .send(.reviewContext(.activeFileContextUpdated(nil)))
+                // Update per-file review context for the newly-active file.
+                return activeFileContextEffect(state: state)
 
             case let .fileBrowser(.toggleFileReviewed(fileID)):
                 state.files[id: fileID]?.isReviewed.toggle()
@@ -522,6 +519,17 @@ public struct AppFeature {
             .send(.rebuildFileTree),
             .send(.regeneratePrompt)
         )
+    }
+
+    /// Push the currently-active file's per-file review context to the ReviewContext
+    /// feature. Used both when a file is selected and when files first load, so the
+    /// context panel appears for the initially-active file — not only after the user
+    /// switches files. Resolves to `nil` (panel hidden) when there is no context for
+    /// the active file or no active file.
+    /// Implements: FR-crp-review-context-per-file
+    private func activeFileContextEffect(state: State) -> Effect<Action> {
+        let context = state.activeFile?.filePath.flatMap { state.reviewContextData?.files[$0] }
+        return .send(.reviewContext(.activeFileContextUpdated(context)))
     }
 
     private func highlightActiveFile(state: State) -> Effect<Action> {
