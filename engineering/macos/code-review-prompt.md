@@ -908,6 +908,13 @@ struct SessionFeature {
 
 Manages the per-file review context display state.
 
+**Initial-file context contract.** The active file's per-file context is pushed to this
+feature via `activeFileContextUpdated` from a shared `AppFeature.activeFileContextEffect`
+helper, which runs both when a file is selected in the browser (`fileSelected`) **and** when
+files first load (`filesLoaded`). Pushing it on `filesLoaded` is required — otherwise the
+initially-active file has no context and the panel only appears after the user switches
+files and comes back.
+
 **Collapse binding contract.** Both the per-file panel and the overall inspector
 section render their collapsible container with a SwiftUI `DisclosureGroup` bound to
 an `isExpanded` binding derived from `!isCollapsed`. The collapse action is
@@ -1205,6 +1212,45 @@ extension WindowClient: DependencyKey {
     )
 }
 ```
+
+#### Window sizing, rendering, and the review-context height cap (`FR-crp-macos-window-management`)
+
+Three distinct defects made the review-flow window unusable. They were diagnosed and fixed
+separately; all three must hold for the window to behave.
+
+**1. Oversized window — the overall review-context section had no height cap.**
+The single biggest cause was **not** the code viewer. `ReviewContextSectionView` (the overall
+changeset context in the inspector) rendered its agent-review text with no height bound. A
+long review grows that view without limit, which grows the inspector column, which forces the
+whole window taller than the screen (measured >50,000pt with a long review). SwiftUI actively
+resizes a `WindowGroup` window to fit its content's minimum, so **no window-level clamp,
+`minSize` override, or `setFrame` can win** — AppKit/SwiftUI immediately re-grows the window.
+The fix is at the **view**: wrap the section's content in `ScrollView { … }.frame(maxHeight:
+220)`, mirroring the per-file `ReviewContextPanelView`'s existing 200pt cap. Long context now
+scrolls internally instead of inflating the window.
+
+**2. Sane initial size — `.defaultSize`.** The scene sets
+`.defaultSize(width: 1280, height: 800)`. The constraint is applied at the **scene** level, not
+by wrapping `AppView` in a `.frame(...)`: in multi-file mode `AppView` is a
+`NavigationSplitView`, and wrapping that in a bounding frame collapses its sidebar column.
+`.windowResizability(.contentMinSize)` was tried and **rejected** — it ties the window's
+minimum to the content's minimum, which reintroduces defect 1.
+
+**3. Blank-until-resize — a launch nudge.** A freshly created SwiftUI window (most reliably
+when the root view swaps to a `NavigationSplitView` as session data loads asynchronously) can
+stay blank — empty sidebar *and* content — until the user first resizes it. `WindowClient`
+nudges the window width by 1pt and back ~200ms after launch, which triggers the same layout
+pass the manual resize does.
+
+**Sidebar visibility.** Defensively, the multi-file `NavigationSplitView` pins
+`columnVisibility` to `.all` via `@State`, so the file-browser column is never left collapsed
+on launch (`FR-crp-multi-file-nav`).
+
+## Code Map
+
+| Slug | Planned location | Status |
+|---|---|---|
+| FR-crp-macos-window-management | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/Dependencies/WindowClient.swift | implemented |
 
 ---
 

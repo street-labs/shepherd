@@ -162,7 +162,7 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
 | `FR-crp-review-context-receive` | `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-graceful-missing` | Not started |
 | `FR-crp-review-context-display` | `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-neutral-vs-review` | Not started |
 | `FR-crp-review-context-overall` | `TC-crp-macos-context-overall-visible`, `TC-crp-macos-context-sidebar-collapse` | Not started |
-| `FR-crp-review-context-per-file` | `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-per-file-switches` | Not started |
+| `FR-crp-review-context-per-file` | `TC-crp-macos-context-per-file-visible`, `TC-crp-macos-context-per-file-initial`, `TC-crp-macos-context-per-file-switches` | Not started |
 | `FR-crp-review-context-collapsible` | `TC-crp-macos-context-sidebar-collapse` | Not started |
 | `FR-crp-comment-summary` | `TC-crp-macos-comment-summary-shows-all`, `TC-crp-macos-comment-summary-realtime`, `TC-crp-macos-comment-summary-empty` | Not started |
 | `FR-crp-panel-resize` | `TC-crp-macos-panel-resize-drag`, `TC-crp-macos-panel-resize-min-max`, `TC-crp-macos-panel-resize-double-click-reset` | Not started |
@@ -173,7 +173,7 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
 | `FR-crp-file-reviewed-grouping` | `TC-crp-macos-reviewed-grouping-tree` | Not started |
 | `FR-crp-file-reviewed-progress` | `TC-crp-macos-reviewed-progress-count` | Not started |
 | `FR-crp-file-reviewed-persistence` | `TC-crp-macos-reviewed-survives-tab-switch`, `TC-crp-macos-reviewed-clear-session-resets` | Not started |
-| `FR-crp-macos-window-management` | `TC-crp-macos-window-multi-session`, `TC-crp-macos-window-restore-geometry`, `TC-crp-macos-window-min-size`, `TC-crp-macos-close-last-window-keeps-running` | Not started |
+| `FR-crp-macos-window-management` | `TC-crp-macos-window-multi-session`, `TC-crp-macos-window-restore-geometry`, `TC-crp-macos-window-min-size`, `TC-crp-macos-window-fits-screen`, `TC-crp-macos-close-last-window-keeps-running` | Not started |
 | `FR-crp-macos-menu-bar` | `TC-crp-macos-menu-copy-disabled`, `TC-crp-macos-menu-shortcuts-displayed`, `TC-crp-macos-menu-standard-items` | Not started |
 | `FR-crp-macos-keyboard-shortcuts` | `TC-crp-macos-keyboard-open-file`, `TC-crp-macos-keyboard-copy-prompt`, `TC-crp-macos-keyboard-close-window`, `TC-crp-macos-keyboard-undo-redo` | Not started |
 | `FR-crp-macos-file-open-panel` | `TC-crp-macos-load-open-panel-single`, `TC-crp-macos-load-open-panel-multi` | Not started |
@@ -1091,6 +1091,18 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
 
 ---
 
+#### `TC-crp-macos-context-per-file-initial` -- Per-file context shows for the initially-active file on launch
+- **Type**: Unit
+- **Traces**: `FR-crp-review-context-per-file`, `AC-crp-context-per-file-visible`
+- **Preconditions**: A multi-file shepherd-review session where the first (initially-active) file has per-file context data.
+- **Steps**:
+  1. Launch the app into the session.
+  2. Without selecting any file in the browser, observe the ReviewContextPanel for the initially-active file.
+- **Expected**: The per-file context panel is visible for the initially-active file immediately on launch — the user does not have to switch to another file and back to make it appear. Regression guard for the defect where per-file context was only pushed on `fileSelected`, never for the initial file loaded via `filesLoaded`.
+- **Status**: Not started
+
+---
+
 #### `TC-crp-macos-context-per-file-switches` -- Per-file context updates when switching files
 - **Type**: Unit
 - **Traces**: `FR-crp-review-context-per-file`, `AC-crp-context-per-file-switches`
@@ -1229,6 +1241,19 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
 - **Steps**:
   1. Attempt to resize the window to very small dimensions by dragging the corner.
 - **Expected**: The window stops resizing at a minimum size where all panels (file browser, code viewer, inspector sidebar) remain usable. The window cannot be made smaller than this minimum.
+- **Status**: Not started
+
+---
+
+#### `TC-crp-macos-window-fits-screen` -- New window opens at a usable on-screen size regardless of file length
+- **Type**: Manual
+- **Traces**: `FR-crp-macos-window-management`
+- **Preconditions**: No remembered window geometry exists for the session (a fresh session ID, e.g. a new `/shepherd-review` run). Prepare a review session whose active file is long (several hundred lines or more).
+- **Steps**:
+  1. Launch the app into the session so the long file is the active file.
+  2. Observe the window's initial size and position.
+  3. Two-finger (trackpad) scroll and mouse-wheel scroll the code viewer to the last line.
+- **Expected**: The window opens fully on-screen at a usable default size (its height does not exceed the visible screen, and its bottom edge is visible). The code viewer scrolls to the bottom of the file. The window remains freely resizable. Regression guard for the defect where the window was sized to the full content height, opening thousands of points tall with its bottom off-screen and nothing to scroll.
 - **Status**: Not started
 
 ---

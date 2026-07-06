@@ -814,6 +814,7 @@ Displays the overall changeset context in the Inspector Sidebar. Implements `FR-
   - Both sections are read-only.
   - The collapse state persists during the session -- switching files does not reset it (`AC-crp-context-sidebar-collapse`).
   - This section is visible regardless of which file is active (`FR-crp-review-context-overall`).
+  - **Height bound**: When expanded, the content area grows with content up to a maximum of roughly 220pt, then scrolls internally. This mirrors the per-file ReviewContextPanel's height bound and guarantees a long agent review cannot inflate the Inspector Sidebar (and, with it, the whole window) beyond the screen.
 
 ---
 
