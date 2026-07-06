@@ -4,6 +4,17 @@ A native macOS app for giving your AI coding agent feedback on its work. Annotat
 
 > **Status:** early. Shepherd is a small, focused tool that we use daily; expect rough edges.
 
+## Demo
+
+> _Screenshots coming soon._ Drop PNGs into [`docs/demos/`](docs/demos/) and uncomment the block below.
+
+<!-- Suggested shots — capture from the running macOS app:
+![Annotating a file with inline comments](docs/demos/annotate.png)
+![Reviewing a branch: the agent's self-review beside each diff (/shepherd-review)](docs/demos/shepherd-review.png)
+![Diff view against git HEAD](docs/demos/diff.png)
+![Rendered markdown review](docs/demos/markdown.png)
+-->
+
 ## What It Does
 
 AI coding agents produce a lot of code, fast. The bottleneck is *feedback* — telling the agent what to change, precisely, in context. Shepherd makes that loop tight: open the files the agent touched, mark them up like a code review, and export a structured prompt the agent can act on directly.
@@ -18,15 +29,30 @@ AI coding agents produce a lot of code, fast. The bottleneck is *feedback* — t
 - **Structured prompt** — Export your comments paired with the exact code they refer to, ready to hand back to the agent
 - **Local** — A native macOS app; your code stays on your machine
 
-### Slash command
+### Two ways to use it
 
-Open a file straight from Claude Code:
+**Open a single file** — straight from Claude Code:
 
 ```
 /shepherd path/to/file.ts
 ```
 
-Opens the file in Shepherd, ready to annotate. Supports diff view against git HEAD. `/shepherd-review` opens the whole changeset of the current branch.
+Opens the file in Shepherd, ready to annotate. Supports diff view against git HEAD.
+
+**Review a whole change — with the agent's own review already attached:**
+
+```
+/shepherd-review
+```
+
+This is the core loop. `/shepherd-review` takes the changeset of your current branch (vs. `main`) and:
+
+1. **Discovers and filters** the changed files — skipping the noise (lockfiles, generated code, binaries) so you only see meaningful, human-relevant changes.
+2. **Has the agent review its own work.** For each file it generates two kinds of context: a *neutral* description of what changed, and the agent's own *review feedback* — its opinions, concerns, and suggestions about the change it just made. The two are shown as visually distinct sections, so you always know which is the agent's self-critique.
+3. **Opens everything in one session** — every reviewable file as a tab, each diff sitting next to the agent's self-review. You read the agent's take, add your own comments where you disagree or want changes, and skip the files you don't care about.
+4. **Exports one prompt.** Click **Done** once and Shepherd produces a single structured prompt covering every file you commented on — your feedback paired with the exact code — ready to hand straight back to the agent.
+
+The result: instead of eyeballing a raw diff and typing vague prose back at your agent, you review *with* the agent's self-assessment in front of you and hand back precise, in-context instructions.
 
 ## Install
 
