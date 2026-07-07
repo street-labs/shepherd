@@ -178,6 +178,42 @@ struct AppFeatureTests {
         }
     }
 
+    // Implements: AC-crp-binary-file-rejected
+    @Test("Binary / non-text file surfaces a Cannot Open File alert")
+    func fileErrorBinaryAlert() async {
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.exhaustivity = .off
+        await store.send(.filesReadCompleted([.failed(name: "image.png", reason: .notText)])) {
+            $0.alert = AlertState {
+                TextState("Cannot Open File")
+            } actions: {
+                ButtonState(role: .cancel) { TextState("OK") }
+            } message: {
+                TextState("This file does not appear to contain text. Only plain-text files are supported.")
+            }
+        }
+    }
+
+    // Implements: AC-crp-macos-file-permission-error
+    @Test("Permission-denied file surfaces a Cannot Read File alert")
+    func fileErrorPermissionAlert() async {
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.exhaustivity = .off
+        await store.send(.filesReadCompleted([.failed(name: "secret.txt", reason: .permissionDenied)])) {
+            $0.alert = AlertState {
+                TextState("Cannot Read File")
+            } actions: {
+                ButtonState(role: .cancel) { TextState("OK") }
+            } message: {
+                TextState("The file could not be read. Check that the application has permission to access this file.")
+            }
+        }
+    }
+
     @Test("Remove file without comments removes immediately")
     func removeFileNoComments() async {
         let fileID = UUID()

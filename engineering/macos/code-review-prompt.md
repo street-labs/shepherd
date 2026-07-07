@@ -990,11 +990,19 @@ struct FileClient {
     var readFile: @Sendable (URL) async throws -> (String, String, URL)
     /// Check if a file is binary by scanning for null bytes in the first 8192 bytes.
     var isBinaryFile: @Sendable (URL) async throws -> Bool
-    /// Read all files from a list of URLs. Filters out binary files.
-    var readFiles: @Sendable ([URL]) async throws -> [(content: String, name: String, url: URL)]
+    /// Read all files from a list of URLs, reporting a per-file outcome
+    /// (`.loaded` / `.failed(reason:)`) rather than silently dropping bad files,
+    /// so the reducer can surface a native alert per the design's error states.
+    var readFiles: @Sendable ([URL]) async throws -> [FileReadResult]
     /// Read session data from the session directory.
     var readSessionData: @Sendable (String) async throws -> SessionData
 }
+
+// Per-file outcome + failure reasons. `FileLoadFailureReason` carries the exact
+// native-alert title/message from the design spec's error states. On completion the
+// reducer partitions the results: `.loaded` -> file nodes, `.failed` -> one alert
+// (a single failure uses the per-reason wording; several are listed together).
+// Implements: AC-crp-binary-file-rejected, AC-crp-macos-file-permission-error
 
 extension FileClient: DependencyKey {
     static let liveValue = FileClient(
@@ -1011,7 +1019,9 @@ extension FileClient: DependencyKey {
             return data.prefix(scanLength).contains(0x00)
         },
         readFiles: { urls in
-            // Implementation filters binary files, reads each valid file
+            // Per URL: read bytes (mapping permission errors to .permissionDenied,
+            // other read errors to .readFailed), null-byte/UTF-8 check -> .notText,
+            // otherwise .loaded. Returns one FileReadResult per input URL.
             // ...
         },
         readSessionData: { sessionID in

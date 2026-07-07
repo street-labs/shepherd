@@ -110,6 +110,7 @@ public struct AppFeature {
         // File loading
         case filesDropped([URL])
         case fileOpenPanelRequested
+        case filesReadCompleted([FileReadResult])
         case filesLoaded([LoadedFile])
         case pasteFileFromClipboard
 
@@ -230,11 +231,23 @@ public struct AppFeature {
             case let .filesDropped(urls):
                 return .run { [fileClient] send in
                     let results = try await fileClient.readFiles(urls)
-                    let mapped = results.map { LoadedFile(content: $0.content, name: $0.name, url: $0.url) }
-                    await send(.filesLoaded(mapped))
-                } catch: { _, _ in
-                    // Silently ignore file load errors for drag-and-drop
+                    await send(.filesReadCompleted(results))
+                } catch: { _, send in
+                    // Unexpected batch-level failure (per-file errors are reported
+                    // as .failed results above, not thrown). Surface a generic error.
+                    await send(.filesReadCompleted([.failed(name: "", reason: .readFailed)]))
                 }
+
+            // Implements: FR-crp-macos-sandboxed-file-access, AC-crp-binary-file-rejected, AC-crp-macos-file-permission-error
+            case let .filesReadCompleted(results):
+                let loaded = results.compactMap { result -> LoadedFile? in
+                    guard case let .loaded(content, name, url) = result else { return nil }
+                    return LoadedFile(content: content, name: name, url: url)
+                }
+                if let alert = fileErrorAlert(for: results) {
+                    state.alert = alert
+                }
+                return loaded.isEmpty ? .none : .send(.filesLoaded(loaded))
 
             case .fileOpenPanelRequested:
                 // The view handles the NSOpenPanel; results come back as filesDropped
@@ -540,6 +553,37 @@ public struct AppFeature {
             .send(.rebuildFileTree),
             .send(.regeneratePrompt)
         )
+    }
+
+    /// Build a native alert describing files that failed to load. One failure uses the
+    /// design's exact per-reason wording; multiple failures are listed in one alert.
+    /// Returns nil when nothing failed. Implements: AC-crp-binary-file-rejected, AC-crp-macos-file-permission-error
+    private func fileErrorAlert(for results: [FileReadResult]) -> AlertState<Action.Alert>? {
+        let failures: [(name: String, reason: FileLoadFailureReason)] = results.compactMap {
+            guard case let .failed(name, reason) = $0 else { return nil }
+            return (name, reason)
+        }
+        guard !failures.isEmpty else { return nil }
+
+        if failures.count == 1 {
+            let reason = failures[0].reason
+            return AlertState {
+                TextState(reason.alertTitle)
+            } actions: {
+                ButtonState(role: .cancel) { TextState("OK") }
+            } message: {
+                TextState(reason.alertMessage)
+            }
+        }
+
+        let list = failures.map { "• \($0.name): \($0.reason.shortLabel)" }.joined(separator: "\n")
+        return AlertState {
+            TextState("Some Files Couldn't Be Opened")
+        } actions: {
+            ButtonState(role: .cancel) { TextState("OK") }
+        } message: {
+            TextState(list)
+        }
     }
 
     private func removeFile(id: FileNode.ID, state: inout State) -> Effect<Action> {
