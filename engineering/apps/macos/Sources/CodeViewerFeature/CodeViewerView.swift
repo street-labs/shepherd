@@ -11,6 +11,10 @@ public struct CodeViewerView: View {
     let lineWrapEnabled: Bool
     let commentStore: StoreOf<CommentFeature>
 
+    /// Prebuilt syntax-highlighted lines for `file`, rebuilt when the file or its
+    /// tokens change. Empty until highlighting completes (renders plain until then).
+    @State private var lineAttributedStrings: [AttributedString] = []
+
     public init(
         store: StoreOf<CodeViewerFeature>,
         file: FileNode,
@@ -49,6 +53,8 @@ public struct CodeViewerView: View {
                             LineView(
                                 lineNumber: lineNumber,
                                 content: line,
+                                attributed: lineAttributedStrings.indices.contains(index)
+                                    ? lineAttributedStrings[index] : nil,
                                 hasComment: hasComment,
                                 isSelected: isInSelection,
                                 isFocused: store.focusedLine == lineNumber,
@@ -111,6 +117,17 @@ public struct CodeViewerView: View {
                     }
                 }
             }
+            // Build highlighted lines on appear and whenever the file switches or its
+            // syntax tokens arrive (highlighting completes asynchronously).
+            .task(id: file.id) { rebuildHighlighting() }
+            .onChange(of: store.syntaxTokens) { _, _ in rebuildHighlighting() }
         }
+    }
+
+    private func rebuildHighlighting() {
+        lineAttributedStrings = buildLineAttributedStrings(
+            content: file.content,
+            tokens: store.syntaxTokens
+        )
     }
 }

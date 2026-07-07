@@ -22,6 +22,9 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
         .package(url: "https://github.com/pointfreeco/swift-identified-collections", from: "1.1.0"),
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
+        // Syntax highlighting: ChimeHQ SwiftTreeSitter runtime + per-language grammars.
+        .package(url: "https://github.com/ChimeHQ/SwiftTreeSitter", from: "0.24.0"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-json", exact: "0.24.8"),
     ],
     targets: [
         // MARK: - Shared Models
@@ -40,8 +43,13 @@ let package = Package(
             dependencies: [
                 "SharedModels",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+                .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
+                .product(name: "TreeSitterJSON", package: "tree-sitter-json"),
             ],
             path: "Sources/Dependencies",
+            resources: [
+                .copy("Resources/queries"),
+            ],
             swiftSettings: warningsAsErrors
         ),
 
@@ -147,6 +155,7 @@ let package = Package(
             name: "AppFeatureTests",
             dependencies: [
                 "AppFeature",
+                "ShepherdDependencies",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
             swiftSettings: warningsAsErrors

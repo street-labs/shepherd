@@ -1488,39 +1488,36 @@ struct ShepherdCommands: Commands {
 
 ## Syntax Highlighting Strategy
 
-Syntax highlighting uses **SwiftTreeSitter** (a Swift wrapper around TreeSitter) for native, high-performance parsing.
+Syntax highlighting uses **ChimeHQ/SwiftTreeSitter** (the maintained Swift binding for TreeSitter) plus the per-language TreeSitter grammar C packages, driven by each grammar's `highlights.scm` query.
 
 ### Architecture
 
+The highlighter (`SyntaxHighlighter` in `ShepherdDependencies`, behind the `SyntaxHighlightClient` dependency) maps a `SyntaxLanguage` to its grammar entry point and a vendored `highlights.scm` query (bundled under `Sources/Dependencies/Resources/queries/<lang>.scm`). It parses the source, runs the highlights query, resolves predicates, and maps each capture name (e.g. `string.special.key`) to a coarse `SyntaxToken.TokenType` carrying a `String.Index` range. Compiled `Language`+`Query` pairs are cached per language (compiling a query is expensive) behind a `LockIsolated`.
+
 ```swift
-/// Singleton highlighter that manages TreeSitter parsers.
-/// Runs highlighting on a background thread to avoid blocking the main actor.
-actor TreeSitterHighlighter {
-    static let shared = TreeSitterHighlighter()
-
-    /// Cache of loaded language parsers.
-    private var parsers: [SyntaxLanguage: Parser] = [:]
-
-    /// Highlight content and return syntax tokens.
-    func highlight(_ content: String, language: SyntaxLanguage) -> [SyntaxToken] {
-        guard language != .plaintext else { return [] }
-
-        let parser = getOrCreateParser(for: language)
-        guard let tree = parser.parse(content) else { return [] }
-
-        // Walk the syntax tree and produce tokens
-        var tokens: [SyntaxToken] = []
-        // ... tree traversal producing SyntaxToken array
-        return tokens
+enum SyntaxHighlighter {
+    static func highlight(_ content: String, language: SyntaxLanguage) -> [SyntaxToken] {
+        guard let compiled = compiled(for: language) else { return [] } // cached Language + Query
+        let parser = Parser(); try? parser.setLanguage(compiled.language)
+        guard let tree = parser.parse(content), let root = tree.rootNode else { return [] }
+        let matches = compiled.query.execute(node: root, in: tree)
+                                    .resolve(with: Predicate.Context(string: content))
+        // each capture: name -> TokenType, NSRange -> String.Index range -> SyntaxToken
+        // (tokens sorted broad-first so narrower captures win on overlap at render time)
+        ...
     }
 }
 ```
 
+### Rendering
+
+`buildLineAttributedStrings(content:tokens:)` (in `CodeViewerFeature`) converts the absolute-range tokens into one colored `AttributedString` per source line, clipping multi-line tokens to each line via a binary-search line lookup. `CodeViewerView` rebuilds this array when the file or its tokens change and passes each line to `LineView`, which renders the prebuilt attributed text — falling back to plain text before highlighting completes or for `.plaintext`. A `TokenType -> Color` map (`SyntaxTheme`) supplies the colors.
+
 ### Performance
 
-- **Background execution**: All TreeSitter parsing runs in a `Task.detached` context (off the main actor) to avoid blocking UI rendering (`NFR-crp-render-time`).
+- **Background execution**: Highlighting runs inside the parent reducer's `.run` effect (off the main actor) and returns tokens via `codeViewer(.syntaxHighlightingCompleted:)`, so it does not block UI rendering (`NFR-crp-render-time`).
 - **Incremental parsing**: For future optimization, TreeSitter supports incremental re-parsing when file content changes. Not needed for v1 since files are read-only.
-- **Parser caching**: Language parsers are created once and reused. The `TreeSitterHighlighter` actor manages the parser lifecycle.
+- **Language/Query caching**: Compiled `Language`+`Query` pairs are created once per language and cached (behind a `LockIsolated`); a fresh `Parser` is used per call.
 - **Token caching**: Syntax tokens for each file are cached in `CodeViewerFeature.State.syntaxTokens`. When the user switches files, previously computed tokens are restored from `FileNode`-scoped storage (managed by the parent reducer) rather than re-parsed.
 - **Progressive rendering**: The code viewer displays plain text immediately and applies syntax highlighting tokens as they become available. The text with line numbers is visible within 500ms (`NFR-crp-render-time`); syntax coloring appears shortly after.
 

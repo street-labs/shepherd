@@ -19,9 +19,8 @@ public struct SyntaxHighlightClient: Sendable {
 
 extension SyntaxHighlightClient: DependencyKey {
     public static let liveValue = SyntaxHighlightClient(
-        highlight: { _, _ in
-            // TreeSitter integration deferred. Returns empty tokens (plain text).
-            []
+        highlight: { content, language in
+            SyntaxHighlighter.highlight(content, language: language)
         }
     )
 

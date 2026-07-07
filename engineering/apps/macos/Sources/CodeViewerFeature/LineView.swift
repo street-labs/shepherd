@@ -4,6 +4,9 @@ import SwiftUI
 public struct LineView: View {
     let lineNumber: Int
     let content: String
+    /// Prebuilt syntax-highlighted text for this line. Falls back to plain `content`
+    /// when nil/empty (plaintext files, or before highlighting completes).
+    let attributed: AttributedString?
     let hasComment: Bool
     let isSelected: Bool
     let isFocused: Bool
@@ -12,6 +15,7 @@ public struct LineView: View {
     public init(
         lineNumber: Int,
         content: String,
+        attributed: AttributedString? = nil,
         hasComment: Bool = false,
         isSelected: Bool = false,
         isFocused: Bool = false,
@@ -19,10 +23,18 @@ public struct LineView: View {
     ) {
         self.lineNumber = lineNumber
         self.content = content
+        self.attributed = attributed
         self.hasComment = hasComment
         self.isSelected = isSelected
         self.isFocused = isFocused
         self.lineWrapEnabled = lineWrapEnabled
+    }
+
+    private var codeText: Text {
+        if let attributed, !attributed.characters.isEmpty {
+            return Text(attributed)
+        }
+        return Text(content)
     }
 
     public var body: some View {
@@ -46,13 +58,13 @@ public struct LineView: View {
             // Implements: FR-crp-line-wrap
             Group {
                 if lineWrapEnabled {
-                    Text(content)
+                    codeText
                         .textSelection(.enabled)
                         .padding(.leading, 8)
                     Spacer(minLength: 0)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        Text(content)
+                        codeText
                             .textSelection(.enabled)
                             .fixedSize(horizontal: true, vertical: false)
                             .padding(.leading, 8)
