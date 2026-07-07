@@ -13,6 +13,7 @@ import ReviewContextFeature
 public struct AppView: View {
     @Bindable public var store: StoreOf<AppFeature>
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var isDropTargeted = false
 
     public init(store: StoreOf<AppFeature>) {
         self.store = store
@@ -57,10 +58,22 @@ public struct AppView: View {
             ToolbarView(store: store)
         }
         .navigationTitle(store.session.windowTitle)
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+        // Highlight the window as a valid drop target while files are dragged over
+        // it (loaded state; the empty state has its own zone). Implements: FR-crp-macos-drag-drop-finder
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers: providers)
             return true
         }
+        .overlay {
+            if isDropTargeted && !store.files.isEmpty {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Color.accentColor, lineWidth: 3)
+                    .padding(2)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.12), value: isDropTargeted)
         .alert($store.scope(state: \.alert, action: \.alert))
         .onAppear {
             store.send(.windowAppeared)

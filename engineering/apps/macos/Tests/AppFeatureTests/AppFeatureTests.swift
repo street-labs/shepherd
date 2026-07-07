@@ -149,6 +149,35 @@ struct AppFeatureTests {
         }
     }
 
+    // Implements: FR-crp-comment-navigation
+    @Test("Navigating comments sets focused comment and viewer focused line")
+    func commentNavigationFocusesLine() async {
+        let fileID = UUID()
+        let c1 = SharedModels.Comment(fileID: fileID, startLine: 5, endLine: 5, text: "a")
+        let c2 = SharedModels.Comment(fileID: fileID, startLine: 20, endLine: 20, text: "b")
+        let store = TestStore(initialState: AppFeature.State(
+            files: [FileNode(id: fileID, name: "f.ts", content: String(repeating: "x\n", count: 30))],
+            allComments: [c1, c2],
+            activeFileID: fileID
+        )) {
+            AppFeature()
+        } withDependencies: {
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        // First "next" with no current focus -> first comment (line 5), viewer scrolls there.
+        await store.send(.comment(.navigateComment(.next))) {
+            $0.comment.focusedCommentID = c1.id
+            $0.codeViewer.focusedLine = 5
+        }
+        // Next -> second comment (line 20).
+        await store.send(.comment(.navigateComment(.next))) {
+            $0.comment.focusedCommentID = c2.id
+            $0.codeViewer.focusedLine = 20
+        }
+    }
+
     @Test("Remove file without comments removes immediately")
     func removeFileNoComments() async {
         let fileID = UUID()

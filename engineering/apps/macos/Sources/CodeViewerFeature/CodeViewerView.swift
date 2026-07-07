@@ -102,6 +102,15 @@ public struct CodeViewerView: View {
                     proxy.scrollTo(file.scrollOffset, anchor: .top)
                 }
             }
+            // Scroll to the focused line when comment navigation (or a comment-summary
+            // tap) moves focus. Implements: FR-crp-comment-navigation
+            .onChange(of: store.focusedLine) { _, newValue in
+                if let line = newValue {
+                    withAnimation {
+                        proxy.scrollTo(line, anchor: .center)
+                    }
+                }
+            }
         }
     }
 }

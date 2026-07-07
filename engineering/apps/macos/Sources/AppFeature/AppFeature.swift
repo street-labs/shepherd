@@ -473,6 +473,9 @@ public struct AppFeature {
                 }
                 if let next = nextComment {
                     state.comment.focusedCommentID = next.id
+                    // Drive the viewer to scroll to and highlight the target line.
+                    // Implements: FR-crp-comment-navigation
+                    state.codeViewer.focusedLine = next.startLine
                 }
                 return .none
 
@@ -480,10 +483,12 @@ public struct AppFeature {
                 return .none
 
             case let .inspector(.commentSummaryCommentTapped(commentID)):
-                // Navigate to the file containing this comment
+                // Navigate to the file containing this comment, then scroll to and
+                // highlight its line. Implements: FR-crp-comment-navigation
                 if let comment = state.allComments[id: commentID] {
                     state.activeFileID = comment.fileID
                     state.comment.focusedCommentID = commentID
+                    state.codeViewer.focusedLine = comment.startLine
                 }
                 return .none
 

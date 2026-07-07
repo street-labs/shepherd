@@ -111,7 +111,7 @@ public struct FileBrowserView: View {
         // Indent past the directory chevron so files align under their folder's name.
         .padding(.leading, CGFloat(depth) * 14 + 16)
         .tag("file:\(leaf.fileID)")
-        .help(files[id: leaf.fileID]?.filePath ?? leaf.name)
+        .help(fileTooltip(for: leaf))
         .contextMenu {
             Button("Toggle Reviewed") {
                 store.send(.toggleFileReviewed(leaf.fileID))
@@ -121,6 +121,16 @@ public struct FileBrowserView: View {
                 store.send(.removeFileRequested(leaf.fileID))
             }
         }
+    }
+
+    /// Tooltip for a file row: full path plus detected language and review status.
+    /// Implements: FR-crp-file-tooltip
+    private func fileTooltip(for leaf: FileTreeNode.FileLeaf) -> String {
+        let node = files[id: leaf.fileID]
+        let path = node?.filePath ?? leaf.name
+        let language = (node?.language ?? .plaintext).displayName
+        let status = leaf.isReviewed ? "Reviewed" : "Not reviewed"
+        return "\(path)\nLanguage: \(language)\nStatus: \(status)"
     }
 
     @ViewBuilder
