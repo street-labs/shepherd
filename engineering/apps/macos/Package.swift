@@ -25,8 +25,41 @@ let package = Package(
         // Syntax highlighting: ChimeHQ SwiftTreeSitter runtime + per-language grammars.
         .package(url: "https://github.com/ChimeHQ/SwiftTreeSitter", from: "0.24.0"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-json", exact: "0.24.8"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-javascript", exact: "0.25.0"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-typescript", exact: "0.23.2"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-python", exact: "0.25.0"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-go", exact: "0.25.0"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-rust", exact: "0.24.2"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-java", exact: "0.23.5"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-c", exact: "0.24.2"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-cpp", exact: "0.23.4"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-html", exact: "0.23.2"),
+        .package(url: "https://github.com/tree-sitter/tree-sitter-css", exact: "0.25.0"),
+        .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-yaml", exact: "0.7.2"),
+        .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-markdown", exact: "0.5.3"),
     ],
     targets: [
+        // MARK: - Vendored TreeSitter scanners
+        // css/javascript/python/yaml ship an external scanner (scanner.c) but their
+        // SwiftPM manifest only compiles it when `FileManager.fileExists("src/scanner.c")`
+        // is true — which it isn't when the grammar is consumed as a dependency (the
+        // manifest's CWD is the consumer, not the grammar). That drops the scanner and
+        // leaves `tree_sitter_<lang>_external_scanner_*` undefined at link time. We vendor
+        // those four scanners here so the symbols are provided.
+        .target(
+            name: "CTreeSitterScanners",
+            path: "Sources/CTreeSitterScanners",
+            exclude: ["schema.core.c"],   // #included by yaml_scanner.c, not compiled standalone
+            sources: [
+                "css_scanner.c",
+                "javascript_scanner.c",
+                "python_scanner.c",
+                "yaml_scanner.c",
+            ],
+            publicHeadersPath: "include",
+            cSettings: [.headerSearchPath(".")]
+        ),
+
         // MARK: - Shared Models
         .target(
             name: "SharedModels",
@@ -45,6 +78,19 @@ let package = Package(
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
                 .product(name: "TreeSitterJSON", package: "tree-sitter-json"),
+                .product(name: "TreeSitterJavaScript", package: "tree-sitter-javascript"),
+                .product(name: "TreeSitterTypeScript", package: "tree-sitter-typescript"),
+                .product(name: "TreeSitterPython", package: "tree-sitter-python"),
+                .product(name: "TreeSitterGo", package: "tree-sitter-go"),
+                .product(name: "TreeSitterRust", package: "tree-sitter-rust"),
+                .product(name: "TreeSitterJava", package: "tree-sitter-java"),
+                .product(name: "TreeSitterC", package: "tree-sitter-c"),
+                .product(name: "TreeSitterCPP", package: "tree-sitter-cpp"),
+                .product(name: "TreeSitterHTML", package: "tree-sitter-html"),
+                .product(name: "TreeSitterCSS", package: "tree-sitter-css"),
+                .product(name: "TreeSitterYAML", package: "tree-sitter-yaml"),
+                .product(name: "TreeSitterMarkdown", package: "tree-sitter-markdown"),
+                "CTreeSitterScanners",
             ],
             path: "Sources/Dependencies",
             resources: [

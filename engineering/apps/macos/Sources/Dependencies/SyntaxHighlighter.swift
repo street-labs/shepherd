@@ -3,6 +3,18 @@ import ComposableArchitecture
 import SharedModels
 import SwiftTreeSitter
 import TreeSitterJSON
+import TreeSitterJavaScript
+import TreeSitterTypeScript
+import TreeSitterPython
+import TreeSitterGo
+import TreeSitterRust
+import TreeSitterJava
+import TreeSitterC
+import TreeSitterCPP
+import TreeSitterHTML
+import TreeSitterCSS
+import TreeSitterYAML
+import TreeSitterMarkdown
 
 /// TreeSitter-backed syntax highlighter. Maps a `SyntaxLanguage` to its grammar +
 /// vendored `highlights.scm` query, parses the source, and returns `SyntaxToken`s
@@ -19,8 +31,20 @@ enum SyntaxHighlighter {
     /// SyntaxLanguage -> grammar. Languages absent here (e.g. `.plaintext`) are not highlighted.
     private static func grammar(for language: SyntaxLanguage) -> Grammar? {
         switch language {
+        case .javascript: return Grammar(language: tree_sitter_javascript(), query: "javascript")
+        case .typescript: return Grammar(language: tree_sitter_typescript(), query: "typescript")
+        case .python: return Grammar(language: tree_sitter_python(), query: "python")
+        case .go: return Grammar(language: tree_sitter_go(), query: "go")
+        case .rust: return Grammar(language: tree_sitter_rust(), query: "rust")
+        case .java: return Grammar(language: tree_sitter_java(), query: "java")
+        case .c: return Grammar(language: tree_sitter_c(), query: "c")
+        case .cpp: return Grammar(language: tree_sitter_cpp(), query: "cpp")
+        case .html: return Grammar(language: tree_sitter_html(), query: "html")
+        case .css: return Grammar(language: tree_sitter_css(), query: "css")
         case .json: return Grammar(language: tree_sitter_json(), query: "json")
-        default: return nil
+        case .yaml: return Grammar(language: tree_sitter_yaml(), query: "yaml")
+        case .markdown: return Grammar(language: tree_sitter_markdown(), query: "markdown")
+        case .plaintext: return nil
         }
     }
 

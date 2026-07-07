@@ -1,0 +1,2 @@
+/* Vendored TreeSitter external scanners for grammars whose SwiftPM
+   manifest omits scanner.c when consumed as a dependency. */
