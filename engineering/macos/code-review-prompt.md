@@ -22,7 +22,7 @@ The core architectural idea mirrors the web version: the user loads one or more 
 | Side effects | `@Dependency` + async effects | All I/O (file system, clipboard, syntax highlighting) is injected via `@Dependency`, enabling deterministic testing with no mocks. Effects use Swift concurrency (`async`/`await`). |
 | Navigation | Enum-based destinations (Swift Navigation) | `@CasePathable` enums for alerts, sheets, and modal presentations. Compile-time exhaustive handling of all navigation states. |
 | Syntax highlighting | TreeSitter (swift-tree-sitter) | Native syntax highlighting engine. Supports all 13 required languages. Runs on a background thread. No WASM overhead. Produces token ranges that map directly to SwiftUI `AttributedString`. |
-| Virtualized code viewer | Custom `LazyVStack` + scroll proxy | SwiftUI's `LazyVStack` with `ScrollViewReader` for programmatic scrolling. For 10,000+ line files, only visible lines (plus overscan) are rendered. Custom line measurement for wrapped lines. |
+| Virtualized code viewer | Custom `LazyVStack` + scroll proxy | SwiftUI's `LazyVStack` with `ScrollViewReader` for programmatic scrolling. For 10,000+ line files, only visible lines (plus overscan) are rendered. Custom line measurement for wrapped lines. When line wrapping is off (`FR-crp-line-wrap`), the lines stack is nested in a horizontal `ScrollView` so long lines scroll horizontally instead of truncating. |
 | Collections | `IdentifiedArray` (swift-identified-collections) | O(1) lookup by ID for files, comments, and tree nodes. Type-safe alternative to `[ID: Value]` dictionaries that preserves order. |
 | Persistence | `NSWindow.setFrameAutosaveName` for window geometry | Window position/size persisted via the native `setFrameAutosaveName(_:)` API, which automatically saves and restores per-window geometry keyed by a unique name. Each session window uses its session ID (or a default key for standalone mode) as the autosave name, supporting multi-window geometry persistence. Session data is NOT persisted, consistent with `NFR-crp-no-data-persistence`. |
 | Testing | Swift Testing + TCA `TestStore` | `TestStore` for exhaustive reducer testing. `expectNoDifference` for state assertions. **Value/logic snapshots** (`InlineSnapshotTesting` `.dump`/`.lines`) of the pure view-driving code — file-tree building, row flattening (`FileTreeFlattener`), prompt output — since headless SwiftUI image snapshots do not render under `swift test`. Pixel-level visual regressions are covered by manual `/shepherd-review` dogfooding. Dependency injection for all side effects. |
@@ -350,7 +350,7 @@ enum InspectorTab: Equatable {
 
 Several values are computed from state rather than stored directly:
 
-- **Comment count (global)**: `state.allComments.count` -- total across all files. Used by the toolbar (`FR-crp-comment-count`).
+- **Comment count (global)**: `state.allComments.count` -- total across all files. Surfaced in the Review menu (a disabled count item) and the All Comments tab header (`FR-crp-comment-count`), per the design spec — deliberately kept out of the toolbar to preserve toolbar space.
 - **Comments per file**: Computed by grouping `allComments` by `fileID`. Used by FileBrowser for per-file comment count badges.
 - **Lines with comments (active file)**: A `[Int: [Comment.ID]]` mapping each line number to comments covering that line, filtered to the active file. Computed by iterating comments where `fileID == activeFileID` and expanding each `[startLine...endLine]` range.
 - **File tree**: `buildFileTree(files:reviewedFiles:)` utility that parses file paths into a nested `[FileTreeNode]` hierarchy. Unreviewed files sort before reviewed files within each directory (`FR-crp-file-reviewed-grouping`).
@@ -384,6 +384,9 @@ struct AppFeature {
         var overallComment: String = ""
         var generatedPrompt: String?
         var lineWrapEnabled: Bool = true
+        /// Transient: true for ~2s after a successful copy; drives the Copy Prompt
+        /// toolbar checkmark animation (`FR-crp-prompt-copy`, `AC-crp-copy-clipboard`).
+        var showCopyConfirmation: Bool = false
         var fileBrowserWidth: CGFloat = 220
 
         // Window state — geometry persistence handled by NSWindow.setFrameAutosaveName,
@@ -425,6 +428,7 @@ struct AppFeature {
         case promptRegenerated(String?)
         case copyPrompt
         case promptCopied
+        case dismissCopyConfirmation
         case doneRequested
         case promptHandoffSucceeded
         case promptHandoffFailed(String)

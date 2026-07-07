@@ -24,6 +24,11 @@ struct ShepherdCommands: Commands {
 
         // Review menu
         CommandMenu("Review") {
+            // Persistent global comment count. Implements: FR-crp-comment-count
+            Text("\(store.commentCount) Comment\(store.commentCount == 1 ? "" : "s")")
+
+            Divider()
+
             Button("Copy Prompt") {
                 store.send(.copyPrompt)
             }

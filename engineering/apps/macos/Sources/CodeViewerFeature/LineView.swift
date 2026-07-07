@@ -40,22 +40,26 @@ public struct LineView: View {
                 .frame(width: 3)
                 .padding(.vertical, 1)
 
-            // Code content
+            // Code content. When wrapping is off, the content scrolls horizontally
+            // within its own column so long lines are fully reachable instead of
+            // truncated; the line-number and gutter columns stay fixed.
+            // Implements: FR-crp-line-wrap
             Group {
                 if lineWrapEnabled {
                     Text(content)
                         .textSelection(.enabled)
+                        .padding(.leading, 8)
+                    Spacer(minLength: 0)
                 } else {
-                    Text(content)
-                        .textSelection(.enabled)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        Text(content)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.leading, 8)
+                    }
                 }
             }
             .font(.system(.body, design: .monospaced))
-            .padding(.leading, 8)
-
-            Spacer(minLength: 0)
         }
         .padding(.vertical, 1)
         .background(backgroundColor)

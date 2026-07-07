@@ -24,13 +24,19 @@ struct ToolbarView: ToolbarContent {
             .disabled(store.files.isEmpty)
         }
 
+        // Copy Prompt: the icon briefly swaps to a checkmark for ~2s after a
+        // successful copy as the confirmation (no toast, per design).
+        // Implements: FR-crp-prompt-copy
         ToolbarItem(placement: .primaryAction) {
             Button {
                 store.send(.copyPrompt)
             } label: {
-                Label("Copy Prompt", systemImage: "doc.on.doc")
+                Label(
+                    "Copy Prompt",
+                    systemImage: store.showCopyConfirmation ? "checkmark" : "doc.on.doc"
+                )
             }
-            .help("Copy generated prompt to clipboard (⇧⌘C)")
+            .help(store.showCopyConfirmation ? "Copied to clipboard" : "Copy generated prompt to clipboard (⇧⌘C)")
             .disabled(!store.hasComments)
         }
 

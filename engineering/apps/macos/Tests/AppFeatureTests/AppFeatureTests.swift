@@ -41,11 +41,12 @@ struct AppFeatureTests {
         }
     }
 
-    @Test("Clear session requires confirmation")
+    @Test("Clear session requires confirmation when comments exist")
     func clearSessionConfirmation() async {
         let fileID = UUID()
         let store = TestStore(initialState: AppFeature.State(
             files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            allComments: [SharedModels.Comment(fileID: fileID, startLine: 1, endLine: 1, text: "hi")],
             activeFileID: fileID
         )) {
             AppFeature()
@@ -67,6 +68,27 @@ struct AppFeatureTests {
             } message: {
                 TextState("Remove all files and comments? This cannot be undone.")
             }
+        }
+    }
+
+    // Implements: AC-crp-clear-no-confirm-empty
+    @Test("Clear session with no comments clears immediately without confirmation")
+    func clearSessionNoConfirmWhenEmpty() async {
+        let fileID = UUID()
+        let store = TestStore(initialState: AppFeature.State(
+            files: [FileNode(id: fileID, name: "test.ts", content: "x")],
+            activeFileID: fileID
+        )) {
+            AppFeature()
+        } withDependencies: {
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.clearSessionRequested) {
+            $0.files = []
+            $0.activeFileID = nil
+            $0.alert = nil
         }
     }
 
@@ -104,6 +126,26 @@ struct AppFeatureTests {
             $0.allComments = []
             $0.activeFileID = nil
             $0.overallComment = ""
+        }
+    }
+
+    // Implements: AC-crp-copy-clipboard
+    @Test("Prompt copied shows confirmation then auto-dismisses after 2s")
+    func promptCopiedConfirmation() async {
+        let clock = TestClock()
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0.continuousClock = clock
+        }
+        store.exhaustivity = .off
+
+        await store.send(.promptCopied) {
+            $0.showCopyConfirmation = true
+        }
+        await clock.advance(by: .seconds(2))
+        await store.receive(\.dismissCopyConfirmation) {
+            $0.showCopyConfirmation = false
         }
     }
 

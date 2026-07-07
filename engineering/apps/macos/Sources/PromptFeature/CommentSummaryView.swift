@@ -42,6 +42,13 @@ public struct CommentSummaryView: View {
                 .padding(.top, 40)
             } else {
                 LazyVStack(alignment: .leading, spacing: 12) {
+                    // Global comment total across all files. Implements: FR-crp-comment-count
+                    Text("\(comments.count) comment\(comments.count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     ForEach(commentsByFile, id: \.file.id) { item in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.file.name)

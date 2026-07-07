@@ -48,6 +48,10 @@ public struct AppFeature {
         public var lineWrapEnabled: Bool = true
         public var reviewContextData: ReviewContext?
 
+        /// Transient: true for ~2s after a successful copy; drives the Copy Prompt
+        /// toolbar checkmark animation. Implements: FR-crp-prompt-copy
+        public var showCopyConfirmation: Bool = false
+
         // Navigation / alerts
         @Presents public var alert: AlertState<Action.Alert>?
 
@@ -117,6 +121,7 @@ public struct AppFeature {
         // Prompt lifecycle
         case copyPrompt
         case promptCopied
+        case dismissCopyConfirmation
         case doneRequested
         case promptHandoffSucceeded
         case promptHandoffFailed(String)
@@ -146,9 +151,11 @@ public struct AppFeature {
     @Dependency(\.windowClient) var windowClient
     @Dependency(\.syntaxHighlightClient) var syntaxHighlighter
     @Dependency(\.uuid) var uuid
+    @Dependency(\.continuousClock) var clock
 
     private enum CancelID {
         case promptRegeneration
+        case copyConfirmation
     }
 
     public init() {}
@@ -265,8 +272,14 @@ public struct AppFeature {
 
             // MARK: - Session Management
 
+            // Implements: FR-crp-clear-session
             case .clearSessionRequested:
                 guard !state.files.isEmpty else { return .none }
+                // No comments to lose -> clear immediately, no confirmation dialog.
+                // Implements: AC-crp-clear-no-confirm-empty
+                guard state.hasComments else {
+                    return performClearSession(state: &state)
+                }
                 state.alert = AlertState {
                     TextState("Clear Session")
                 } actions: {
@@ -308,17 +321,7 @@ public struct AppFeature {
             // MARK: - Alert Actions
 
             case .alert(.presented(.clearConfirmed)):
-                state.files = []
-                state.allComments = []
-                state.activeFileID = nil
-                state.overallComment = ""
-                state.codeViewer = CodeViewerFeature.State()
-                state.comment = CommentFeature.State()
-                state.fileBrowser = FileBrowserFeature.State()
-                return .merge(
-                    .send(.rebuildFileTree),
-                    .send(.regeneratePrompt)
-                )
+                return performClearSession(state: &state)
 
             case let .alert(.presented(.removeFileConfirmed(fileID))):
                 return removeFile(id: fileID, state: &state)
@@ -335,7 +338,17 @@ public struct AppFeature {
                     await send(.promptCopied)
                 }
 
+            // Implements: FR-crp-prompt-copy
             case .promptCopied:
+                state.showCopyConfirmation = true
+                return .run { [clock] send in
+                    try await clock.sleep(for: .seconds(2))
+                    await send(.dismissCopyConfirmation)
+                }
+                .cancellable(id: CancelID.copyConfirmation, cancelInFlight: true)
+
+            case .dismissCopyConfirmation:
+                state.showCopyConfirmation = false
                 return .none
 
             case .doneRequested:
@@ -505,6 +518,24 @@ public struct AppFeature {
     }
 
     // MARK: - Helpers
+
+    /// Reset the session to the initial empty state: drop all files, comments, the
+    /// overall comment, and every child feature's state. Shared by the confirmed-clear
+    /// alert path and the no-confirmation-when-empty short-circuit.
+    /// Implements: FR-crp-clear-session
+    private func performClearSession(state: inout State) -> Effect<Action> {
+        state.files = []
+        state.allComments = []
+        state.activeFileID = nil
+        state.overallComment = ""
+        state.codeViewer = CodeViewerFeature.State()
+        state.comment = CommentFeature.State()
+        state.fileBrowser = FileBrowserFeature.State()
+        return .merge(
+            .send(.rebuildFileTree),
+            .send(.regeneratePrompt)
+        )
+    }
 
     private func removeFile(id: FileNode.ID, state: inout State) -> Effect<Action> {
         state.files.remove(id: id)
