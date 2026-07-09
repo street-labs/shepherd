@@ -330,14 +330,14 @@ Comment: "Update the migration guide before removing this."
 
 ### RenderedMarkdownView
 
-A SwiftUI view that renders parsed markdown AST as formatted native views.
+The main component that displays markdown as formatted content with native typography and layout.
 
-**Props:**
-- `ast: MarkdownAST` — The parsed markdown document
-- `elementIdentifiers: [String: MarkdownElement]` — Map of stable IDs to AST nodes
-- `comments: [String: [Comment]]` — Comments keyed by element ID
-- `diffAnnotations: [String: DiffChangeType]?` — Optional diff annotations (nil for file view, populated for diff view)
-- `onCommentCreate: (String) -> Void` — Callback when user clicks to comment on an element
+**Inputs:**
+- Parsed markdown document structure
+- Map of element IDs to document elements
+- Comments keyed by element ID
+- Optional diff annotations (for diff mode)
+- Callback when user clicks to comment on an element
 
 **States:**
 - Hover state: Element under pointer receives visual hover treatment
@@ -345,8 +345,8 @@ A SwiftUI view that renders parsed markdown AST as formatted native views.
 - Comment editing: Inline editor appears below focused element
 
 **Behavior:**
-- Renders each AST node as native SwiftUI views (Text, VStack for paragraphs, HStack for lists, etc.)
-- Syntax-highlighted code blocks use TreeSitter via SyntaxHighlightClient
+- Renders markdown elements as formatted text, headings, lists, tables, and code blocks
+- Syntax-highlighted code blocks match the existing code viewer theme
 - Click/keyboard interaction opens comment editor
 - Comments displayed as comment bubbles below elements
 
