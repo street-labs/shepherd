@@ -2,13 +2,14 @@
 
 Based on `engineering/macos/markdown-render.md`
 
-## Phase 1: Foundation (Days 1-2)
+## Phase 1: Foundation (Days 1-2) ✅ COMPLETE
 
 ### ✅ Task 1.1: Add swift-markdown dependency
 - **File**: `engineering/apps/macos/Package.swift`
 - **Action**: Add swift-markdown package dependency
 - **Verification**: `swift build` succeeds
 - **Implements**: Foundation for FR-mdr-render-commonmark
+- **Completed**: commit c42b4cb
 
 ### ✅ Task 1.2: Build MarkdownParser
 - **Files**:
@@ -17,6 +18,7 @@ Based on `engineering/macos/markdown-render.md`
 - **Action**: Parse markdown to AST, assign element IDs, map source ranges
 - **Verification**: Unit tests with sample markdown files (basic, GFM, nested lists, code blocks)
 - **Implements**: FR-mdr-render-commonmark, FR-mdr-element-id
+- **Completed**: commit b57dc56 (10/10 tests passing)
 
 ### ✅ Task 1.3: Build GFMVisitor
 - **Files**:
@@ -25,10 +27,11 @@ Based on `engineering/macos/markdown-render.md`
 - **Action**: Extend swift-markdown with GFM table/task list/strikethrough support
 - **Verification**: Test with GFM samples
 - **Implements**: FR-mdr-render-commonmark (GFM extensions)
+- **Completed**: commit 525e69c (9/9 tests passing)
 
 ## Phase 2: Basic Rendering (Days 3-4)
 
-### ✅ Task 2.1: Build RenderedMarkdownView (file mode)
+### 🚧 Task 2.1: Build RenderedMarkdownView (file mode)
 - **Files**:
   - `engineering/apps/macos/Sources/MarkdownRenderFeature/RenderedMarkdownView.swift`
   - `engineering/apps/macos/Tests/MarkdownRenderFeatureTests/RenderedMarkdownViewTests.swift`
