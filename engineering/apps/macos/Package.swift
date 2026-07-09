@@ -164,6 +164,16 @@ let package = Package(
             swiftSettings: warningsAsErrors
         ),
         .target(
+            name: "MarkdownRenderFeature",
+            dependencies: [
+                "SharedModels",
+                "ShepherdDependencies",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+                .product(name: "Markdown", package: "swift-markdown"),
+            ],
+            swiftSettings: warningsAsErrors
+        ),
+        .target(
             name: "AppFeature",
             dependencies: [
                 "SharedModels",
@@ -272,6 +282,14 @@ let package = Package(
             dependencies: [
                 "SessionFeature",
                 "ShepherdDependencies",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            ],
+            swiftSettings: warningsAsErrors
+        ),
+        .testTarget(
+            name: "MarkdownRenderFeatureTests",
+            dependencies: [
+                "MarkdownRenderFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
             swiftSettings: warningsAsErrors
