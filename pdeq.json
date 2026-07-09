@@ -3,7 +3,8 @@
   "specsRoot": ".",
   "codeRoot": ".",
   "platforms": [
-    "macos"
+    "macos",
+    "mobile"
   ],
   "harnesses": [
     "claude"
