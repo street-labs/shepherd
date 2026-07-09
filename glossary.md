@@ -428,6 +428,51 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: macOS Gatekeeper
 **Not to be confused with**: macOS sandboxing (a separate security mechanism for App Store apps)
 
+## Deep Link
+**Definition**: A URI scheme-based mechanism for launching mobile applications with data payload. In Shepherd Mobile, deep links are used to launch the app from Buzz Mobile (`shepherd://review?...`) and to send the generated prompt back (`buzz://shepherd-result?...`). The payload includes session ID, base64-encoded file content, diff data, and context.
+**Also known as**: Universal link (iOS), app link (Android), custom URL scheme
+**Not to be confused with**: Web links (HTTP URLs), local file paths
+
+## Deep Link Callback
+**Definition**: The mechanism by which Shepherd Mobile sends the generated prompt back to Buzz Mobile. Uses a deep link with `buzz://shepherd-result` URI scheme, session ID parameter, and base64-encoded prompt. Falls back to clipboard copy if Buzz Mobile does not respond within 5 seconds.
+**Also known as**: Callback deep link, prompt handoff (mobile)
+**Not to be confused with**: Prompt Handoff (macOS mechanism using file-based handoff)
+
+## Touch Target
+**Definition**: The interactive area of a UI element on a touchscreen device. Must be at least 44pt (iOS) or 48dp (Android) to meet accessibility guidelines. In Shepherd Mobile, line numbers, comment buttons, and file tabs all use minimum touch target sizes.
+**Also known as**: Tap target, hit area
+**Not to be confused with**: Visual size (the visible element may be smaller than the touch target)
+
+## Gesture Navigation
+**Definition**: The use of swipe gestures to navigate between files in Shepherd Mobile. Swiping left navigates to the next file, swiping right to the previous file. Recognized on the code content area with velocity threshold >1500 dp/s to distinguish from scrolling.
+**Also known as**: Swipe navigation
+**Not to be confused with**: Scroll gestures (vertical scrolling within a file)
+
+## Review Context Drawer
+**Definition**: A collapsible bottom drawer in Shepherd Mobile that displays review context (neutral + feedback). Defaults to collapsed state (header only) to maximize code visibility on small screens. Expands to 40-60% of screen height when swiped up. Mobile-specific alternative to the desktop ReviewContextPanel.
+**Also known as**: Context drawer, bottom drawer
+**Not to be confused with**: ReviewContextPanel (desktop) or Inspector sidebar (macOS)
+
+## Offline Queue
+**Definition**: A local persistence mechanism in Shepherd Mobile that stores generated prompts when the deep link callback fails (network unavailable, Buzz Mobile not responding). Queued prompts are retried automatically when connectivity restores, or manually by the user. Implements graceful degradation for unreliable mobile networks.
+**Also known as**: Pending prompts, retry queue
+**Not to be confused with**: Session persistence (which stores the review state, not the generated output)
+
+## Pinch Zoom
+**Definition**: A touch gesture (pinching two fingers together or apart) that adjusts text size in Shepherd Mobile. Zoom range is 50-200% of default size. Zoom level persists per-file within the session. Implemented via native gesture recognizers (UIPinchGestureRecognizer on iOS, detectTransformGestures on Android).
+**Also known as**: Pinch-to-zoom, zoom gesture
+**Not to be confused with**: Dynamic Type / font scaling (system-level accessibility setting)
+
+## Voice Input
+**Definition**: Speech-to-text dictation for adding comments in Shepherd Mobile. Triggered by tapping a microphone button in the comment input field. Uses platform-native APIs (iOS Speech framework, Android SpeechRecognizer). Optional feature — keyboard input remains the default. Microphone button is hidden if speech recognition is unavailable (no permission or unsupported device).
+**Also known as**: Speech-to-text, dictation
+**Not to be confused with**: Voice commands (not supported — this is text input only)
+
+## Lazy File Loading
+**Definition**: A performance optimization in Shepherd Mobile where only the first file's content is decoded and rendered immediately on launch. Additional files are decoded on-demand when the user navigates to them. Prevents long initial load times and excessive memory use when reviewing large changesets on resource-constrained devices. Satisfies the 2-second first-file interactivity target (`NFR-srm-launch-time`).
+**Also known as**: Deferred loading, on-demand decoding
+**Not to be confused with**: Virtualized scrolling (which renders only visible portions of a single file)
+
 <!--
 Entry template:
 

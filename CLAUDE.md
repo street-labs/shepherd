@@ -11,8 +11,9 @@ This project targets one platform (registered in `pdeq.json`):
 | Platform ID | Description | Status |
 |---|---|---|
 | `macos` | Native macOS app (SwiftUI + TCA) | Active — all features |
+| `mobile` | Native iOS/Android app launched via Buzz Mobile deep links | Planned — specs complete, not yet implemented |
 
-Source code lives at `engineering/apps/macos/`. (The browser-based `web` platform was removed; Shepherd is now macOS-only.)
+Source code lives at `engineering/apps/<platform>/`. Mobile platform specs are complete but implementation has not yet started.
 
 ## Project-Specific Slash Commands
 

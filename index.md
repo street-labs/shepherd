@@ -1818,7 +1818,7 @@ Each entry lists a requirement slug and every artifact that references it:
 
 ### `FR-sc-session-id`
 - **Defined in**: `product/slash-command.md`
-- **Design**: —
+- **Design**: `design/mobile/slash-command.md`
 - **Engineering**: —
 - **QA**: —
 
@@ -1854,13 +1854,73 @@ Each entry lists a requirement slug and every artifact that references it:
 
 ### `AC-sc-concurrent-sessions`
 - **Defined in**: `product/slash-command.md`
-- **Design**: —
+- **Design**: `design/mobile/slash-command.md`
 - **Engineering**: —
 - **QA**: —
 
 ### `AC-sc-session-output-isolation`
 - **Defined in**: `product/slash-command.md`
 - **Design**: —
+- **Engineering**: —
+- **QA**: —
+
+### `FR-scm-deeplink-protocol`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `FR-scm-mobile-callback`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `FR-scm-session-consistency`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `FR-scm-offline-queue`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `FR-scm-callback-timeout`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `AC-scm-deeplink-open`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `AC-scm-callback-deliver`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `AC-scm-session-match`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `AC-scm-offline-queue`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: —
+- **QA**: —
+
+### `AC-scm-timeout-fallback`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
 - **Engineering**: —
 - **QA**: —
 
@@ -2330,3 +2390,489 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-empty-no-launch`, `TC-srm-no-changes`
+
+### `FR-mdr-detect-markdown`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-toggle-appears-markdown`, `TC-mdr-toggle-hidden-typescript`
+
+### `FR-mdr-render-toggle`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-toggle-appears-markdown`, `TC-mdr-switch-no-comments-immediate`
+
+### `FR-mdr-render-commonmark`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-basic-commonmark`, `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`, `TC-mdr-render-code-blocks-syntax`
+
+### `FR-mdr-render-styling`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-basic-commonmark`, `TC-mdr-render-code-blocks-syntax`
+
+### `FR-mdr-element-id`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-heading-anchors-line`
+
+### `FR-mdr-rendered-comment-create`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-paragraph-hover`, `TC-mdr-comment-paragraph-submit`
+
+### `FR-mdr-rendered-comment-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-heading-anchors-line`, `TC-mdr-comment-prompt-raw-source`
+
+### `FR-mdr-switch-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-switch-rendered-to-raw-confirm`, `TC-mdr-switch-no-comments-immediate`
+
+### `FR-mdr-raw-diff-unchanged`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-raw-unchanged-syntax-highlight`
+
+### `FR-mdr-rendered-diff-display`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-added-paragraph-green`, `TC-mdr-diff-removed-paragraph-strikethrough`, `TC-mdr-diff-modified-word-level`, `TC-mdr-diff-fallback-80-percent-changed`
+
+### `FR-mdr-rendered-diff-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-comment-modified-element`
+
+### `FR-mdr-rendered-diff-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-prompt-old-new-source`
+
+### `NFR-mdr-render-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-perf-5k-lines-render`
+
+### `NFR-mdr-render-scroll-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-perf-scroll-smooth`
+
+### `NFR-mdr-rendered-diff-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-perf-diff-5k`
+
+### `NFR-mdr-xss-safety`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-xss-script-stripped`, `TC-mdr-xss-onerror-stripped`
+
+### `NFR-mdr-client-only`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: —
+
+### `NFR-mdr-accessibility`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-keyboard-tab-focus`, `TC-mdr-keyboard-enter-comment`, `TC-mdr-voiceover-diff-annotations`
+
+### `AC-mdr-toggle-appears`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-toggle-appears-markdown`
+
+### `AC-mdr-toggle-hidden-non-md`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-toggle-hidden-typescript`
+
+### `AC-mdr-render-basic`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-basic-commonmark`
+
+### `AC-mdr-render-gfm`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`
+
+### `AC-mdr-render-code-blocks`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-code-blocks-syntax`
+
+### `AC-mdr-raw-unchanged`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-raw-unchanged-syntax-highlight`
+
+### `AC-mdr-comment-rendered-element`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-paragraph-hover`, `TC-mdr-comment-paragraph-submit`
+
+### `AC-mdr-comment-heading`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-heading-anchors-line`
+
+### `AC-mdr-comment-prompt-format`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-prompt-raw-source`
+
+### `AC-mdr-switch-clears-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-switch-raw-to-rendered-confirm`, `TC-mdr-switch-rendered-to-raw-confirm`
+
+### `AC-mdr-switch-no-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-switch-no-comments-immediate`
+
+### `AC-mdr-rendered-diff-additions`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-added-paragraph-green`
+
+### `AC-mdr-rendered-diff-removals`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-removed-paragraph-strikethrough`
+
+### `AC-mdr-rendered-diff-modifications`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-modified-word-level`
+
+### `AC-mdr-rendered-diff-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-comment-modified-element`
+
+### `AC-mdr-rendered-diff-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-prompt-old-new-source`
+
+### `AC-mdr-html-sanitized`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-xss-script-stripped`, `TC-mdr-xss-onerror-stripped`
+
+### `AC-mdr-large-file-renders`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-perf-5k-lines-render`, `TC-mdr-perf-scroll-smooth`
+
+### `AC-mdr-keyboard-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-keyboard-tab-focus`, `TC-mdr-keyboard-enter-comment`
+
+### `AC-mdr-diff-fallback`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-fallback-80-percent-changed`
+
+---
+
+## Mobile Platform Requirements
+
+The following requirements are specific to the mobile platform (iOS and Android).
+
+### `FR-crpm-deeplink-launch`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-deeplink-launch-single`, `TC-crpm-deeplink-launch-multi`, `TC-crpm-deeplink-malformed`, `TC-crpm-deeplink-large-payload`
+
+### `FR-crpm-deeplink-handoff`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-deeplink-send-success`, `TC-crpm-deeplink-send-fail`, `TC-crpm-deeplink-send-offline`
+
+### `FR-crpm-offline-persist`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-offline-persist-comment`, `TC-crpm-offline-persist-appkill`, `TC-crpm-offline-restore`
+
+### `FR-crpm-offline-sync`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-offline-queue`, `TC-crpm-offline-retry-auto`, `TC-crpm-offline-retry-manual`
+
+### `FR-crpm-touch-select`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-touch-line-single`, `TC-crpm-touch-line-wrapped`, `TC-crpm-touch-target-size`
+
+### `FR-crpm-gesture-nav`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-swipe-next`, `TC-crpm-swipe-prev`, `TC-crpm-swipe-wrap`, `TC-crpm-swipe-conflict`
+
+### `FR-crpm-pinch-zoom`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-zoom-in`, `TC-crpm-zoom-out`, `TC-crpm-zoom-persist`, `TC-crpm-zoom-bounds`
+
+### `FR-crpm-voice-input`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-voice-dictate`, `TC-crpm-voice-permission`, `TC-crpm-voice-unsupported`
+
+### `FR-crpm-mobile-context`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-context-expand`, `TC-crpm-context-collapse`, `TC-crpm-context-scroll`
+
+### `FR-crpm-fullscreen`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-fullscreen-enter`, `TC-crpm-fullscreen-exit`
+
+### `FR-crpm-mobile-tabs`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-tabs-switch`, `TC-crpm-tabs-scroll`, `TC-crpm-tabs-truncate`
+
+### `NFR-crpm-mobile-lazy`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-lazy-load-first`, `TC-crpm-lazy-load-deferred`
+
+### `NFR-crpm-mobile-input-lag`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-input-responsiveness`
+
+### `AC-crpm-deeplink-load`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-deeplink-launch-single`, `TC-crpm-deeplink-launch-multi`
+
+### `AC-crpm-deeplink-send`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-deeplink-send-success`
+
+### `AC-crpm-offline-clipboard`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-deeplink-send-fail`
+
+### `AC-crpm-session-persist`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-offline-persist-appkill`
+
+### `AC-crpm-swipe-nav`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-swipe-next`, `TC-crpm-swipe-prev`
+
+### `AC-crpm-pinch-zoom`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-zoom-in`, `TC-crpm-zoom-persist`
+
+### `AC-crpm-voice-capture`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-voice-dictate`
+
+### `AC-crpm-context-collapse`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-context-expand`, `TC-crpm-context-collapse`
+
+### `AC-crpm-fullscreen-chrome`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-fullscreen-enter`, `TC-crpm-fullscreen-exit`
+
+### `AC-crpm-first-file-speed`
+- **Defined in**: `product/mobile/code-review-prompt.md`
+- **Design**: `design/mobile/code-review-prompt.md`
+- **Engineering**: `engineering/mobile/code-review-prompt.md`
+- **QA**: `qa/mobile/code-review-prompt.md` -> `TC-crpm-lazy-load-first`
+
+### `FR-srm-deeplink-launch`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-deeplink-launch-happy`, `TC-srm-deeplink-file-order`, `TC-srm-happy-path-end-to-end`
+
+### `FR-srm-deeplink-chunking`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-large-payload-chunking`
+
+### `FR-srm-large-fallback`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-very-large-blocked`
+
+### `FR-srm-mobile-launch`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-deeplink-launch-happy`, `TC-srm-happy-path-end-to-end`
+
+### `NFR-srm-launch-time`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-launch-time-10-files`
+
+### `AC-srm-deeplink-files`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-deeplink-launch-happy`, `TC-srm-deeplink-file-order`, `TC-srm-happy-path-end-to-end`
+
+### `AC-srm-context-display`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-context-overall-visible`, `TC-srm-context-per-file-visible`
+
+### `AC-srm-chunking`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-large-payload-chunking`
+
+### `AC-srm-large-blocked`
+- **Defined in**: `product/mobile/shepherd-review.md`
+- **Design**: `design/mobile/shepherd-review.md`
+- **Engineering**: `engineering/mobile/shepherd-review.md`
+- **QA**: `qa/mobile/shepherd-review.md` -> `TC-srm-very-large-blocked`
+
+### `FR-scm-deeplink-protocol`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-deeplink-open-happy`, `TC-scm-deeplink-payload-decode`, `TC-scm-deeplink-context-parse`, `TC-scm-deeplink-large-payload`, `TC-scm-deeplink-empty-file`
+
+### `FR-scm-mobile-callback`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-callback-deliver-happy`, `TC-scm-callback-format-valid`, `TC-scm-callback-base64-encode`, `TC-scm-callback-special-chars`, `TC-scm-buzz-not-installed`
+
+### `FR-scm-session-consistency`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-callback-session-matches`, `TC-scm-session-match-multi`, `TC-scm-session-id-derived-correctly`, `TC-scm-deeplink-missing-session`
+
+### `FR-scm-offline-queue`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-offline-queue-persist`, `TC-scm-offline-queue-auto-retry`, `TC-scm-offline-queue-view`, `TC-scm-offline-queue-same-session`
+
+### `FR-scm-callback-timeout`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-timeout-fallback-clipboard`, `TC-scm-timeout-5s-threshold`
+
+### `AC-scm-deeplink-open`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-deeplink-open-happy`, `TC-scm-deeplink-malformed`, `TC-scm-deeplink-missing-session`
+
+### `AC-scm-callback-deliver`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-callback-deliver-happy`, `TC-scm-callback-session-matches`
+
+### `AC-scm-session-match`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-session-match-multi`, `TC-scm-session-match-concurrent`
+
+### `AC-scm-offline-queue`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-offline-queue-persist`, `TC-scm-offline-queue-auto-retry`, `TC-scm-offline-queue-manual-retry`
+
+### `AC-scm-timeout-fallback`
+- **Defined in**: `product/mobile/slash-command.md`
+- **Design**: `design/mobile/slash-command.md`
+- **Engineering**: `engineering/mobile/slash-command.md`
+- **QA**: `qa/mobile/slash-command.md` -> `TC-scm-timeout-fallback-clipboard`, `TC-scm-timeout-fallback-open-buzz`
