@@ -4,8 +4,10 @@ import SharedModels
 import CodeViewerFeature
 import CommentFeature
 import ReviewContextFeature
+import MarkdownRenderFeature
 
 /// Wraps file header + review context + code viewer
+/// Implements: FR-mdr-render-toggle (conditional rendering)
 struct CodeViewerPanelView: View {
     let store: StoreOf<AppFeature>
 
@@ -23,15 +25,22 @@ struct CodeViewerPanelView: View {
                 )
             }
 
-            // Code viewer
+            // Code viewer (raw or rendered based on mode)
             if let activeFile = store.activeFile {
-                CodeViewerView(
-                    store: store.scope(state: \.codeViewer, action: \.codeViewer),
-                    file: activeFile,
-                    comments: store.allComments.filter { $0.fileID == activeFile.id },
-                    lineWrapEnabled: store.lineWrapEnabled,
-                    commentStore: store.scope(state: \.comment, action: \.comment)
-                )
+                if activeFile.isMarkdownFile && store.renderMode == .rendered {
+                    // Rendered markdown view
+                    let ast = MarkdownParser.parse(activeFile.content)
+                    RenderedMarkdownView(ast: ast)
+                } else {
+                    // Raw code view with syntax highlighting
+                    CodeViewerView(
+                        store: store.scope(state: \.codeViewer, action: \.codeViewer),
+                        file: activeFile,
+                        comments: store.allComments.filter { $0.fileID == activeFile.id },
+                        lineWrapEnabled: store.lineWrapEnabled,
+                        commentStore: store.scope(state: \.comment, action: \.comment)
+                    )
+                }
             } else {
                 Text("No file selected")
                     .foregroundStyle(.secondary)

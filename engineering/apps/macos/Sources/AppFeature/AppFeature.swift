@@ -8,6 +8,7 @@ import InspectorFeature
 import PromptFeature
 import SessionFeature
 import ReviewContextFeature
+import MarkdownRenderFeature
 import IdentifiedCollections
 import Foundation
 
@@ -48,6 +49,10 @@ public struct AppFeature {
         public var lineWrapEnabled: Bool = true
         public var reviewContextData: ReviewContext?
 
+        /// Markdown rendering mode (raw or rendered)
+        /// Implements: FR-mdr-render-toggle
+        public var renderMode: MarkdownRenderMode = .raw
+
         /// Transient: true for ~2s after a successful copy; drives the Copy Prompt
         /// toolbar checkmark animation. Implements: FR-crp-prompt-copy
         public var showCopyConfirmation: Bool = false
@@ -61,6 +66,7 @@ public struct AppFeature {
         public var activeFile: FileNode? { activeFileID.flatMap { files[id: $0] } }
         public var commentCount: Int { allComments.count }
         public var generatedPrompt: String? { prompt.generatedPrompt }
+        public var isActiveFileMarkdown: Bool { activeFile?.isMarkdownFile ?? false }
 
         public init(
             session: SessionFeature.State = SessionFeature.State(),
@@ -75,7 +81,8 @@ public struct AppFeature {
             activeFileID: FileNode.ID? = nil,
             overallComment: String = "",
             lineWrapEnabled: Bool = true,
-            reviewContextData: ReviewContext? = nil
+            reviewContextData: ReviewContext? = nil,
+            renderMode: MarkdownRenderMode = .raw
         ) {
             self.session = session
             self.fileBrowser = fileBrowser
@@ -90,6 +97,7 @@ public struct AppFeature {
             self.overallComment = overallComment
             self.lineWrapEnabled = lineWrapEnabled
             self.reviewContextData = reviewContextData
+            self.renderMode = renderMode
         }
     }
 

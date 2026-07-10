@@ -185,6 +185,7 @@ let package = Package(
                 "PromptFeature",
                 "SessionFeature",
                 "ReviewContextFeature",
+                "MarkdownRenderFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
             swiftSettings: warningsAsErrors
