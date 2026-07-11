@@ -29,24 +29,28 @@ Based on `engineering/macos/markdown-render.md`
 - **Implements**: FR-mdr-render-commonmark (GFM extensions)
 - **Completed**: commit 525e69c (9/9 tests passing)
 
-## Phase 2: Basic Rendering (Days 3-4)
+## Phase 2: Basic Rendering (Days 3-4) ✅ COMPLETE
 
-### 🚧 Task 2.1: Build RenderedMarkdownView (file mode)
+### ✅ Task 2.1: Build RenderedMarkdownView (file mode)
 - **Files**:
   - `engineering/apps/macos/Sources/MarkdownRenderFeature/RenderedMarkdownView.swift`
   - `engineering/apps/macos/Tests/MarkdownRenderFeatureTests/RenderedMarkdownViewTests.swift`
-- **Action**: Render AST as SwiftUI views. Start with basic elements (headings, paragraphs, lists), then add tables, code blocks (using existing SyntaxHighlighter), images
+- **Action**: Render AST as SwiftUI views. Start with basic elements (headings, paragraphs, lists), then add tables, code blocks, images
 - **Verification**: Snapshot tests for rendering fidelity
 - **Implements**: FR-mdr-render-commonmark, FR-mdr-render-styling
+- **Completed**: commit a915ee0 (12/12 tests passing)
 
-### ✅ Task 2.2: Add renderMode state + toolbar toggle
+### ✅ Task 2.2: Wire up rendered view with toggle
 - **Files**:
   - `engineering/apps/macos/Sources/AppFeature/AppFeature.swift`
   - `engineering/apps/macos/Sources/AppFeature/ToolbarView.swift`
-  - `engineering/apps/macos/Tests/AppFeatureTests/AppFeatureTests.swift`
-- **Action**: Add `renderMode: MarkdownRenderMode` to state, add segmented control to toolbar, wire up actions
+  - `engineering/apps/macos/Sources/AppFeature/CodeViewerPanelView.swift`
+  - `engineering/apps/macos/Sources/MarkdownRenderFeature/MarkdownRenderMode.swift`
+  - `engineering/apps/macos/Sources/SharedModels/FileNode.swift`
+- **Action**: Add `renderMode: MarkdownRenderMode` to state, add segmented control to toolbar, wire up conditional rendering
 - **Verification**: Integration tests for toggle switches view between raw and rendered
 - **Implements**: FR-mdr-render-toggle, FR-mdr-detect-markdown
+- **Completed**: commit 02bfd3e (all tests passing)
 
 ## Phase 3: Comment Interaction (Days 5-6)
 
