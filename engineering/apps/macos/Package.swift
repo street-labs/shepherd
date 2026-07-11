@@ -292,6 +292,7 @@ let package = Package(
             dependencies: [
                 "MarkdownRenderFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             swiftSettings: warningsAsErrors
         ),
