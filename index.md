@@ -2558,3 +2558,75 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/markdown-render.md`
 - **Engineering**: `engineering/macos/markdown-render.md`
 - **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-fallback-80-percent-changed`
+
+### `FR-sr-patch-source`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-happy-path`, `TC-sr-patch-event-not-found`
+
+### `FR-sr-patch-fetch`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-happy-path`, `TC-sr-patch-event-not-found`
+
+### `FR-sr-patch-validation`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-invalid-diff`, `TC-sr-patch-invalid-event-id`
+
+### `FR-sr-patch-application`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-application-conflicts`
+
+### `FR-sr-patch-metadata-display`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-metadata-displayed`
+
+### `AC-sr-patch-happy-path`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-happy-path`
+
+### `AC-sr-patch-event-not-found`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-event-not-found`
+
+### `AC-sr-patch-invalid-diff`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-invalid-diff`
+
+### `AC-sr-patch-application-conflicts`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-application-conflicts`
+
+### `AC-sr-patch-metadata-displayed`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-metadata-displayed`
+
+### `AC-sr-patch-invalid-event-id`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-invalid-event-id`
+
+### `AC-sr-patch-conflicting-args`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-conflicting-args`
