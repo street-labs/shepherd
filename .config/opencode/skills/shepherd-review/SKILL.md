@@ -192,9 +192,12 @@ Use `nak` if available; otherwise construct a manual WebSocket query.
 **Try `nak` first:**
 ```bash
 if command -v nak >/dev/null 2>&1; then
-  EVENT_JSON=$(nak req -k 1617 -k 1621 -e "$EVENT_ID" --relay "$RELAYS" | head -1)
+  RELAY_LIST=$(echo "$RELAYS" | tr ',' ' ')
+  EVENT_JSON=$(nak req -k 1617 -k 1621 -i "$EVENT_ID" $RELAY_LIST 2>/dev/null | head -1)
 fi
 ```
+
+`nak req` takes relays as space-separated positional arguments (not a `--relay` flag), and the event-ID filter flag is `-i`/`--id` (not `-e`). `$RELAYS` is comma-separated per the relay-configuration step above, so it must be word-split into positional args before being passed to `nak`. An empty `EVENT_JSON` means the event was not found on any of the given relays.
 
 If `nak` is not available or returns empty, output a warning:
 ```
