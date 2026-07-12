@@ -37,12 +37,59 @@ The CRPG already supports multi-file tabs, per-file comments, and multi-file pro
 ### US-SR-9: Distinguish factual context from the agent's opinions
 **As a** developer, **I want** the CRPG to clearly separate neutral descriptions of what changed from the agent's review opinions, **so that** I can quickly get oriented on the facts and then decide how much weight to give the agent's suggestions. I do not want the two mixed together as if they are the same kind of information.
 
+### US-SR-10: Review patches submitted via Nostr
+**As a** developer receiving code contributions via NIP-34 Nostr patches, **I want to** invoke `/shepherd-review --patch <event-id>` to review the patch in the CRPG, **so that** I can review Nostr-submitted code using the same workflow as local branch reviews without manually applying patches or switching tools.
+
 ## Requirements
 
 ### Functional Requirements
 
+### Changeset Sources
+
+The review workflow supports multiple changeset sources. Each produces a list of changed files that flows through the same filtering, ordering, context generation, and CRPG launch pipeline.
+
 #### `FR-sr-changeset-detection` -- Detect the changeset of the current branch
 The command determines which files have been modified, added, or deleted by comparing the **working tree** (not just committed changes) to the base branch. The base branch defaults to `main`. The comparison uses the merge base of the current branch and the base branch as the reference point, and compares the working tree against it. This captures all changes: committed changes on the branch, staged but uncommitted changes, and unstaged modifications. Additionally, untracked new files (not yet `git add`ed) are included as `added` files. This means the review covers the full set of changes a developer would see before committing — which is the primary use case for local code review. If no changes are found (the working tree matches the merge base), the command reports "No changes found relative to main" and stops. Deleted files are counted in the total changeset but excluded from the review list and counted as filtered (there is nothing to open in the CRPG for a deleted file). Renamed files are included using their new path.
+
+#### `FR-sr-patch-source` -- Review NIP-34 patches from Nostr
+When invoked with `--patch <event-id>`, the command fetches and reviews a NIP-34 patch event instead of local git changes. NIP-34 is the Nostr protocol for git patches: each patch event contains a unified diff, commit metadata (author pubkey, commit message, parent commit hash), and patch status (open/merged/closed/draft). The command fetches the patch event from configured Nostr relays, extracts the diff, applies it to a temporary review branch, and detects the changeset from the applied patch. The patch metadata (author, commit message, parent commit, status) is displayed in the CRPG UI alongside the review context. The workflow after patch application is identical to branch review: filter files, generate context, open in CRPG. This enables code review of Nostr-submitted patches without leaving the Shepherd review workflow.
+
+#### `FR-sr-patch-fetch` -- Fetch NIP-34 patch event from Nostr relays
+When `--patch <event-id>` is specified, the command queries configured Nostr relays for the event with the given ID. NIP-34 patch events are kind `1617` (proposal) or `1621` (patch). The event content contains the patch diff as a unified diff. The event tags include:
+- `a` tag: repository reference (e.g., `30617:<repo-owner-pubkey>:<repo-d-tag>`)
+- `commit` tag: commit hash
+- `parent-commit` tag: parent commit hash (if not initial commit)
+- `author` tag: commit author information
+- `status` tag: patch status (`open`, `merged`, `closed`, `draft`)
+
+The command reads relay URLs from the user's Nostr configuration (environment variable, config file, or default public relays). If the event is not found or cannot be fetched, the command reports an error with the relay URLs attempted and stops. The event ID is a 64-character hex string (Nostr event ID format). Invalid event ID format is rejected with a clear error message.
+
+#### `FR-sr-patch-validation` -- Validate fetched patch before application
+After fetching the patch event, the command validates:
+1. **Event kind**: Must be `1617` (proposal) or `1621` (patch). Other event kinds are rejected.
+2. **Diff format**: Event content must be a valid unified diff (starts with `diff --git`, contains `+++`/`---` headers, and `@@` hunks). Malformed diffs are rejected with a descriptive error.
+3. **Repository match**: The `a` tag repository reference is compared against the current repository's configured Nostr repo ID (if available). A mismatch produces a warning but does not block (the user may be reviewing a patch for a fork or different remote). If no repo ID is configured locally, this check is skipped.
+4. **Parent commit**: If a `parent-commit` tag exists, verify that commit exists in the local repository. If it doesn't exist, report a warning (the patch may be based on a commit not yet pulled) but do not block. The patch is still applied; conflicts may result.
+
+#### `FR-sr-patch-application` -- Apply patch to a temporary review branch
+After validation, the command applies the patch diff to a temporary review branch. The branch name is `review/patch-<short-event-id>` where `<short-event-id>` is the first 8 characters of the event ID. The workflow:
+1. Stash any uncommitted local changes (both staged and unstaged) to preserve the working tree state.
+2. Check out the parent commit (from the `parent-commit` tag) if it exists locally. If the parent commit doesn't exist, check out the current branch's merge-base with main as a fallback.
+3. Create and check out the review branch (`review/patch-<short-event-id>`). If the branch already exists, delete it first (previous review of the same patch).
+4. Apply the patch diff using `git apply` or `git am` (depending on whether full commit metadata is desired). If application fails (conflicts, missing files), report the specific git error and stop. The user must resolve conflicts manually if they want to proceed.
+5. After successful application, detect the changeset by comparing the review branch to its parent commit. This produces the file list for review.
+
+After the review session ends (user completes or cancels), the command automatically returns to the original branch and pops the stash if one was created. The review branch remains (it is not auto-deleted) so the user can inspect it, merge it, or delete it manually.
+
+#### `FR-sr-patch-metadata-display` -- Display patch metadata in CRPG
+When reviewing a patch (not a local branch), the CRPG displays patch-specific metadata alongside the review context:
+- **Author**: Nostr pubkey of the patch author (from the `author` tag or event pubkey). If a local display name or NIP-05 identifier is known for this pubkey (e.g., from a contacts list or roster file), display that instead of the raw hex pubkey.
+- **Commit message**: First line of the patch event content (before the diff starts) or extracted from an `m` tag if present.
+- **Parent commit**: Short hash (8 chars) from the `parent-commit` tag, if present.
+- **Patch status**: Value from the `status` tag (`open`, `merged`, `closed`, `draft`). Displayed with color coding: open (neutral), merged (green), closed (red), draft (gray).
+- **Event ID**: Short form (first 8 characters) with a way to view or copy the full 64-char ID.
+
+This metadata appears in a dedicated section of the CRPG UI, visually distinct from the file list and review context. It is read-only display; the user cannot edit it within the CRPG. Changing patch status (e.g., marking as merged) is a separate action outside the review workflow.
 
 #### `FR-sr-file-filtering` -- Filter out uninteresting files
 The command filters the changeset to exclude files that are not worth reviewing. The filtering rules are:
@@ -154,8 +201,9 @@ The command accepts an optional argument to control which changes are reviewed:
 - **No argument (default)**: Review all changes in the working tree relative to main. This includes committed branch changes, staged changes, unstaged changes, and untracked new files. This is the broadest view — "everything that differs from main."
 - **`--staged`**: Review only staged changes (files in the git index). This is useful after `git add` when the user wants to review exactly what will be committed. Uses `git diff --name-status --cached` against the merge base.
 - **`--unstaged`**: Review only unstaged changes and untracked files. This is useful after staging some files to review what's left. Uses `git diff --name-status` (working tree vs HEAD) plus untracked files.
+- **`--patch <event-id>`**: Review a NIP-34 patch event from Nostr. Fetches the patch, applies it to a temporary review branch, and reviews the applied changes. See `FR-sr-patch-source` for full behavior. Cannot be combined with `--staged` or `--unstaged`.
 
-If an unrecognized argument is provided, the command displays a usage message and stops.
+If an unrecognized argument is provided, or if `--patch` is combined with `--staged`/`--unstaged`, the command displays a usage message and stops.
 
 #### `FR-sr-git-required` -- Requires a git repository
 The command must be invoked from within a git repository. If the current working directory is not inside a git repository, the command reports an error: "Not a git repository. /shepherd-review must be run from within a git repo." and stops.
@@ -239,9 +287,38 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 #### `AC-sr-interactive-prompt` -- Interactive prompt presented after CRPG launch
 **Given** the CRPG has been opened with N files, **when** the agent finishes launching the CRPG, **then** it presents an interactive prompt (`AskUserQuestion`) with three options: "Added comments", "Reviewed, no comments", and "Cancel". There is no file-watcher polling loop. The agent waits for the user's selection before proceeding.
 
+#### `AC-sr-patch-happy-path` -- Review NIP-34 patch successfully
+**Given** a valid NIP-34 patch event exists on configured Nostr relays with event ID `abc123...`, **when** the user types `/shepherd-review --patch abc123...`, **then** the command fetches the patch event, validates it, applies it to a temporary branch `review/patch-abc123ab`, detects the changeset, filters and sorts files, generates context, displays patch metadata (author, commit message, parent commit, status) in the CRPG, and opens all reviewable files for review. After the review session ends, the original branch is restored and any stashed changes are popped.
+
+#### `AC-sr-patch-event-not-found` -- Clear error when patch event doesn't exist
+**Given** no event with ID `xyz789...` exists on configured relays, **when** the user types `/shepherd-review --patch xyz789...`, **then** the command reports "Patch event xyz789... not found on relays: [relay URLs]" and stops without creating a review branch.
+
+#### `AC-sr-patch-invalid-diff` -- Reject malformed patch diffs
+**Given** a NIP-34 event contains content that is not a valid unified diff (missing `diff --git` headers or malformed hunks), **when** the command attempts to validate the patch, **then** it reports "Invalid patch diff format in event <id>" and stops without applying the patch.
+
+#### `AC-sr-patch-application-conflicts` -- Handle patch application conflicts
+**Given** a patch diff conflicts with the local repository state (files don't exist, hunks don't apply), **when** the command attempts to apply the patch via `git apply`, **then** it reports the git error (e.g., "error: patch failed: src/utils.ts:42") and stops. The review branch is created but the patch is not applied. The user must resolve conflicts manually.
+
+#### `AC-sr-patch-metadata-displayed` -- Patch metadata visible in CRPG
+**Given** a patch event with author pubkey `npub1abc...`, commit message "Add new feature", parent commit `deadbeef`, and status `open`, **when** the CRPG opens for review, **then** the patch metadata section displays the author (as display name if known, otherwise short pubkey), commit message, parent commit short hash, and status with appropriate color coding (open = neutral color).
+
+#### `AC-sr-patch-invalid-event-id` -- Reject invalid event ID format
+**Given** the user types `/shepherd-review --patch not-a-valid-hex-string`, **when** the command validates the event ID, **then** it reports "Invalid event ID format. Expected 64-character hex string." and stops.
+
+#### `AC-sr-patch-conflicting-args` -- Reject conflicting scope arguments
+**Given** the user types `/shepherd-review --patch abc123... --staged`, **when** the command parses arguments, **then** it reports "Cannot combine --patch with --staged or --unstaged" and displays a usage message.
+
 ## Open Questions
 
 1. **Base branch detection**: The spec defaults to `main` as the base branch. Some repositories use `master`, `develop`, or other branch names. Should the command attempt to auto-detect the default branch (e.g., by reading `git symbolic-ref refs/remotes/origin/HEAD`), or should it accept an optional argument to override the base branch? V1 assumes `main`; auto-detection or an override argument is a natural v2 enhancement.
+
+11. **NIP-34 relay configuration**: How should the user configure which Nostr relays to query for patch events? Options: (a) environment variable `NOSTR_RELAYS` (comma-separated URLs), (b) config file at `~/.config/nostr/relays.txt`, (c) hardcoded default public relays, (d) read from an existing Nostr client config if available (e.g., `nak`, `alby`). Engineering will determine the most user-friendly approach that minimizes setup friction.
+
+12. **Patch author display name resolution**: When displaying patch author, should the command attempt to resolve the author's pubkey to a human-readable name? Options: (a) check local contacts/roster file, (b) query NIP-05 for verification, (c) just show short pubkey form. Deferred to design/engineering — product requirement is that a display name is shown *if available*, otherwise short pubkey.
+
+13. **Review branch cleanup**: After a patch review session ends, should the `review/patch-*` branch be auto-deleted, kept for inspection, or prompt the user? V1 keeps the branch (user can delete manually). Auto-cleanup could be a config option in v2.
+
+14. **Patch status update workflow**: After reviewing and merging a patch, the user may want to update its status to `merged` on Nostr. This is a separate action from the review itself — it would involve publishing a status update event. Should `/shepherd-review` offer to do this, or should it remain a separate command/script? Deferred; v1 is review-only, status updates are manual.
 
 2. ~~**File ordering strategy**: Resolved — files are sorted by review priority (see `FR-sr-priority-ordering`). Priority ordering determines both the displayed list order and the CRPG tab order. Core source files appear first, tests last.~~
 
@@ -266,7 +343,10 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 - **`shepherd-launch.sh` script**: The launch script must be updated to accept multiple file path arguments, context data, and construct a URL that loads all files as tabs in a single CRPG session. Currently supports a single `?file=<path>` parameter. Must also support passing structured context data (overall and per-file, neutral and review) to the CRPG.
 - **CRPG multi-file URL support**: The CRPG must support loading multiple files from launch parameters (new engineering work). The in-app multi-file support already exists; this dependency is specifically about initializing a multi-file session from the launch mechanism.
 - **CRPG context display**: The CRPG must support receiving and displaying structured context data (see `FR-sr-context-handoff`). This includes overall neutral context and review feedback displayed in the UI, plus per-file neutral context and review feedback displayed alongside each file's diff. The neutral and review sections must be visually distinct. This is new engineering work.
+- **CRPG patch metadata display**: The CRPG must support displaying NIP-34 patch metadata (see `FR-sr-patch-metadata-display`) in a dedicated UI section. This includes author (with pubkey-to-name resolution), commit message, parent commit, status, and event ID. This is new engineering work specific to patch review.
 - **CRPG multi-file prompt generation**: The CRPG already supports generating a unified multi-file prompt from comments across tabs and writing it to the session-scoped path (`~/.shepherd/sessions/<session-id>/prompt-output.md`). No new work needed here beyond session-scoping (see `FR-sc-session-scoped-output`). The agent uses an interactive prompt (`AskUserQuestion`) rather than a file-watcher or polling mechanism to determine when the user is done and which outcome to process. The prompt output file is still written by the CRPG; only the path is now session-scoped.
-- **Git**: The command requires git to be installed and the working directory to be inside a git repository. Git is used for changeset detection (`git diff`, `git merge-base`).
+- **Git**: The command requires git to be installed and the working directory to be inside a git repository. Git is used for changeset detection (`git diff`, `git merge-base`) and patch application (`git apply` or `git am`, `git checkout`, `git stash`).
+- **Nostr relay access**: For `--patch` mode, the command requires access to Nostr relays to fetch NIP-34 patch events. Relay URLs are read from user configuration (environment variable, config file, or default public relays). No authentication is required for read-only event fetching.
+- **NIP-34 protocol understanding**: The command must parse NIP-34 event structure (kind `1617`/`1621`, specific tags for commit metadata and status). This is implemented as part of the patch fetching logic, not a separate library dependency.
 - **Claude Code or opencode custom commands**: The command is implemented as a `.claude/commands/` markdown file and relies on Claude Code or opencode's custom command execution model. The command uses `AskUserQuestion` (a standard agent capability) to present the interactive prompt after launching the CRPG.
 - **`scripts/install-command.sh`**: The existing install script must be updated to also symlink the new command file for global availability.

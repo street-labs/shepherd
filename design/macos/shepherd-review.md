@@ -1,6 +1,6 @@
 ---
-product-hash: 4d299d7c5ee2df52aa23e260c53010af4520ba647a834ebf37da560ffd5ea957
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: ee06b44196a5bd3d9bc31299feb27b180317837da237958ecac678abc1a64954
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Design Spec
@@ -25,10 +25,10 @@ The agent conversation is defined by the `/shepherd-review` command prompt (`.cl
 ## Command Syntax
 
 ```
-/shepherd-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
+/shepherd-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | --patch <event-id> | <ref>]
 ```
 
-The macOS scope grammar adds three commit-scoped modes on top of the working-tree scopes (`FR-srm-scope-modes`, `FR-srm-branch-scope`, `FR-srm-commit-scope`, `FR-srm-range-scope`):
+The macOS scope grammar adds three commit-scoped modes and one patch mode on top of the working-tree scopes (`FR-srm-scope-modes`, `FR-srm-branch-scope`, `FR-srm-commit-scope`, `FR-srm-range-scope`, `FR-sr-patch-source`):
 
 | Argument | Scope label (shown in summary) | What it reviews |
 |---|---|---|
@@ -38,9 +38,10 @@ The macOS scope grammar adds three commit-scoped modes on top of the working-tre
 | `--branch [base]` | `commits on <branch> vs <base>` | The branch's own commits vs the merge base with `base` (default `main`) |
 | `--commit [ref]` | `commit <short-sha> — <subject>` | A single commit vs its parent (`ref` default `HEAD`) |
 | `--range <range>` | `commit range <range>` | The net diff across a git range (`A..B` or `A...B`) |
+| `--patch <event-id>` | `NIP-34 patch <short-event-id>` | Nostr patch event applied to temporary review branch |
 | `<ref>` | `changes vs <ref>` | Working tree vs an arbitrary commit/branch/tag |
 
-The working-tree scopes (no-argument, `--staged`, `--unstaged`, `<ref>`) include untracked files; the commit scopes (`--branch`, `--commit`, `--range`) do not (`FR-srm-commit-mode-no-untracked`). The scope label appears in the brief summary's `Reviewing:` line (see Conversation Surface).
+The working-tree scopes (no-argument, `--staged`, `--unstaged`, `<ref>`) include untracked files; the commit scopes (`--branch`, `--commit`, `--range`) and patch mode do not (`FR-srm-commit-mode-no-untracked`). The scope label appears in the brief summary's `Reviewing:` line (see Conversation Surface).
 
 An unrecognized argument, a malformed `--range`, or a ref/base that does not resolve prints a usage block listing every scope and stops:
 
@@ -141,6 +142,70 @@ All error messages follow the `/shepherd-review` command prompt verbatim, with t
 
 - **Toolchain missing at install time** — handled by the install script per `AC-srm-install-degraded`. The slash command itself never sees this branch; if the binary is missing at invocation time, the previous case applies.
 
+## NIP-34 Patch Metadata Display
+
+When reviewing a patch via `--patch <event-id>`, the native macOS window displays patch-specific metadata in a dedicated section above the overall review context in the right inspector pane. The metadata section appears only for patch reviews; it is absent for all other review modes.
+
+### Patch Metadata Section Layout
+
+The section has a distinct visual style to separate it from the review context sections below:
+- **Background**: Subtle gray background (`NSColor.quaternaryLabelColor` with reduced opacity) to distinguish from the white review context sections
+- **Padding**: 12pt all sides
+- **Corner radius**: 8pt
+- **Margin bottom**: 16pt (spacing before the overall review context section)
+
+### Metadata Fields
+
+Each field is laid out as a **label-value pair** in a vertical stack:
+
+1. **Patch ID**
+   - **Label**: "Patch ID" (secondary text color, 11pt system font)
+   - **Value**: First 8 characters of event ID (e.g., `abc12345`) in monospace font with a "Copy Full ID" button inline. Clicking the button copies the full 64-char hex ID to clipboard and shows a brief checkmark animation.
+
+2. **Author**
+   - **Label**: "Author" (secondary text color, 11pt)
+   - **Value**: Display name if known (resolved from local roster or NIP-05), otherwise `npub1...` (bech32-encoded pubkey, truncated to first 12 chars). Regular system font, 13pt.
+
+3. **Commit Message**
+   - **Label**: "Message" (secondary text color, 11pt)
+   - **Value**: First line of patch commit message (truncated to 60 chars with `…` if longer). System font, 13pt. If message is empty, show `(no message)` in tertiary label color.
+
+4. **Parent Commit**
+   - **Label**: "Parent" (secondary text color, 11pt)
+   - **Value**: Short hash (8 chars) in monospace font. If no parent commit tag exists (initial commit patch), show `(none)` in tertiary label color.
+
+5. **Status**
+   - **Label**: "Status" (secondary text color, 11pt)
+   - **Value**: Status tag from NIP-34 event (`open`, `merged`, `closed`, `draft`) with color-coded badge:
+     - **Open**: Blue background (`NSColor.systemBlue.withAlphaComponent(0.15)`), blue text
+     - **Merged**: Green background (`NSColor.systemGreen.withAlphaComponent(0.15)`), green text
+     - **Closed**: Red background (`NSColor.systemRed.withAlphaComponent(0.15)`), red text
+     - **Draft**: Gray background (`NSColor.systemGray.withAlphaComponent(0.15)`), gray text
+   - Badge has 4pt padding, 4pt corner radius, medium system font weight.
+
+### Visual Example
+
+```
+┌─────────────────────────────────────────┐
+│ Patch ID: abc12345 [Copy Full ID]      │
+│ Author: Alice (alice@example.com)      │
+│ Message: Add NIP-34 patch review spp…  │
+│ Parent: deadbeef                        │
+│ Status: [OPEN]                          │
+└─────────────────────────────────────────┘
+   ↓ (16pt spacing)
+┌─────────────────────────────────────────┐
+│ Overall Review Context                  │
+│ (neutral + review sections)             │
+└─────────────────────────────────────────┘
+```
+
+### Requirements Satisfied
+
+- `FR-sr-patch-metadata-display`: All five metadata fields displayed
+- `AC-sr-patch-metadata-displayed`: Author name resolution, status color coding
+- Author pubkey-to-name resolution: engineering dependency (see Dependencies below)
+
 ## Concurrency
 
 Two `/shepherd-review` invocations from different working directories produce different session IDs (basename of project root), open independent windows (`FR-crp-macos-window-management`), and read/write disjoint session directories (`AC-srm-session-isolation`). A second invocation from the same project root with the same session ID brings the existing window to front and updates that window's session JSON before reload — same behavior as `/shepherd` (`AC-crp-macos-window-deduplicate`).
@@ -194,3 +259,15 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `AC-sr-list-command` | Launch and Handoff (file browser shows all files; ReviewContext sections show overall + per-file) |
 | `AC-sr-install-global` | Command Syntax (install reference) — supplanted by `AC-srm-install-symlink` |
 | `AC-sr-filters-*`, `AC-sr-includes-config`, `AC-sr-excludes-deleted` | Conversation Surface (inherited filtering) |
+| `FR-sr-patch-source` | Command Syntax (`--patch` mode); NIP-34 Patch Metadata Display |
+| `FR-sr-patch-fetch` | Conversation Surface (inherited from command prompt - relay queries, event validation) |
+| `FR-sr-patch-validation` | Conversation Surface (inherited - event kind, diff format, repo match, parent commit checks) |
+| `FR-sr-patch-application` | Conversation Surface (inherited - review branch creation, patch apply, changeset detection, stash/restore) |
+| `FR-sr-patch-metadata-display` | NIP-34 Patch Metadata Display (all five fields: ID, author, message, parent, status) |
+| `AC-sr-patch-happy-path` | Command Syntax + Conversation Surface + NIP-34 Patch Metadata Display (full patch review flow) |
+| `AC-sr-patch-event-not-found` | Conversation Surface (inherited error handling) |
+| `AC-sr-patch-invalid-diff` | Conversation Surface (inherited validation) |
+| `AC-sr-patch-application-conflicts` | Conversation Surface (inherited git apply error handling) |
+| `AC-sr-patch-metadata-displayed` | NIP-34 Patch Metadata Display (author resolution, status color coding) |
+| `AC-sr-patch-invalid-event-id` | Conversation Surface (inherited validation) |
+| `AC-sr-patch-conflicting-args` | Command Syntax (usage message for conflicting args) |
