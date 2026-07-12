@@ -35,6 +35,11 @@ public struct InspectorView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
+            // NIP-34 patch metadata (when reviewing a Nostr patch)
+            if let patchMetadata = reviewContext?.patchMetadata {
+                PatchMetadataSectionView(metadata: patchMetadata)
+            }
+
             // Overall review context (collapsible)
             if let reviewContext {
                 ReviewContextSectionView(
