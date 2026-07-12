@@ -401,13 +401,13 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-range-scope` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | implemented |
 | `FR-srm-commit-mode-no-untracked` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | implemented |
 | `FR-srm-no-blank-window` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | implemented |
-| `FR-sr-patch-source` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | planned |
-| `FR-sr-patch-fetch` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | planned |
-| `FR-sr-patch-validation` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | planned |
-| `FR-sr-patch-application` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | planned |
-| `FR-sr-patch-metadata-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/CodeReviewFeature/Views/PatchMetadataSection.swift | planned |
+| `FR-sr-patch-source` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-fetch` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-validation` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-application` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-metadata-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | implemented |
 
-Most rows remain `implemented` (existing scope modes and launcher infrastructure). NIP-34 patch support rows are `planned` — the command prompt will implement fetch/validation/application logic via bash + generic Nostr protocol, and the native macOS app will add a `PatchMetadataSection` view component to display patch metadata in the inspector pane.
+All rows are `implemented`: the existing scope modes, launcher infrastructure, and new NIP-34 patch support. The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol, and the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
 ---
 
