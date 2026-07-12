@@ -1,12 +1,12 @@
 Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 
-<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window -->
+<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application -->
 
 Allowed tools: Bash, Read, Write
 
 Arguments: $ARGUMENTS
 
-Suggested arguments: [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
+Suggested arguments: [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | --patch <event-id> | <ref>]
 
 ## Instructions
 
@@ -59,7 +59,7 @@ SHEPHERD_ROOT="$(cat ~/.shepherd/repo-path 2>/dev/null)"
 
 If `$SHEPHERD_ROOT/scripts/shepherd-launch.sh` still doesn't exist, output: "Could not find shepherd-launch.sh. Run `./scripts/install-command.sh` from the Shepherd repo to set it up." and stop.
 
-Parse the argument: `$ARGUMENTS`. There are two families of scope: **working-tree** scopes (review what's on disk; include untracked files) and **commit** scopes (review committed history; never include untracked files). Match in this precedence order (first match wins):
+Parse the argument: `$ARGUMENTS`. There are three families of scope: **working-tree** scopes (review what's on disk; include untracked files), **commit** scopes (review committed history; never include untracked files), and **patch** scope (review a NIP-34 Nostr patch). Match in this precedence order (first match wins):
 
 - If empty or blank → SCOPE = `working` (default: all uncommitted changes vs HEAD).
 - If `--staged` → SCOPE = `staged`.
@@ -71,6 +71,7 @@ Parse the argument: `$ARGUMENTS`. There are two families of scope: **working-tre
   If it does NOT resolve → output the usage message below and stop.
 - If the first token is `--commit` → SCOPE = `commit`. The optional second token is the ref; `REF` = that token or `HEAD` if omitted. Verify the ref resolves with `git -C "$REPO_ROOT" rev-parse --verify "$REF"`. If it does NOT resolve → usage message, stop. Then determine the parent base: if `git -C "$REPO_ROOT" rev-parse --verify "$REF^"` succeeds, set `COMMIT_BASE="$REF^"`; otherwise (root commit, no parent) set `COMMIT_BASE=4b825dc642cb6eb9a060e54bf8d69288fbee4904` (git's canonical empty-tree object).
 - If the first token is `--range` → SCOPE = `range`. The second token is `RANGE` and MUST contain `..` (two-dot `A..B` or three-dot `A...B`). Split it on `..`/`...` and verify each endpoint with `git -C "$REPO_ROOT" rev-parse --verify`. If `RANGE` has no `..`, or either endpoint fails to resolve → usage message, stop.
+- If the first token is `--patch` → SCOPE = `patch`. The second token is `EVENT_ID` (required — a 64-character lowercase hex string). Validate EVENT_ID format: must be exactly 64 characters of `[0-9a-f]`. If format is invalid → output "Invalid event ID format. Expected 64-character hex string." and stop. If `--patch` is combined with any other scope flag (`--staged`, `--unstaged`, `--branch`, `--commit`, `--range`) → output "Cannot combine --patch with --staged, --unstaged, --branch, --commit, or --range" and show usage message, then stop.
 - Otherwise → treat the whole argument as a git ref (commit, branch, tag). Verify it resolves:
   ```bash
   git -C "$REPO_ROOT" rev-parse --verify "$ARGUMENTS" 2>/dev/null
@@ -79,18 +80,19 @@ Parse the argument: `$ARGUMENTS`. There are two families of scope: **working-tre
   If it does NOT resolve → output the usage message below and stop.
 
 ```
-Usage: /shepherd-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | <ref>]
+Usage: /shepherd-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | --patch <event-id> | <ref>]
 
 Review changes in the macOS CRPG.
 
 Scopes:
-  (default)        All uncommitted changes (staged + unstaged + untracked) vs HEAD
-  --staged         Only staged changes
-  --unstaged       Only unstaged changes and untracked files
-  --branch [base]  Commits on the current branch vs <base> (default: main)
-  --commit [ref]   A single commit vs its parent (default: HEAD — your last commit)
-  --range <range>  A commit range, e.g. main..HEAD or v1.0..v1.1
-  <ref>            Working tree vs a commit, branch, or tag
+  (default)          All uncommitted changes (staged + unstaged + untracked) vs HEAD
+  --staged           Only staged changes
+  --unstaged         Only unstaged changes and untracked files
+  --branch [base]    Commits on the current branch vs <base> (default: main)
+  --commit [ref]     A single commit vs its parent (default: HEAD — your last commit)
+  --range <range>    A commit range, e.g. main..HEAD or v1.0..v1.1
+  --patch <event-id> Review a NIP-34 patch from Nostr (64-char hex event ID)
+  <ref>              Working tree vs a commit, branch, or tag
 ```
 
 ---
@@ -143,6 +145,10 @@ git -C "$REPO_ROOT" diff --name-status "$COMMIT_BASE" "$REF"
 git -C "$REPO_ROOT" diff --name-status "$RANGE"
 ```
 
+**SCOPE = `patch`** (NIP-34 patch from Nostr — **no untracked**):
+
+This workflow is detailed below (Step 2-patch). Fetch the patch event from Nostr relays, validate it, apply to a temporary review branch, then detect the changeset vs the parent commit. The output is the same `--name-status` format as other scopes.
+
 Merge and deduplicate all output by path. Untracked files (from `ls-files`, working-tree scopes only) get change type `added`.
 
 **Parse statuses:**
@@ -162,6 +168,134 @@ For untracked files, add as `added` unless already present.
 | `branch` | `No commits on <current-branch> relative to <base>. Nothing to review.` |
 | `commit` | `Commit <ref> has no changes to review.` |
 | `range` | `No changes in range <range>. Nothing to review.` |
+| `patch` | `Patch <short-event-id> has no reviewable changes.` |
+
+---
+
+### Step 2-patch: NIP-34 Patch Workflow (when SCOPE = `patch`)
+
+**This section only runs when SCOPE = `patch`. Skip it for all other scopes.**
+
+#### Configure Nostr relays
+
+Read relay URLs in this order:
+1. Environment variable `NOSTR_RELAYS` (comma-separated)
+2. Config file `~/.config/nostr/relays.txt` (one URL per line, ignoring blank lines and `#` comments)
+3. Default public relays: `wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band`
+
+Store as RELAYS (comma-separated list).
+
+#### Fetch NIP-34 patch event
+
+Use `nak` if available; otherwise construct a manual WebSocket query.
+
+**Try `nak` first:**
+```bash
+if command -v nak >/dev/null 2>&1; then
+  EVENT_JSON=$(nak req -k 1617 -k 1621 -e "$EVENT_ID" --relay "$RELAYS" | head -1)
+fi
+```
+
+If `nak` is not available or returns empty, output a warning:
+```
+Warning: nak CLI not found. Fetching patch via manual WebSocket query.
+For better reliability, install nak: https://github.com/fiatjaf/nak
+```
+
+Then fall back to `curl` + WebSocket (implementation: construct `REQ` filter `{"ids":["$EVENT_ID"],"kinds":[1617,1621]}`, send to each relay until one responds, parse JSON response).
+
+If no event is found on any relay, output:
+```
+Patch event ${EVENT_ID:0:8}... not found on relays: $RELAYS
+```
+Then stop.
+
+#### Validate event
+
+Parse `EVENT_JSON` to extract:
+- `.kind` (must be 1617 or 1621)
+- `.content` (the patch diff)
+- `.pubkey` (author)
+- `.tags[]` where `[0]` is tag name
+
+Required validations:
+1. **Event kind**: Must be 1617 or 1621. If not → output "Event ${EVENT_ID:0:8} has invalid kind (expected 1617 or 1621)" and stop.
+2. **Diff format**: `.content` must start with `diff --git` and contain `+++` and `---` headers. If not → output "Invalid patch diff format in event ${EVENT_ID:0:8}" and stop.
+3. **Repo match** (optional): If an `a` tag exists, compare against local repo config (if available). Mismatch → warning but don't stop.
+4. **Parent commit** (optional): If `parent-commit` tag exists, verify with `git -C "$REPO_ROOT" rev-parse --verify --quiet <parent>`. Missing parent → warning but don't stop.
+
+Extract metadata:
+- `PATCH_AUTHOR`: `.pubkey` or value from `author` tag
+- `PATCH_MESSAGE`: First line of `.content` before `diff --git`, or value from `m` tag (default: "(no message)")
+- `PATCH_PARENT`: Value from `parent-commit` tag (or null if absent)
+- `PATCH_STATUS`: Value from `status` tag (default: "open")
+- `SHORT_EVENT_ID`: First 8 characters of `EVENT_ID`
+
+#### Apply patch to review branch
+
+1. **Stash uncommitted changes** (if any):
+```bash
+STASHED=0
+if [[ -n $(git -C "$REPO_ROOT" status --porcelain) ]]; then
+  git -C "$REPO_ROOT" stash push -u -m "shepherd-review --patch stash" >/dev/null 2>&1
+  STASHED=1
+fi
+```
+
+2. **Store original branch**:
+```bash
+ORIGINAL_BRANCH=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD)
+```
+
+3. **Determine base commit**:
+If `PATCH_PARENT` exists and resolves locally, use it. Otherwise, fallback to merge-base with main:
+```bash
+if [[ -n "$PATCH_PARENT" ]] && git -C "$REPO_ROOT" rev-parse --verify --quiet "$PATCH_PARENT" >/dev/null 2>&1; then
+  BASE_COMMIT="$PATCH_PARENT"
+else
+  BASE_COMMIT=$(git -C "$REPO_ROOT" merge-base main HEAD 2>/dev/null || echo "main")
+fi
+```
+
+4. **Create review branch**:
+```bash
+REVIEW_BRANCH="review/patch-$SHORT_EVENT_ID"
+git -C "$REPO_ROOT" branch -D "$REVIEW_BRANCH" 2>/dev/null  # delete if exists
+git -C "$REPO_ROOT" checkout -b "$REVIEW_BRANCH" "$BASE_COMMIT" >/dev/null 2>&1
+```
+
+5. **Apply patch**:
+Write `.content` to a temp file, then apply:
+```bash
+PATCH_FILE=$(mktemp -t patch-$SHORT_EVENT_ID.XXXXXX.patch)
+echo "$EVENT_CONTENT" > "$PATCH_FILE"
+if ! git -C "$REPO_ROOT" apply --index "$PATCH_FILE" 2>&1; then
+  ERROR_MSG=$(git -C "$REPO_ROOT" apply --index "$PATCH_FILE" 2>&1)
+  rm -f "$PATCH_FILE"
+  # Restore original state
+  git -C "$REPO_ROOT" checkout "$ORIGINAL_BRANCH" >/dev/null 2>&1
+  [[ $STASHED -eq 1 ]] && git -C "$REPO_ROOT" stash pop >/dev/null 2>&1
+  output "Patch application failed:\n$ERROR_MSG"
+  stop
+fi
+rm -f "$PATCH_FILE"
+```
+
+6. **Detect changeset**:
+```bash
+git -C "$REPO_ROOT" diff --name-status "$BASE_COMMIT" HEAD
+```
+
+This output replaces the changeset for Step 3 (filtering).
+
+7. **Register cleanup hook**:
+After the review session ends (after Step 10), run:
+```bash
+git -C "$REPO_ROOT" checkout "$ORIGINAL_BRANCH" >/dev/null 2>&1
+[[ $STASHED -eq 1 ]] && git -C "$REPO_ROOT" stash pop >/dev/null 2>&1
+```
+
+The review branch `$REVIEW_BRANCH` is kept (not auto-deleted).
 
 ---
 
@@ -248,9 +382,33 @@ Build a JSON object with the following structure and write it to `$CTX` using th
       "neutral": "<factual 1-2 sentence summary of what changed in this file>",
       "review": "<your opinion on this file's changes: quality, concerns, suggestions>"
     }
+  },
+  "patchMetadata": "<only when SCOPE = patch — see below>"
+}
+```
+
+**When SCOPE = `patch`, add `patchMetadata` object:**
+
+```json
+{
+  "overall": { ... },
+  "files": { ... },
+  "patchMetadata": {
+    "eventID": "<full 64-char EVENT_ID>",
+    "shortEventID": "<SHORT_EVENT_ID (first 8 chars)>",
+    "author": "<resolved author name or truncated npub from PATCH_AUTHOR>",
+    "commitMessage": "<PATCH_MESSAGE (truncated to 60 chars if longer)>",
+    "parentCommit": "<short 8-char hash from PATCH_PARENT, or null if absent>",
+    "status": "<PATCH_STATUS (open|merged|closed|draft)>"
   }
 }
 ```
+
+For author resolution, try:
+1. Check `~/.config/nostr/roster.json` for a display name for `PATCH_AUTHOR` pubkey
+2. Otherwise, convert pubkey to npub (bech32) and truncate to 12 chars: `npub1...`
+
+For patch mode only, the `patchMetadata` field must be present. For all other scopes, omit it entirely.
 
 The `neutral` fields should be purely factual — what changed, which functions/sections were modified, structural changes. No opinions.
 
@@ -281,6 +439,7 @@ Where `<scope-label>` is derived from SCOPE:
 | `branch` | `commits on <current-branch> vs <base>` |
 | `commit` | `commit <short-sha> — <subject>` (from `git show -s --format='%h — %s' "$REF"`) |
 | `range` | `commit range <range>` |
+| `patch` | `NIP-34 patch <short-event-id>` |
 
 The "excluded" line is omitted if zero files were filtered. **Do not use `AskUserQuestion` here — proceed directly to Step 5.**
 
