@@ -40,4 +40,14 @@ public struct FileNode: Identifiable, Equatable, Sendable {
         self.isReviewed = isReviewed
         self.scrollOffset = scrollOffset
     }
+
+    /// Implements: FR-mdr-detect-markdown
+    /// Returns true if this file is a markdown file based on its extension.
+    public var isMarkdownFile: Bool {
+        let markdownExtensions = ["md", "markdown", "mdown", "mkdn", "mkd"]
+        guard let ext = name.components(separatedBy: ".").last?.lowercased() else {
+            return false
+        }
+        return markdownExtensions.contains(ext)
+    }
 }

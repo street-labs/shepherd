@@ -2330,3 +2330,231 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-empty-no-launch`, `TC-srm-no-changes`
+
+### `FR-mdr-detect-markdown`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-toggle-appears-markdown`, `TC-mdr-toggle-hidden-typescript`
+
+### `FR-mdr-render-toggle`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-toggle-appears-markdown`, `TC-mdr-switch-no-comments-immediate`
+
+### `FR-mdr-render-commonmark`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-basic-commonmark`, `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`, `TC-mdr-render-code-blocks-syntax`
+
+### `FR-mdr-render-styling`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-basic-commonmark`, `TC-mdr-render-code-blocks-syntax`
+
+### `FR-mdr-element-id`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-heading-anchors-line`
+
+### `FR-mdr-rendered-comment-create`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-paragraph-hover`, `TC-mdr-comment-paragraph-submit`
+
+### `FR-mdr-rendered-comment-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-heading-anchors-line`, `TC-mdr-comment-prompt-raw-source`
+
+### `FR-mdr-switch-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-switch-rendered-to-raw-confirm`, `TC-mdr-switch-no-comments-immediate`
+
+### `FR-mdr-raw-diff-unchanged`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-raw-unchanged-syntax-highlight`
+
+### `FR-mdr-rendered-diff-display`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-added-paragraph-green`, `TC-mdr-diff-removed-paragraph-strikethrough`, `TC-mdr-diff-modified-word-level`, `TC-mdr-diff-fallback-80-percent-changed`
+
+### `FR-mdr-rendered-diff-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-comment-modified-element`
+
+### `FR-mdr-rendered-diff-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-prompt-old-new-source`
+
+### `NFR-mdr-render-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-perf-5k-lines-render`
+
+### `NFR-mdr-render-scroll-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-perf-scroll-smooth`
+
+### `NFR-mdr-rendered-diff-perf`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-perf-diff-5k`
+
+### `NFR-mdr-xss-safety`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-xss-script-stripped`, `TC-mdr-xss-onerror-stripped`
+
+### `NFR-mdr-client-only`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: —
+
+### `NFR-mdr-accessibility`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-keyboard-tab-focus`, `TC-mdr-keyboard-enter-comment`, `TC-mdr-voiceover-diff-annotations`
+
+### `AC-mdr-toggle-appears`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-toggle-appears-markdown`
+
+### `AC-mdr-toggle-hidden-non-md`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-toggle-hidden-typescript`
+
+### `AC-mdr-render-basic`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-basic-commonmark`
+
+### `AC-mdr-render-gfm`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-gfm-tables`, `TC-mdr-render-gfm-task-lists`, `TC-mdr-render-gfm-strikethrough`
+
+### `AC-mdr-render-code-blocks`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-render-code-blocks-syntax`
+
+### `AC-mdr-raw-unchanged`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-raw-unchanged-syntax-highlight`
+
+### `AC-mdr-comment-rendered-element`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-paragraph-hover`, `TC-mdr-comment-paragraph-submit`
+
+### `AC-mdr-comment-heading`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-heading-anchors-line`
+
+### `AC-mdr-comment-prompt-format`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-comment-prompt-raw-source`
+
+### `AC-mdr-switch-clears-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-switch-raw-to-rendered-confirm`, `TC-mdr-switch-rendered-to-raw-confirm`
+
+### `AC-mdr-switch-no-comments`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-switch-no-comments-immediate`
+
+### `AC-mdr-rendered-diff-additions`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-added-paragraph-green`
+
+### `AC-mdr-rendered-diff-removals`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-removed-paragraph-strikethrough`
+
+### `AC-mdr-rendered-diff-modifications`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-modified-word-level`
+
+### `AC-mdr-rendered-diff-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-comment-modified-element`
+
+### `AC-mdr-rendered-diff-prompt`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-prompt-old-new-source`
+
+### `AC-mdr-html-sanitized`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-xss-script-stripped`, `TC-mdr-xss-onerror-stripped`
+
+### `AC-mdr-large-file-renders`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-perf-5k-lines-render`, `TC-mdr-perf-scroll-smooth`
+
+### `AC-mdr-keyboard-comment`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-keyboard-tab-focus`, `TC-mdr-keyboard-enter-comment`
+
+### `AC-mdr-diff-fallback`
+- **Defined in**: `product/markdown-render.md`
+- **Design**: `design/macos/markdown-render.md`
+- **Engineering**: `engineering/macos/markdown-render.md`
+- **QA**: `qa/macos/markdown-render.md` -> `TC-mdr-diff-fallback-80-percent-changed`

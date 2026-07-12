@@ -1,8 +1,10 @@
 import SwiftUI
 import ComposableArchitecture
 import AppKit
+import MarkdownRenderFeature
 
-/// Toolbar items: Open, Line Wrap toggle, Copy Prompt, Done (conditional)
+/// Toolbar items: Open, Render Mode (markdown only), Line Wrap toggle, Copy Prompt, Done (conditional)
+/// Implements: FR-mdr-render-toggle
 struct ToolbarView: ToolbarContent {
     @Bindable var store: StoreOf<AppFeature>
 
@@ -14,6 +16,20 @@ struct ToolbarView: ToolbarContent {
                 Label("Open", systemImage: "doc.badge.plus")
             }
             .help("Open files (⌘O)")
+        }
+
+        // Markdown render mode toggle (only visible for markdown files)
+        if store.isActiveFileMarkdown {
+            ToolbarItem(placement: .primaryAction) {
+                Picker("", selection: $store.renderMode) {
+                    ForEach(MarkdownRenderMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+                .help("Switch between raw and rendered markdown view")
+            }
         }
 
         ToolbarItem(placement: .primaryAction) {

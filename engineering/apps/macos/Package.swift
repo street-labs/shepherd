@@ -37,6 +37,8 @@ let package = Package(
         .package(url: "https://github.com/tree-sitter/tree-sitter-css", exact: "0.25.0"),
         .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-yaml", exact: "0.7.2"),
         .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-markdown", exact: "0.5.3"),
+        // Markdown parsing for rendered view
+        .package(url: "https://github.com/apple/swift-markdown.git", from: "0.5.0"),
     ],
     targets: [
         // MARK: - Vendored TreeSitter scanners
@@ -162,6 +164,16 @@ let package = Package(
             swiftSettings: warningsAsErrors
         ),
         .target(
+            name: "MarkdownRenderFeature",
+            dependencies: [
+                "SharedModels",
+                "ShepherdDependencies",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+                .product(name: "Markdown", package: "swift-markdown"),
+            ],
+            swiftSettings: warningsAsErrors
+        ),
+        .target(
             name: "AppFeature",
             dependencies: [
                 "SharedModels",
@@ -173,6 +185,7 @@ let package = Package(
                 "PromptFeature",
                 "SessionFeature",
                 "ReviewContextFeature",
+                "MarkdownRenderFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
             swiftSettings: warningsAsErrors
@@ -271,6 +284,15 @@ let package = Package(
                 "SessionFeature",
                 "ShepherdDependencies",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            ],
+            swiftSettings: warningsAsErrors
+        ),
+        .testTarget(
+            name: "MarkdownRenderFeatureTests",
+            dependencies: [
+                "MarkdownRenderFeature",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             swiftSettings: warningsAsErrors
         ),
