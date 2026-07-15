@@ -310,13 +310,13 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 
 ## Open Questions
 
-1. **Base branch detection**: The spec defaults to `main` as the base branch. Some repositories use `master`, `develop`, or other branch names. Should the command attempt to auto-detect the default branch (e.g., by reading `git symbolic-ref refs/remotes/origin/HEAD`), or should it accept an optional argument to override the base branch? V1 assumes `main`; auto-detection or an override argument is a natural v2 enhancement.
+1. **Base branch detection**: Defaults to `main`. Auto-detection and override tracked in the roadmap — see [roadmap/shepherd-review.md](../roadmap/shepherd-review.md).
 
 11. **NIP-34 relay configuration**: How should the user configure which Nostr relays to query for patch events? Options: (a) environment variable `NOSTR_RELAYS` (comma-separated URLs), (b) config file at `~/.config/nostr/relays.txt`, (c) hardcoded default public relays, (d) read from an existing Nostr client config if available (e.g., `nak`, `alby`). Engineering will determine the most user-friendly approach that minimizes setup friction.
 
 12. **Patch author display name resolution**: When displaying patch author, should the command attempt to resolve the author's pubkey to a human-readable name? Options: (a) check local contacts/roster file, (b) query NIP-05 for verification, (c) just show short pubkey form. Deferred to design/engineering — product requirement is that a display name is shown *if available*, otherwise short pubkey.
 
-13. **Review branch cleanup**: After a patch review session ends, should the `review/patch-*` branch be auto-deleted, kept for inspection, or prompt the user? V1 keeps the branch (user can delete manually). Auto-cleanup could be a config option in v2.
+13. **Review branch cleanup**: Currently keeps `review/patch-*` branches (user can delete manually). Auto-cleanup tracked in the roadmap — see [roadmap/shepherd-review.md](../roadmap/shepherd-review.md).
 
 14. **Patch status update workflow**: After reviewing and merging a patch, the user may want to update its status to `merged` on Nostr. This is a separate action from the review itself — it would involve publishing a status update event. Should `/shepherd-review` offer to do this, or should it remain a separate command/script? Deferred; v1 is review-only, status updates are manual.
 
