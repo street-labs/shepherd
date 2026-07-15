@@ -1,6 +1,6 @@
 ---
-product-hash: 4d299d7c5ee2df52aa23e260c53010af4520ba647a834ebf37da560ffd5ea957
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: ee06b44196a5bd3d9bc31299feb27b180317837da237958ecac678abc1a64954
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
 
@@ -47,6 +47,13 @@ Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both c
 | `AC-srm-range-scope` | `TC-srm-range-scope` | Not started |
 | `AC-srm-commit-excludes-untracked` | `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope` | Not started |
 | `AC-srm-empty-no-launch` | `TC-srm-empty-no-launch`, `TC-srm-no-changes` | Not started |
+| `AC-sr-patch-happy-path` | `TC-sr-patch-happy-path` | Not started |
+| `AC-sr-patch-event-not-found` | `TC-sr-patch-event-not-found` | Not started |
+| `AC-sr-patch-invalid-diff` | `TC-sr-patch-invalid-diff` | Not started |
+| `AC-sr-patch-application-conflicts` | `TC-sr-patch-application-conflicts` | Not started |
+| `AC-sr-patch-metadata-displayed` | `TC-sr-patch-metadata-displayed` | Not started |
+| `AC-sr-patch-invalid-event-id` | `TC-sr-patch-invalid-event-id` | Not started |
+| `AC-sr-patch-conflicting-args` | `TC-sr-patch-conflicting-args` | Not started |
 
 ### Shared Acceptance Criteria — Applicability on macOS
 
@@ -90,6 +97,11 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `NFR-srm-launch-budget` | `TC-srm-happy-path` (timed observation) | Not started |
 | `NFR-srm-no-server` | `TC-srm-no-server` | Not started |
 | `NFR-srm-platform-restriction` | not directly tested -- exercised by `TC-srm-install-degraded-no-swift` | Inherent |
+| `FR-sr-patch-source` | `TC-sr-patch-happy-path`, `TC-sr-patch-event-not-found` | Not started |
+| `FR-sr-patch-fetch` | `TC-sr-patch-happy-path`, `TC-sr-patch-event-not-found` | Not started |
+| `FR-sr-patch-validation` | `TC-sr-patch-invalid-diff`, `TC-sr-patch-invalid-event-id` | Not started |
+| `FR-sr-patch-application` | `TC-sr-patch-application-conflicts` | Not started |
+| `FR-sr-patch-metadata-display` | `TC-sr-patch-metadata-displayed` | Not started |
 
 Filtering, priority ordering, changeset detection, and scope-argument behavior on macOS reuse the web QA cases (the orchestration logic is identical). Run-on-macOS smoke verification is folded into `TC-srm-happy-path` rather than duplicating the full web matrix.
 
@@ -550,6 +562,95 @@ These cases exercise `scripts/shepherd-launch.sh` directly to verify the launche
   2. Harness reads `~/.shepherd/sessions/<sid>/session.json`.
 - **Expected**: `session.json` contains `files[]` with the single fixture and `reviewContext` is `null` (matching the existing single-file `/shepherd` behavior, so the binary's existing fall-through path applies).
 - **Pass criteria**: `reviewContext == null`; `files[]` has exactly the one fixture entry; no JSON parse errors.
+
+### NIP-34 Patch Review
+
+Testing patch review via `--patch <event-id>` mode.
+
+#### NIP-34 patch happy path `TC-sr-patch-happy-path`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-happy-path`, `FR-sr-patch-source`, `FR-sr-patch-fetch`, `FR-sr-patch-validation`, `FR-sr-patch-application`, `FR-sr-patch-metadata-display`, `AC-sr-patch-metadata-displayed`
+- **Preconditions**: 
+  - Valid NIP-34 patch event exists on a configured Nostr relay (create test event or use a known good one)
+  - Event ID is known (64-char hex)
+  - Relay URLs configured (via `NOSTR_RELAYS` env var or default relays)
+  - Current repo has the parent commit of the patch
+- **Steps**:
+  1. From Claude Code/opencode: `/shepherd-review --patch <event-id>`
+  2. Observe agent conversation output (fetching event, validating, applying patch)
+  3. Verify agent reports "Opening N files in the macOS app for review" with scope label "NIP-34 patch <short-id>"
+  4. Native macOS window opens with reviewable files as tabs
+  5. Inspector shows patch metadata section above overall review context:
+     - Patch ID (short + copy button)
+     - Author (resolved name or short pubkey)
+     - Commit message (first line)
+     - Parent commit (short hash)
+     - Status badge (color-coded: open=blue, merged=green, closed=red, draft=gray)
+  6. Click Done in native window, select "Added comments" in interactive prompt
+  7. Verify agent reads prompt output and displays completion summary
+  8. Check original branch is restored and stash is popped (if one was created)
+  9. Verify `review/patch-<short-id>` branch exists
+- **Expected**: Full patch review workflow completes successfully, patch metadata is displayed correctly in native UI, review branch created, original state restored.
+
+#### Patch event not found `TC-sr-patch-event-not-found`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-event-not-found`, `FR-sr-patch-fetch`
+- **Preconditions**: Relay URLs configured
+- **Steps**:
+  1. From agent: `/shepherd-review --patch 0000000000000000000000000000000000000000000000000000000000000000` (non-existent ID)
+  2. Observe agent output
+- **Expected**: Command reports "Patch event 0000... not found on relays: [relay URLs]" and stops. No review branch created, no window opens.
+
+#### Invalid patch diff format `TC-sr-patch-invalid-diff`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-invalid-diff`, `FR-sr-patch-validation`
+- **Preconditions**: NIP-34 event exists with malformed diff content (missing `diff --git` headers or mangled hunks)
+- **Steps**:
+  1. From agent: `/shepherd-review --patch <malformed-event-id>`
+  2. Observe agent output
+- **Expected**: Command reports "Invalid patch diff format in event <id>" and stops. No patch is applied, no window opens.
+
+#### Patch application conflicts `TC-sr-patch-application-conflicts`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-application-conflicts`, `FR-sr-patch-application`
+- **Preconditions**: NIP-34 patch event with diff that conflicts with current repo state (e.g., file doesn't exist, hunks don't apply)
+- **Steps**:
+  1. From agent: `/shepherd-review --patch <conflicting-event-id>`
+  2. Observe agent output when `git apply` fails
+- **Expected**: Command reports git error (e.g., "error: patch failed: src/utils.ts:42") and stops. Review branch is created but patch is not applied. Original branch/stash unchanged.
+
+#### Patch metadata displayed correctly `TC-sr-patch-metadata-displayed`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-metadata-displayed`, `FR-sr-patch-metadata-display`
+- **Preconditions**: Valid patch event with known author pubkey, commit message, parent commit, and status
+- **Steps**:
+  1. Review a patch via `/shepherd-review --patch <event-id>`
+  2. Inspect patch metadata section in native macOS window inspector
+  3. Verify all five fields are present and correctly formatted:
+     - Patch ID shows short form with Copy button
+     - Author shows resolved display name (if available) or truncated npub
+     - Commit message shows first line, truncated to 60 chars if longer
+     - Parent commit shows 8-char short hash
+     - Status badge shows correct color coding
+- **Expected**: All metadata fields render correctly with proper formatting and color coding.
+
+#### Invalid event ID format `TC-sr-patch-invalid-event-id`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-invalid-event-id`, `FR-sr-patch-validation`
+- **Preconditions**: None
+- **Steps**:
+  1. From agent: `/shepherd-review --patch not-a-valid-hex-string`
+  2. Observe agent output
+- **Expected**: Command reports "Invalid event ID format. Expected 64-character hex string." and stops immediately. No relay queries attempted.
+
+#### Conflicting patch arguments `TC-sr-patch-conflicting-args`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-conflicting-args`
+- **Preconditions**: None
+- **Steps**:
+  1. From agent: `/shepherd-review --patch abc123... --staged`
+  2. Observe agent output
+- **Expected**: Command reports "Cannot combine --patch with --staged or --unstaged" and displays usage message. No work is performed.
 
 ---
 

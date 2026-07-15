@@ -1,6 +1,6 @@
 ---
-product-hash: 4d299d7c5ee2df52aa23e260c53010af4520ba647a834ebf37da560ffd5ea957
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: ee06b44196a5bd3d9bc31299feb27b180317837da237958ecac678abc1a64954
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Technical Spec
@@ -132,6 +132,152 @@ For the non-empty path, before invoking the launcher the command removes any sta
 
 > Note (operational): the prebuilt `ShepherdApp` binary is produced at install time (`FR-srm-install`). Editing Swift sources without re-running `./scripts/install-command.sh` leaves a stale binary — a separate cause of "the app looks wrong" that is not a `/shepherd-review` behavior bug. The empty-changeset guard above addresses the changeset-driven blank window; binary staleness is resolved by rebuilding.
 
+---
+
+## NIP-34 Patch Review Support
+
+When invoked with `--patch <event-id>`, the command fetches a NIP-34 patch event from Nostr, applies it to a temporary review branch, and reviews the applied changes using the same filtering, ordering, and context generation pipeline as local branch reviews. Patch metadata (author, commit message, parent commit, status) is passed to the native macOS app for display.
+
+### NIP-34 Protocol Overview
+
+NIP-34 defines git patches as Nostr events:
+- **Event kind**: `1617` (proposal) or `1621` (patch)
+- **Event content**: Unified diff (starts with `diff --git`, contains `+++`/`---` headers, `@@` hunks)
+- **Event tags**:
+  - `a`: Repository reference (`30617:<repo-owner-pubkey>:<repo-d-tag>`)
+  - `commit`: Commit hash
+  - `parent-commit`: Parent commit hash (omitted for initial commit)
+  - `author`: Commit author info
+  - `status`: Patch status (`open`, `merged`, `closed`, `draft`)
+
+### Argument parsing for `--patch`
+
+Argument parsing precedence is extended (first match wins):
+
+1. empty/blank → `working`
+2. `--staged` → `staged`
+3. `--unstaged` → `unstaged`
+4. `--branch [base]` → `branch`
+5. `--commit [ref]` → `commit`
+6. `--range <range>` → `range`
+7. **`--patch <event-id>` → `patch`, `EVENT_ID="<event-id>"`** (new)
+8. otherwise treat as ref
+
+Conflicting arguments (`--patch` combined with `--staged`, `--unstaged`, `--branch`, `--commit`, or `--range`) are rejected with a usage message per `AC-sr-patch-conflicting-args`.
+
+Event ID validation: must be a 64-character lowercase hex string. Invalid format is rejected immediately with `AC-sr-patch-invalid-event-id` error message.
+
+### NIP-34 fetch and validation workflow
+
+The command prompt implements patch mode via bash commands using generic Nostr relay queries (not Buzz-specific CLI). The workflow:
+
+1. **Relay configuration** — Read relay URLs from:
+   - Environment variable `NOSTR_RELAYS` (comma-separated list), or
+   - Config file `~/.config/nostr/relays.txt` (one URL per line), or
+   - Default public relays: `wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band`
+
+2. **Fetch event** — Query relays for the event ID using a generic Nostr client (e.g., `nak`, if available; otherwise fallback to `curl` + relay WebSocket protocol). The query is a standard `REQ` subscription filter: `{"ids": ["<event-id>"]}`. If the event is not found on any relay, report `AC-sr-patch-event-not-found` error and stop.
+
+3. **Validate event** (`FR-sr-patch-validation`):
+   - Event kind must be `1617` or `1621`. Reject others.
+   - Event content must start with `diff --git` and contain `+++`/`---`/`@@` markers. Reject malformed diffs with `AC-sr-patch-invalid-diff` error.
+   - If `a` tag exists, compare repo ID against local config (if available). Mismatch produces a warning but does not block.
+   - If `parent-commit` tag exists, check if commit exists locally (`git rev-parse --verify --quiet <parent>`). Missing parent produces a warning but does not block.
+
+4. **Extract patch diff and metadata**:
+   - Diff: event `.content` field
+   - Author: event `.pubkey` or `author` tag
+   - Commit message: first line of `.content` before the diff starts, or `m` tag if present
+   - Parent commit: `parent-commit` tag value (if present)
+   - Status: `status` tag value (default `open` if tag absent)
+   - Short event ID: first 8 characters of event ID
+
+### Patch application workflow (`FR-sr-patch-application`)
+
+After successful fetch and validation:
+
+1. **Stash uncommitted changes**:
+   ```bash
+   if [[ -n $(git status --porcelain) ]]; then
+     git stash push -u -m "shepherd-review --patch stash"
+     STASHED=1
+   fi
+   ```
+
+2. **Determine base commit**:
+   - If `parent-commit` tag exists and resolves locally: use it
+   - Otherwise: fallback to merge-base of current branch with `main`
+
+3. **Create review branch**:
+   ```bash
+   REVIEW_BRANCH="review/patch-${EVENT_ID:0:8}"
+   git branch -D "$REVIEW_BRANCH" 2>/dev/null  # delete if exists
+   git checkout -b "$REVIEW_BRANCH" "$BASE_COMMIT"
+   ```
+
+4. **Apply patch**:
+   - Write event `.content` to a temp file
+   - Apply via `git apply --index <temp-file>` (adds changes to index)
+   - If apply fails, report `AC-sr-patch-application-conflicts` error with the git error message and stop. The review branch exists but patch is not applied. User must resolve manually.
+
+5. **Detect changeset**:
+   - After successful apply, compare review branch to its parent: `git diff --name-status <parent> HEAD`
+   - This produces the file list that flows through filtering, ordering, and context generation
+
+6. **Post-review cleanup** (after user completes or cancels review):
+   - Return to original branch: `git checkout <original-branch>`
+   - Pop stash if one was created: `if [ "$STASHED" = 1 ]; then git stash pop; fi`
+   - **Do not auto-delete review branch** — user may want to inspect, merge, or delete it manually
+
+### Patch metadata handoff to native app
+
+The patch metadata is included in the structured context JSON passed via `--context`:
+
+```json
+{
+  "overall": { "neutral": "...", "review": "..." },
+  "files": { "/abs/path": { "neutral": "...", "review": "..." } },
+  "patchMetadata": {
+    "eventID": "abc123...def789 (64-char full ID)",
+    "shortEventID": "abc12345",
+    "author": "npub1abc..." or "alice@example.com",
+    "commitMessage": "Add NIP-34 patch review support",
+    "parentCommit": "deadbeef" or null,
+    "status": "open" | "merged" | "closed" | "draft"
+  }
+}
+```
+
+The native macOS app reads `session.json.reviewContext.patchMetadata` and displays it in a dedicated UI section (see design spec "NIP-34 Patch Metadata Display"). If `patchMetadata` is absent (non-patch review), the section is not shown.
+
+### Author pubkey-to-name resolution
+
+The command prompt attempts to resolve the author pubkey to a human-readable name:
+1. Check local roster file `~/.config/nostr/roster.json` (if exists) for a display name mapping
+2. Otherwise, check if a NIP-05 identifier is cached
+3. Fallback: convert to bech32 `npub1...` and truncate to 12 characters
+
+The resolved name is what appears in `patchMetadata.author`. The native app displays it as-is (no further resolution on the Swift side).
+
+### Scope label for patch mode
+
+When reviewing a patch, the scope label in the brief summary is:
+```
+Reviewing: NIP-34 patch abc12345
+```
+
+Where `abc12345` is the first 8 characters of the event ID.
+
+### Requirements satisfied
+
+- `FR-sr-patch-source`: Full patch review workflow
+- `FR-sr-patch-fetch`: Relay queries, event parsing
+- `FR-sr-patch-validation`: Event kind, diff format, repo match, parent commit checks
+- `FR-sr-patch-application`: Stash, review branch creation, patch apply, changeset detection, cleanup
+- `FR-sr-patch-metadata-display`: Metadata JSON passed to native app
+- `AC-sr-patch-happy-path`: End-to-end patch review flow
+- `AC-sr-patch-event-not-found`, `AC-sr-patch-invalid-diff`, `AC-sr-patch-application-conflicts`, `AC-sr-patch-invalid-event-id`, `AC-sr-patch-conflicting-args`, `AC-sr-patch-metadata-displayed`: Error and validation cases
+
 ## Coexistence and Concurrency
 
 Per `FR-srm-coexists` and `AC-srm-coexists`: `/shepherd` and `/shepherd-review` are independent slash commands installed as separate symlinks. Invoking one has no effect on the other.
@@ -255,8 +401,13 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-range-scope` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | implemented |
 | `FR-srm-commit-mode-no-untracked` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | implemented |
 | `FR-srm-no-blank-window` | .claude/commands/shepherd-review.md; .config/opencode/skills/shepherd-review/SKILL.md | implemented |
+| `FR-sr-patch-source` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-fetch` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-validation` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-application` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-metadata-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | implemented |
 
-All rows are `implemented`: the launcher's `--context` flag, both prompt files (including the scope-mode parsing, git command mapping, and empty-changeset guard), and the install-script `COMMANDS` array entry are in place, with inline `Implements:` markers citing the macOS-specific FR slugs. The scope-mode FRs live in the command prompt files only — no Swift or launcher change.
+All rows are `implemented`: the existing scope modes, launcher infrastructure, and new NIP-34 patch support. The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol, and the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
 ---
 
@@ -338,3 +489,6 @@ These slugs are covered by the prompt content in the `/shepherd-review` command 
 | `AC-sr-context-in-crpg` | Supplanted by `AC-srm-context-in-app`. |
 | `AC-sr-invokes-shepherd` | Implementation Plan step 2: single `shepherd-launch.sh` invocation with all paths plus `--context`. |
 | `AC-sr-install-global` | Supplanted by `AC-srm-install-symlink` and `AC-srm-install-git-pull`. |
+| `FR-sr-patch-source`, `FR-sr-patch-fetch`, `FR-sr-patch-validation`, `FR-sr-patch-application` | NIP-34 Patch Review Support section; implemented by the `.claude/commands/shepherd-review.md` prompt content via bash + generic Nostr protocol queries. |
+| `FR-sr-patch-metadata-display` | NIP-34 Patch Review Support section (metadata JSON structure); native macOS app will render via new `PatchMetadataSection` view component. |
+| `AC-sr-patch-happy-path`, `AC-sr-patch-event-not-found`, `AC-sr-patch-invalid-diff`, `AC-sr-patch-application-conflicts`, `AC-sr-patch-metadata-displayed`, `AC-sr-patch-invalid-event-id`, `AC-sr-patch-conflicting-args` | NIP-34 Patch Review Support section (error handling, validation, metadata display). |
