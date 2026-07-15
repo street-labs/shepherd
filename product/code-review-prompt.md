@@ -448,11 +448,7 @@ The application is not required to persist sessions across page reloads in this 
 
 7. **Maximum file size**: `NFR-crp-large-file-perf` sets a 10,000-line target. Should we enforce a hard upper limit (e.g., 50,000 lines) beyond which the file is rejected?
 
-8. **File ordering in prompt**: Should files in the generated prompt be ordered by load order, alphabetically, or user-reorderable? V1 assumes load order.
-
-9. **Per-file preamble**: Should users be able to add per-file instructions in addition to the global preamble? V1 assumes a single global preamble only.
-
-10. **Maximum file count**: Should there be a hard limit on the number of files that can be loaded? V1 has no hard limit but acknowledges performance may degrade past 20 files. The file navigator handles larger file counts much better than the previous tab bar approach, since it uses vertical scrolling rather than horizontal compression, but very large sessions (50+ files) may still warrant a limit or lazy-rendering strategy.
+8-10. **File ordering, per-file preamble, maximum file count**: Tracked in the roadmap — see [roadmap/code-review-prompt.md](../roadmap/code-review-prompt.md).
 
 11. **~~Review context layout placement~~** (Resolved): The file navigator provides a natural home for overall changeset context (e.g., in a collapsible section above the file list). Per-file context is displayed alongside the code viewer when a file is selected. The file navigator + code viewer + prompt panel form a three-column layout. This three-column layout has implications for screen real estate at narrower widths (see `NFR-crp-responsive-layout`, which already sets a minimum supported width). Design should determine whether the file navigator collapses, overlays, or uses a different treatment at narrower widths within the supported range.
 

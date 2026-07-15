@@ -22,6 +22,8 @@ jobs:
         run: ./scripts/audit-lanes.sh
       - name: Lane-discipline blocking structural check
         run: ./scripts/audit-structure.sh
+      - name: QA coverage audit
+        run: ./scripts/audit-coverage.sh --check
 
   app:
     name: Build + test (macOS)
