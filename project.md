@@ -14,6 +14,7 @@ Cross-cutting specs every builder MUST respect, regardless of feature.
 
 | Spec | Lane / Path | Governs |
 |---|---|---|
+| _None yet_ | | |
 
 ## How to operate
 - **Build a feature:** `/pdeq-kickoff <description>` — product → design → engineering → QA, one lane at a time.
