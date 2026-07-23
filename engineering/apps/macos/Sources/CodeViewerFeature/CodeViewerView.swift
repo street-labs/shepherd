@@ -14,6 +14,15 @@ public struct CodeViewerView: View {
     /// Implements: FR-sr-patch-replies-display. Read-only; visually marked bot vs
     /// user, distinct from the user's own editable Comment bubbles.
     let patchReplies: [ReviewContext.PatchReply]
+    /// Reviewer's loaded pubkey (hex) for the `YOU` self-marker on inline replies.
+    let reviewerPubkey: String?
+    /// True when this is a NIP-34 patch review (drives the editor submit label).
+    let isPatchReview: Bool
+    /// True when a reviewer identity is loaded (editor offers Publish vs Save locally).
+    let identityLoaded: Bool
+    /// Invoked when the reviewer taps Reply on an inline patch-thread bubble.
+    /// Implements: FR-srm-reply-to-reply.
+    let onReply: (ReviewContext.PatchReply) -> Void
 
     /// Prebuilt syntax-highlighted lines for `file`, rebuilt when the file or its
     /// tokens change. Empty until highlighting completes (renders plain until then).
@@ -25,7 +34,11 @@ public struct CodeViewerView: View {
         comments: [Comment],
         lineWrapEnabled: Bool,
         commentStore: StoreOf<CommentFeature>,
-        patchReplies: [ReviewContext.PatchReply] = []
+        patchReplies: [ReviewContext.PatchReply] = [],
+        reviewerPubkey: String? = nil,
+        isPatchReview: Bool = false,
+        identityLoaded: Bool = false,
+        onReply: @escaping (ReviewContext.PatchReply) -> Void = { _ in }
     ) {
         self.store = store
         self.file = file
@@ -33,6 +46,10 @@ public struct CodeViewerView: View {
         self.lineWrapEnabled = lineWrapEnabled
         self.commentStore = commentStore
         self.patchReplies = patchReplies
+        self.reviewerPubkey = reviewerPubkey
+        self.isPatchReview = isPatchReview
+        self.identityLoaded = identityLoaded
+        self.onReply = onReply
     }
 
     /// Map line numbers to comments covering that line
@@ -99,7 +116,7 @@ public struct CodeViewerView: View {
                             // Anchored patch-thread replies (read-only, bot/human marked)
                             let lineReplies = repliesByStartLine[lineNumber] ?? []
                             ForEach(lineReplies) { reply in
-                                PatchReplyInlineView(reply: reply)
+                                PatchReplyInlineView(reply: reply, reviewerPubkey: reviewerPubkey, onReply: onReply)
                                     .padding(.leading, 60)
                                     .padding(.trailing, 12)
                                     .padding(.vertical, 2)
@@ -108,7 +125,7 @@ public struct CodeViewerView: View {
                             // Inline editor (if creating at this line)
                             if case let .creating(anchor, end) = commentStore.editorState,
                                min(anchor, end) == lineNumber {
-                                InlineCommentEditorView(store: commentStore)
+                                InlineCommentEditorView(store: commentStore, isPatchReview: isPatchReview, identityLoaded: identityLoaded)
                                     .padding(.leading, 60)
                                     .padding(.trailing, 12)
                                     .padding(.vertical, 4)
@@ -117,7 +134,7 @@ public struct CodeViewerView: View {
                             // Inline editor (if editing a comment at this line)
                             if case let .editing(commentID) = commentStore.editorState,
                                lineComments.contains(where: { $0.id == commentID && $0.startLine == lineNumber }) {
-                                InlineCommentEditorView(store: commentStore)
+                                InlineCommentEditorView(store: commentStore, isPatchReview: isPatchReview, identityLoaded: identityLoaded)
                                     .padding(.leading, 60)
                                     .padding(.trailing, 12)
                                     .padding(.vertical, 4)

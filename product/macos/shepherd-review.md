@@ -18,6 +18,9 @@ The macOS variant adds one platform-choice user story on top of the shared spec'
 ### US-SRM-2: Review committed history, not just the working copy
 **As a** developer reviewing my own work before opening a PR, **I want to** review my whole branch against `main`, or a single commit, or a range of commits — not only my uncommitted edits, **so that** I can do a focused review of exactly the slice of history I care about. When I have nothing uncommitted, I want a clear message rather than a blank review window.
 
+### US-SRM-3: Publish my review comments to the patch thread from the native app
+**As a** reviewer collaborating on a NIP-34 patch in the native macOS app, **I want to** submit my inline comments and have them published to the Nostr patch thread under my own identity, and respond directly to other participants' replies, **so that** my feedback joins the shared conversation every participant sees instead of staying local to my window.
+
 All other shared user stories (`US-SR-1` through `US-SR-9`) apply to the macOS variant unchanged — the review experience itself is the same.
 
 ## Shared Requirements — Applicability on macOS
@@ -35,10 +38,21 @@ The following shared requirements apply identically on macOS:
 - `FR-sr-feedback-collection` — Receive unified multi-file feedback via session-scoped `prompt-output.md`
 - `FR-sr-completion-summary` — Display a review summary and feedback handoff
 - `FR-sr-git-required` — Requires a git repository
+- `FR-sr-patch-replies-display` — Display other participants' patch-thread replies (read-only; the reviewer's own publishing is covered by the macOS-specific patch-thread reply publishing requirements below)
+- `FR-sr-patch-replies-live` — Live refresh of patch-thread replies
+- `FR-sr-relay-client` — In-process Nostr relay client
 - `NFR-sr-startup-speed` — Fast changeset detection and context generation
 - `NFR-sr-no-dependencies` — No additional dependencies (the prebuilt native binary is provided by the existing `/shepherd` infrastructure, not a new runtime dependency)
 - `NFR-sr-agent-native` — Runs entirely within the agent conversation (the native binary launch is a standard `Bash` invocation, no additional process model)
 - `NFR-sr-cross-platform` — Not a constraint here; the git commands themselves remain cross-platform, but the launch path is macOS-only by design (see `NFR-srm-platform-restriction` below)
+
+### Implemented via macOS-specific requirements
+
+The following shared requirements describe platform-neutral behavior that the macOS variant realizes through the macOS-specific requirements in the "Patch-thread reply publishing" section:
+
+- `FR-sr-patch-reply-publish` — realized by `FR-srm-comment-publish-on-submit` + `FR-srm-event-sign` + `FR-srm-event-publish`
+- `FR-sr-reviewer-identity` — realized by `FR-srm-identity-load` + `FR-srm-identity-indicator`
+- `FR-sr-patch-reply-respond` — realized by `FR-srm-reply-to-reply`
 
 ### Modified on macOS
 
@@ -59,6 +73,28 @@ The following shared requirements apply identically on macOS:
 None. Every shared functional requirement either applies as-is or is supplanted by a macOS variant above.
 
 ## macOS-Specific Functional Requirements
+
+### Patch-thread reply publishing (bidirectional)
+
+These requirements make the patch-thread review loop bidirectional on macOS. They are the macOS implementation of the shared `FR-sr-patch-reply-publish`, `FR-sr-reviewer-identity`, and `FR-sr-patch-reply-respond`. They apply only to patch reviews (`--patch`); non-patch reviews are unaffected and comments remain local.
+
+#### `FR-srm-identity-load` -- Load the reviewer's Nostr identity
+The native macOS application loads a reviewer-owned Nostr identity at launch so the reviewer can publish signed replies to patch threads. The identity is a Nostr secret key the reviewer has configured out of band (not generated or managed by the app). The app resolves the secret key with the same configuration precedence it uses for relay URLs: an environment variable, then a config file under the reviewer's Nostr configuration directory, then no identity. When an identity is loaded, the app derives the corresponding public key so it can attribute and display the active identity; the secret key is held only for as long as needed to sign published events and is never written to disk by the app. When no identity is configured, the app launches normally for read-only patch review and local commenting, and reply publishing is unavailable with a clear indication to the reviewer (see `FR-srm-identity-indicator`).
+
+#### `FR-srm-event-sign` -- Sign Nostr events in-process
+The native macOS application signs the Nostr events it publishes using the loaded reviewer identity, in-process, without shelling out to an external signing tool or background process. Signing produces a valid NIP-01 event (correct `id`, `pubkey`, `sig`) for a kind:1 reply. The signing path is the publish-side counterpart of the existing in-process `RelayClient` subscription (`FR-sr-relay-client`): reads and writes both happen in-process so the patch-thread loop is self-contained.
+
+#### `FR-srm-event-publish` -- Publish signed events to relays
+The native macOS application publishes signed Nostr events to the configured relays over the same relay transport it already uses for subscriptions. Publishing sends an `EVENT` frame to each reachable relay and tolerates individual relay failures best-effort (a publish is considered successful when at least one relay accepts the event; failures do not block the review or surface hard errors). Relay URL resolution reuses the existing precedence (`NOSTR_RELAYS` / config file / defaults). Publishing is only invoked for patch reviews when an identity is loaded.
+
+#### `FR-srm-comment-publish-on-submit` -- Submitting an inline comment publishes it as a patch-thread reply
+When the reviewer submits an inline comment during a patch review and an identity is loaded, the native application publishes that comment as a kind:1 patch-thread reply (`FR-sr-patch-reply-publish`) in addition to recording it locally. The published reply carries the patch event as root, the repository `a` tag, and -- when the comment is anchored to a line range -- a line-range anchor matching the file's absolute path and the comment's line span. The locally-recorded comment and the published reply stay associated (so the reviewer's own published reply is not duplicated when it arrives back over the live subscription). When no identity is loaded, submitting a comment records it locally only and the reviewer is informed that it was not published.
+
+#### `FR-srm-reply-to-reply` -- Respond to an existing patch-thread reply from inline
+The reviewer can initiate a response to an existing patch-thread reply directly from that reply's rendered surface (both the inspector patch-thread section and the inline anchored bubble). Initiating a response opens the inline comment editor pre-targeted at the replied-to reply; on submit, the app publishes a kind:1 note with the root `e` tag on the patch event, a reply `e` tag on the responded-to reply's event id, and a `p` tag naming that reply's author (`FR-sr-patch-reply-respond`), signed under the reviewer's identity. The response may also carry a line-range anchor when the reviewer pins it to a location.
+
+#### `FR-srm-identity-indicator` -- Surface the active reviewer identity
+The native macOS application surfaces the active reviewer identity in its UI so the reviewer knows, before they publish, which identity their replies will be attributed to. When an identity is loaded, the indicator shows the reviewer's resolved display name (or truncated npub) at or near the patch-thread surface. When no identity is loaded, the indicator makes clear that replies will not be published and that configuring an identity is required to participate in the thread. The indicator is present only for patch reviews; non-patch reviews do not show it.
 
 ### Coexistence
 
@@ -153,6 +189,18 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 ### Coexistence
 
 - [ ] **Both commands available** `AC-srm-coexists`: Given the installer has run successfully, when the user lists available slash commands, then `/shepherd` and `/shepherd-review` are both present, and invoking one does not affect the other.
+
+### Patch-thread reply publishing
+
+- [ ] **Identity loaded from config** `AC-srm-identity-load`: Given the reviewer has configured a Nostr secret key via the supported configuration path, when the native app launches a patch review, then the app loads the identity, derives the reviewer's public key, and surfaces the active identity per `FR-srm-identity-indicator`. Given no identity is configured, when the app launches a patch review, then read-only review and local commenting work, the identity indicator shows that replies will not be published, and no publish action is offered.
+
+- [ ] **Comment publishes on submit** `AC-srm-comment-publish`: Given a patch review is open and an identity is loaded, when the reviewer submits an inline comment anchored to a file and line range, then the app signs and publishes a kind:1 reply to the configured relays tagged with the patch event as root, the repository `a` tag, and a matching line-range anchor, and the reply appears immediately in the reviewer's own patch-thread section and inline at its anchor without waiting for a relay round-trip. Given no identity is loaded, when the reviewer submits a comment, then the comment is recorded locally only and the reviewer is informed it was not published.
+
+- [ ] **Respond to a reply** `AC-srm-reply-to-reply`: Given the patch thread contains a reply from another participant, when the reviewer initiates a response from that reply's rendered surface and submits it, then the app publishes a kind:1 note carrying a root `e` tag on the patch event, a reply `e` tag on the responded-to reply's event id, and a `p` tag naming that reply's author, signed under the reviewer's identity, and the response appears alongside the replied-to reply.
+
+- [ ] **Published reply not duplicated** `AC-srm-publish-no-dup`: Given the reviewer has published a reply from within the app, when the same reply arrives back over the live relay subscription, then the app does not render it twice (the locally-recorded copy and the relay-delivered copy are deduplicated by event id).
+
+- [ ] **Publish tolerates relay failure** `AC-srm-publish-relay-failure`: Given the reviewer submits a reply and some configured relays are unreachable, when the app attempts to publish, then as long as at least one relay accepts the event the publish succeeds without surfacing a hard error; if no relay accepts the event, the reviewer is informed the reply could not be published and the local copy is retained.
 
 ### Launch and tabs
 

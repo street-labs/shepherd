@@ -49,6 +49,16 @@ public struct AppFeature {
         public var lineWrapEnabled: Bool = true
         public var reviewContextData: ReviewContext?
 
+        /// The reviewer's loaded Nostr identity for publishing patch-thread replies.
+        /// Implements: FR-srm-identity-load, FR-srm-identity-indicator, FR-sr-reviewer-identity.
+        /// nil for non-patch reviews, or patch reviews with no identity configured.
+        public var reviewerIdentity: ReviewerIdentity?
+
+        /// Transient: true for ~2s after a successful patch-thread reply publish; drives
+        /// the "Reply published to patch thread" confirmation near the identity
+        /// indicator. Implements: FR-srm-comment-publish-on-submit.
+        public var showPublishConfirmation: Bool = false
+
         /// Markdown rendering mode (raw or rendered)
         /// Implements: FR-mdr-render-toggle
         public var renderMode: MarkdownRenderMode = .raw
@@ -82,6 +92,7 @@ public struct AppFeature {
             overallComment: String = "",
             lineWrapEnabled: Bool = true,
             reviewContextData: ReviewContext? = nil,
+            reviewerIdentity: ReviewerIdentity? = nil,
             renderMode: MarkdownRenderMode = .raw
         ) {
             self.session = session
@@ -97,6 +108,7 @@ public struct AppFeature {
             self.overallComment = overallComment
             self.lineWrapEnabled = lineWrapEnabled
             self.reviewContextData = reviewContextData
+            self.reviewerIdentity = reviewerIdentity
             self.renderMode = renderMode
         }
     }
@@ -150,6 +162,14 @@ public struct AppFeature {
         case startPatchReplySubscription
         case patchRepliesRefreshedAppend(ReviewContext.PatchReply)
 
+        // Patch-thread reply publishing (bidirectional). Implements:
+        // FR-srm-comment-publish-on-submit, FR-srm-reply-to-reply, FR-srm-event-publish,
+        // FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-reviewer-identity.
+        case reviewerIdentityLoaded(ReviewerIdentity?)
+        case replyToPatchReply(ReviewContext.PatchReply)
+        case patchReplyPublishResult(Comment.ID, PublishResult, NostrEvent?)
+        case dismissPublishConfirmation
+
         // Alerts
         case alert(PresentationAction<Alert>)
 
@@ -167,6 +187,8 @@ public struct AppFeature {
     @Dependency(\.windowClient) var windowClient
     @Dependency(\.syntaxHighlightClient) var syntaxHighlighter
     @Dependency(\.relayClient) var relayClient
+    @Dependency(\.identityClient) var identityClient
+    @Dependency(\.nostrSigner) var nostrSigner
     @Dependency(\.uuid) var uuid
     @Dependency(\.continuousClock) var clock
 
@@ -174,6 +196,7 @@ public struct AppFeature {
         case promptRegeneration
         case copyConfirmation
         case patchReplySubscription
+        case publishConfirmation
     }
 
     public init() {}
@@ -204,22 +227,35 @@ public struct AppFeature {
                 guard let fileID = state.activeFileID else { return .none }
                 let start = min(anchorLine, endLine)
                 let end = max(anchorLine, endLine)
-                state.allComments.append(
-                    Comment(
-                        id: uuid(),
-                        fileID: fileID,
-                        startLine: start,
-                        endLine: end,
-                        text: trimmed
-                    )
+                let comment = Comment(
+                    id: uuid(),
+                    fileID: fileID,
+                    startLine: start,
+                    endLine: end,
+                    text: trimmed
+                )
+                state.allComments.append(comment)
+                // Patch-review publish path. Implements: FR-srm-comment-publish-on-submit.
+                if let meta = state.reviewContextData?.patchMetadata {
+                    return patchReviewPublishEffect(state: &state, comment: comment, patchMeta: meta)
+                }
+                return .merge(
+                    .send(.regeneratePrompt),
+                    .send(.rebuildFileTree)
                 )
             case let .editing(commentID):
                 state.allComments[id: commentID]?.text = trimmed
+                // Retry a failed patch-review publish. Implements: AC-srm-publish-relay-failure.
+                if let meta = state.reviewContextData?.patchMetadata,
+                   case .failed = state.comment.publishState,
+                   let comment = state.allComments[id: commentID] {
+                    return patchReviewPublishEffect(state: &state, comment: comment, patchMeta: meta)
+                }
+                return .merge(
+                    .send(.regeneratePrompt),
+                    .send(.rebuildFileTree)
+                )
             }
-            return .merge(
-                .send(.regeneratePrompt),
-                .send(.rebuildFileTree)
-            )
         }
 
         Scope(state: \.comment, action: \.comment) {
@@ -454,12 +490,49 @@ public struct AppFeature {
 
             case let .patchRepliesRefreshedAppend(reply):
                 // Incremental live append: merge a single incoming reply into the
-                // existing ordered list, skipping dupes by id.
+                // existing ordered list, skipping dupes by id. Implements:
+                // AC-srm-publish-no-dup -- the reviewer's own published reply is
+                // appended locally on submit, so the relay-delivered copy is skipped.
                 guard var meta = state.reviewContextData?.patchMetadata else { return .none }
                 if meta.replies.contains(where: { $0.id == reply.id }) { return .none }
                 meta.replies.append(reply)
                 meta.replies.sort { $0.timestamp < $1.timestamp }
                 state.reviewContextData?.patchMetadata = meta
+                return .none
+
+            // MARK: - Patch-thread reply publishing (bidirectional)
+
+            case let .reviewerIdentityLoaded(identity):
+                state.reviewerIdentity = identity
+                return .none
+
+            case let .replyToPatchReply(reply):
+                // Switch to the reply's anchor file before opening the editor, so
+                // the editor opens on the right file and the published `range` tag
+                // names the correct path. Implements: FR-srm-reply-to-reply.
+                // Without this, a Reply from the inspector (where the active file
+                // may differ from the reply's anchored file) would anchor the
+                // editor to the wrong file.
+                if let anchorPath = reply.lineAnchor?.filePath,
+                   let file = state.files.first(where: { $0.filePath == anchorPath }) {
+                    state.activeFileID = file.id
+                }
+                // Open the editor at the reply's anchor (or line 1 when unanchored).
+                let start = reply.lineAnchor?.startLine ?? 1
+                let end = reply.lineAnchor?.endLine ?? start
+                state.comment.editorState = .creating(anchorLine: start, endLine: end)
+                state.comment.editorText = ""
+                state.comment.replyTarget = reply
+                state.comment.publishState = .idle
+                return activeFileContextEffect(state: state)
+
+            case let .patchReplyPublishResult(commentID, result, signedEvent):
+                return handlePublishResult(
+                    state: &state, commentID: commentID, result: result, signedEvent: signedEvent
+                )
+
+            case .dismissPublishConfirmation:
+                state.showPublishConfirmation = false
                 return .none
 
             // MARK: - Child Feature Forwarding
@@ -568,17 +641,22 @@ public struct AppFeature {
                 }
                 // Store review context
                 state.reviewContextData = data.reviewContext
+                let isPatchReview = data.reviewContext?.patchMetadata != nil
+                var effects: [Effect<Action>] = []
                 if !loadedFiles.isEmpty {
-                    return .merge(
-                        .send(.filesLoaded(loadedFiles)),
-                        // Begin live relay subscription for patch reviews.
-                        // Implements: FR-sr-patch-replies-live (in-app RelayClient).
-                        data.reviewContext?.patchMetadata != nil
-                            ? .send(.startPatchReplySubscription) : .none
-                    )
+                    effects.append(.send(.filesLoaded(loadedFiles)))
                 }
-                return data.reviewContext?.patchMetadata != nil
-                    ? .send(.startPatchReplySubscription) : .none
+                // Begin live relay subscription for patch reviews.
+                // Implements: FR-sr-patch-replies-live (in-app RelayClient).
+                if isPatchReview {
+                    effects.append(.send(.startPatchReplySubscription))
+                    // Load the reviewer's Nostr identity for publishing replies.
+                    // Implements: FR-srm-identity-load.
+                    effects.append(.run { [identityClient] send in
+                        await send(.reviewerIdentityLoaded(identityClient.loadIdentity()))
+                    })
+                }
+                return .merge(effects)
 
             case .session:
                 return .none
@@ -672,6 +750,114 @@ public struct AppFeature {
         return .run { [syntaxHighlighter, content = activeFile.content, language = activeFile.language] send in
             let tokens = await syntaxHighlighter.highlight(content, language)
             await send(.codeViewer(.syntaxHighlightingCompleted(tokens)))
+        }
+    }
+
+    // MARK: - Patch-thread reply publishing helpers
+
+    /// Kick off the sign + publish flow for a patch-review comment submit.
+    // Implements: FR-srm-comment-publish-on-submit, FR-srm-event-sign, FR-srm-event-publish
+    ///
+    private func patchReviewPublishEffect(
+        state: inout State,
+        comment: Comment,
+        patchMeta: ReviewContext.PatchMetadata
+    ) -> Effect<Action> {
+        guard state.reviewerIdentity != nil else {
+            state.comment.publishState = .idle
+            return .merge(.send(.regeneratePrompt), .send(.rebuildFileTree))
+        }
+        state.comment.publishState = .publishing
+        let filePath = state.files[id: comment.fileID]?.filePath
+        let replyTarget = state.comment.replyTarget
+        let commentID = comment.id
+        return .merge(
+            .send(.regeneratePrompt),
+            .send(.rebuildFileTree),
+            .run { [identityClient, nostrSigner, relayClient] send in
+                let outcome = await Self.publishPatchReply(
+                    comment: comment, filePath: filePath, patchMeta: patchMeta,
+                    replyTarget: replyTarget, identityClient: identityClient,
+                    nostrSigner: nostrSigner, relayClient: relayClient
+                )
+                await send(.patchReplyPublishResult(commentID, outcome.result, outcome.signed))
+            }
+        )
+    }
+
+    /// Build, sign, and publish a patch-thread reply.
+    // Implements: FR-sr-patch-reply-publish, FR-sr-patch-reply-respond
+    ///
+    private static func publishPatchReply(
+        comment: Comment, filePath: String?,
+        patchMeta: ReviewContext.PatchMetadata, replyTarget: ReviewContext.PatchReply?,
+        identityClient: IdentityClient, nostrSigner: NostrSigner, relayClient: RelayClient
+    ) async -> (result: PublishResult, signed: NostrEvent?) {
+        guard let secret = identityClient.currentSecret() else { return (.failed, nil) }
+        var tags: [[String]] = [["e", patchMeta.eventID, "", "root"]]
+        if let coord = patchMeta.repoCoordinate { tags.append(["a", coord]) }
+        if let replyTarget {
+            tags.append(["e", replyTarget.id, "", "reply"])
+            tags.append(["p", replyTarget.authorPubkey])
+            // Range tag for a reply-to-reply: use the replied-to reply's anchor file
+            // path (not the active file's path), so the `range` tag names the file
+            // the response is pinned to. Omit the range tag when the replied-to
+            // reply is unanchored (the spec says the anchor is optional).
+            if let anchorPath = replyTarget.lineAnchor?.filePath {
+                tags.append(["range", anchorPath, String(comment.startLine), String(comment.endLine)])
+            }
+        } else if let filePath {
+            // Top-level comment: the reviewer clicked a line, so the range tag
+            // names the active file at the comment's line span.
+            tags.append(["range", filePath, String(comment.startLine), String(comment.endLine)])
+        }
+        let unsigned = NostrEvent(
+            id: "", pubkey: "", kind: 1, content: comment.text,
+            tags: tags, createdAt: Int64(Date().timeIntervalSince1970)
+        )
+        guard let signed = nostrSigner.sign(unsigned, secret) else { return (.failed, nil) }
+        let result = await relayClient.publish(signed)
+        return (result, signed)
+    }
+
+    /// Handle the publish outcome. Implements: AC-srm-publish-no-dup, AC-srm-publish-relay-failure.
+    private func handlePublishResult(
+        state: inout State, commentID: Comment.ID,
+        result: PublishResult, signedEvent: NostrEvent?
+    ) -> Effect<Action> {
+        switch result {
+        case .accepted:
+            guard let signed = signedEvent,
+                  let patchID = state.reviewContextData?.patchMetadata?.eventID,
+                  var meta = state.reviewContextData?.patchMetadata else {
+                state.comment.publishState = .failed("Publish succeeded but the reply could not be recorded.")
+                return .none
+            }
+            state.allComments[id: commentID]?.publishedEventID = signed.id
+            if !meta.replies.contains(where: { $0.id == signed.id }),
+               let reply = PatchReplyMapper.mapOne(signed, patchEventID: patchID) {
+                meta.replies.append(reply)
+                meta.replies.sort { $0.timestamp < $1.timestamp }
+                state.reviewContextData?.patchMetadata = meta
+            }
+            state.comment.publishState = .published
+            state.comment.replyTarget = nil
+            state.showPublishConfirmation = true
+            return .merge(
+                .send(.rebuildFileTree),
+                .run { [clock] send in
+                    try await clock.sleep(for: .seconds(2))
+                    await send(.dismissPublishConfirmation)
+                }
+                .cancellable(id: CancelID.publishConfirmation, cancelInFlight: true)
+            )
+        case .rejected, .failed:
+            state.comment.publishState = .failed(
+                "Couldn't publish reply - no relay accepted it. Your comment is saved locally."
+            )
+            state.comment.editorState = .editing(commentID: commentID)
+            if let text = state.allComments[id: commentID]?.text { state.comment.editorText = text }
+            return .none
         }
     }
 

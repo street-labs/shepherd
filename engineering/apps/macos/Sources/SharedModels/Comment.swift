@@ -14,6 +14,12 @@ public struct Comment: Identifiable, Equatable, Sendable {
     public var text: String
     /// Timestamp of creation. Used for stable ordering when line numbers are equal.
     public let createdAt: Date
+    /// When this comment was published as a patch-thread reply, the Nostr event id
+    /// of that reply. Associates the local comment with its published event so the
+    /// live subscription dedups the relay-delivered copy. nil for local-only
+    /// comments and for all non-patch reviews.
+    // Implements: FR-srm-comment-publish-on-submit, AC-srm-publish-no-dup
+    public var publishedEventID: String?
 
     public init(
         id: UUID = UUID(),
@@ -21,7 +27,8 @@ public struct Comment: Identifiable, Equatable, Sendable {
         startLine: Int,
         endLine: Int,
         text: String,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        publishedEventID: String? = nil
     ) {
         self.id = id
         self.fileID = fileID
@@ -29,5 +36,6 @@ public struct Comment: Identifiable, Equatable, Sendable {
         self.endLine = endLine
         self.text = text
         self.createdAt = createdAt
+        self.publishedEventID = publishedEventID
     }
 }

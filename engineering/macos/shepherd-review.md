@@ -1,6 +1,6 @@
 ---
-product-hash: 8ba09106a87a74e22edfa0a753a8972b0ff0fa9955d99a0af80cd8438ecd2250
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: e2f782a2a1e892586f62ad8132f037dedece6ec76fb1fb0fd1986e06ab8336ea
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Technical Spec
@@ -45,9 +45,21 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 | `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **NEW** | In-process Nostr relay client (`URLSessionWebSocketTask`) exposing `subscribe(NostrFilter) -> AsyncStream<NostrEvent>`. Implements `FR-sr-relay-client`. |
 | `engineering/apps/macos/Sources/Dependencies/PatchReplyMapper.swift` | **NEW** | Swift port of the poller's mapper: `[NostrEvent]` / single event -> `[PatchReply]` (kind:1 root filter, roster author resolution, `isBot`, `lineAnchor`). |
 | `engineering/apps/macos/Sources/SharedModels/NostrEvent.swift` | **NEW** | Minimal NIP-01 event model for the relay client + mapper. |
-| Native app feature reducers (CodeReview, MultiFile, etc.) | **UNCHANGED** | Already handle multi-file `files[]` and render `reviewContext` in ReviewContextSection / ReviewContextPanel. `AppFeature` gains the patch-thread relay subscription (`FR-sr-patch-replies-live`). |
+| `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **MODIFIED** | Adds a `publish` closure alongside `subscribe` that sends `EVENT` frames over WebSocket (`FR-srm-event-publish`). |
+| `engineering/apps/macos/Sources/Dependencies/NostrSigner.swift` | **NEW** | `@Dependency` wrapping secp256k1 Schnorr signing + pubkey derivation (`FR-srm-event-sign`). `testValue` returns deterministic fixtures. |
+| `engineering/apps/macos/Sources/Dependencies/Bech32.swift` | **NEW** | Minimal BIP-173 bech32 encode/decode for `nsec` decode and `npub` display (`FR-srm-identity-load`). |
+| `engineering/apps/macos/Sources/SharedModels/ReviewerIdentity.swift` | **NEW** | Display-only reviewer identity model (pubkey hex, npub, display name) for the identity indicator (`FR-srm-identity-indicator`, `FR-sr-reviewer-identity`). |
+| `engineering/apps/macos/Sources/Dependencies/IdentityClient.swift` | **NEW** | `@Dependency` resolving the reviewer's nsec from `SHEPHERD_NSEC` / `~/.config/nostr/identity` (`FR-srm-identity-load`). |
+| `engineering/apps/macos/Sources/SharedModels/NostrEvent.swift` | **MODIFIED** | Adds `sign(secretKey:)` computing NIP-01 `id` + `sig`; adds `computedID` (pure SHA-256 of the canonical serialization). |
+| `engineering/apps/macos/Sources/SharedModels/Comment.swift` | **MODIFIED** | Adds optional `publishedEventID: String?` to associate a local comment with its published reply (`FR-srm-comment-publish-on-submit`). |
+| `engineering/apps/macos/Sources/SharedModels/ReviewContext.swift` | **MODIFIED** | Adds optional `repoCoordinate: String?` to `PatchMetadata` (the patch event's `a` tag), used as the `a` tag on published replies (`FR-srm-comment-publish-on-submit`). |
+| `engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift` | **NEW** | Inspector identity indicator (loaded / no-identity states) (`FR-srm-identity-indicator`). |
+| `engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift` | **MODIFIED** | Adds a `Reply` button routing to `.replyToPatchReply` (`FR-srm-reply-to-reply`). |
+| `engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift` | **MODIFIED** | Adds a `Reply` button per inspector row (`FR-srm-reply-to-reply`). |
+| `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` | **MODIFIED** | Identity state, comment-submit publish path, `.replyToPatchReply` action, self-reply dedup (`FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`). |
+| `engineering/apps/macos/Package.swift` | **MODIFIED** | Adds the `swift-secp256k1` package dependency (module `P256K`, successor to `secp256k1.swift`) for in-process Schnorr signing (`FR-srm-event-sign`). |
 
-The change footprint is intentionally minimal: two new prompt files, one bash flag, and one array entry. No Swift code is touched.
+The change footprint for the original macOS review variant was intentionally minimal (two new prompt files, one bash flag, one array entry). Bidirectional patch-thread publishing extends that footprint into the native app: the Swift files listed above and a new `secp256k1.swift` package dependency. The implementation steps (Steps 7-10) cover that native work.
 
 ---
 
@@ -308,6 +320,64 @@ The initial snapshot is baked into `session.json` at launch by the command promp
 
 **App integration** (`AppFeature`): when session data loads and `patchMetadata != nil`, the reducer sends `.startPatchReplySubscription`. A `.run` effect subscribes via `relayClient.subscribe(NostrFilter(eTag: patchID, kinds: [1]))`, maps each incoming event with `PatchReplyMapper.mapOne`, and sends `.patchRepliesRefreshedAppend(reply)`. That reducer appends the reply to `patchMetadata.replies` in timestamp order, skipping duplicate ids. The inspector section + inline bubbles re-render automatically from the array. The effect is cancellable (`CancelID.patchReplySubscription`) and cancelled on `windowClosed` / `.stopPatchReplySubscription`. The initial `session.json` snapshot (decoded at launch) seeds `patchMetadata.replies` before the first live event arrives. The first live events arrive as soon as relays respond (sub-second for live posts; stored replies arrive immediately on connect).
 
+### Patch-thread reply publishing -- bidirectional (FR-sr-patch-reply-publish, FR-sr-reviewer-identity, FR-sr-patch-reply-respond, FR-srm-identity-load, FR-srm-event-sign, FR-srm-event-publish, FR-srm-comment-publish-on-submit, FR-srm-reply-to-reply, FR-srm-identity-indicator)
+
+The patch-thread loop becomes bidirectional: the reviewer publishes signed kind:1 replies to the thread from inside the native app, under their own Nostr identity, and can respond to existing replies. This is the publish-side counterpart of the existing in-process `RelayClient` subscription -- reads and writes both happen in-process, with no external CLI or background process on the critical path.
+
+#### Identity loading (`FR-srm-identity-load`)
+
+A new `IdentityClient` `@Dependency` resolves the reviewer's Nostr secret key at launch, using the same configuration precedence as `RelayClient.resolveRelays`:
+
+1. Environment variable `SHEPHERD_NSEC` (bech32 `nsec1...` or hex).
+2. Config file `~/.config/nostr/identity` containing an `nsec1...` or hex secret key (first non-blank, non-`#` line).
+3. No identity (publish unavailable, read-only review + local comments still work).
+
+When a key is loaded, `IdentityClient` derives the public key (secp256k1 scalar multiplication) and exposes both the secret and public keys to the signing path. The secret key is held in memory for the app's lifetime (needed to sign on each submit) and is never written to disk by the app. The public key is surfaced to the UI for the identity indicator (`FR-srm-identity-indicator`) and used to mark the reviewer's own replies (`YOU` badge) and dedup them on relay round-trip.
+
+Design note: the app does **not** generate or manage keys. The reviewer brings their own identity (created out of band, e.g. via `nak key generate`). This keeps the app out of the key-custody business and matches the existing roster/relay config model.
+
+#### Event signing -- in-process (`FR-srm-event-sign`)
+
+Signing happens in-process via a Swift secp256k1 package, not by shelling out to `nak`. Rationale (decision logged in `decisions-pending.md`):
+
+- **Consistency** -- the read path (`RelayClient`) is already in-process via `URLSessionWebSocketTask`; a subprocess on the write path only would be an inconsistent seam.
+- **Key custody** -- passing the secret key to a subprocess (argv/env) exposes it in the process list and crosses a trust boundary. An in-process signer keeps the key inside the app's memory space.
+- **No new runtime dependency on the host** -- the native binary is standalone; depending on `nak` being on `PATH` at runtime would make a currently-self-contained app fragile.
+
+The chosen package is `swift-secp256k1` (21-DOT-DEV, module `P256K`; the maintained successor to `GigaBitcoin/secp256k1.swift`), the standard Swift binding used by the Nostr ecosystem. It provides the scalar multiplication (pubkey derivation) and Schnorr signing primitives NIP-01 requires. This is the one new Swift package dependency introduced by this feature; it is justified by the three points above and is a well-audited C library under the hood. The `NostrEvent` model (`Sources/SharedModels/NostrEvent.swift`) gains a pure `computedID` (SHA-256 of the canonical NIP-01 serialization) and a `sign(secretKey:)` extension (defined alongside `NostrSigner` in ShepherdDependencies so the secp256k1 dependency stays out of the pure-model target) that sets `id`, `pubkey`, and `sig`.
+
+A `NostrSigner` `@Dependency` wraps the crypto so the reducer and tests depend on a protocol, not the raw package: `sign(event: NostrEvent, secretKey: Data) -> NostrEvent` (returns a signed copy) and `publicKey(secretKey: Data) -> String`. `testValue` returns deterministic fixtures.
+
+#### Event publishing (`FR-srm-event-publish`)
+
+`RelayClient` gains a `publish` closure alongside `subscribe`: `publish: @Sendable (NostrEvent) async -> PublishResult`. The live value sends an `EVENT` frame (`["EVENT", event]`) over an existing or freshly-opened WebSocket per relay and resolves to `accepted` when at least one relay returns `OK`, `rejected` when every reachable relay returns `OK: false`, or `failed` when no relay is reachable (`AC-srm-publish-relay-failure`). Individual relay failures are tolerated; success is at-least-one-relay-accepted. Relay URL resolution reuses `RelayClient.resolveRelays`. Publishing is only invoked when an identity is loaded. (The single `async -> PublishResult` form is chosen over a per-relay `AsyncStream` because the caller only needs the aggregate outcome, not a per-relay event stream.)
+
+#### Comment-submit integration (`FR-srm-comment-publish-on-submit`)
+
+The existing comment submit path in `CommentFeature`/`AppFeature` is extended for patch reviews. When the reviewer submits an inline comment and `patchMetadata != nil` and an identity is loaded:
+
+1. Build a `NostrEvent` (kind 1) with `content` = comment text and tags: `["e", patchEventID, "", "root"]`, `["a", repoTag]` (only when `patchMetadata.repoCoordinate` is present -- the command prompt populates it from the patch event's `a` tag), and -- when the comment has a line range -- `["range", filePath, startLine, endLine]`. When responding to a reply (`FR-srm-reply-to-reply`), also add `["e", repliedToReply.id, "", "reply"]` and `["p", repliedToReply.authorPubkey]`.
+2. Sign it via `NostrSigner` with the loaded secret key.
+3. Publish via `relayClient.publish`.
+4. On success, append the signed event (mapped via `PatchReplyMapper.mapOne`) to `patchMetadata.replies` immediately so it renders without a relay round-trip, and record the association between the local `Comment` and the published event id (new optional `Comment.publishedEventID` field) so the live subscription dedups it on arrival (`AC-srm-publish-no-dup`).
+5. On failure (no relay accepted), keep the local `Comment` and surface the publish-failed state in the editor (`AC-srm-publish-relay-failure`); the reviewer can retry.
+
+When no identity is loaded, submit records the comment locally only; the editor's submit button reads `Save locally` and no publish is attempted.
+
+`Comment` (`Sources/SharedModels/Comment.swift`) gains an optional `publishedEventID: String?` (nil for local-only comments). This is the only model change to `Comment`; existing non-patch review behavior is unchanged (the field stays nil, comments export via `PromptBuilder` as today).
+
+#### Respond to a reply (`FR-srm-reply-to-reply`)
+
+A new `AppFeature` action `.replyToPatchReply(ReviewContext.PatchReply)` opens the inline comment editor pre-targeted at the replied-to reply. On submit, the published event carries the root `e` tag on the patch event plus a reply `e` tag `["e", repliedToReply.id, "", "reply"]` and a `p` tag `["p", repliedToReply.authorPubkey]` (NIP-10 threaded reply). The `Reply` button is added to `PatchReplyInlineView` (inline bubble) and to the inspector `PatchRepliesSectionView` row; both route to the same action.
+
+#### Identity indicator (`FR-srm-identity-indicator`)
+
+A small view in the inspector (`IdentityIndicatorView`, new, in `ReviewContextFeature`) reads the loaded identity state from `AppFeature.State` (a new `reviewerIdentity: ReviewerIdentity?` where `ReviewerIdentity` carries the public key + resolved display name). Loaded state shows the display name + key glyph; no-identity state shows the warning + config hint. Present only when `patchMetadata != nil`.
+
+#### Dedup of self-published replies (`AC-srm-publish-no-dup`)
+
+The live subscription's `.patchRepliesRefreshedAppend` reducer already skips duplicates by event id. Because the locally-published reply is appended to `replies` immediately on submit (step 4 above), when the same event id arrives over the subscription it is skipped -- no special-casing beyond the existing id-dedup. The `Comment.publishedEventID` association lets the code-viewer treat the reviewer's own published comment and the local comment as one render.
+
 ### Author pubkey-to-name resolution
 
 The command prompt attempts to resolve the author pubkey to a human-readable name:
@@ -429,7 +499,7 @@ The `--help` block (lines 25–35) and the final "Installed:" summary (lines 134
 
 **Slug coverage**: `FR-srm-install`, `AC-srm-install-degraded`
 
-### Step 6: Manual smoke test
+### Step 6: Manual smoke test (orchestration flow)
 
 On a branch with several modified files of mixed types (a TS source file, a config file, a lockfile, a `.png`):
 
@@ -439,6 +509,39 @@ On a branch with several modified files of mixed types (a TS source file, a conf
 4. Verify: brief summary mentions the macOS app and correct file count; lockfile and PNG are excluded; the native window opens with one tab per reviewable file in priority order; the inspector shows the overall neutral + review sections; switching tabs swaps the per-file ReviewContextPanel; no local web server starts.
 5. Click Done in the native window with comments on 1–2 files; select "Added comments" in the agent's `AskUserQuestion`; verify the agent reads `~/.shepherd/sessions/<id>/prompt-output.md` and presents the standard apply/discuss/save/nothing menu.
 6. Repeat with no comments and "Reviewed, no comments"; repeat with "Cancel"; repeat from a non-git directory and a branch with no diffs to confirm error messages match those defined in the shared review flow.
+
+### Step 7: Add the secp256k1 Swift package dependency
+
+Add `secp256k1.swift` (GigaBitcoin) to `engineering/apps/macos/Package.swift` dependencies and link it into the `ShepherdApp` target. This is the one new Swift package introduced by bidirectional patch-thread publishing, justified in the "Event signing -- in-process" subsection. Verify `swift build` still succeeds.
+
+**Slug coverage**: `FR-srm-event-sign`
+
+### Step 8: Implement identity loading + signer + publish client
+
+1. `IdentityClient` (`Sources/Dependencies/IdentityClient.swift`) resolves the nsec from `SHEPHERD_NSEC` / `~/.config/nostr/identity`, derives the pubkey via the secp256k1 package, and exposes `reviewerIdentity` to `AppFeature`. `testValue` returns a fixed test identity.
+2. `NostrSigner` (`Sources/Dependencies/NostrSigner.swift`) wraps Schnorr signing + pubkey derivation behind a `@Dependency` protocol. `NostrEvent.sign(secretKey:)` computes the SHA-256 `id` and `sig`.
+3. Extend `RelayClient` with `publish` (sends `EVENT` frames, resolves to `accepted`/`rejected`/`failed`; succeeds when at least one relay accepts).
+4. `AppFeature.State` gains `reviewerIdentity: ReviewerIdentity?`; loaded at session-data load time when `patchMetadata != nil`.
+
+**Slug coverage**: `FR-srm-identity-load`, `FR-srm-event-sign`, `FR-srm-event-publish`
+
+### Step 9: Wire comment-submit publish + reply-to-reply + identity indicator
+
+1. Extend `Comment` with `publishedEventID: String?`. On comment submit in a patch review with an identity loaded, build + sign + publish the kind:1 reply (root `e`, `a`, optional `range`), append it locally via `PatchReplyMapper.mapOne`, and store the event id on the comment (`AC-srm-publish-no-dup`). No identity -> local-only, button reads `Save locally`.
+2. Add `.replyToPatchReply(ReviewContext.PatchReply)` to `AppFeature`; opens the editor pre-targeted; on submit publishes with root + reply `e` + `p` tags.
+3. Add the `Reply` button to `PatchReplyInlineView` and `PatchRepliesSectionView` rows, both routing to `.replyToPatchReply`.
+4. Add `IdentityIndicatorView` to the inspector, above the Patch Thread section, showing loaded display name / no-identity warning.
+5. Self-reply visual: a `YOU` badge on replies whose `authorPubkey` == loaded pubkey.
+
+**Slug coverage**: `FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`, `FR-srm-identity-indicator`, `FR-sr-patch-reply-publish`, `FR-sr-reviewer-identity`, `FR-sr-patch-reply-respond`
+
+### Step 10: Patch-review publish smoke test
+
+With an identity configured (`SHEPHERD_NSEC`) and a test patch open:
+1. Submit an inline comment on a line range -> verify a kind:1 reply appears on the thread (confirm via `nak req -k 1 -e <patch-id>`) and renders immediately in the reviewer's window with the `YOU` badge.
+2. Click `Reply` on an existing reply, submit -> verify the published event carries root + reply `e` + `p` tags.
+3. Unset `SHEPHERD_NSEC`, relaunch -> verify the identity indicator shows the no-identity state and submit reads `Save locally` with no publish.
+4. Point `NOSTR_RELAYS` at an invalid relay, submit -> verify the publish-failed state surfaces and the local comment is retained.
 
 ---
 
@@ -467,8 +570,17 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-sr-patch-replies-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/CodeViewerFeature/CodeViewerView.swift; engineering/apps/macos/Sources/AppFeature/CodeViewerPanelView.swift; .claude/commands/shepherd-review.md | implemented |
 | `FR-sr-patch-replies-live` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift; engineering/apps/macos/Sources/Dependencies/PatchReplyMapper.swift; engineering/apps/macos/Sources/SharedModels/NostrEvent.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-sr-relay-client` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift; engineering/apps/macos/Sources/SharedModels/NostrEvent.swift | implemented |
+| `FR-sr-patch-reply-publish` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/NostrSigner.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift; engineering/apps/macos/Sources/SharedModels/Comment.swift | implemented |
+| `FR-sr-reviewer-identity` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sr-patch-reply-respond` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift | implemented |
+| `FR-srm-identity-load` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | implemented |
+| `FR-srm-event-sign` | engineering/apps/macos/Sources/Dependencies/NostrSigner.swift; engineering/apps/macos/Sources/SharedModels/NostrEvent.swift; engineering/apps/macos/Package.swift | implemented |
+| `FR-srm-event-publish` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
+| `FR-srm-comment-publish-on-submit` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/Comment.swift | implemented |
+| `FR-srm-reply-to-reply` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift | implemented |
+| `FR-srm-identity-indicator` | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 
-All rows are `implemented`: the existing scope modes, launcher infrastructure, and new NIP-34 patch support. The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol, and the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
+Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
 ---
 
@@ -554,5 +666,22 @@ These slugs are covered by the prompt content in the `/shepherd-review` command 
 | `FR-sr-patch-metadata-display` | NIP-34 Patch Review Support section (metadata JSON structure); native macOS app will render via new `PatchMetadataSection` view component. |
 | `FR-sr-patch-replies-display` | NIP-34 Patch Review Support section (patch-thread replies fetch + handoff); `PatchRepliesSectionView` + `PatchReplyInlineView` native components. |
 | `FR-sr-patch-replies-live` | NIP-34 Patch Review Support section (patch-thread replies live refresh); in-app `RelayClient` subscription + `PatchReplyMapper` + `AppFeature` append reducer. |
+| `FR-sr-patch-reply-publish` | Patch-thread reply publishing section (comment-submit publish path) |
+| `FR-sr-reviewer-identity` | Patch-thread reply publishing section (identity load + indicator) |
+| `FR-sr-patch-reply-respond` | Patch-thread reply publishing section (reply-to-reply e/p tags) |
+| `FR-srm-identity-load` | Patch-thread reply publishing section (IdentityClient config precedence) |
+| `FR-srm-event-sign` | Patch-thread reply publishing section (in-process NostrSigner + secp256k1.swift) |
+| `FR-srm-event-publish` | Patch-thread reply publishing section (RelayClient.publish EVENT frames) |
+| `FR-srm-comment-publish-on-submit` | Patch-thread reply publishing section (comment-submit integration + publishedEventID) |
+| `FR-srm-reply-to-reply` | Patch-thread reply publishing section (.replyToPatchReply + Reply buttons) |
+| `FR-srm-identity-indicator` | Patch-thread reply publishing section (IdentityIndicatorView) |
+| `AC-sr-patch-reply-publish` | Patch-thread reply publishing section (publish + immediate local render) |
+| `AC-sr-patch-reply-respond` | Patch-thread reply publishing section (reply-to-reply flow) |
+| `AC-sr-reviewer-identity` | Patch-thread reply publishing section (identity loaded / no-identity) |
+| `AC-srm-identity-load` | Patch-thread reply publishing section (identity-load states) |
+| `AC-srm-comment-publish` | Patch-thread reply publishing section (comment publishes on submit) |
+| `AC-srm-reply-to-reply` | Patch-thread reply publishing section (respond-to-reply flow) |
+| `AC-srm-publish-no-dup` | Patch-thread reply publishing section (publishedEventID + id-dedup) |
+| `AC-srm-publish-relay-failure` | Patch-thread reply publishing section (publish-failed state) |
 | `FR-sr-relay-client` | NIP-34 Patch Review Support section (in-process Nostr relay client); `RelayClient` + `NostrEvent`. |
 | `AC-sr-patch-happy-path`, `AC-sr-patch-event-not-found`, `AC-sr-patch-invalid-diff`, `AC-sr-patch-application-conflicts`, `AC-sr-patch-metadata-displayed`, `AC-sr-patch-invalid-event-id`, `AC-sr-patch-conflicting-args` | NIP-34 Patch Review Support section (error handling, validation, metadata display). |

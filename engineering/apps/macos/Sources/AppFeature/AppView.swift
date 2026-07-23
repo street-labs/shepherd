@@ -89,7 +89,10 @@ public struct AppView: View {
             allComments: store.allComments,
             files: store.files,
             reviewContext: store.reviewContextData,
-            reviewContextStore: store.scope(state: \.reviewContext, action: \.reviewContext)
+            reviewContextStore: store.scope(state: \.reviewContext, action: \.reviewContext),
+            reviewerIdentity: store.reviewerIdentity,
+            showPublishConfirmation: store.showPublishConfirmation,
+            onReplyToPatchReply: { reply in store.send(.replyToPatchReply(reply)) }
         )
     }
 

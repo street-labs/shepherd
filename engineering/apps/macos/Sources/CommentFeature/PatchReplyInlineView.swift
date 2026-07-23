@@ -8,9 +8,24 @@ import SharedModels
 /// cpu glyph; human replies use an orange tint + person glyph. No edit/delete chrome.
 public struct PatchReplyInlineView: View {
     let reply: ReviewContext.PatchReply
+    /// The reviewer's loaded pubkey (hex) for the `YOU` self-marker.
+    let reviewerPubkey: String?
+    /// Invoked when the reviewer taps the inline Reply button.
+    // Implements: FR-srm-reply-to-reply
+    let onReply: (ReviewContext.PatchReply) -> Void
 
-    public init(reply: ReviewContext.PatchReply) {
+    public init(
+        reply: ReviewContext.PatchReply,
+        reviewerPubkey: String? = nil,
+        onReply: @escaping (ReviewContext.PatchReply) -> Void = { _ in }
+    ) {
         self.reply = reply
+        self.reviewerPubkey = reviewerPubkey
+        self.onReply = onReply
+    }
+
+    private var isSelf: Bool {
+        reviewerPubkey != nil && reply.authorPubkey == reviewerPubkey
     }
 
     public var body: some View {
@@ -32,6 +47,19 @@ public struct PatchReplyInlineView: View {
                             .padding(.vertical, 1)
                             .background(Color.purple.opacity(0.12), in: Capsule())
                     }
+                    if isSelf {
+                        Text("YOU")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Color.green.opacity(0.12), in: Capsule())
+                    }
+                    Spacer()
+                    Button("Reply") { onReply(reply) }
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .buttonStyle(.plain)
                 }
                 Text(reply.content)
                     .font(.callout)
@@ -42,7 +70,9 @@ public struct PatchReplyInlineView: View {
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill((reply.isBot ? Color.purple : Color.orange).opacity(0.08))
+                .fill(isSelf
+                      ? Color.green.opacity(0.10)
+                      : (reply.isBot ? Color.purple : Color.orange).opacity(0.08))
         )
     }
 }

@@ -14,6 +14,14 @@ public struct InspectorView: View {
     let files: IdentifiedArrayOf<FileNode>
     let reviewContext: ReviewContext?
     let reviewContextStore: StoreOf<ReviewContextFeature>
+    /// Reviewer's loaded Nostr identity for the identity indicator. Implements:
+    /// FR-srm-identity-indicator. nil for non-patch reviews.
+    let reviewerIdentity: ReviewerIdentity?
+    /// Transient publish confirmation shown near the identity indicator.
+    let showPublishConfirmation: Bool
+    /// Invoked when the reviewer taps Reply on a patch-thread inspector row.
+    /// Implements: FR-srm-reply-to-reply.
+    let onReplyToPatchReply: (ReviewContext.PatchReply) -> Void
 
     public init(
         store: StoreOf<InspectorFeature>,
@@ -22,7 +30,10 @@ public struct InspectorView: View {
         allComments: IdentifiedArrayOf<Comment>,
         files: IdentifiedArrayOf<FileNode>,
         reviewContext: ReviewContext?,
-        reviewContextStore: StoreOf<ReviewContextFeature>
+        reviewContextStore: StoreOf<ReviewContextFeature>,
+        reviewerIdentity: ReviewerIdentity? = nil,
+        showPublishConfirmation: Bool = false,
+        onReplyToPatchReply: @escaping (ReviewContext.PatchReply) -> Void = { _ in }
     ) {
         self.store = store
         self._overallComment = overallComment
@@ -31,6 +42,9 @@ public struct InspectorView: View {
         self.files = files
         self.reviewContext = reviewContext
         self.reviewContextStore = reviewContextStore
+        self.reviewerIdentity = reviewerIdentity
+        self.showPublishConfirmation = showPublishConfirmation
+        self.onReplyToPatchReply = onReplyToPatchReply
     }
 
     public var body: some View {
@@ -40,10 +54,23 @@ public struct InspectorView: View {
                 PatchMetadataSectionView(metadata: patchMetadata)
             }
 
+            // Reviewer identity indicator (patch reviews only). Implements:
+            // FR-srm-identity-indicator. Shown above the Patch Thread section.
+            if reviewContext?.patchMetadata != nil {
+                IdentityIndicatorView(
+                    identity: reviewerIdentity,
+                    showPublishConfirmation: showPublishConfirmation
+                )
+            }
+
             // NIP-34 patch thread replies (other agents / humans). Implements
             // FR-sr-patch-replies-display. Shown only for patch reviews with replies.
             if let replies = reviewContext?.patchMetadata?.replies, !replies.isEmpty {
-                PatchRepliesSectionView(replies: replies)
+                PatchRepliesSectionView(
+                    replies: replies,
+                    reviewerPubkey: reviewerIdentity?.pubkeyHex,
+                    onReply: onReplyToPatchReply
+                )
             }
 
             // Overall review context (collapsible)

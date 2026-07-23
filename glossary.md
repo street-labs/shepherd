@@ -39,6 +39,16 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: Review session
 **Not to be confused with**: Session ID (which is the unique identifier for a session, not the session state itself)
 
+## Reviewer Identity
+**Definition**: The Nostr identity (a secret key the reviewer owns and has configured out of band) under which the reviewer signs and publishes replies to a NIP-34 patch thread from within the Shepherd review tool. The app derives the corresponding public key and attributes published replies to it; other participants resolve it to a display name via the roster. The app does not generate or manage identities — the reviewer brings their own.
+**Also known as**: Reviewer Nostr identity, reviewer npub (when referring to the public-key half)
+**Not to be confused with**: Patch author (the Nostr identity that published the patch being reviewed, not the reviewer's)
+
+## Patch-Thread Reply
+**Definition**: A kind:1 Nostr text note published as a comment on a NIP-34 patch event, tagged with the patch event as the thread root (an `e` tag with the `root` marker) plus the repository `a` tag, and optionally a line-range anchor pinning it to a file and line span in the applied patch. Both other participants' replies (read by the review tool) and the reviewer's own published replies use this format.
+**Also known as**: Patch reply, thread reply
+**Not to be confused with**: Inline comment (a local annotation in the review tool; in a patch review, submitting an inline comment also publishes a patch-thread reply when a reviewer identity is loaded)
+
 ## Line Range
 **Definition**: A contiguous selection of two or more lines to which a single inline comment can be attached. Displayed as lines N-M in the generated prompt.
 **Also known as**: Multi-line selection, range selection

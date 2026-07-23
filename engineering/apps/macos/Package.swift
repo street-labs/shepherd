@@ -39,6 +39,9 @@ let package = Package(
         .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-markdown", exact: "0.5.3"),
         // Markdown parsing for rendered view
         .package(url: "https://github.com/apple/swift-markdown.git", from: "0.5.0"),
+        // In-process secp256k1 Schnorr signing for NIP-01 event publishing
+        // (FR-srm-event-sign). Successor to GigaBitcoin/secp256k1.swift; module `P256K`.
+        .package(url: "https://github.com/21-DOT-DEV/swift-secp256k1", from: "0.23.2"),
     ],
     targets: [
         // MARK: - Vendored TreeSitter scanners
@@ -77,6 +80,7 @@ let package = Package(
             name: "ShepherdDependencies",
             dependencies: [
                 "SharedModels",
+                .product(name: "P256K", package: "swift-secp256k1"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
                 .product(name: "TreeSitterJSON", package: "tree-sitter-json"),
@@ -215,6 +219,7 @@ let package = Package(
             dependencies: [
                 "AppFeature",
                 "ShepherdDependencies",
+                .product(name: "P256K", package: "swift-secp256k1"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
             swiftSettings: warningsAsErrors

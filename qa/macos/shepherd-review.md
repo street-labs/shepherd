@@ -1,6 +1,6 @@
 ---
-product-hash: 8ba09106a87a74e22edfa0a753a8972b0ff0fa9955d99a0af80cd8438ecd2250
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: e2f782a2a1e892586f62ad8132f037dedece6ec76fb1fb0fd1986e06ab8336ea
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
 
@@ -54,6 +54,14 @@ Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both c
 | `AC-sr-patch-metadata-displayed` | `TC-sr-patch-metadata-displayed` | Not started |
 | `AC-sr-patch-invalid-event-id` | `TC-sr-patch-invalid-event-id` | Not started |
 | `AC-sr-patch-conflicting-args` | `TC-sr-patch-conflicting-args` | Not started |
+| `AC-sr-patch-reply-publish` | `TC-sr-patch-reply-publish`, `TC-srm-comment-publish` | Not started |
+| `AC-sr-patch-reply-respond` | `TC-sr-patch-reply-respond`, `TC-srm-reply-to-reply` | Not started |
+| `AC-sr-reviewer-identity` | `TC-srm-identity-load`, `TC-srm-identity-indicator` | Not started |
+| `AC-srm-identity-load` | `TC-srm-identity-load`, `TC-srm-identity-no-key` | Not started |
+| `AC-srm-comment-publish` | `TC-srm-comment-publish`, `TC-srm-comment-publish-no-identity` | Not started |
+| `AC-srm-reply-to-reply` | `TC-srm-reply-to-reply` | Not started |
+| `AC-srm-publish-no-dup` | `TC-srm-publish-no-dup` | Not started |
+| `AC-srm-publish-relay-failure` | `TC-srm-publish-relay-failure` | Not started |
 
 ### Shared Acceptance Criteria — Applicability on macOS
 
@@ -105,6 +113,15 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `FR-sr-patch-replies-display` | `TC-sr-patch-replies-displayed`, `TC-sr-patch-replies-empty` | Not started |
 | `FR-sr-patch-replies-live` | `TC-sr-patch-replies-live`, `TC-sr-patch-replies-live-no-relays` | Not started |
 | `FR-sr-relay-client` | `TC-sr-patch-replies-live`, `TC-sr-patch-replies-live-no-relays` | Not started |
+| `FR-sr-patch-reply-publish` | `TC-sr-patch-reply-publish`, `TC-srm-comment-publish` | Not started |
+| `FR-sr-reviewer-identity` | `TC-srm-identity-load`, `TC-srm-identity-indicator` | Not started |
+| `FR-sr-patch-reply-respond` | `TC-sr-patch-reply-respond`, `TC-srm-reply-to-reply` | Not started |
+| `FR-srm-identity-load` | `TC-srm-identity-load`, `TC-srm-identity-no-key` | Not started |
+| `FR-srm-event-sign` | `TC-srm-comment-publish` (signed event verified), `TC-srm-signer-unit` | Not started |
+| `FR-srm-event-publish` | `TC-srm-comment-publish`, `TC-srm-publish-relay-failure` | Not started |
+| `FR-srm-comment-publish-on-submit` | `TC-srm-comment-publish`, `TC-srm-comment-publish-no-identity` | Not started |
+| `FR-srm-reply-to-reply` | `TC-srm-reply-to-reply` | Not started |
+| `FR-srm-identity-indicator` | `TC-srm-identity-indicator`, `TC-srm-identity-no-key` | Not started |
 
 Filtering, priority ordering, changeset detection, and scope-argument behavior on macOS reuse the web QA cases (the orchestration logic is identical). Run-on-macOS smoke verification is folded into `TC-srm-happy-path` rather than duplicating the full web matrix.
 
@@ -700,6 +717,126 @@ Testing patch review via `--patch <event-id>` mode.
   1. From agent: `/shepherd-review --patch abc123... --staged`
   2. Observe agent output
 - **Expected**: Command reports "Cannot combine --patch with --staged or --unstaged" and displays usage message. No work is performed.
+
+### Patch-Thread Reply Publishing (Bidirectional)
+
+These cases verify the reviewer can publish replies to the patch thread from the native app under their own Nostr identity, respond to existing replies, and that publish state and failure are handled. They require a configured reviewer identity (`SHEPHERD_NSEC` or `~/.config/nostr/identity`) and a test patch event on a reachable relay.
+
+#### Reviewer publishes a reply from the native app `TC-sr-patch-reply-publish`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-reply-publish`, `FR-sr-patch-reply-publish`, `FR-srm-comment-publish-on-submit`
+- **Preconditions**: A test patch event reviewed via `/shepherd-review --patch <event-id>`; the reviewer identity configured (`SHEPHERD_NSEC` set to a test nsec); at least one configured relay reachable.
+- **Steps**:
+  1. Open the patch review; confirm the identity indicator shows the reviewer's display name / npub.
+  2. Click a line range on the diff to open the inline comment editor; type a comment; click **Publish**.
+  3. Observe the editor close and the reply render immediately (inline at its anchor and in the inspector Patch Thread section) with the `YOU` badge -- before any relay round-trip.
+  4. From a separate client, run `nak req -k 1 -e <patch-event-id>` and confirm a kind:1 note exists whose `pubkey` is the reviewer's, tagged `["e", "<patch-id>", "", "root"]`, the repo `a` tag, and a `range` anchor matching the commented file + lines.
+- **Expected**: A signed kind:1 reply is published under the reviewer's identity, carries the root `e`, `a`, and `range` tags, and renders immediately in the reviewer's own window with the self marker.
+
+#### Reviewer responds to an existing reply `TC-sr-patch-reply-respond`
+- **Type**: Manual
+- **Covers**: `AC-sr-patch-reply-respond`, `FR-sr-patch-reply-respond`, `FR-srm-reply-to-reply`
+- **Preconditions**: A patch review open with at least one existing patch-thread reply from another participant; reviewer identity configured.
+- **Steps**:
+  1. Click **Reply** on an existing reply's inspector row (or inline bubble).
+  2. Confirm the inline comment editor opens pre-targeted at that reply.
+  3. Type a response and click **Publish**.
+  4. Confirm the response renders alongside the replied-to reply with the `YOU` badge.
+  5. From a separate client, fetch the published event and confirm it carries a root `e` tag on the patch event, a reply `e` tag `["e", "<replied-to-id>", "", "reply"]`, and a `p` tag naming the replied-to reply's author.
+- **Expected**: The published response is threaded correctly (root + reply `e` + `p` tags) and renders alongside the replied-to reply.
+
+#### Identity loaded from config `TC-srm-identity-load`
+- **Type**: Manual
+- **Covers**: `AC-srm-identity-load`, `FR-srm-identity-load`
+- **Preconditions**: `SHEPHERD_NSEC` set to a known test nsec (or `~/.config/nostr/identity` populated).
+- **Steps**:
+  1. Open a patch review.
+  2. Inspect the identity indicator: confirm it shows the display name (or truncated npub) matching the configured nsec's public key.
+  3. Confirm the editor submit button reads **Publish** (publish is offered).
+- **Expected**: The app loads the configured identity, surfaces it, and offers publish.
+
+#### No identity configured -- publish unavailable, local still works `TC-srm-identity-no-key`
+- **Type**: Manual
+- **Covers**: `AC-srm-identity-load`, `AC-sr-reviewer-identity`, `FR-srm-identity-indicator`
+- **Preconditions**: `SHEPHERD_NSEC` unset and `~/.config/nostr/identity` absent.
+- **Steps**:
+  1. Open a patch review.
+  2. Confirm the identity indicator shows the no-identity warning (`No identity -- replies won't publish`) and the config hint.
+  3. Add an inline comment and confirm the submit button reads **Save locally** (not **Publish**).
+  4. Submit the comment; confirm it is recorded locally and renders, but no kind:1 event is published (verify via `nak req -k 1 -e <patch-id>` that no new reply with the reviewer's absence appears).
+- **Expected**: Read-only review and local commenting work; no publish is offered or attempted; the indicator makes the no-identity state clear.
+
+#### Identity indicator states `TC-srm-identity-indicator`
+- **Type**: Manual
+- **Covers**: `FR-srm-identity-indicator`, `AC-sr-reviewer-identity`
+- **Preconditions**: Ability to toggle `SHEPHERD_NSEC` between set and unset across two launches.
+- **Steps**:
+  1. With `SHEPHERD_NSEC` set, open a patch review; confirm the indicator shows the key glyph + display name with the full npub in the tooltip/accessibility label.
+  2. Unset `SHEPHERD_NSEC`, relaunch; confirm the indicator shows the warning glyph + no-identity text + config hint.
+  3. Open a non-patch review (default scope) with `SHEPHERD_NSEC` set; confirm the identity indicator is absent (present only for patch reviews).
+- **Expected**: Indicator reflects loaded vs no-identity state for patch reviews and is absent for non-patch reviews.
+
+#### Comment publishes on submit (happy path) `TC-srm-comment-publish`
+- **Type**: Manual
+- **Covers**: `AC-srm-comment-publish`, `FR-srm-comment-publish-on-submit`, `FR-srm-event-sign`, `FR-srm-event-publish`
+- **Preconditions**: Patch review open; reviewer identity configured; relay reachable.
+- **Steps**:
+  1. Submit an inline comment anchored to a line range.
+  2. Confirm the submit button shows `Publishing...` then the editor closes and a `Reply published to patch thread` confirmation appears.
+  3. Confirm the reply renders immediately with the `YOU` badge at both surfaces.
+  4. Confirm the published event's `id`/`pubkey`/`sig` form a valid NIP-01 event (verify signature with `nak verify` or equivalent).
+- **Expected**: Submit signs and publishes a valid NIP-01 event; the reply renders immediately; publish confirmation shows.
+
+#### Comment submit with no identity stays local `TC-srm-comment-publish-no-identity`
+- **Type**: Manual
+- **Covers**: `AC-srm-comment-publish` (no-identity branch), `FR-srm-comment-publish-on-submit`
+- **Preconditions**: Patch review open; no identity configured.
+- **Steps**:
+  1. Add an inline comment; confirm submit reads **Save locally**.
+  2. Submit; confirm the comment is recorded locally and renders.
+  3. Confirm no publish occurred (no relay EVENT frame sent -- inspect with a relay monitor or confirm no new event via `nak req`).
+- **Expected**: Local-only comment; no publish attempted.
+
+#### Respond to a reply from inline `TC-srm-reply-to-reply`
+- **Type**: Manual
+- **Covers**: `AC-srm-reply-to-reply`, `FR-srm-reply-to-reply`
+- **Preconditions**: Patch review open with an existing reply; reviewer identity configured.
+- **Steps**:
+  1. Click **Reply** on an inline anchored reply bubble.
+  2. Confirm the editor opens at that bubble's line span, pre-targeted at the reply.
+  3. Submit a response; confirm it publishes with the threaded `e`/`p` tags (per `TC-sr-patch-reply-respond` step 5) and renders with the `YOU` badge.
+- **Expected**: Reply-to-reply works from the inline surface; published event is threaded correctly.
+
+#### Self-published reply is not duplicated on relay round-trip `TC-srm-publish-no-dup`
+- **Type**: Manual
+- **Covers**: `AC-srm-publish-no-dup`
+- **Preconditions**: Patch review open; reviewer identity configured; relay reachable; live subscription active.
+- **Steps**:
+  1. Publish a reply from the app (per `TC-srm-comment-publish`).
+  2. Wait for the live relay subscription to deliver the same event back (a few seconds).
+  3. Confirm the reply still renders exactly once at both surfaces (no duplicate row in the inspector, no duplicate inline bubble).
+- **Expected**: The relay-delivered copy of the reviewer's own reply is deduplicated by event id; only one render.
+
+#### Publish tolerates relay failure `TC-srm-publish-relay-failure`
+- **Type**: Manual
+- **Covers**: `AC-srm-publish-relay-failure`, `FR-srm-event-publish`
+- **Preconditions**: Patch review open; reviewer identity configured; `NOSTR_RELAYS` set to only an invalid/unreachable relay (`wss://invalid.invalid`).
+- **Steps**:
+  1. Submit an inline comment.
+  2. Confirm the editor reopens with the inline error `Couldn't publish reply -- no relay accepted it. Your comment is saved locally.`
+  3. Confirm the local comment is retained and renders.
+  4. Restore `NOSTR_RELAYS` to a reachable relay and retry the publish; confirm it succeeds.
+- **Expected**: When no relay accepts the event, the reviewer is informed, the local comment is retained, and retry succeeds once a relay is reachable.
+
+#### Signer unit test -- valid NIP-01 signature `TC-srm-signer-unit`
+- **Type**: Automated (Swift unit test)
+- **Covers**: `FR-srm-event-sign`
+- **Preconditions**: `NostrSigner` and `NostrEvent.sign` implemented.
+- **Steps**:
+  1. In a Swift test, construct a `NostrEvent` with fixed kind/content/tags/created_at and a fixed test secret key.
+  2. Sign it via `NostrEvent.sign(secretKey:)`.
+  3. Assert the resulting `id` equals the SHA-256 of the canonical serialized event, `pubkey` equals the derived public key, and `sig` is a valid Schnorr signature that verifies against the pubkey.
+- **Expected**: The signer produces a valid NIP-01 event whose signature verifies. Deterministic given the fixed inputs.
 
 ---
 

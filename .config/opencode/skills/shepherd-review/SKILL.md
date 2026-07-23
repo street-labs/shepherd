@@ -232,6 +232,7 @@ Extract metadata:
 - `PATCH_MESSAGE`: First line of `.content` before `diff --git`, or value from `m` tag (default: "(no message)")
 - `PATCH_PARENT`: Value from `parent-commit` tag (or null if absent)
 - `PATCH_STATUS`: Value from `status` tag (default: "open")
+- `PATCH_REPO_COORD`: Value from the `a` tag (the NIP-34 repository coordinate `30617:<owner>:<repo>` the patch belongs to), or null if the event has no `a` tag. Passed to the native app as `patchMetadata.repoCoordinate` so published patch-thread replies can carry the repo `a` tag (`FR-srm-comment-publish-on-submit`).
 - `SHORT_EVENT_ID`: First 8 characters of `EVENT_ID`
 
 #### Fetch patch-thread replies
@@ -417,6 +418,7 @@ Build a JSON object with the following structure and write it to `$CTX` using th
     "commitMessage": "<PATCH_MESSAGE (truncated to 60 chars if longer)>",
     "parentCommit": "<short 8-char hash from PATCH_PARENT, or null if absent>",
     "status": "<PATCH_STATUS (open|merged|closed|draft)>",
+    "repoCoordinate": "<PATCH_REPO_COORD (the a-tag coordinate 30617:owner:repo, or null)>",
     "replies": [
       {
         "id": "<reply event id (64-char hex)>",
