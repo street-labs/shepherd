@@ -149,7 +149,6 @@ public struct AppFeature {
         // already reactive to that array.
         case startPatchReplySubscription
         case patchRepliesRefreshedAppend(ReviewContext.PatchReply)
-        case stopPatchReplySubscription
 
         // Alerts
         case alert(PresentationAction<Alert>)
@@ -462,9 +461,6 @@ public struct AppFeature {
                 meta.replies.sort { $0.timestamp < $1.timestamp }
                 state.reviewContextData?.patchMetadata = meta
                 return .none
-
-            case .stopPatchReplySubscription:
-                return .cancel(id: CancelID.patchReplySubscription)
 
             // MARK: - Child Feature Forwarding
 

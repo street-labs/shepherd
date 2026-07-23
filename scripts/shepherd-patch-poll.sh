@@ -11,7 +11,6 @@
 # Usage:
 #   shepherd-patch-poll.sh --once <event-id>
 #   shepherd-patch-poll.sh <event-id>
-#
 # The leading `--once` flag is accepted for back-compat with earlier command-prompt
 # invocations and is a no-op (this script only ever does a single fetch). Relay configuration (same precedence as the command prompt):
 #   1. NOSTR_RELAYS env var (comma-separated)
