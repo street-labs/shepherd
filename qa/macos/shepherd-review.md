@@ -1,6 +1,6 @@
 ---
-product-hash: e2f782a2a1e892586f62ad8132f037dedece6ec76fb1fb0fd1986e06ab8336ea
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 3be8b01ef980231ee907e94c5591e47414c5e047c1e0495541e48426acbca4ae
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
 
@@ -62,6 +62,10 @@ Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both c
 | `AC-srm-reply-to-reply` | `TC-srm-reply-to-reply` | Not started |
 | `AC-srm-publish-no-dup` | `TC-srm-publish-no-dup` | Not started |
 | `AC-srm-publish-relay-failure` | `TC-srm-publish-relay-failure` | Not started |
+| `AC-sr-bunker-signing` | `TC-srm-bunker-sign`, `TC-srm-bunker-sign-failure` | Not started |
+| `AC-srm-bunker-connect` | `TC-srm-bunker-connect`, `TC-srm-bunker-uri-malformed` | Not started |
+| `AC-srm-bunker-sign` | `TC-srm-bunker-sign` | Not started |
+| `AC-srm-bunker-sign-failure` | `TC-srm-bunker-sign-failure` | Not started |
 
 ### Shared Acceptance Criteria — Applicability on macOS
 
@@ -114,14 +118,17 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `FR-sr-patch-replies-live` | `TC-sr-patch-replies-live`, `TC-sr-patch-replies-live-no-relays` | Not started |
 | `FR-sr-relay-client` | `TC-sr-patch-replies-live`, `TC-sr-patch-replies-live-no-relays` | Not started |
 | `FR-sr-patch-reply-publish` | `TC-sr-patch-reply-publish`, `TC-srm-comment-publish` | Not started |
-| `FR-sr-reviewer-identity` | `TC-srm-identity-load`, `TC-srm-identity-indicator` | Not started |
+| `FR-sr-reviewer-identity` | `TC-srm-identity-load`, `TC-srm-identity-indicator`, `TC-srm-bunker-connect` | Not started |
 | `FR-sr-patch-reply-respond` | `TC-sr-patch-reply-respond`, `TC-srm-reply-to-reply` | Not started |
-| `FR-srm-identity-load` | `TC-srm-identity-load`, `TC-srm-identity-no-key` | Not started |
-| `FR-srm-event-sign` | `TC-srm-comment-publish` (signed event verified), `TC-srm-signer-unit` | Not started |
+| `FR-sr-bunker-signing` | `TC-srm-bunker-sign`, `TC-srm-bunker-sign-failure` | Not started |
+| `FR-srm-identity-load` | `TC-srm-identity-load`, `TC-srm-identity-no-key`, `TC-srm-bunker-uri-malformed` | Not started |
+| `FR-srm-bunker-connect` | `TC-srm-bunker-connect`, `TC-srm-bunker-uri-malformed`, `TC-srm-nip04-unit` | Not started |
+| `FR-srm-event-sign` | `TC-srm-comment-publish` (signed event verified), `TC-srm-signer-unit`, `TC-srm-bunker-sign` | Not started |
+| `FR-srm-bunker-sign-failure` | `TC-srm-bunker-sign-failure` | Not started |
 | `FR-srm-event-publish` | `TC-srm-comment-publish`, `TC-srm-publish-relay-failure` | Not started |
 | `FR-srm-comment-publish-on-submit` | `TC-srm-comment-publish`, `TC-srm-comment-publish-no-identity` | Not started |
 | `FR-srm-reply-to-reply` | `TC-srm-reply-to-reply` | Not started |
-| `FR-srm-identity-indicator` | `TC-srm-identity-indicator`, `TC-srm-identity-no-key` | Not started |
+| `FR-srm-identity-indicator` | `TC-srm-identity-indicator`, `TC-srm-identity-no-key`, `TC-srm-bunker-identity-indicator` | Not started |
 
 Filtering, priority ordering, changeset detection, and scope-argument behavior on macOS reuse the web QA cases (the orchestration logic is identical). Run-on-macOS smoke verification is folded into `TC-srm-happy-path` rather than duplicating the full web matrix.
 
@@ -837,6 +844,79 @@ These cases verify the reviewer can publish replies to the patch thread from the
   2. Sign it via `NostrEvent.sign(secretKey:)`.
   3. Assert the resulting `id` equals the SHA-256 of the canonical serialized event, `pubkey` equals the derived public key, and `sig` is a valid Schnorr signature that verifies against the pubkey.
 - **Expected**: The signer produces a valid NIP-01 event whose signature verifies. Deterministic given the fixed inputs.
+
+### Bunker (NIP-46) Identity
+
+These cases verify the reviewer can publish under a NIP-46 bunker connection instead of a raw `nsec`, so the secret key never lives on the host. They require a reachable test bunker (e.g. `nak bunker` against a test key, or an in-process mock bunker in the automated cases) and a test patch event.
+
+#### Bunker connect handshake `TC-srm-bunker-connect`
+- **Type**: Automated (Swift unit test) + manual confirmation
+- **Covers**: `AC-srm-bunker-connect`, `FR-srm-bunker-connect`, `FR-sr-reviewer-identity`
+- **Preconditions**: `SHEPHERD_BUNKER` set to a `bunker://<pubkey>?relay=<wss-url>[&secret=<token>]` URI pointing at a reachable test bunker; no `SHEPHERD_NSEC`.
+- **Steps**:
+  1. (Automated) Inject a mock `RelayClient` that echoes NIP-46 kind `24133` responses; drive `BunkerClient.connect()` and assert it sends an encrypted `connect` request (with `secret` when present), receives the response, and then `get_pubkey` returns the reviewer's pubkey.
+  2. (Automated) Assert no reviewer secret key is materialized in the client -- only the ephemeral session keypair and the parsed bunker params.
+  3. (Manual) Open a patch review with a real test bunker; confirm the identity indicator shows the shield glyph + `BUNKER` badge + green (connected) status dot and the reviewer's display name.
+- **Expected**: The NIP-46 handshake completes, the reviewer's pubkey is obtained from the bunker, the indicator shows connected, and no host-side secret key is used.
+
+#### Bunker unreachable / refused -- publish unavailable `TC-srm-bunker-connect` (failure branch)
+- **Type**: Automated (Swift unit test)
+- **Covers**: `AC-srm-bunker-connect` (failure branch), `FR-srm-bunker-connect`
+- **Preconditions**: `SHEPHERD_BUNKER` set; mock `RelayClient` that does not respond to `connect` (or returns a refusal for a bad `secret`).
+- **Steps**:
+  1. Drive `BunkerClient.connect()` against the non-responsive/refusing mock.
+  2. Assert the connection state flips to `.failed` with a cause, `get_pubkey` yields no pubkey, and read-only review + local commenting remain available.
+- **Expected**: A failed handshake degrades to unavailable-for-publish without crashing; the failure is observable as `.failed`.
+
+#### Malformed bunker URI `TC-srm-bunker-uri-malformed`
+- **Type**: Automated (Swift unit test)
+- **Covers**: `AC-srm-identity-load` (malformed-URI branch), `FR-srm-identity-load`
+- **Preconditions**: `SHEPHERD_BUNKER` set to a malformed string (missing `relay=`, not `bunker://`, unparseable pubkey).
+- **Steps**:
+  1. Load identity with each malformed variant.
+  2. Assert the identity resolves to the parse-error state (not silently no-identity) and the indicator surfaces the parse error.
+- **Expected**: Malformed URIs produce a distinct parse-error identity state; the app does not attempt a connection.
+
+#### Reply signed by the bunker `TC-srm-bunker-sign`
+- **Type**: Automated (Swift unit test) + manual confirmation
+- **Covers**: `AC-srm-bunker-sign`, `AC-sr-bunker-signing`, `FR-sr-bunker-signing`, `FR-srm-event-sign` (bunker mode)
+- **Preconditions**: Patch review open; a connected mock bunker (automated) or real test bunker (manual); no `SHEPHERD_NSEC`.
+- **Steps**:
+  1. Submit an inline comment anchored to a line range.
+  2. (Automated) Assert `NostrSigner.sign(event:)` sends a `sign_event` request to the bunker and returns the bunker's signed event (id/pubkey/sig populated); assert no secret key was used locally.
+  3. (Manual) Confirm the reply renders immediately with the `YOU` badge; from a separate client fetch the published event and confirm its `pubkey` is the reviewer's and the signature verifies -- indistinguishable from a locally-signed reply.
+- **Expected**: The bunker signs the event; the app publishes it under the reviewer's pubkey; the reviewer's secret key is never present on the host.
+
+#### Bunker sign failure degrades gracefully `TC-srm-bunker-sign-failure`
+- **Type**: Automated (Swift unit test) + manual confirmation
+- **Covers**: `AC-srm-bunker-sign-failure`, `FR-srm-bunker-sign-failure`
+- **Preconditions**: Patch review open with a bunker identity connected; mock bunker that drops the channel / refuses / times out on `sign_event` (automated), or a real bunker taken offline mid-session (manual).
+- **Steps**:
+  1. Submit an inline comment.
+  2. Assert the editor reopens with the bunker-named error (`Couldn't publish reply -- the bunker didn't respond. Your comment is saved locally.`), the indicator flips to red/failed with cause, and the local comment is retained.
+  3. Assert no event was published.
+  4. Restore the bunker (or reconnect) and retry; assert the reply publishes on retry.
+- **Expected**: A bunker sign failure retains the comment locally, surfaces a bunker-named error, does not silently drop the reply, and retry succeeds once the bunker is back.
+
+#### Bunker identity indicator states `TC-srm-bunker-identity-indicator`
+- **Type**: Manual
+- **Covers**: `FR-srm-identity-indicator`
+- **Preconditions**: Ability to set `SHEPHERD_BUNKER` to a reachable and an unreachable bunker across launches.
+- **Steps**:
+  1. With a reachable bunker, open a patch review; confirm the indicator shows the shield glyph + `BUNKER` badge + green status dot + display name, with the full `bunker://` URI in the accessibility label.
+  2. With an unreachable bunker, relaunch; confirm the indicator shows the red status dot + failure subtext while read-only review and local commenting still work.
+  3. Open a non-patch review; confirm the identity indicator is absent.
+- **Expected**: The indicator renders bunker-specific states (connected / failed) and is absent for non-patch reviews.
+
+#### NIP-04 crypto round-trip `TC-srm-nip04-unit`
+- **Type**: Automated (Swift unit test)
+- **Covers**: `FR-srm-bunker-connect`
+- **Preconditions**: `NIP04Crypto` implemented.
+- **Steps**:
+  1. Generate two secp256k1 keypairs (sender, bunker); compute the shared secret via ECDH on both sides and assert they match.
+  2. Encrypt a fixed plaintext with the sender's key to the bunker's pubkey; decrypt with the bunker's key from the sender's pubkey; assert the output equals the plaintext.
+  3. Assert tampering a ciphertext byte fails decryption.
+- **Expected**: NIP-04 encrypt/decrypt round-trips and rejects tampered ciphertext. No new package dependency is exercised (uses `P256K` + `CryptoKit`).
 
 ---
 

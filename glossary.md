@@ -40,9 +40,19 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Session ID (which is the unique identifier for a session, not the session state itself)
 
 ## Reviewer Identity
-**Definition**: The Nostr identity (a secret key the reviewer owns and has configured out of band) under which the reviewer signs and publishes replies to a NIP-34 patch thread from within the Shepherd review tool. The app derives the corresponding public key and attributes published replies to it; other participants resolve it to a display name via the roster. The app does not generate or manage identities — the reviewer brings their own.
+**Definition**: The Nostr identity under which the reviewer signs and publishes replies to a NIP-34 patch thread from within the Shepherd review tool. It takes one of two forms the reviewer configures out of band: a **local secret key** (`nsec`) the reviewer holds, or a **bunker connection** (see Bunker) to a remote signer that holds the secret key on the reviewer's behalf. In both cases the app attributes published replies to the reviewer's public key; other participants resolve it to a display name via the roster. The app does not generate or manage the reviewer's keys — the reviewer brings their own (a key, or a bunker they run).
 **Also known as**: Reviewer Nostr identity, reviewer npub (when referring to the public-key half)
 **Not to be confused with**: Patch author (the Nostr identity that published the patch being reviewed, not the reviewer's)
+
+## Bunker
+**Definition**: A NIP-46 remote signer — a service that holds a Nostr secret key and signs events on the reviewer's behalf over a Nostr relay, so the secret key never has to be present on the review host. Shepherd connects to a bunker via a `bunker://<remote-signer-pubkey>?relay=<wss-url>[&secret=<token>]` URI, runs the NIP-46 `connect` handshake, and delegates each `sign_event` to the bunker. The reviewer's public key is obtained from the bunker; the app holds no reviewer secret key in this mode.
+**Also known as**: NIP-46 remote signer, remote signer
+**Not to be confused with**: Local secret key / `nsec` (the in-process signing form, where the reviewer's key is loaded directly); Relay (the Nostr server the bunker communicates over, not the bunker itself)
+
+## NIP-46
+**Definition**: The Nostr remote-signing protocol (Nostr Connect) that lets a client delegate event signing to a remote bunker over a Nostr relay using encrypted kind `24133` request/response events. Shepherd uses NIP-46 only for the bunker identity form; the local-key form signs in-process and does not use NIP-46.
+**Also known as**: Nostr Connect
+**Not to be confused with**: NIP-04 (the direct-message encryption scheme NIP-46 uses to encrypt its kind `24133` payloads); NIP-34 (the git-patch protocol, unrelated to signing)
 
 ## Patch-Thread Reply
 **Definition**: A kind:1 Nostr text note published as a comment on a NIP-34 patch event, tagged with the patch event as the thread root (an `e` tag with the `root` marker) plus the repository `a` tag, and optionally a line-range anchor pinning it to a file and line span in the applied patch. Both other participants' replies (read by the review tool) and the reviewer's own published replies use this format.

@@ -1,6 +1,6 @@
 ---
-product-hash: e2f782a2a1e892586f62ad8132f037dedece6ec76fb1fb0fd1986e06ab8336ea
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 3be8b01ef980231ee907e94c5591e47414c5e047c1e0495541e48426acbca4ae
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Design Spec
@@ -260,16 +260,21 @@ An in-process relay subscription is the cross-platform transport: `URLSessionWeb
 
 ## Patch-Thread Reply Publishing (Bidirectional)
 
-The sections above treat the patch thread as something the reviewer *reads*. This section makes it bidirectional: the reviewer *writes back* to the same thread from inside the native window, under their own Nostr identity. Implements `FR-sr-patch-reply-publish`, `FR-sr-reviewer-identity`, `FR-sr-patch-reply-respond`, and the macOS-specific `FR-srm-identity-load`, `FR-srm-event-sign`, `FR-srm-event-publish`, `FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`, `FR-srm-identity-indicator`.
+The sections above treat the patch thread as something the reviewer *reads*. This section makes it bidirectional: the reviewer *writes back* to the same thread from inside the native window, under their own Nostr identity. Implements `FR-sr-patch-reply-publish`, `FR-sr-reviewer-identity`, `FR-sr-bunker-signing`, `FR-sr-patch-reply-respond`, and the macOS-specific `FR-srm-identity-load`, `FR-srm-bunker-connect`, `FR-srm-event-sign`, `FR-srm-bunker-sign-failure`, `FR-srm-event-publish`, `FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`, `FR-srm-identity-indicator`.
 
 This entire section applies **only to patch reviews** (`--patch`). Non-patch reviews show none of these surfaces and comments remain local.
 
 ### Reviewer identity indicator
 
-A small identity indicator appears in the inspector, directly above the Patch Thread section (and below the Patch Metadata section), so the reviewer knows which identity their replies will be attributed to *before* they publish.
+A small identity indicator appears in the inspector, directly above the Patch Thread section (and below the Patch Metadata section), so the reviewer knows which identity their replies will be attributed to *before* they publish. It reflects the two identity forms the app supports (`FR-srm-identity-load`): a local secret key, or a NIP-46 bunker connection.
 
-- **Identity loaded** — the indicator shows a key glyph (`key.fill`, secondary label color) followed by the reviewer's resolved display name (roster name if available, else truncated npub `npub1...…`). A tooltip carries the full npub. This is the identity that will sign every reply the reviewer publishes.
-- **No identity configured** — the indicator shows a warning glyph (`exclamationmark.triangle.fill`, orange) with the text `No identity — replies won't publish`, plus a one-line hint naming the configuration path the app reads (e.g. `Set SHEPHERD_NSEC or ~/.config/nostr/identity`). The reviewer can still read the thread and leave local comments, but no publish action is offered and submitting a comment records it locally only.
+- **Local-key identity loaded** — the indicator shows a key glyph (`key.fill`, secondary label color) followed by the reviewer's resolved display name (roster name if available, else truncated npub `npub1...…`). A tooltip carries the full npub. This is the identity that will sign every reply the reviewer publishes.
+
+- **Bunker identity loaded** — the indicator shows a shield glyph (`shield.lefthalf.filled`, secondary label color) followed by the reviewer's resolved display name (or truncated npub, obtained from the bunker), a small status dot, and a `BUNKER` capsule badge to distinguish it from a local key. The status dot conveys the NIP-46 control channel state:
+  - **Green** — connected (handshake complete, ready to sign).
+  - **Amber, pulsing** — connecting (handshake in progress at launch).
+  - **Red** — failed (bunker unreachable, refused the connection, or the control channel dropped). A one-line subtext names the problem (e.g. `Bunker not responding on <relay>`). Hovering/ VoiceOver exposes the full `bunker://` URI as the accessibility label.
+- **No identity configured** — the indicator shows a warning glyph (`exclamationmark.triangle.fill`, orange) with the text `No identity — replies won't publish`, plus a one-line hint naming the configuration paths the app reads (e.g. `Set SHEPHERD_BUNKER / ~/.config/nostr/bunker, or SHEPHERD_NSEC / ~/.config/nostr/identity`). The reviewer can still read the thread and leave local comments, but no publish action is offered and submitting a comment records it locally only.
 
 The indicator is present for every patch review and absent for every non-patch review.
 
@@ -301,9 +306,10 @@ When the same reply later arrives back over the live relay subscription, it is d
 
 The editor's submit action reflects publish state for patch reviews:
 
-- **Publishing** — while the signed event is being sent, the submit button shows `Publishing…` and is disabled (brief; sub-second to a couple seconds).
+- **Publishing** — while the signed event is being produced and sent, the submit button shows `Publishing…` and is disabled. For a bunker identity this spans the NIP-46 `sign_event` round-trip plus the relay `EVENT` send (a second or two; the indicator's status dot stays green). For a local key it is sub-second.
 - **Published** — on success, the editor closes, the reply renders at both surfaces with the self marker, and a transient confirmation (`Reply published to patch thread`) appears near the identity indicator.
-- **Publish failed** — if no relay accepts the event (`AC-srm-publish-relay-failure`), the editor reopens with an inline error `Couldn't publish reply — no relay accepted it. Your comment is saved locally.` and the local comment is retained. The reviewer can retry or keep it local.
+- **Publish failed — no relay** — if the event was signed but no relay accepts it (`AC-srm-publish-relay-failure`), the editor reopens with an inline error `Couldn't publish reply — no relay accepted it. Your comment is saved locally.` and the local comment is retained. The reviewer can retry or keep it local.
+- **Publish failed — bunker** — only for a bunker identity: if the bunker could not sign (`FR-srm-bunker-sign-failure` — unreachable, dropped channel, refusal, or timeout), the editor reopens with `Couldn't publish reply — the bunker didn't respond. Your comment is saved locally.`, the indicator's status dot turns red with subtext naming the bunker, and the local comment is retained. Retry reattempts the bunker sign (reconnecting the control channel first if it was dropped).
 - **No identity** — when no identity is loaded, the submit button reads `Save locally` (not `Publish`) and the editor makes clear the comment will not join the thread. The comment is recorded locally only.
 
 ### Interaction flows
@@ -337,11 +343,14 @@ Inherited from `./code-review-prompt.md` for the editor (`NFR-crp-accessibility-
 - `FR-sr-patch-reply-publish`: comment editor submit publishes a kind:1 reply; immediate local render
 - `FR-sr-reviewer-identity`: replies signed under the loaded identity; identity indicator
 - `FR-sr-patch-reply-respond`: Reply affordance on reply surfaces; threaded `e`/`p` tags on response
-- `FR-srm-identity-load`: identity resolved from config; no-identity state
-- `FR-srm-identity-indicator`: identity indicator with loaded / no-identity states
+- `FR-srm-identity-load`: identity resolved from config (local key or bunker URI); no-identity / malformed-URI state
+- `FR-srm-identity-indicator`: identity indicator with local-key / bunker (connected / connecting / failed) / no-identity states
 - `FR-srm-comment-publish-on-submit`: editor submit doubles as publish for patch reviews
 - `FR-srm-reply-to-reply`: Reply button opens editor pre-targeted at a reply
-- `FR-srm-event-sign` / `FR-srm-event-publish`: publish states (publishing / published / failed)
+- `FR-srm-event-sign` / `FR-srm-event-publish`: publish states (publishing / published / failed — bunker or relay)
+- `FR-srm-bunker-connect`: NIP-46 connect handshake; bunker connection states
+- `FR-srm-bunker-sign-failure`: publish-failed-bunker state; retry
+- `FR-sr-bunker-signing`: sign_event delegation via bunker; no host secret key
 
 ## Concurrency
 
@@ -407,8 +416,12 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `FR-sr-patch-reply-publish` | Patch-Thread Reply Publishing (Bidirectional) (editor submit publishes a kind:1 reply) |
 | `FR-sr-reviewer-identity` | Patch-Thread Reply Publishing (Bidirectional) (identity indicator; replies signed under loaded identity) |
 | `FR-sr-patch-reply-respond` | Patch-Thread Reply Publishing (Bidirectional) (Reply affordance; threaded e/p tags) |
-| `FR-srm-identity-load` | Patch-Thread Reply Publishing (Bidirectional) (identity resolved from config; no-identity state) |
-| `FR-srm-identity-indicator` | Patch-Thread Reply Publishing (Bidirectional) (identity indicator with loaded / no-identity states) |
+| `FR-srm-identity-load` | Patch-Thread Reply Publishing (Bidirectional) (identity resolved from config — local key or bunker URI; no-identity / malformed-URI state) |
+| `FR-srm-identity-indicator` | Patch-Thread Reply Publishing (Bidirectional) (identity indicator with local-key / bunker-connected / connecting / failed / no-identity states) |
+| `FR-srm-bunker-connect` | Patch-Thread Reply Publishing (Bidirectional) (NIP-46 connect handshake + get_pubkey; control-channel lifecycle) |
+| `FR-srm-bunker-sign-failure` | Patch-Thread Reply Publishing (Bidirectional) (publish-failed—bunker state; retry) |
+| `FR-sr-bunker-signing` | Patch-Thread Reply Publishing (Bidirectional) (sign_event delegation via bunker; no host secret key) |
+| `AC-sr-bunker-signing` | Patch-Thread Reply Publishing (Bidirectional) (bunker-signed reply; failure degrades locally) |
 | `FR-srm-comment-publish-on-submit` | Patch-Thread Reply Publishing (Bidirectional) (editor submit doubles as publish) |
 | `FR-srm-reply-to-reply` | Patch-Thread Reply Publishing (Bidirectional) (Reply button opens editor pre-targeted at a reply) |
 | `FR-srm-event-sign` | Patch-Thread Reply Publishing (Bidirectional) (publish states: signing) |

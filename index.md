@@ -2335,13 +2335,13 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`, `TC-srm-bunker-uri-malformed`
 
 ### `FR-srm-event-sign`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-comment-publish`, `TC-srm-signer-unit`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-comment-publish`, `TC-srm-signer-unit`, `TC-srm-bunker-sign`
 
 ### `FR-srm-event-publish`
 - **Defined in**: `product/macos/shepherd-review.md`
@@ -2365,7 +2365,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-indicator`, `TC-srm-identity-no-key`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-indicator`, `TC-srm-identity-no-key`, `TC-srm-bunker-identity-indicator`
 
 ### `AC-srm-identity-load`
 - **Defined in**: `product/macos/shepherd-review.md`
@@ -2396,6 +2396,36 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-publish-relay-failure`
+
+### `FR-srm-bunker-connect`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-connect`, `TC-srm-bunker-uri-malformed`, `TC-srm-nip04-unit`
+
+### `FR-srm-bunker-sign-failure`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-sign-failure`
+
+### `AC-srm-bunker-connect`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-connect`, `TC-srm-bunker-uri-malformed`
+
+### `AC-srm-bunker-sign`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-sign`
+
+### `AC-srm-bunker-sign-failure`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-sign-failure`
 
 ### `FR-mdr-detect-markdown`
 - **Defined in**: `product/markdown-render.md`
@@ -2683,7 +2713,13 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-indicator`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-indicator`, `TC-srm-bunker-connect`
+
+### `FR-sr-bunker-signing`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-sign`, `TC-srm-bunker-sign-failure`
 
 ### `FR-sr-patch-reply-respond`
 - **Defined in**: `product/shepherd-review.md`
@@ -2750,3 +2786,9 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`, `TC-srm-identity-indicator`
+
+### `AC-sr-bunker-signing`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-sign`, `TC-srm-bunker-sign-failure`

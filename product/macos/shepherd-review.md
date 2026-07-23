@@ -21,6 +21,9 @@ The macOS variant adds one platform-choice user story on top of the shared spec'
 ### US-SRM-3: Publish my review comments to the patch thread from the native app
 **As a** reviewer collaborating on a NIP-34 patch in the native macOS app, **I want to** submit my inline comments and have them published to the Nostr patch thread under my own identity, and respond directly to other participants' replies, **so that** my feedback joins the shared conversation every participant sees instead of staying local to my window.
 
+### US-SRM-4: Sign my replies without exposing my raw secret key
+**As a** reviewer who keeps my Nostr secret key in a bunker (a NIP-46 remote signer), **I want to** point Shepherd at my bunker connection instead of pasting my raw `nsec`, **so that** my secret key never has to live in an env var or config file on my review machine yet my published replies are still signed under my own identity.
+
 All other shared user stories (`US-SR-1` through `US-SR-9`) apply to the macOS variant unchanged — the review experience itself is the same.
 
 ## Shared Requirements — Applicability on macOS
@@ -52,6 +55,7 @@ The following shared requirements describe platform-neutral behavior that the ma
 
 - `FR-sr-patch-reply-publish` — realized by `FR-srm-comment-publish-on-submit` + `FR-srm-event-sign` + `FR-srm-event-publish`
 - `FR-sr-reviewer-identity` — realized by `FR-srm-identity-load` + `FR-srm-identity-indicator`
+- `FR-sr-bunker-signing` — realized by `FR-srm-bunker-connect` + the bunker half of `FR-srm-event-sign`
 - `FR-sr-patch-reply-respond` — realized by `FR-srm-reply-to-reply`
 
 ### Modified on macOS
@@ -79,10 +83,34 @@ None. Every shared functional requirement either applies as-is or is supplanted 
 These requirements make the patch-thread review loop bidirectional on macOS. They are the macOS implementation of the shared `FR-sr-patch-reply-publish`, `FR-sr-reviewer-identity`, and `FR-sr-patch-reply-respond`. They apply only to patch reviews (`--patch`); non-patch reviews are unaffected and comments remain local.
 
 #### `FR-srm-identity-load` -- Load the reviewer's Nostr identity
-The native macOS application loads a reviewer-owned Nostr identity at launch so the reviewer can publish signed replies to patch threads. The identity is a Nostr secret key the reviewer has configured out of band (not generated or managed by the app). The app resolves the secret key with the same configuration precedence it uses for relay URLs: an environment variable, then a config file under the reviewer's Nostr configuration directory, then no identity. When an identity is loaded, the app derives the corresponding public key so it can attribute and display the active identity; the secret key is held only for as long as needed to sign published events and is never written to disk by the app. When no identity is configured, the app launches normally for read-only patch review and local commenting, and reply publishing is unavailable with a clear indication to the reviewer (see `FR-srm-identity-indicator`).
+The native macOS application loads a reviewer-owned Nostr identity at launch so the reviewer can publish signed replies to patch threads. The identity takes one of two forms, both configured by the reviewer out of band (the app neither generates nor manages keys):
 
-#### `FR-srm-event-sign` -- Sign Nostr events in-process
-The native macOS application signs the Nostr events it publishes using the loaded reviewer identity, in-process, without shelling out to an external signing tool or background process. Signing produces a valid NIP-01 event (correct `id`, `pubkey`, `sig`) for a kind:1 reply. The signing path is the publish-side counterpart of the existing in-process `RelayClient` subscription (`FR-sr-relay-client`): reads and writes both happen in-process so the patch-thread loop is self-contained.
+- **Local key** — a Nostr secret key (`nsec1...` or hex), as today.
+- **Bunker connection** — a NIP-46 bunker URI (`bunker://<remote-signer-pubkey>?relay=<wss-url>[&secret=<token>]`) pointing at a remote signer that holds the reviewer's secret key.
+
+The app resolves the identity with this configuration precedence (first non-empty wins), preferring the bunker form so the reviewer need not place a raw secret key on the host:
+
+1. `SHEPHERD_BUNKER` environment variable — a `bunker://` URI.
+2. `~/.config/nostr/bunker` config file — first non-blank, non-`#` line, a `bunker://` URI.
+3. `SHEPHERD_NSEC` environment variable — bech32 `nsec1...` or hex secret key (existing).
+4. `~/.config/nostr/identity` config file — first non-blank, non-`#` line, `nsec1...` or hex (existing).
+5. No identity.
+
+For a **local key**, the app derives the corresponding public key (secp256k1) to attribute and display the active identity; the secret key is held in memory for the app's lifetime and never written to disk. For a **bunker connection**, the app derives the reviewer's public key from the bunker (the URI's remote-signer pubkey identifies the bunker, not the reviewer; the reviewer's pubkey is obtained from the bunker per `FR-srm-bunker-connect`) and holds no secret key at all — only the connection parameters and an ephemeral NIP-46 session keypair used solely for the encrypted control channel. A malformed `bunker://` URI is treated as no identity with a clear indication of the parse error (see `FR-srm-identity-indicator`). When no identity is configured, the app launches normally for read-only patch review and local commenting, and reply publishing is unavailable with a clear indication (see `FR-srm-identity-indicator`).
+
+#### `FR-srm-bunker-connect` -- Establish the NIP-46 bunker control channel
+When the loaded identity is a bunker connection, the native app opens a NIP-46 session with the remote signer over the Nostr relay named in the bunker URI (reusing the in-process `RelayClient` transport, `FR-sr-relay-client`). The app generates an ephemeral session keypair (used only for the NIP-46 control channel, never as the reviewer's identity), sends a NIP-46 `connect` request (kind `24133`) encrypted to the bunker's pubkey (NIP-04), and includes the `secret` token from the URI when the URI carries one. Once connected, the app obtains the reviewer's public key via a NIP-46 `get_pubkey` request and uses it to attribute and display the active identity and to mark the reviewer's own replies. The control channel stays open for the life of the review window so repeated `sign_event` requests do not re-handshake per reply; it is cancelled when the window closes. If the bunker does not respond to `connect`, refuses the connection (e.g. bad secret), or `get_pubkey` fails, the identity is treated as unavailable for publishing and the indicator reflects the failure (see `FR-srm-identity-indicator`) while read-only review and local commenting remain available.
+
+#### `FR-srm-event-sign` -- Sign Nostr events under the loaded identity
+The native macOS application signs the Nostr events it publishes under the loaded reviewer identity, without shelling out to an external signing tool or background process. Signing produces a valid NIP-01 event (correct `id`, `pubkey`, `sig`) for a kind:1 reply. The signing path has two modes selected by the loaded identity form:
+
+- **Local key** — signing is in-process (secp256k1 Schnorr), as today. This is the publish-side counterpart of the existing in-process `RelayClient` subscription (`FR-sr-relay-client`): reads and writes both happen in-process.
+- **Bunker connection** — signing is delegated to the remote bunker (`FR-sr-bunker-signing`): the app sends a NIP-46 `sign_event` request carrying the unsigned event over the control channel from `FR-srm-bunker-connect` and awaits the bunker's response, which carries the signed event. The app never holds the reviewer's secret key in this mode.
+
+Signing is an async operation (a bunker round-trip is a network call); the publish path awaits it before publishing. The two modes share one signing interface so the rest of the publish path is unaware which form is active. If bunker signing fails (timeout, refusal, or a dropped control channel), the sign returns no event and the publish path degrades per `FR-srm-bunker-sign-failure`.
+
+#### `FR-srm-bunker-sign-failure` -- Degrade gracefully when the bunker cannot sign
+When the loaded identity is a bunker connection and a `sign_event` request fails (the bunker is unreachable, the control channel has dropped, the bunker refuses to sign the event, or the response times out), the app does not publish and does not silently drop the reviewer's comment. The comment is retained locally, the editor reopens with an inline error naming the bunker as the cause (e.g. `Couldn't publish reply — the bunker didn't respond. Your comment is saved locally.`), and the identity indicator reflects the connection problem (see `FR-srm-identity-indicator`). The reviewer may retry, which reattempts the bunker sign (reconnecting the control channel first if it was dropped) and publishes on success. Read-only review and local commenting are unaffected.
 
 #### `FR-srm-event-publish` -- Publish signed events to relays
 The native macOS application publishes signed Nostr events to the configured relays over the same relay transport it already uses for subscriptions. Publishing sends an `EVENT` frame to each reachable relay and tolerates individual relay failures best-effort (a publish is considered successful when at least one relay accepts the event; failures do not block the review or surface hard errors). Relay URL resolution reuses the existing precedence (`NOSTR_RELAYS` / config file / defaults). Publishing is only invoked for patch reviews when an identity is loaded.
@@ -94,7 +122,7 @@ When the reviewer submits an inline comment during a patch review and an identit
 The reviewer can initiate a response to an existing patch-thread reply directly from that reply's rendered surface (both the inspector patch-thread section and the inline anchored bubble). Initiating a response opens the inline comment editor pre-targeted at the replied-to reply; on submit, the app publishes a kind:1 note with the root `e` tag on the patch event, a reply `e` tag on the responded-to reply's event id, and a `p` tag naming that reply's author (`FR-sr-patch-reply-respond`), signed under the reviewer's identity. The response may also carry a line-range anchor when the reviewer pins it to a location.
 
 #### `FR-srm-identity-indicator` -- Surface the active reviewer identity
-The native macOS application surfaces the active reviewer identity in its UI so the reviewer knows, before they publish, which identity their replies will be attributed to. When an identity is loaded, the indicator shows the reviewer's resolved display name (or truncated npub) at or near the patch-thread surface. When no identity is loaded, the indicator makes clear that replies will not be published and that configuring an identity is required to participate in the thread. The indicator is present only for patch reviews; non-patch reviews do not show it.
+The native macOS application surfaces the active reviewer identity in its UI so the reviewer knows, before they publish, which identity their replies will be attributed to. When an identity is loaded, the indicator shows the reviewer's resolved display name (or truncated npub) at or near the patch-thread surface, and, for a bunker connection, a small status dot/state reflecting whether the bunker control channel is connected, connecting, or in a failed state. When no identity is configured, or a configured bunker URI is malformed or its control channel could not be established, the indicator makes clear that replies will not be published and names what is needed (a configured identity, or a reachable bunker). The indicator is present only for patch reviews; non-patch reviews do not show it.
 
 ### Coexistence
 
@@ -192,7 +220,13 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 
 ### Patch-thread reply publishing
 
-- [ ] **Identity loaded from config** `AC-srm-identity-load`: Given the reviewer has configured a Nostr secret key via the supported configuration path, when the native app launches a patch review, then the app loads the identity, derives the reviewer's public key, and surfaces the active identity per `FR-srm-identity-indicator`. Given no identity is configured, when the app launches a patch review, then read-only review and local commenting work, the identity indicator shows that replies will not be published, and no publish action is offered.
+- [ ] **Identity loaded from config** `AC-srm-identity-load`: Given the reviewer has configured a Nostr identity via either supported configuration path (local secret key or bunker URI), when the native app launches a patch review, then the app loads the identity, resolves the reviewer's public key (derived locally for a key, obtained from the bunker for a bunker connection), and surfaces the active identity per `FR-srm-identity-indicator`. Given no identity is configured, when the app launches a patch review, then read-only review and local commenting work, the identity indicator shows that replies will not be published, and no publish action is offered. Given a malformed `bunker://` URI is configured, when the app launches, then the indicator names the parse error and publishing is unavailable.
+
+- [ ] **Bunker connect handshake** `AC-srm-bunker-connect`: Given the reviewer has configured a `bunker://` URI pointing at a reachable NIP-46 bunker, when the native app launches a patch review, then the app opens the NIP-46 control channel, completes the `connect` handshake (supplying the `secret` when present), obtains the reviewer's public key via `get_pubkey`, and surfaces the identity as connected per `FR-srm-identity-indicator`. Given the bunker is unreachable or refuses the connection, when the app launches, then the identity is treated as unavailable for publishing, the indicator reflects the failure, and read-only review and local commenting remain available.
+
+- [ ] **Reply signed by bunker** `AC-srm-bunker-sign`: Given a patch review is open with a connected bunker identity (and no local secret key), when the reviewer submits an inline comment, then the app sends a NIP-46 `sign_event` request, receives the signed event back from the bunker, publishes it to the configured relays under the reviewer's public key, and the reply appears immediately in the reviewer's own patch-thread section and inline at its anchor — without the reviewer's secret key ever being present on the host.
+
+- [ ] **Bunker sign failure degrades gracefully** `AC-srm-bunker-sign-failure`: Given a bunker identity is loaded but the bunker cannot sign (unreachable, dropped channel, refusal, or timeout), when the reviewer submits a comment, then the app retains the comment locally, reopens the editor with an inline error naming the bunker as the cause, does not publish, and the reviewer can retry; on a successful retry the reply publishes.
 
 - [ ] **Comment publishes on submit** `AC-srm-comment-publish`: Given a patch review is open and an identity is loaded, when the reviewer submits an inline comment anchored to a file and line range, then the app signs and publishes a kind:1 reply to the configured relays tagged with the patch event as root, the repository `a` tag, and a matching line-range anchor, and the reply appears immediately in the reviewer's own patch-thread section and inline at its anchor without waiting for a relay round-trip. Given no identity is loaded, when the reviewer submits a comment, then the comment is recorded locally only and the reviewer is informed it was not published.
 
