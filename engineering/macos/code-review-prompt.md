@@ -697,7 +697,7 @@ struct CommentFeature {
                 state.editorState = editorState
                 state.editorText = ""
                 if case let .editing(commentID) = editorState {
-                    // Parent will provide existing text
+                    // Parent provides existing text
                     _ = commentID
                 }
                 return .none

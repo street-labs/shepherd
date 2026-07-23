@@ -104,7 +104,7 @@ These requirements define what `/shepherd-review` reviews. They supersede the sh
 #### `FR-srm-scope-modes` — Scope is selected by an optional argument
 The command accepts an optional argument that selects one of several review scopes. There are two families:
 
-**Working-tree scopes** review what is currently on disk relative to a base, and include untracked new files (not yet `git add`ed) as `added`:
+**Working-tree scopes** review what is currently on disk relative to a base, and include untracked new files (not `git add`ed) as `added`:
 
 - **Default (no argument)** — All uncommitted changes: staged + unstaged + untracked, compared to `HEAD`. This is the everyday "review what I'm about to commit" case.
 - **`--staged`** — Only staged changes (the git index).

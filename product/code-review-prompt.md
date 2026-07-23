@@ -438,7 +438,7 @@ The application is not required to persist sessions across page reloads in this 
 
 2. **~~Multi-file support~~** (Resolved): Multi-file support is now included in this spec. See `FR-crp-multi-file-load`, `FR-crp-multi-file-nav`, `FR-crp-multi-file-remove`, `FR-crp-multi-file-prompt`, and `FR-crp-multi-file-prompt-format`.
 
-3. **Session persistence**: Should sessions survive a page reload (e.g., via on-device persistent storage)? This PRD explicitly defers persistence (`NFR-crp-no-data-persistence`), but it is a natural v2 candidate.
+3. **Session persistence**: Should sessions survive a page reload (e.g., via on-device persistent storage)? This PRD explicitly defers persistence (`NFR-crp-no-data-persistence`), but it is a roadmap candidate.
 
 4. **Diff view mode**: Should the tool support viewing a diff (two versions of a file) rather than a single file? This is deferred for now but could align well with the "code review" metaphor.
 
@@ -448,11 +448,11 @@ The application is not required to persist sessions across page reloads in this 
 
 7. **Maximum file size**: `NFR-crp-large-file-perf` sets a 10,000-line target. Should we enforce a hard upper limit (e.g., 50,000 lines) beyond which the file is rejected?
 
-8. **File ordering in prompt**: Should files in the generated prompt be ordered by load order, alphabetically, or user-reorderable? V1 assumes load order.
+8. **File ordering in prompt**: Should files in the generated prompt be ordered by load order, alphabetically, or user-reorderable? The prompt orders files by load order.
 
-9. **Per-file preamble**: Should users be able to add per-file instructions in addition to the global preamble? V1 assumes a single global preamble only.
+9. **Per-file preamble**: Should users be able to add per-file instructions in addition to the global preamble? The prompt supports a single global preamble only.
 
-10. **Maximum file count**: Should there be a hard limit on the number of files that can be loaded? V1 has no hard limit but acknowledges performance may degrade past 20 files. The file navigator handles larger file counts much better than the previous tab bar approach, since it uses vertical scrolling rather than horizontal compression, but very large sessions (50+ files) may still warrant a limit or lazy-rendering strategy.
+10. **Maximum file count**: Should there be a hard limit on the number of files that can be loaded? There is no hard limit; performance may degrade past 20 files. The file navigator handles larger file counts much better than the previous tab bar approach, since it uses vertical scrolling rather than horizontal compression, but very large sessions (50+ files) may still warrant a limit or lazy-rendering strategy.
 
 11. **~~Review context layout placement~~** (Resolved): The file navigator provides a natural home for overall changeset context (e.g., in a collapsible section above the file list). Per-file context is displayed alongside the code viewer when a file is selected. The file navigator + code viewer + prompt panel form a three-column layout. This three-column layout has implications for screen real estate at narrower widths (see `NFR-crp-responsive-layout`, which already sets a minimum supported width). Design should determine whether the file navigator collapses, overlays, or uses a different treatment at narrower widths within the supported range.
 

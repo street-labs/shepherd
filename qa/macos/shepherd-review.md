@@ -304,7 +304,7 @@ Test cases are grouped by scenario. Each case has a human-readable title with it
 
 - **Type**: Manual
 - **Covers**: `AC-srm-install-symlink`, `FR-srm-install`, `FR-srm-command-file`
-- **Preconditions**: A clean macOS host with Swift toolchain installed but `~/.claude/commands/shepherd-review.md` and `~/.config/opencode/skills/shepherd-review/SKILL.md` not yet present (or removed for the test).
+- **Preconditions**: A clean macOS host with Swift toolchain installed but `~/.claude/commands/shepherd-review.md` and `~/.config/opencode/skills/shepherd-review/SKILL.md` not present (or removed for the test).
 - **Steps**:
   1. From the repo root, run `./scripts/install-command.sh`.
   2. Wait for the script to complete successfully.
