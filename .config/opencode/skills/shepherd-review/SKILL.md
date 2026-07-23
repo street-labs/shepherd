@@ -1,6 +1,6 @@
 Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 
-<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-patch-replies-display -->
+<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-patch-replies-display, FR-sr-patch-replies-live -->
 
 Allowed tools: Bash, Read, Write
 
@@ -236,28 +236,17 @@ Extract metadata:
 
 #### Fetch patch-thread replies
 
-Implements FR-sr-patch-replies-display. After the patch event is validated, fetch the review-thread replies so other agents' and humans' comments render in the macOS app alongside the review context.
+Implements FR-sr-patch-replies-display (initial snapshot) and FR-sr-patch-replies-live (live refresh). After the patch event is validated, fetch the review-thread replies so other agents' and humans' comments render in the macOS app alongside the review context. The fetch + mapping logic lives in `scripts/shepherd-patch-poll.sh` so it is shared between the initial snapshot and the background live-poller (single source of truth).
 
-Agent and human comments on a patch are published as **kind:1** text notes tagged `["e", "<patch-event-id>", "", "root"]` plus an `["a", "30617:<owner>:<repo>"]` repo tag. Status transitions (open/merged/closed) are separate NIP-34 events (kinds 1630–1633), NOT comments — exclude them from the reply list.
+Agent and human comments on a patch are published as **kind:1** text notes tagged `["e", "<patch-event-id>", "", "root"]` plus an `["a", "30617:<owner>:<repo>"]` repo tag. Status transitions (open/merged/closed) are separate NIP-34 events (kinds 1630–1633), NOT comments — the script excludes them.
 
-Query relays for reply events with an `e` tag matching the patch event id:
+**Initial snapshot** — call the script in `--once` mode to produce the replies JSON array:
 ```bash
-if command -v nak >/dev/null 2>&1; then
-  RELAY_LIST=$(echo "$RELAYS" | tr ',' ' ')
-  REPLIES_JSON=$(nak req -k 1 -e "$EVENT_ID" $RELAY_LIST 2>/dev/null)
-fi
+PATCH_REPLIES_JSON=$(bash "$SHEPHERD_ROOT/scripts/shepherd-patch-poll.sh" --once "$EVENT_ID" 2>/dev/null || echo "[]")
 ```
-`nak req -e <id>` filters on the `e` tag. If `nak` is unavailable, fall back to a WebSocket query with filter `{"#e": ["$EVENT_ID"], "kinds": [1]}`.
+The script reads relays from `NOSTR_RELAYS` / `~/.config/nostr/relays.txt` / defaults, runs `nak req -k 1 -e "$EVENT_ID"`, and maps each kind:1 root reply to a `PatchReply` object (author resolved from `~/.config/nostr/roster.json` else truncated pubkey, `isBot` from roster bot flag, optional `lineAnchor` parsed from a `["range", file, start, end]` tag). It prints `[]` when `nak` is missing or no replies are found. This is best-effort: a relay failure or empty result does not block the review.
 
-Filter and map each reply event into a `PatchReply` object:
-1. **Kind**: keep only `kind:1` events (the `-k 1` filter handles this; double-check in code). Exclude kinds `1630`–`1633` (patch status transitions) and the patch event itself.
-2. **Root check**: keep only events whose `e` tag has marker `"root"` (4th element) pointing at `$EVENT_ID`, OR whose first `e` tag value equals `$EVENT_ID` (tolerate missing marker).
-3. **Author identity**: resolve `.pubkey` to a display name — check `~/.config/nostr/roster.json`, else fetch/lookup NIP-05, else truncate the bech32 npub to 12 chars. Store the raw pubkey as `authorPubkey`.
-4. **Bot vs human**: a reply is a bot/agent (`isBot: true`) when its pubkey appears in the local roster as an agent/bot, OR when its NIP-05 domain matches a known bot host pattern (e.g. contains `agent`, `bot`), OR when a kind:0 profile `bot` flag is set. Otherwise `isBot: false`. When in doubt, default to `false` (human).
-5. **Line anchor** (optional): parse an `e`/`q`/`r` tag or a custom `["range", "<file>", <start>, <end>]` tag for a file + line-range anchor. When present, set `lineAnchor.filePath` to the **absolute path** matching a `files[].path` entry in `session.json`, and `startLine`/`endLine` to the 1-indexed line span. Absent anchor → `null` (reply renders only in the inspector section, not inline).
-6. **id**: use the reply event's 64-char id. **content**: `.content`. **timestamp**: `.created_at` (seconds).
-
-Store the assembled replies in `PATCH_REPLIES_JSON` (a JSON array). This is best-effort: if the relay query fails or returns nothing, `PATCH_REPLIES_JSON="[]"` and the review continues without replies.
+Embed `PATCH_REPLIES_JSON` into `patchMetadata.replies` of the context JSON (see "Structured context JSON" below).
 
 #### Apply patch to review branch
 
@@ -513,6 +502,16 @@ Use the absolute paths (`REPO_ROOT/<relative-path>`) for each file in the priori
 ```bash
 rm -f "$CTX"
 ```
+
+**5b-live. Start the patch-thread reply poller (patch mode only).**
+
+Implements `FR-sr-patch-replies-live`. When `SCOPE = patch`, after the launcher returns (and you have `SESSION_ID`), spawn the background poller detached so the macOS app's live reply polling has a sidecar to read:
+```bash
+if [[ "$SCOPE" == "patch" ]]; then
+  nohup bash "$SHEPHERD_ROOT/scripts/shepherd-patch-poll.sh" "$SESSION_ID" "$EVENT_ID" 30 60 >/dev/null 2>&1 & disown
+fi
+```
+The poller re-fetches the thread every 30s, writes `~/.shepherd/sessions/$SESSION_ID/patch-replies.json`, and exits when `prompt-output.md` appears (review done) or after 60 minutes. It is best-effort; if `nak` is missing it exits immediately and the app renders the initial snapshot only.
 
 After launching, output:
 

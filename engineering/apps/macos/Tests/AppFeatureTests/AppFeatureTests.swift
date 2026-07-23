@@ -92,6 +92,81 @@ struct AppFeatureTests {
         }
     }
 
+    // Implements: FR-sr-patch-replies-live (merge reducer)
+    @Test("Patch replies refresh replaces, dedupes by id, orders oldest-first")
+    func patchRepliesRefreshedMerges() async {
+        let meta = ReviewContext.PatchMetadata(
+            eventID: String(repeating: "a", count: 64),
+            shortEventID: "aaaaaaaa",
+            author: "alice",
+            commitMessage: "msg",
+            parentCommit: nil,
+            status: "open",
+            replies: [
+                ReviewContext.PatchReply(
+                    id: "r1", author: "borg", authorPubkey: "pk1",
+                    isBot: true, content: "first", timestamp: 1700000010
+                )
+            ]
+        )
+        let store = TestStore(initialState: AppFeature.State(
+            reviewContextData: ReviewContext(overall: .init(), files: [:], patchMetadata: meta)
+        )) {
+            AppFeature()
+        } withDependencies: {
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        // New list: r1 (existing) + r2 (new), delivered out of order; r1 duped.
+        let refreshed: [ReviewContext.PatchReply] = [
+            ReviewContext.PatchReply(
+                id: "r2", author: "luke", authorPubkey: "pk2",
+                isBot: false, content: "second", timestamp: 1700000020
+            ),
+            ReviewContext.PatchReply(
+                id: "r1", author: "borg", authorPubkey: "pk1",
+                isBot: true, content: "first", timestamp: 1700000010
+            ),
+            ReviewContext.PatchReply(
+                id: "r1", author: "borg", authorPubkey: "pk1",
+                isBot: true, content: "first dup", timestamp: 1700000010
+            )
+        ]
+        await store.send(.patchRepliesRefreshed(refreshed)) {
+            $0.reviewContextData?.patchMetadata?.replies = [
+                ReviewContext.PatchReply(
+                    id: "r1", author: "borg", authorPubkey: "pk1",
+                    isBot: true, content: "first", timestamp: 1700000010
+                ),
+                ReviewContext.PatchReply(
+                    id: "r2", author: "luke", authorPubkey: "pk2",
+                    isBot: false, content: "second", timestamp: 1700000020
+                )
+            ]
+        }
+    }
+
+    // Implements: FR-sr-patch-replies-live (no-op when not a patch review)
+    @Test("Patch replies refresh is a no-op without patch metadata")
+    func patchRepliesRefreshedNoopWithoutPatch() async {
+        let store = TestStore(initialState: AppFeature.State(
+            reviewContextData: ReviewContext(overall: .init(), files: [:], patchMetadata: nil)
+        )) {
+            AppFeature()
+        } withDependencies: {
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        let reply = ReviewContext.PatchReply(
+            id: "r1", author: "x", authorPubkey: "pk", isBot: false,
+            content: "hi", timestamp: 1
+        )
+        await store.send(.patchRepliesRefreshed([reply]))
+        #expect(store.state.reviewContextData?.patchMetadata == nil)
+    }
+
     @Test("Clear session confirmed removes all state")
     func clearSessionConfirmed() async {
         let fileID = UUID()

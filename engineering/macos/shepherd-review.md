@@ -1,6 +1,6 @@
 ---
-product-hash: 1528caa47c2d5a8d47469f97c7991e45156076bc5b4b1b5685955c47508eec7a
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 72eba4558b538ad77ca4b4593719d1cb13efb0987d3f774a64d15094b8bddc9e
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Technical Spec
@@ -34,14 +34,15 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 
 | File | Change | Purpose |
 |---|---|---|
-| `.claude/commands/shepherd-review.md` | **MODIFIED** | Claude Code prompt that orchestrates the review and invokes the macOS launcher with `--context`. Extended with the commit-scoped modes (`--branch`/`--commit`/`--range`) and the empty-changeset guard. |
+| `.claude/commands/shepherd-review.md` | **MODIFIED** | Claude Code prompt that orchestrates the review and invokes the macOS launcher with `--context`. Extended with the commit-scoped modes (`--branch`/`--commit`/`--range`) and the empty-changeset guard. Patch mode now calls `scripts/shepherd-patch-poll.sh --once` for the initial reply snapshot and spawns the poller detached after launch (`FR-sr-patch-replies-live`). |
 | `.config/opencode/skills/shepherd-review/SKILL.md` | **MODIFIED** | Opencode mirror of the Claude command (kept byte-aligned, including the new scope modes). |
 | `scripts/shepherd-launch.sh` | **MODIFIED** | Accept optional `--context <path>` before positional file args; inline its JSON into `session.json.reviewContext`. |
 | `scripts/install-command.sh` | **MODIFIED** | Append `"shepherd-review"` to the `COMMANDS` array; update help text and final summary. |
+| `scripts/shepherd-patch-poll.sh` | **NEW** | Background poller that fetches+maps NIP-34 patch-thread replies (`nak req -k 1 -e`) and atomically writes `~/.shepherd/sessions/<sid>/patch-replies.json`. `--once` mode prints the JSON array for the initial snapshot. Implements `FR-sr-patch-replies-live`. |
 | `engineering/apps/macos/Sources/SharedModels/SessionData.swift` | **UNCHANGED** | Already declares `reviewContext: ReviewContext?`. |
 | `engineering/apps/macos/Sources/SharedModels/ReviewContext.swift` | **UNCHANGED** | Already declares `overall` and `files` with neutral/review fields. |
-| `engineering/apps/macos/Sources/Dependencies/SessionClient.swift` | **UNCHANGED** | Already loads `session.json` and writes `prompt-output.md`. |
-| Native app feature reducers (CodeReview, MultiFile, etc.) | **UNCHANGED** | Already handle multi-file `files[]` and render `reviewContext` in ReviewContextSection / ReviewContextPanel. |
+| `engineering/apps/macos/Sources/Dependencies/SessionClient.swift` | **MODIFIED** | Adds `loadPatchReplies: @Sendable (String) async throws -> [ReviewContext.PatchReply]` reading the `patch-replies.json` sidecar (returns `[]` when absent). |
+| Native app feature reducers (CodeReview, MultiFile, etc.) | **UNCHANGED** | Already handle multi-file `files[]` and render `reviewContext` in ReviewContextSection / ReviewContextPanel. `AppFeature` gains the patch-reply poll timer (`FR-sr-patch-replies-live`). |
 
 The change footprint is intentionally minimal: two new prompt files, one bash flag, and one array entry. No Swift code is touched.
 
@@ -297,6 +298,23 @@ The native app renders replies in two places (see design spec "NIP-34 Patch Thre
 
 `ReviewContext.PatchMetadata` carries `replies: [PatchReply]`. A custom `Codable` init decodes `replies` with `decodeIfPresent ?? []` so pre-`FR-sr-patch-replies-display` payloads (which omit the key) still decode without error.
 
+### Patch-thread replies live refresh (FR-sr-patch-replies-live)
+
+The initial snapshot is baked into `session.json` at launch. For live updates, a background poller and an app-side timer cooperate via a sidecar file -- poll-and-reload, no in-app relay client.
+
+**Poller** (`scripts/shepherd-patch-poll.sh`, new): the single source of truth for fetch+map. `--once <event-id>` prints a `PatchReply` JSON array to stdout (used by the command prompt for the initial snapshot, replacing the inline `nak`/mapping recipe). Loop mode `<session-id> <event-id> [interval=30] [max-minutes=60]` re-runs `nak req -k 1 -e "$EVENT_ID"` every `interval` seconds, maps events (kind:1 root replies only; excludes 1630-1633 status transitions and the patch event itself; author from `~/.config/nostr/roster.json` else truncated hex pubkey; `isBot` from roster `bot` flag; `lineAnchor` parsed from a `["range", file, start, end]` tag), and atomically writes `~/.shepherd/sessions/<sid>/patch-replies.json` (temp file + `mv`). It exits when `prompt-output.md` appears or after `max-minutes`. Best-effort: if `nak` or `python3` is missing, `--once` prints `[]` and loop mode exits 0 immediately.
+
+The command prompt spawns it detached after launch (patch mode only):
+```bash
+nohup bash "$SHEPHERD_ROOT/scripts/shepherd-patch-poll.sh" "$SESSION_ID" "$EVENT_ID" 30 60 >/dev/null 2>&1 & disown
+```
+
+**App side** (`SessionClient` + `AppFeature`):
+- `SessionClient.loadPatchReplies(sessionID)` reads `~/.shepherd/sessions/<sid>/patch-replies.json`, returning `[]` when the file is absent.
+- `AppFeature` starts a `continuousClock` timer (every 30s) when session data loads and `patchMetadata != nil` with a non-nil session ID. Each tick calls `loadPatchReplies` and sends `.patchRepliesRefreshed([PatchReply])`. The reducer deduplicates by `id`, orders oldest-first, and replaces `reviewContextData.patchMetadata?.replies`. The inspector section and inline bubbles re-render automatically because they derive from that array in `@ObservableState` state. The effect is cancellable (`CancelID.patchReplyPolling`) and is cancelled on `windowClosed` or `.stopPatchReplyPolling`.
+
+The first refresh fires immediately on start (so a sidecar already written by the poller is picked up without waiting 30s), then on the interval.
+
 ### Author pubkey-to-name resolution
 
 The command prompt attempts to resolve the author pubkey to a human-readable name:
@@ -454,6 +472,7 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-sr-patch-application` | .claude/commands/shepherd-review.md | implemented |
 | `FR-sr-patch-metadata-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | implemented |
 | `FR-sr-patch-replies-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/CodeViewerFeature/CodeViewerView.swift; engineering/apps/macos/Sources/AppFeature/CodeViewerPanelView.swift; .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-replies-live` | scripts/shepherd-patch-poll.sh; engineering/apps/macos/Sources/Dependencies/SessionClient.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift; .claude/commands/shepherd-review.md | implemented |
 
 All rows are `implemented`: the existing scope modes, launcher infrastructure, and new NIP-34 patch support. The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol, and the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
@@ -540,4 +559,5 @@ These slugs are covered by the prompt content in the `/shepherd-review` command 
 | `FR-sr-patch-source`, `FR-sr-patch-fetch`, `FR-sr-patch-validation`, `FR-sr-patch-application` | NIP-34 Patch Review Support section; implemented by the `.claude/commands/shepherd-review.md` prompt content via bash + generic Nostr protocol queries. |
 | `FR-sr-patch-metadata-display` | NIP-34 Patch Review Support section (metadata JSON structure); native macOS app will render via new `PatchMetadataSection` view component. |
 | `FR-sr-patch-replies-display` | NIP-34 Patch Review Support section (patch-thread replies fetch + handoff); `PatchRepliesSectionView` + `PatchReplyInlineView` native components. |
+| `FR-sr-patch-replies-live` | NIP-34 Patch Review Support section (patch-thread replies live refresh); `scripts/shepherd-patch-poll.sh` poller + `SessionClient.loadPatchReplies` + `AppFeature` poll timer. |
 | `AC-sr-patch-happy-path`, `AC-sr-patch-event-not-found`, `AC-sr-patch-invalid-diff`, `AC-sr-patch-application-conflicts`, `AC-sr-patch-metadata-displayed`, `AC-sr-patch-invalid-event-id`, `AC-sr-patch-conflicting-args` | NIP-34 Patch Review Support section (error handling, validation, metadata display). |

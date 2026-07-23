@@ -1,6 +1,6 @@
 ---
-product-hash: 1528caa47c2d5a8d47469f97c7991e45156076bc5b4b1b5685955c47508eec7a
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 72eba4558b538ad77ca4b4593719d1cb13efb0987d3f774a64d15094b8bddc9e
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Design Spec
@@ -236,6 +236,28 @@ The inspector section renders only when `patchMetadata` is present (patch review
 - `FR-sr-patch-replies-display`: Both render surfaces; bot/human marker; status events excluded upstream
 - Live NIP-34 review loop: shared thread visible across agents reviewing the same patch
 
+## Patch Thread Replies -- Live Refresh
+
+The section above renders the launch-time snapshot. `FR-sr-patch-replies-live` makes it live: replies posted after the window opens appear without relaunching, via poll-and-reload.
+
+### Architecture (poll-and-reload)
+
+The native app does NOT speak the Nostr relay protocol. Instead:
+- A background poller process (`scripts/shepherd-patch-poll.sh`) is spawned detached by the `/shepherd-review` command prompt after launch (patch mode only). It re-fetches the thread from the same relays every 30s using `nak`, reuses the same fetch+map logic as the initial snapshot, and atomically writes a session-scoped sidecar file. It exits when the review ends (`prompt-output.md` appears) or after 60 minutes.
+- The native app, while a patch review window is open, polls that sidecar on a 30s timer, deduplicates replies by id, orders oldest-first, and replaces the displayed reply list. The inspector section and inline bubbles re-render automatically from that single reply list -- no per-view wiring.
+
+### Gating and lifecycle
+
+Polling starts when a patch review window opens and `patchMetadata` is present (slash-command mode). It is cancelled when the window closes or explicitly stopped. Non-patch reviews never start the timer. If the sidecar is absent (no poller running / `nak` missing), the app renders the initial snapshot only -- the review is unaffected.
+
+### Why poll-and-reload, not a relay subscription
+
+Poll-and-reload is the lazy complete solution: it reuses `nak` (already a command-prompt dependency) and the existing reactive reply surfaces, adds a small timer + merge in the app plus one shell script, and introduces no new app package dependency. The cost is poll-interval latency (30s) and one relay query per interval -- acceptable for a code-review surface. A persistent in-app relay subscription is the upgrade path if sub-second liveness becomes a requirement.
+
+### Requirements Satisfied
+
+- `FR-sr-patch-replies-live`: sidecar poll + reactive swap; background poller lifecycle
+
 ## Concurrency
 
 Two `/shepherd-review` invocations from different working directories produce different session IDs (basename of project root), open independent windows (`FR-crp-macos-window-management`), and read/write disjoint session directories (`AC-srm-session-isolation`). A second invocation from the same project root with the same session ID brings the existing window to front and updates that window's session JSON before reload — same behavior as `/shepherd` (`AC-crp-macos-window-deduplicate`).
@@ -295,6 +317,7 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `FR-sr-patch-application` | Conversation Surface (inherited - review branch creation, patch apply, changeset detection, stash/restore) |
 | `FR-sr-patch-metadata-display` | NIP-34 Patch Metadata Display (all five fields: ID, author, message, parent, status) |
 | `FR-sr-patch-replies-display` | NIP-34 Patch Thread Replies Display (inspector section + inline anchored bubbles; bot/human marker) |
+| `FR-sr-patch-replies-live` | Patch Thread Replies -- Live Refresh (sidecar poll + reactive swap; background poller) |
 | `AC-sr-patch-happy-path` | Command Syntax + Conversation Surface + NIP-34 Patch Metadata Display (full patch review flow) |
 | `AC-sr-patch-event-not-found` | Conversation Surface (inherited error handling) |
 | `AC-sr-patch-invalid-diff` | Conversation Surface (inherited validation) |

@@ -1,6 +1,6 @@
 ---
-product-hash: 1528caa47c2d5a8d47469f97c7991e45156076bc5b4b1b5685955c47508eec7a
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 72eba4558b538ad77ca4b4593719d1cb13efb0987d3f774a64d15094b8bddc9e
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
 
@@ -103,6 +103,7 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `FR-sr-patch-application` | `TC-sr-patch-application-conflicts` | Not started |
 | `FR-sr-patch-metadata-display` | `TC-sr-patch-metadata-displayed` | Not started |
 | `FR-sr-patch-replies-display` | `TC-sr-patch-replies-displayed`, `TC-sr-patch-replies-empty` | Not started |
+| `FR-sr-patch-replies-live` | `TC-sr-patch-replies-live`, `TC-sr-patch-replies-live-no-nak` | Not started |
 
 Filtering, priority ordering, changeset detection, and scope-argument behavior on macOS reuse the web QA cases (the orchestration logic is identical). Run-on-macOS smoke verification is folded into `TC-srm-happy-path` rather than duplicating the full web matrix.
 
@@ -657,6 +658,29 @@ Testing patch review via `--patch <event-id>` mode.
   1. From agent: `/shepherd-review --patch <event-id>`
   2. Native window opens; inspect the inspector
 - **Expected**: No "Patch Thread" section appears (gated on non-empty replies). The patch metadata section still renders. The review completes normally.
+
+#### Patch thread replies refresh live `TC-sr-patch-replies-live`
+- **Type**: Manual
+- **Covers**: `FR-sr-patch-replies-live`
+- **Preconditions**: Valid patch event reviewed via `/shepherd-review --patch <event-id>`; the macOS window is open; `scripts/shepherd-patch-poll.sh` is running (spawned by the command); `nak` is installed. A new kind:1 root reply is published to a configured relay while the window is open.
+- **Steps**:
+  1. Open the patch review; confirm the initial reply set renders in the inspector
+  2. From another client, publish a new kind:1 note tagged `["e", "<patch-event-id>", "", "root"]` to a configured relay
+  3. Wait up to 30s (one poll interval)
+  4. Verify the new reply appears in the inspector "Patch Thread" section without relaunching
+  5. If the new reply carries a `["range", file, start, end]` tag whose `file` matches an open tab's absolute path, verify it also renders inline on that tab
+  6. Click Done; verify `~/.shepherd/sessions/<sid>/prompt-output.md` appears and the poller process exits (no orphan)
+- **Expected**: New replies appear within one poll interval with no relaunch; the poller exits cleanly when the review ends.
+
+#### Patch reply poller degrades when nak is missing `TC-sr-patch-replies-live-no-nak`
+- **Type**: Manual
+- **Covers**: `FR-sr-patch-replies-live`
+- **Preconditions**: `nak` is NOT on PATH; a patch review is opened (the initial snapshot in `session.json` was produced with `nak` available earlier, or is `[]`).
+- **Steps**:
+  1. Open `/shepherd-review --patch <event-id>` with `nak` missing
+  2. Confirm the window opens and renders the initial snapshot (or "no replies")
+  3. Wait > 30s; confirm no crash, no errors surfaced, the window remains usable
+- **Expected**: The poller exits immediately (`--once` prints `[]`, loop mode exits 0); the app renders the initial snapshot only and is otherwise unaffected. Best-effort degradation.
 
 #### Invalid event ID format `TC-sr-patch-invalid-event-id`
 - **Type**: Manual

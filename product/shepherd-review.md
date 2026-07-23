@@ -104,6 +104,13 @@ The CRPG renders replies two ways, both read-only and not user-editable:
 
 Reply fetch is best-effort: if relays return no replies or the query fails, the review proceeds with an empty reply list. This requirement enables the shared NIP-34 patch/PR review loop where multiple agents and the human hold one conversation over Buzz/Nostr and each agent's UI surfaces the others' comments.
 
+#### `FR-sr-patch-replies-live` -- Live refresh of patch-thread replies during a review
+The initial reply snapshot (`FR-sr-patch-replies-display`) is captured at launch. For a live review loop, replies posted after the window opens must also appear without relaunching. The macOS app polls a session sidecar (`~/.shepherd/sessions/<session-id>/patch-replies.json`) on a timer while a patch review window is open, and swaps in the latest reply list as it changes; the existing inspector section and inline anchored bubbles re-render automatically (they are already reactive to the reply array).
+
+A background poller process (`scripts/shepherd-patch-poll.sh`, spawned detached by the `/shepherd-review` command prompt after launch, patch mode only) re-fetches the thread from the same relays on an interval (default 30s), reuses the same fetch+map logic as the initial snapshot, and atomically rewrites the sidecar. It exits when the review ends (`prompt-output.md` appears) or after a max runtime (default 60 minutes) to avoid orphaning. The poller is best-effort: if `nak` is unavailable it exits immediately and the app continues to render the initial snapshot only.
+
+This is a poll-and-reload design (not a persistent relay subscription): latency is bounded by the poll interval, relay load is one query per interval, and no new app dependency is required. The native app does not speak the Nostr relay protocol itself; it only reads the sidecar the poller writes. Non-patch reviews never start the poller and never poll.
+
 #### `FR-sr-file-filtering` -- Filter out uninteresting files
 The command filters the changeset to exclude files that are not worth reviewing. The filtering rules are:
 

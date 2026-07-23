@@ -143,6 +143,14 @@ public struct AppFeature {
         case windowAppeared
         case windowClosed
 
+        // Patch-thread reply live polling (FR-sr-patch-replies-live). The
+        // background poller script refreshes a sidecar; the app re-reads it on a
+        // timer and swaps in the latest replies. UI is already reactive to
+        // `reviewContextData.patchMetadata.replies`.
+        case startPatchReplyPolling
+        case patchRepliesRefreshed([ReviewContext.PatchReply])
+        case stopPatchReplyPolling
+
         // Alerts
         case alert(PresentationAction<Alert>)
 
@@ -165,6 +173,7 @@ public struct AppFeature {
     private enum CancelID {
         case promptRegeneration
         case copyConfirmation
+        case patchReplyPolling
     }
 
     public init() {}
@@ -420,7 +429,42 @@ public struct AppFeature {
                 }
 
             case .windowClosed:
+                // Stop the reply poller when the window goes away.
+                return .cancel(id: CancelID.patchReplyPolling)
+
+            // MARK: - Patch-thread reply live polling (FR-sr-patch-replies-live)
+
+            case .startPatchReplyPolling:
+                guard let sessionID = state.session.sessionID,
+                      state.reviewContextData?.patchMetadata != nil else { return .none }
+                return .run { [sessionClient, clock] send in
+                    // First refresh promptly, then on an interval. The background
+                    // poller writes the sidecar; we just re-read it.
+                    await send(.patchRepliesRefreshed(
+                        (try? await sessionClient.loadPatchReplies(sessionID)) ?? []
+                    ))
+                    for await _ in clock.timer(interval: .seconds(30)) {
+                        await send(.patchRepliesRefreshed(
+                            (try? await sessionClient.loadPatchReplies(sessionID)) ?? []
+                        ))
+                    }
+                }
+                .cancellable(id: CancelID.patchReplyPolling, cancelInFlight: true)
+
+            case let .patchRepliesRefreshed(replies):
+                guard state.reviewContextData?.patchMetadata != nil else { return .none }
+                // Replace with the poller's current full view of the thread,
+                // deduped by id and ordered oldest-first. The poller re-fetches
+                // the whole thread each tick, so this is the complete live set.
+                var seen = Set<String>()
+                let ordered = replies
+                    .sorted { $0.timestamp < $1.timestamp }
+                    .filter { seen.insert($0.id).0 }
+                state.reviewContextData?.patchMetadata?.replies = ordered
                 return .none
+
+            case .stopPatchReplyPolling:
+                return .cancel(id: CancelID.patchReplyPolling)
 
             // MARK: - Child Feature Forwarding
 
@@ -529,9 +573,16 @@ public struct AppFeature {
                 // Store review context
                 state.reviewContextData = data.reviewContext
                 if !loadedFiles.isEmpty {
-                    return .send(.filesLoaded(loadedFiles))
+                    return .merge(
+                        .send(.filesLoaded(loadedFiles)),
+                        // Begin live reply polling for patch reviews.
+                        // Implements: FR-sr-patch-replies-live.
+                        data.reviewContext?.patchMetadata != nil && state.session.sessionID != nil
+                            ? .send(.startPatchReplyPolling) : .none
+                    )
                 }
-                return .none
+                return data.reviewContext?.patchMetadata != nil && state.session.sessionID != nil
+                    ? .send(.startPatchReplyPolling) : .none
 
             case .session:
                 return .none
