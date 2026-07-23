@@ -56,7 +56,7 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 | `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` | **MODIFIED** | Identity state, comment-submit publish path, `.replyToPatchReply` action, self-reply dedup (`FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`). |
 | `engineering/apps/macos/Package.swift` | **MODIFIED** | Adds the `secp256k1.swift` package dependency for in-process Schnorr signing (`FR-srm-event-sign`). |
 
-The change footprint is intentionally minimal: two new prompt files, one bash flag, and one array entry. No Swift code is touched.
+The change footprint for the original macOS review variant was intentionally minimal (two new prompt files, one bash flag, one array entry). Bidirectional patch-thread publishing extends that footprint into the native app: the Swift files listed above and a new `secp256k1.swift` package dependency. The implementation steps (Steps 7-10) cover that native work.
 
 ---
 
@@ -347,7 +347,7 @@ A `NostrSigner` `@Dependency` wraps the crypto so the reducer and tests depend o
 
 #### Event publishing (`FR-srm-event-publish`)
 
-`RelayClient` gains a `publish` closure alongside `subscribe`: `publish: @Sendable (NostrEvent) -> AsyncStream<PublishResult>` (or a simple `@Sendable (NostrEvent) async -> PublishResult`). The live value sends an `EVENT` frame (`["EVENT", event]`) over an existing or freshly-opened WebSocket per relay and yields `accepted`/`rejected`/`failed` per relay. A publish is considered successful when at least one relay returns `OK` (`AC-srm-publish-relay-failure`); individual relay failures are tolerated. Relay URL resolution reuses `RelayClient.resolveRelays`. Publishing is only invoked when an identity is loaded.
+`RelayClient` gains a `publish` closure alongside `subscribe`: `publish: @Sendable (NostrEvent) async -> PublishResult`. The live value sends an `EVENT` frame (`["EVENT", event]`) over an existing or freshly-opened WebSocket per relay and resolves to `accepted` when at least one relay returns `OK`, `rejected` when every reachable relay returns `OK: false`, or `failed` when no relay is reachable (`AC-srm-publish-relay-failure`). Individual relay failures are tolerated; success is at-least-one-relay-accepted. Relay URL resolution reuses `RelayClient.resolveRelays`. Publishing is only invoked when an identity is loaded. (The single `async -> PublishResult` form is chosen over a per-relay `AsyncStream` because the caller only needs the aggregate outcome, not a per-relay event stream.)
 
 #### Comment-submit integration (`FR-srm-comment-publish-on-submit`)
 
@@ -496,6 +496,17 @@ The `--help` block (lines 25–35) and the final "Installed:" summary (lines 134
 
 **Slug coverage**: `FR-srm-install`, `AC-srm-install-degraded`
 
+### Step 6: Manual smoke test (orchestration flow)
+
+On a branch with several modified files of mixed types (a TS source file, a config file, a lockfile, a `.png`):
+
+1. Run `./scripts/install-command.sh --force` to refresh symlinks.
+2. Confirm `~/.claude/commands/shepherd-review.md` and `~/.config/opencode/skills/shepherd-review/SKILL.md` exist as symlinks.
+3. From a Claude Code or opencode session, invoke `/shepherd-review`.
+4. Verify: brief summary mentions the macOS app and correct file count; lockfile and PNG are excluded; the native window opens with one tab per reviewable file in priority order; the inspector shows the overall neutral + review sections; switching tabs swaps the per-file ReviewContextPanel; no local web server starts.
+5. Click Done in the native window with comments on 1–2 files; select "Added comments" in the agent's `AskUserQuestion`; verify the agent reads `~/.shepherd/sessions/<id>/prompt-output.md` and presents the standard apply/discuss/save/nothing menu.
+6. Repeat with no comments and "Reviewed, no comments"; repeat with "Cancel"; repeat from a non-git directory and a branch with no diffs to confirm error messages match those defined in the shared review flow.
+
 ### Step 7: Add the secp256k1 Swift package dependency
 
 Add `secp256k1.swift` (GigaBitcoin) to `engineering/apps/macos/Package.swift` dependencies and link it into the `ShepherdApp` target. This is the one new Swift package introduced by bidirectional patch-thread publishing, justified in the "Event signing -- in-process" subsection. Verify `swift build` still succeeds.
@@ -506,7 +517,7 @@ Add `secp256k1.swift` (GigaBitcoin) to `engineering/apps/macos/Package.swift` de
 
 1. `IdentityClient` (`Sources/Dependencies/IdentityClient.swift`) resolves the nsec from `SHEPHERD_NSEC` / `~/.config/nostr/identity`, derives the pubkey via the secp256k1 package, and exposes `reviewerIdentity` to `AppFeature`. `testValue` returns a fixed test identity.
 2. `NostrSigner` (`Sources/Dependencies/NostrSigner.swift`) wraps Schnorr signing + pubkey derivation behind a `@Dependency` protocol. `NostrEvent.sign(secretKey:)` computes the SHA-256 `id` and `sig`.
-3. Extend `RelayClient` with `publish` (sends `EVENT` frames, yields per-relay `OK`/failure, succeeds when at least one relay accepts).
+3. Extend `RelayClient` with `publish` (sends `EVENT` frames, resolves to `accepted`/`rejected`/`failed`; succeeds when at least one relay accepts).
 4. `AppFeature.State` gains `reviewerIdentity: ReviewerIdentity?`; loaded at session-data load time when `patchMetadata != nil`.
 
 **Slug coverage**: `FR-srm-identity-load`, `FR-srm-event-sign`, `FR-srm-event-publish`
@@ -528,17 +539,6 @@ With an identity configured (`SHEPHERD_NSEC`) and a test patch open:
 2. Click `Reply` on an existing reply, submit -> verify the published event carries root + reply `e` + `p` tags.
 3. Unset `SHEPHERD_NSEC`, relaunch -> verify the identity indicator shows the no-identity state and submit reads `Save locally` with no publish.
 4. Point `NOSTR_RELAYS` at an invalid relay, submit -> verify the publish-failed state surfaces and the local comment is retained.
-
-### Step 6: Manual smoke test
-
-On a branch with several modified files of mixed types (a TS source file, a config file, a lockfile, a `.png`):
-
-1. Run `./scripts/install-command.sh --force` to refresh symlinks.
-2. Confirm `~/.claude/commands/shepherd-review.md` and `~/.config/opencode/skills/shepherd-review/SKILL.md` exist as symlinks.
-3. From a Claude Code or opencode session, invoke `/shepherd-review`.
-4. Verify: brief summary mentions the macOS app and correct file count; lockfile and PNG are excluded; the native window opens with one tab per reviewable file in priority order; the inspector shows the overall neutral + review sections; switching tabs swaps the per-file ReviewContextPanel; no local web server starts.
-5. Click Done in the native window with comments on 1–2 files; select "Added comments" in the agent's `AskUserQuestion`; verify the agent reads `~/.shepherd/sessions/<id>/prompt-output.md` and presents the standard apply/discuss/save/nothing menu.
-6. Repeat with no comments and "Reviewed, no comments"; repeat with "Cancel"; repeat from a non-git directory and a branch with no diffs to confirm error messages match those defined in the shared review flow.
 
 ---
 
@@ -577,7 +577,7 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-reply-to-reply` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift | planned |
 | `FR-srm-identity-indicator` | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
 
-All rows are `implemented`: the existing scope modes, launcher infrastructure, and new NIP-34 patch support. The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol, and the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
+Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The nine bidirectional-publishing rows above are `planned`, pending Steps 7-10. The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
 ---
 
