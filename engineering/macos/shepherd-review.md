@@ -1,5 +1,5 @@
 ---
-product-hash: c2a2544bfec99b922422da37c925f0dbd393538d49a51192e551e6e0aed7a474
+product-hash: 8ba09106a87a74e22edfa0a753a8972b0ff0fa9955d99a0af80cd8438ecd2250
 product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
@@ -34,7 +34,7 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 
 | File | Change | Purpose |
 |---|---|---|
-| `.claude/commands/shepherd-review.md` | **MODIFIED** | Claude Code prompt that orchestrates the review and invokes the macOS launcher with `--context`. Extended with the commit-scoped modes (`--branch`/`--commit`/`--range`) and the empty-changeset guard. Patch mode now calls `scripts/shepherd-patch-poll.sh --once` for the initial reply snapshot and spawns the poller detached after launch (`FR-sr-patch-replies-live`). |
+| `.claude/commands/shepherd-review.md` | **MODIFIED** | Claude Code prompt that orchestrates the review and invokes the macOS launcher with `--context`. Extended with the commit-scoped modes (`--branch`/`--commit`/`--range`) and the empty-changeset guard. Patch mode calls `scripts/shepherd-patch-poll.sh --once` for the initial reply snapshot baked into `session.json`; the live path is in-app (`FR-sr-relay-client`). |
 | `.config/opencode/skills/shepherd-review/SKILL.md` | **MODIFIED** | Opencode mirror of the Claude command (kept byte-aligned, including the new scope modes). |
 | `scripts/shepherd-launch.sh` | **MODIFIED** | Accept optional `--context <path>` before positional file args; inline its JSON into `session.json.reviewContext`. |
 | `scripts/install-command.sh` | **MODIFIED** | Append `"shepherd-review"` to the `COMMANDS` array; update help text and final summary. |
@@ -42,7 +42,7 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 | `engineering/apps/macos/Sources/SharedModels/SessionData.swift` | **UNCHANGED** | Already declares `reviewContext: ReviewContext?`. |
 | `engineering/apps/macos/Sources/SharedModels/ReviewContext.swift` | **UNCHANGED** | Already declares `overall` and `files` with neutral/review fields. |
 | `engineering/apps/macos/Sources/Dependencies/SessionClient.swift` | **UNCHANGED** | Loads `session.json` and writes `prompt-output.md`. |
-| `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **NEW** | Nostr relay client abstraction exposing `subscribe(NostrFilter) -> AsyncStream<NostrEvent>`. macOS live value shells out to `nak req --stream`. Implements `FR-sr-relay-client`. |
+| `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **NEW** | In-process Nostr relay client (`URLSessionWebSocketTask`) exposing `subscribe(NostrFilter) -> AsyncStream<NostrEvent>`. Implements `FR-sr-relay-client`. |
 | `engineering/apps/macos/Sources/Dependencies/PatchReplyMapper.swift` | **NEW** | Swift port of the poller's mapper: `[NostrEvent]` / single event -> `[PatchReply]` (kind:1 root filter, roster author resolution, `isBot`, `lineAnchor`). |
 | `engineering/apps/macos/Sources/SharedModels/NostrEvent.swift` | **NEW** | Minimal NIP-01 event model for the relay client + mapper. |
 | Native app feature reducers (CodeReview, MultiFile, etc.) | **UNCHANGED** | Already handle multi-file `files[]` and render `reviewContext` in ReviewContextSection / ReviewContextPanel. `AppFeature` gains the patch-thread relay subscription (`FR-sr-patch-replies-live`). |
@@ -271,18 +271,15 @@ The native macOS app reads `session.json.reviewContext.patchMetadata` and displa
 
 ### Patch-thread replies fetch and handoff (FR-sr-patch-replies-display)
 
-After the patch event is validated, the command prompt fetches the review-thread replies so other agents' and humans' comments render in the native app. The fetch is a second relay query keyed on the patch event id:
+After the patch event is validated, the command prompt fetches the initial reply snapshot so other agents' and humans' comments render in the native app immediately on launch. The fetch+map logic lives in `scripts/shepherd-patch-poll.sh --once` (single source of truth, shared with the live path's `PatchReplyMapper`):
 
 ```bash
-if command -v nak >/dev/null 2>&1; then
-  RELAY_LIST=$(echo "$RELAYS" | tr ',' ' ')
-  REPLIES_JSON=$(nak req -k 1 -e "$EVENT_ID" $RELAY_LIST 2>/dev/null)
-fi
+PATCH_REPLIES_JSON=$(bash "$SHEPHERD_ROOT/scripts/shepherd-patch-poll.sh" --once "$EVENT_ID" 2>/dev/null || echo "[]")
 ```
 
-`nak req -e <id>` filters on the `e` tag. Without `nak`, fall back to a WebSocket query with filter `{"#e": ["$EVENT_ID"], "kinds": [1]}`.
+The script runs `nak req -k 1 -e "$EVENT_ID"` across the configured relays and maps each kind:1 root reply to a `PatchReply` (author from `~/.config/nostr/roster.json` else truncated pubkey, `isBot` from roster, optional `lineAnchor` from a `["range", file, start, end]` tag). It prints `[]` when `nak` is missing or no replies are found. This snapshot is baked into `patchMetadata.replies` of the context JSON; live updates after launch come from the in-app `RelayClient` subscription (`FR-sr-patch-replies-live`), not this script.
 
-Filtering rules (implemented in the command prompt):
+Filtering rules (shared by the script and the Swift `PatchReplyMapper`):
 - Keep only `kind:1` events. Exclude kinds `1630`–`1633` (NIP-34 patch status transitions) and the patch event itself — those are status changes, not comments.
 - Root check: keep events whose `e` tag has marker `"root"` pointing at `$EVENT_ID`, OR whose first `e` tag value equals `$EVENT_ID` (tolerate a missing marker).
 
@@ -305,11 +302,11 @@ The native app renders replies in two places (see design spec "NIP-34 Patch Thre
 
 The initial snapshot is baked into `session.json` at launch by the command prompt via `scripts/shepherd-patch-poll.sh --once` (reusing `nak` on the shell side). For live updates, the app subscribes to Nostr relays in-process -- no external poller, no sidecar, no timer.
 
-**Relay client** (`Sources/Dependencies/RelayClient.swift`, new): a `@Dependency` `RelayClient` with `subscribe(NostrFilter) -> AsyncStream<NostrEvent>`. The macOS live value shells out to `nak req --stream -k 1 -e <patchId> <relays...>` (a real live subscription, not a poll): `--stream` keeps the REQ open past EOSE so new events print as published. stdout is drained line-by-line via `FileHandle.readabilityHandler`; each line is a JSON event object parsed into `NostrEvent` and yielded, deduplicated by id across relays. Relay URLs resolve from `NOSTR_RELAYS` / `~/.config/nostr/relays.txt` / defaults (same precedence as the command prompt). The stream stays open until the consumer cancels it (the app cancels on window close by terminating the child `Process`). If `nak` is not on PATH, the task yields nothing and the app falls back to the initial `session.json` snapshot. The abstraction is kept so a future impl that speaks NIP-01 over WebSocket directly (the transport for iOS, where `nak` does not exist) can replace `liveValue` without touching callers; no third-party Swift package is added. `NostrEvent` is a minimal NIP-01 model (`Sources/SharedModels/NostrEvent.swift`).
+**Relay client** (`Sources/Dependencies/RelayClient.swift`, new): a `@Dependency` `RelayClient` with `subscribe(NostrFilter) -> AsyncStream<NostrEvent>`. The live value speaks NIP-01 over `URLSessionWebSocketTask` (cross-platform macOS/iOS) -- no external `nak` CLI, no background process, no sidecar. It opens one WebSocket per configured relay, sends a `REQ` frame `["REQ", subID, {"#e": [patchId], "kinds": [1]}]`, and yields `NostrEvent`s parsed from `EVENT` frames, deduplicated by event id across relays. Relays deliver stored replies first (so the inspector populates immediately) and then new replies as published. Relay URLs resolve from `NOSTR_RELAYS` / `~/.config/nostr/relays.txt` / defaults (same precedence as the command prompt). The stream stays open until the consumer cancels it (the app cancels on window close). `URLSessionWebSocketTask` works on macOS and iOS, so this is the mobile-ready transport with no third-party Swift package added. `NostrEvent` is a minimal NIP-01 model (`Sources/SharedModels/NostrEvent.swift`).
 
 **Mapper** (`Sources/Dependencies/PatchReplyMapper.swift`, new): the Swift port of the poller's python mapper. `map([NostrEvent], patchEventID:)` filters kind:1 root replies (excludes 1630-1633 and the patch event), resolves author from `~/.config/nostr/roster.json` else truncated hex pubkey, sets `isBot` from the roster `bot` flag, and parses a `lineAnchor` from a `["range", file, start, end]` tag. `mapOne` maps a single event (used by the live stream). No live NIP-05 fetch (roster-only bot detection) -- `ponytail:` noted in source.
 
-**App integration** (`AppFeature`): when session data loads and `patchMetadata != nil`, the reducer sends `.startPatchReplySubscription`. A `.run` effect subscribes via `relayClient.subscribe(NostrFilter(eTag: patchID, kinds: [1]))`, maps each incoming event with `PatchReplyMapper.mapOne`, and sends `.patchRepliesRefreshedAppend(reply)`. That reducer appends the reply to `patchMetadata.replies` in timestamp order, skipping duplicate ids. The inspector section + inline bubbles re-render automatically from the array. The effect is cancellable (`CancelID.patchReplySubscription`) and cancelled on `windowClosed` / `.stopPatchReplySubscription`. The bulk `.patchRepliesRefreshed([PatchReply])` action is retained for the initial session.json snapshot path. The first events arrive as soon as relays respond (sub-second for live posts; stored replies arrive immediately on connect).
+**App integration** (`AppFeature`): when session data loads and `patchMetadata != nil`, the reducer sends `.startPatchReplySubscription`. A `.run` effect subscribes via `relayClient.subscribe(NostrFilter(eTag: patchID, kinds: [1]))`, maps each incoming event with `PatchReplyMapper.mapOne`, and sends `.patchRepliesRefreshedAppend(reply)`. That reducer appends the reply to `patchMetadata.replies` in timestamp order, skipping duplicate ids. The inspector section + inline bubbles re-render automatically from the array. The effect is cancellable (`CancelID.patchReplySubscription`) and cancelled on `windowClosed` / `.stopPatchReplySubscription`. The initial `session.json` snapshot (decoded at launch) seeds `patchMetadata.replies` before the first live event arrives. The first live events arrive as soon as relays respond (sub-second for live posts; stored replies arrive immediately on connect).
 
 ### Author pubkey-to-name resolution
 

@@ -30,7 +30,10 @@ public enum PatchReplyMapper {
     }
 
     /// Map a single event (no dedup). Returns nil if it is not a kind:1 root
-    /// reply for the given patch id.
+    /// reply for the given patch id. The roster is read from disk once per call;
+    /// for the live stream the caller maps events one at a time as they arrive,
+    /// so a per-process cache would only help if many events arrive in a tight
+    /// burst -- ponytail: not worth the state, re-read is a small JSON file.
     public static func mapOne(_ ev: NostrEvent, patchEventID: String) -> ReviewContext.PatchReply? {
         guard ev.kind == 1, ev.id != patchEventID, rootMatch(ev.tags, patchID: patchEventID) else {
             return nil

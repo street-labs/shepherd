@@ -1,5 +1,5 @@
 ---
-product-hash: c2a2544bfec99b922422da37c925f0dbd393538d49a51192e551e6e0aed7a474
+product-hash: 8ba09106a87a74e22edfa0a753a8972b0ff0fa9955d99a0af80cd8438ecd2250
 product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
@@ -240,9 +240,9 @@ The inspector section renders only when `patchMetadata` is present (patch review
 
 The section above renders the launch-time snapshot baked into `session.json`. `FR-sr-patch-replies-live` makes it live: replies posted after the window opens appear without relaunching, via an in-app Nostr relay subscription (`FR-sr-relay-client`).
 
-### Architecture (relay client abstraction, nak-driven on macOS)
+### Architecture (in-process relay subscription)
 
-The native app subscribes to Nostr relays through a `RelayClient` abstraction -- no sidecar file, no poll timer. On macOS the live implementation shells out to `nak req --stream`, which keeps a real subscription open and prints events as they arrive (stored replies first, then live). Each incoming event is mapped to a `PatchReply` and appended to the reply list in timestamp order, skipping duplicates by id. The inspector section and inline bubbles re-render automatically from that single reply list -- no per-view wiring. The abstraction is kept so a future impl that speaks NIP-01 over WebSocket directly (the transport a future iOS app would use, where `nak` does not exist) can replace the macOS live value without touching callers.
+The native app subscribes to Nostr relays itself through a `RelayClient` -- no sidecar file, no poll timer, no external `nak` process. The live implementation speaks NIP-01 over `URLSessionWebSocketTask` (cross-platform macOS/iOS): it opens one WebSocket per configured relay, sends a `REQ` frame for kind:1 events whose root `e` tag is the patch event id, and yields events as they arrive (stored replies first, then live), deduplicated by event id. Each incoming event is mapped to a `PatchReply` and appended to the reply list in timestamp order, skipping duplicates by id. The inspector section and inline bubbles re-render automatically from that single reply list -- no per-view wiring. Because the transport is `URLSessionWebSocketTask`, the same live path serves a future iOS app with no change.
 
 The initial snapshot baked into `session.json` at launch (produced by the command prompt via `scripts/shepherd-patch-poll.sh --once`) remains as a baseline so the inspector has replies to show before the subscription delivers; the in-app subscription then provides liveness on top.
 
@@ -252,11 +252,11 @@ The subscription starts when a patch review window opens and `patchMetadata` is 
 
 ### Why a relay client, not poll-and-reload
 
-A `RelayClient` abstraction decouples the app from the transport. On macOS `nak req --stream` gives a real live subscription (events arrive as published) at no app-level WebSocket cost, and reuses the `nak` the command prompt already depends on. The abstraction leaves room for a direct WebSocket impl where `nak` does not exist (iOS). No sidecar file or poll timer means sub-second liveness and lower relay load than polling. No third-party Swift package is added; the shell-side `--once` snapshot keeps `nak` as the launch-time baseline.
+An in-process relay subscription is the cross-platform transport: `URLSessionWebSocketTask` works on macOS and iOS, so the same live-reply path serves a future mobile app with no shell-side poller. It also gives sub-second liveness (events arrive as published) at lower relay load than polling. The cost is a small Swift Nostr event model + WebSocket relay client in the app -- no third-party dependency. The shell-side `--once` snapshot keeps `nak` as a launch-time convenience only.
 
 ### Requirements Satisfied
 
-- `FR-sr-patch-replies-live`: sidecar poll + reactive swap; background poller lifecycle
+- `FR-sr-patch-replies-live`: in-process relay subscription + reactive append; subscription lifecycle
 
 ## Concurrency
 

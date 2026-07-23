@@ -148,7 +148,6 @@ public struct AppFeature {
         // merges incoming kind:1 root replies into patchMetadata.replies. UI is
         // already reactive to that array.
         case startPatchReplySubscription
-        case patchRepliesRefreshed([ReviewContext.PatchReply])
         case patchRepliesRefreshedAppend(ReviewContext.PatchReply)
         case stopPatchReplySubscription
 
@@ -453,17 +452,6 @@ public struct AppFeature {
                     }
                 }
                 .cancellable(id: CancelID.patchReplySubscription, cancelInFlight: true)
-
-            case let .patchRepliesRefreshed(replies):
-                // Full-snapshot replace path (kept for the initial session.json
-                // snapshot and any bulk refresh).
-                guard state.reviewContextData?.patchMetadata != nil else { return .none }
-                var seen = Set<String>()
-                let ordered = replies
-                    .sorted { $0.timestamp < $1.timestamp }
-                    .filter { seen.insert($0.id).0 }
-                state.reviewContextData?.patchMetadata?.replies = ordered
-                return .none
 
             case let .patchRepliesRefreshedAppend(reply):
                 // Incremental live append: merge a single incoming reply into the
