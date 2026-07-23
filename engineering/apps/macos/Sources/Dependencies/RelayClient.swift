@@ -214,7 +214,7 @@ private enum RelayPublisher {
         let relays = RelayClient.resolveRelays()
         guard !relays.isEmpty else { return .failed }
         // Build the EVENT frame once: ["EVENT", {event-object}].
-        guard let eventDict = eventJSONObject(event) else { return .failed }
+        let eventDict = eventJSONObject(event)
         let frame: [Any] = ["EVENT", eventDict]
         guard let frameData = try? JSONSerialization.data(withJSONObject: frame),
               let frameString = String(data: frameData, encoding: .utf8) else { return .failed }
@@ -282,8 +282,8 @@ private enum RelayPublisher {
     }
 
     /// Serialize a `NostrEvent` to the JSON object form used in an EVENT frame.
-    private static func eventJSONObject(_ event: NostrEvent) -> [String: Any]? {
-        let obj: [String: Any] = [
+    private static func eventJSONObject(_ event: NostrEvent) -> [String: Any] {
+        [
             "id": event.id,
             "pubkey": event.pubkey,
             "created_at": event.createdAt,
@@ -292,6 +292,5 @@ private enum RelayPublisher {
             "content": event.content,
             "sig": event.sig,
         ]
-        return obj
     }
 }

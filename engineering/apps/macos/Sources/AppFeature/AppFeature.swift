@@ -507,9 +507,24 @@ public struct AppFeature {
                 return .none
 
             case let .replyToPatchReply(reply):
-                // Forward to the comment feature, which opens the editor pre-targeted.
-                // Implements: FR-srm-reply-to-reply
-                return .send(.comment(.replyToPatchReply(reply)))
+                // Switch to the reply's anchor file before opening the editor, so
+                // the editor opens on the right file and the published `range` tag
+                // names the correct path. Implements: FR-srm-reply-to-reply.
+                // Without this, a Reply from the inspector (where the active file
+                // may differ from the reply's anchored file) would anchor the
+                // editor to the wrong file.
+                if let anchorPath = reply.lineAnchor?.filePath,
+                   let file = state.files.first(where: { $0.filePath == anchorPath }) {
+                    state.activeFileID = file.id
+                }
+                // Open the editor at the reply's anchor (or line 1 when unanchored).
+                let start = reply.lineAnchor?.startLine ?? 1
+                let end = reply.lineAnchor?.endLine ?? start
+                state.comment.editorState = .creating(anchorLine: start, endLine: end)
+                state.comment.editorText = ""
+                state.comment.replyTarget = reply
+                state.comment.publishState = .idle
+                return activeFileContextEffect(state: state)
 
             case let .patchReplyPublishResult(commentID, result, signedEvent):
                 return handlePublishResult(
@@ -784,8 +799,16 @@ public struct AppFeature {
         if let replyTarget {
             tags.append(["e", replyTarget.id, "", "reply"])
             tags.append(["p", replyTarget.authorPubkey])
-        }
-        if let filePath {
+            // Range tag for a reply-to-reply: use the replied-to reply's anchor file
+            // path (not the active file's path), so the `range` tag names the file
+            // the response is pinned to. Omit the range tag when the replied-to
+            // reply is unanchored (the spec says the anchor is optional).
+            if let anchorPath = replyTarget.lineAnchor?.filePath {
+                tags.append(["range", anchorPath, String(comment.startLine), String(comment.endLine)])
+            }
+        } else if let filePath {
+            // Top-level comment: the reviewer clicked a line, so the range tag
+            // names the active file at the comment's line span.
             tags.append(["range", filePath, String(comment.startLine), String(comment.endLine)])
         }
         let unsigned = NostrEvent(

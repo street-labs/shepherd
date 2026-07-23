@@ -140,4 +140,43 @@ struct PatchReplyPublishTests {
         #expect(store.state.allComments[id: testUUID]?.publishedEventID == nil)
         #expect(store.state.comment.publishState == .idle)
     }
+
+    @Test("Reply-to-reply from inspector switches active file to the reply's anchor file")
+    func replyToReplySwitchesFile() async {
+        let fileA = UUID(uuidString: "00000000-0000-0000-0000-0000000000a1")!
+        let fileB = UUID(uuidString: "00000000-0000-0000-0000-0000000000b2")!
+        let store = TestStore(initialState: AppFeature.State(
+            files: [
+                FileNode(id: fileA, name: "a.ts", filePath: "/src/a.ts", content: "x\n"),
+                FileNode(id: fileB, name: "b.ts", filePath: "/src/b.ts", content: "y\n"),
+            ],
+            activeFileID: fileA,
+            reviewContextData: ReviewContext(
+                patchMetadata: ReviewContext.PatchMetadata(
+                    eventID: patchID, shortEventID: "aaaaaaaa",
+                    author: "author", commitMessage: "msg", parentCommit: nil, status: "open"
+                )
+            )
+        )) {
+            AppFeature()
+        } withDependencies: {
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        let anchoredReply = ReviewContext.PatchReply(
+            id: String(repeating: "e", count: 64),
+            author: "someone", authorPubkey: String(repeating: "f", count: 64),
+            isBot: false, content: "looks good", timestamp: 1,
+            lineAnchor: ReviewContext.PatchReply.LineAnchor(
+                filePath: "/src/b.ts", startLine: 3, endLine: 4
+            )
+        )
+        await store.send(.replyToPatchReply(anchoredReply))
+        // Active file switched to the reply's anchored file (b.ts), not the
+        // previously-active a.ts. Implements: FR-srm-reply-to-reply.
+        #expect(store.state.activeFileID == fileB)
+        #expect(store.state.comment.editorState == .creating(anchorLine: 3, endLine: 4))
+        #expect(store.state.comment.replyTarget?.id == anchoredReply.id)
+    }
 }
