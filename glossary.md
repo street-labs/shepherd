@@ -50,9 +50,14 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Not to be confused with**: Local secret key / `nsec` (the in-process signing form, where the reviewer's key is loaded directly); Relay (the Nostr server the bunker communicates over, not the bunker itself)
 
 ## NIP-46
-**Definition**: The Nostr remote-signing protocol (Nostr Connect) that lets a client delegate event signing to a remote bunker over a Nostr relay using encrypted kind `24133` request/response events. Shepherd uses NIP-46 only for the bunker identity form; the local-key form signs in-process and does not use NIP-46.
+**Definition**: The Nostr remote-signing protocol (Nostr Connect) that lets a client delegate event signing to a remote bunker over a Nostr relay using NIP-44-encrypted kind `24133` request/response events. Shepherd uses NIP-46 only for the bunker identity form; the local-key form signs in-process and does not use NIP-46. The reviewer's (user) pubkey is obtained from the bunker via the `get_public_key` method after `connect`.
 **Also known as**: Nostr Connect
-**Not to be confused with**: NIP-04 (the direct-message encryption scheme NIP-46 uses to encrypt its kind `24133` payloads); NIP-34 (the git-patch protocol, unrelated to signing)
+**Not to be confused with**: NIP-44 (the authenticated-encryption scheme NIP-46 uses to encrypt its kind `24133` payloads); NIP-04 (the older direct-message encryption scheme, not used by Shepherd's bunker path); NIP-34 (the git-patch protocol, unrelated to signing)
+
+## NIP-44
+**Definition**: The Nostr authenticated-encryption scheme (ChaCha20-Poly1305 + HKDF, with an ECDH shared secret) used to encrypt NIP-46 kind `24133` control-channel payloads. Shepherd implements it via `P256K` (ECDH) + `CryptoKit` (`ChaChaPoly`, `HKDF`) — no AES-CBC, no new package dependency.
+**Also known as**: nip44
+**Not to be confused with**: NIP-04 (the older AES-CBC direct-message scheme, which NIP-46 no longer uses); NIP-46 (the remote-signing protocol that uses NIP-44 for payload encryption, not an encryption scheme itself)
 
 ## Patch-Thread Reply
 **Definition**: A kind:1 Nostr text note published as a comment on a NIP-34 patch event, tagged with the patch event as the thread root (an `e` tag with the `root` marker) plus the repository `a` tag, and optionally a line-range anchor pinning it to a file and line span in the applied patch. Both other participants' replies (read by the review tool) and the reviewer's own published replies use this format.

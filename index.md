@@ -2401,7 +2401,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-connect`, `TC-srm-bunker-uri-malformed`, `TC-srm-nip04-unit`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-connect`, `TC-srm-bunker-uri-malformed`, `TC-srm-nip44-unit`
 
 ### `FR-srm-bunker-sign-failure`
 - **Defined in**: `product/macos/shepherd-review.md`

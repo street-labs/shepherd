@@ -122,7 +122,7 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `FR-sr-patch-reply-respond` | `TC-sr-patch-reply-respond`, `TC-srm-reply-to-reply` | Not started |
 | `FR-sr-bunker-signing` | `TC-srm-bunker-sign`, `TC-srm-bunker-sign-failure` | Not started |
 | `FR-srm-identity-load` | `TC-srm-identity-load`, `TC-srm-identity-no-key`, `TC-srm-bunker-uri-malformed` | Not started |
-| `FR-srm-bunker-connect` | `TC-srm-bunker-connect`, `TC-srm-bunker-uri-malformed`, `TC-srm-nip04-unit` | Not started |
+| `FR-srm-bunker-connect` | `TC-srm-bunker-connect`, `TC-srm-bunker-uri-malformed`, `TC-srm-nip44-unit` | Not started |
 | `FR-srm-event-sign` | `TC-srm-comment-publish` (signed event verified), `TC-srm-signer-unit`, `TC-srm-bunker-sign` | Not started |
 | `FR-srm-bunker-sign-failure` | `TC-srm-bunker-sign-failure` | Not started |
 | `FR-srm-event-publish` | `TC-srm-comment-publish`, `TC-srm-publish-relay-failure` | Not started |
@@ -854,7 +854,7 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Covers**: `AC-srm-bunker-connect`, `FR-srm-bunker-connect`, `FR-sr-reviewer-identity`
 - **Preconditions**: `SHEPHERD_BUNKER` set to a `bunker://<pubkey>?relay=<wss-url>[&secret=<token>]` URI pointing at a reachable test bunker; no `SHEPHERD_NSEC`.
 - **Steps**:
-  1. (Automated) Inject a mock `RelayClient` that echoes NIP-46 kind `24133` responses; drive `BunkerClient.connect()` and assert it sends an encrypted `connect` request (with `secret` when present), receives the response, and then `get_pubkey` returns the reviewer's pubkey.
+  1. (Automated) Inject a mock `RelayClient` that echoes NIP-46 kind `24133` responses; drive `BunkerClient.connect()` and assert it sends a NIP-44-encrypted `connect` request whose `params[0]` is the bunker (remote-signer) pubkey (not the session pubkey), with `secret` in position 1, an empty string for perms in position 2, and client metadata in position 3; receives the response; and then `get_public_key` returns the reviewer's (user) pubkey.
   2. (Automated) Assert no reviewer secret key is materialized in the client -- only the ephemeral session keypair and the parsed bunker params.
   3. (Manual) Open a patch review with a real test bunker; confirm the identity indicator shows the shield glyph + `BUNKER` badge + green (connected) status dot and the reviewer's display name.
 - **Expected**: The NIP-46 handshake completes, the reviewer's pubkey is obtained from the bunker, the indicator shows connected, and no host-side secret key is used.
@@ -865,7 +865,7 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Preconditions**: `SHEPHERD_BUNKER` set; mock `RelayClient` that does not respond to `connect` (or returns a refusal for a bad `secret`).
 - **Steps**:
   1. Drive `BunkerClient.connect()` against the non-responsive/refusing mock.
-  2. Assert the connection state flips to `.failed` with a cause, `get_pubkey` yields no pubkey, and read-only review + local commenting remain available.
+  2. Assert the connection state flips to `.failed` with a cause, `get_public_key` yields no pubkey, and read-only review + local commenting remain available.
 - **Expected**: A failed handshake degrades to unavailable-for-publish without crashing; the failure is observable as `.failed`.
 
 #### Malformed bunker URI `TC-srm-bunker-uri-malformed`
@@ -908,15 +908,15 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
   3. Open a non-patch review; confirm the identity indicator is absent.
 - **Expected**: The indicator renders bunker-specific states (connected / failed) and is absent for non-patch reviews.
 
-#### NIP-04 crypto round-trip `TC-srm-nip04-unit`
+#### NIP-44 crypto round-trip `TC-srm-nip44-unit`
 - **Type**: Automated (Swift unit test)
 - **Covers**: `FR-srm-bunker-connect`
-- **Preconditions**: `NIP04Crypto` implemented.
+- **Preconditions**: `NIP44Crypto` implemented.
 - **Steps**:
-  1. Generate two secp256k1 keypairs (sender, bunker); compute the shared secret via ECDH on both sides and assert they match.
-  2. Encrypt a fixed plaintext with the sender's key to the bunker's pubkey; decrypt with the bunker's key from the sender's pubkey; assert the output equals the plaintext.
-  3. Assert tampering a ciphertext byte fails decryption.
-- **Expected**: NIP-04 encrypt/decrypt round-trips and rejects tampered ciphertext. No new package dependency is exercised (uses `P256K` + `CryptoKit`).
+  1. Generate two secp256k1 keypairs (sender, bunker); compute the ECDH shared secret on both sides and assert they match.
+  2. Encrypt a fixed plaintext with the sender's key to the bunker's pubkey (NIP-44: ChaCha20-Poly1305 + HKDF); decrypt with the bunker's key from the sender's pubkey; assert the output equals the plaintext.
+  3. Assert tampering a ciphertext byte fails decryption (Poly1305 auth tag mismatch).
+- **Expected**: NIP-44 encrypt/decrypt round-trips and rejects tampered ciphertext. No new package dependency is exercised (uses `P256K` for ECDH + `CryptoKit` `ChaChaPoly`/`HKDF`); no AES-CBC is used.
 
 ---
 

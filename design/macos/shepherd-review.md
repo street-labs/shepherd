@@ -273,7 +273,7 @@ A small identity indicator appears in the inspector, directly above the Patch Th
 - **Bunker identity loaded** — the indicator shows a shield glyph (`shield.lefthalf.filled`, secondary label color) followed by the reviewer's resolved display name (or truncated npub, obtained from the bunker), a small status dot, and a `BUNKER` capsule badge to distinguish it from a local key. The status dot conveys the NIP-46 control channel state:
   - **Green** — connected (handshake complete, ready to sign).
   - **Amber, pulsing** — connecting (handshake in progress at launch).
-  - **Red** — failed (bunker unreachable, refused the connection, or the control channel dropped). A one-line subtext names the problem (e.g. `Bunker not responding on <relay>`). Hovering/ VoiceOver exposes the full `bunker://` URI as the accessibility label.
+  - **Red** — failed (bunker unreachable, refused the connection, or the control channel dropped). A one-line subtext names the problem (e.g. `Bunker not responding on <relay>`). Hovering/VoiceOver exposes the full `bunker://` URI as the accessibility label.
 - **No identity configured** — the indicator shows a warning glyph (`exclamationmark.triangle.fill`, orange) with the text `No identity — replies won't publish`, plus a one-line hint naming the configuration paths the app reads (e.g. `Set SHEPHERD_BUNKER / ~/.config/nostr/bunker, or SHEPHERD_NSEC / ~/.config/nostr/identity`). The reviewer can still read the thread and leave local comments, but no publish action is offered and submitting a comment records it locally only.
 
 The indicator is present for every patch review and absent for every non-patch review.
@@ -418,7 +418,7 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `FR-sr-patch-reply-respond` | Patch-Thread Reply Publishing (Bidirectional) (Reply affordance; threaded e/p tags) |
 | `FR-srm-identity-load` | Patch-Thread Reply Publishing (Bidirectional) (identity resolved from config — local key or bunker URI; no-identity / malformed-URI state) |
 | `FR-srm-identity-indicator` | Patch-Thread Reply Publishing (Bidirectional) (identity indicator with local-key / bunker-connected / connecting / failed / no-identity states) |
-| `FR-srm-bunker-connect` | Patch-Thread Reply Publishing (Bidirectional) (NIP-46 connect handshake + get_pubkey; control-channel lifecycle) |
+| `FR-srm-bunker-connect` | Patch-Thread Reply Publishing (Bidirectional) (NIP-46 connect handshake + get_public_key; control-channel lifecycle) |
 | `FR-srm-bunker-sign-failure` | Patch-Thread Reply Publishing (Bidirectional) (publish-failed—bunker state; retry) |
 | `FR-sr-bunker-signing` | Patch-Thread Reply Publishing (Bidirectional) (sign_event delegation via bunker; no host secret key) |
 | `AC-sr-bunker-signing` | Patch-Thread Reply Publishing (Bidirectional) (bunker-signed reply; failure degrades locally) |
