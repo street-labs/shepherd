@@ -1,6 +1,6 @@
 ---
-product-hash: ee06b44196a5bd3d9bc31299feb27b180317837da237958ecac678abc1a64954
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 8ba09106a87a74e22edfa0a753a8972b0ff0fa9955d99a0af80cd8438ecd2250
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Technical Spec
@@ -34,14 +34,18 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 
 | File | Change | Purpose |
 |---|---|---|
-| `.claude/commands/shepherd-review.md` | **MODIFIED** | Claude Code prompt that orchestrates the review and invokes the macOS launcher with `--context`. Extended with the commit-scoped modes (`--branch`/`--commit`/`--range`) and the empty-changeset guard. |
+| `.claude/commands/shepherd-review.md` | **MODIFIED** | Claude Code prompt that orchestrates the review and invokes the macOS launcher with `--context`. Extended with the commit-scoped modes (`--branch`/`--commit`/`--range`) and the empty-changeset guard. Patch mode calls `scripts/shepherd-patch-poll.sh --once` for the initial reply snapshot baked into `session.json`; the live path is in-app (`FR-sr-relay-client`). |
 | `.config/opencode/skills/shepherd-review/SKILL.md` | **MODIFIED** | Opencode mirror of the Claude command (kept byte-aligned, including the new scope modes). |
 | `scripts/shepherd-launch.sh` | **MODIFIED** | Accept optional `--context <path>` before positional file args; inline its JSON into `session.json.reviewContext`. |
 | `scripts/install-command.sh` | **MODIFIED** | Append `"shepherd-review"` to the `COMMANDS` array; update help text and final summary. |
+| `scripts/shepherd-patch-poll.sh` | **NEW** | Fetches+maps NIP-34 patch-thread replies (`nak req -k 1 -e`) for the `/shepherd-review` command prompt's initial snapshot (`--once` mode). Implements the shell side of `FR-sr-patch-replies-display`; the live path is now in-app (`FR-sr-relay-client`). |
 | `engineering/apps/macos/Sources/SharedModels/SessionData.swift` | **UNCHANGED** | Already declares `reviewContext: ReviewContext?`. |
 | `engineering/apps/macos/Sources/SharedModels/ReviewContext.swift` | **UNCHANGED** | Already declares `overall` and `files` with neutral/review fields. |
-| `engineering/apps/macos/Sources/Dependencies/SessionClient.swift` | **UNCHANGED** | Already loads `session.json` and writes `prompt-output.md`. |
-| Native app feature reducers (CodeReview, MultiFile, etc.) | **UNCHANGED** | Already handle multi-file `files[]` and render `reviewContext` in ReviewContextSection / ReviewContextPanel. |
+| `engineering/apps/macos/Sources/Dependencies/SessionClient.swift` | **UNCHANGED** | Loads `session.json` and writes `prompt-output.md`. |
+| `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **NEW** | In-process Nostr relay client (`URLSessionWebSocketTask`) exposing `subscribe(NostrFilter) -> AsyncStream<NostrEvent>`. Implements `FR-sr-relay-client`. |
+| `engineering/apps/macos/Sources/Dependencies/PatchReplyMapper.swift` | **NEW** | Swift port of the poller's mapper: `[NostrEvent]` / single event -> `[PatchReply]` (kind:1 root filter, roster author resolution, `isBot`, `lineAnchor`). |
+| `engineering/apps/macos/Sources/SharedModels/NostrEvent.swift` | **NEW** | Minimal NIP-01 event model for the relay client + mapper. |
+| Native app feature reducers (CodeReview, MultiFile, etc.) | **UNCHANGED** | Already handle multi-file `files[]` and render `reviewContext` in ReviewContextSection / ReviewContextPanel. `AppFeature` gains the patch-thread relay subscription (`FR-sr-patch-replies-live`). |
 
 The change footprint is intentionally minimal: two new prompt files, one bash flag, and one array entry. No Swift code is touched.
 
@@ -231,7 +235,7 @@ After successful fetch and validation:
 
 ### Patch metadata handoff to native app
 
-The patch metadata is included in the structured context JSON passed via `--context`:
+The patch metadata (now including thread replies) is included in the structured context JSON passed via `--context`:
 
 ```json
 {
@@ -243,12 +247,66 @@ The patch metadata is included in the structured context JSON passed via `--cont
     "author": "npub1abc..." or "alice@example.com",
     "commitMessage": "Add NIP-34 patch review support",
     "parentCommit": "deadbeef" or null,
-    "status": "open" | "merged" | "closed" | "draft"
+    "status": "open" | "merged" | "closed" | "draft",
+    "replies": [
+      {
+        "id": "<reply event id>",
+        "author": "borg" or "npub1...",
+        "authorPubkey": "<raw pubkey>",
+        "isBot": true | false,
+        "content": "nits on line 12",
+        "timestamp": 1700000000,
+        "lineAnchor": {
+          "filePath": "/abs/path/matching/a/files[].path",
+          "startLine": 12,
+          "endLine": 14
+        } or null
+      }
+    ]
   }
 }
 ```
 
 The native macOS app reads `session.json.reviewContext.patchMetadata` and displays it in a dedicated UI section (see design spec "NIP-34 Patch Metadata Display"). If `patchMetadata` is absent (non-patch review), the section is not shown.
+
+### Patch-thread replies fetch and handoff (FR-sr-patch-replies-display)
+
+After the patch event is validated, the command prompt fetches the initial reply snapshot so other agents' and humans' comments render in the native app immediately on launch. The fetch+map logic lives in `scripts/shepherd-patch-poll.sh --once` (single source of truth, shared with the live path's `PatchReplyMapper`):
+
+```bash
+PATCH_REPLIES_JSON=$(bash "$SHEPHERD_ROOT/scripts/shepherd-patch-poll.sh" --once "$EVENT_ID" 2>/dev/null || echo "[]")
+```
+
+The script runs `nak req -k 1 -e "$EVENT_ID"` across the configured relays and maps each kind:1 root reply to a `PatchReply` (author from `~/.config/nostr/roster.json` else truncated pubkey, `isBot` from roster, optional `lineAnchor` from a `["range", file, start, end]` tag). It prints `[]` when `nak` is missing or no replies are found. This snapshot is baked into `patchMetadata.replies` of the context JSON; live updates after launch come from the in-app `RelayClient` subscription (`FR-sr-patch-replies-live`), not this script.
+
+Filtering rules (shared by the script and the Swift `PatchReplyMapper`):
+- Keep only `kind:1` events. Exclude kinds `1630`–`1633` (NIP-34 patch status transitions) and the patch event itself — those are status changes, not comments.
+- Root check: keep events whose `e` tag has marker `"root"` pointing at `$EVENT_ID`, OR whose first `e` tag value equals `$EVENT_ID` (tolerate a missing marker).
+
+Each surviving event is mapped to a `PatchReply`:
+- `id`: the reply event's 64-char id.
+- `author` / `authorPubkey`: resolve `.pubkey` to a display name (roster → NIP-05 → truncated npub) and keep the raw pubkey.
+- `isBot`: true when the author is a known agent/bot (roster flag, NIP-05 host pattern containing `agent`/`bot`, or a kind:0 `bot` profile flag). Default `false` (human) when uncertain.
+- `content`: `.content`. `timestamp`: `.created_at` (seconds).
+- `lineAnchor`: optional, parsed from a range tag. `filePath` MUST be the absolute path matching a `files[].path` entry so the native app can correlate it to a tab; `startLine`/`endLine` are 1-indexed. Absent anchor → `null`.
+
+The assembled array is placed in `patchMetadata.replies` (`[]` when there are none). The fetch is best-effort: a relay failure or empty result does not block the review.
+
+The native app renders replies in two places (see design spec "NIP-34 Patch Thread Replies Display"):
+- A `PatchRepliesSectionView` in the inspector, gated on `patchMetadata != nil && !replies.isEmpty`.
+- Anchored replies rendered inline in `CodeViewerView` via `PatchReplyInlineView`, filtered to the active file's absolute path. These are read-only and visually distinct from the user's editable `Comment` bubbles.
+
+`ReviewContext.PatchMetadata` carries `replies: [PatchReply]`. A custom `Codable` init decodes `replies` with `decodeIfPresent ?? []` so pre-`FR-sr-patch-replies-display` payloads (which omit the key) still decode without error.
+
+### Patch-thread replies live subscription (FR-sr-patch-replies-live, FR-sr-relay-client)
+
+The initial snapshot is baked into `session.json` at launch by the command prompt via `scripts/shepherd-patch-poll.sh --once` (reusing `nak` on the shell side). For live updates, the app subscribes to Nostr relays in-process -- no external poller, no sidecar, no timer.
+
+**Relay client** (`Sources/Dependencies/RelayClient.swift`, new): a `@Dependency` `RelayClient` with `subscribe(NostrFilter) -> AsyncStream<NostrEvent>`. The live value speaks NIP-01 over `URLSessionWebSocketTask` (cross-platform macOS/iOS) -- no external `nak` CLI, no background process, no sidecar. It opens one WebSocket per configured relay, sends a `REQ` frame `["REQ", subID, {"#e": [patchId], "kinds": [1]}]`, and yields `NostrEvent`s parsed from `EVENT` frames, deduplicated by event id across relays. Relays deliver stored replies first (so the inspector populates immediately) and then new replies as published. Relay URLs resolve from `NOSTR_RELAYS` / `~/.config/nostr/relays.txt` / defaults (same precedence as the command prompt). The stream stays open until the consumer cancels it (the app cancels on window close). `URLSessionWebSocketTask` works on macOS and iOS, so this is the mobile-ready transport with no third-party Swift package added. `NostrEvent` is a minimal NIP-01 model (`Sources/SharedModels/NostrEvent.swift`).
+
+**Mapper** (`Sources/Dependencies/PatchReplyMapper.swift`, new): the Swift port of the poller's python mapper. `map([NostrEvent], patchEventID:)` filters kind:1 root replies (excludes 1630-1633 and the patch event), resolves author from `~/.config/nostr/roster.json` else truncated hex pubkey, sets `isBot` from the roster `bot` flag, and parses a `lineAnchor` from a `["range", file, start, end]` tag. `mapOne` maps a single event (used by the live stream). No live NIP-05 fetch (roster-only bot detection) -- `ponytail:` noted in source.
+
+**App integration** (`AppFeature`): when session data loads and `patchMetadata != nil`, the reducer sends `.startPatchReplySubscription`. A `.run` effect subscribes via `relayClient.subscribe(NostrFilter(eTag: patchID, kinds: [1]))`, maps each incoming event with `PatchReplyMapper.mapOne`, and sends `.patchRepliesRefreshedAppend(reply)`. That reducer appends the reply to `patchMetadata.replies` in timestamp order, skipping duplicate ids. The inspector section + inline bubbles re-render automatically from the array. The effect is cancellable (`CancelID.patchReplySubscription`) and cancelled on `windowClosed` / `.stopPatchReplySubscription`. The initial `session.json` snapshot (decoded at launch) seeds `patchMetadata.replies` before the first live event arrives. The first live events arrive as soon as relays respond (sub-second for live posts; stored replies arrive immediately on connect).
 
 ### Author pubkey-to-name resolution
 
@@ -406,6 +464,9 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-sr-patch-validation` | .claude/commands/shepherd-review.md | implemented |
 | `FR-sr-patch-application` | .claude/commands/shepherd-review.md | implemented |
 | `FR-sr-patch-metadata-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | implemented |
+| `FR-sr-patch-replies-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/CodeViewerFeature/CodeViewerView.swift; engineering/apps/macos/Sources/AppFeature/CodeViewerPanelView.swift; .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-patch-replies-live` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift; engineering/apps/macos/Sources/Dependencies/PatchReplyMapper.swift; engineering/apps/macos/Sources/SharedModels/NostrEvent.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sr-relay-client` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift; engineering/apps/macos/Sources/SharedModels/NostrEvent.swift | implemented |
 
 All rows are `implemented`: the existing scope modes, launcher infrastructure, and new NIP-34 patch support. The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol, and the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
@@ -491,4 +552,7 @@ These slugs are covered by the prompt content in the `/shepherd-review` command 
 | `AC-sr-install-global` | Supplanted by `AC-srm-install-symlink` and `AC-srm-install-git-pull`. |
 | `FR-sr-patch-source`, `FR-sr-patch-fetch`, `FR-sr-patch-validation`, `FR-sr-patch-application` | NIP-34 Patch Review Support section; implemented by the `.claude/commands/shepherd-review.md` prompt content via bash + generic Nostr protocol queries. |
 | `FR-sr-patch-metadata-display` | NIP-34 Patch Review Support section (metadata JSON structure); native macOS app will render via new `PatchMetadataSection` view component. |
+| `FR-sr-patch-replies-display` | NIP-34 Patch Review Support section (patch-thread replies fetch + handoff); `PatchRepliesSectionView` + `PatchReplyInlineView` native components. |
+| `FR-sr-patch-replies-live` | NIP-34 Patch Review Support section (patch-thread replies live refresh); in-app `RelayClient` subscription + `PatchReplyMapper` + `AppFeature` append reducer. |
+| `FR-sr-relay-client` | NIP-34 Patch Review Support section (in-process Nostr relay client); `RelayClient` + `NostrEvent`. |
 | `AC-sr-patch-happy-path`, `AC-sr-patch-event-not-found`, `AC-sr-patch-invalid-diff`, `AC-sr-patch-application-conflicts`, `AC-sr-patch-metadata-displayed`, `AC-sr-patch-invalid-event-id`, `AC-sr-patch-conflicting-args` | NIP-34 Patch Review Support section (error handling, validation, metadata display). |

@@ -91,6 +91,29 @@ When reviewing a patch (not a local branch), the CRPG displays patch-specific me
 
 This metadata appears in a dedicated section of the CRPG UI, visually distinct from the file list and review context. It is read-only display; the user cannot edit it within the CRPG. Changing patch status (e.g., marking as merged) is a separate action outside the review workflow.
 
+#### `FR-sr-patch-replies-display` -- Display other agents' and humans' patch-thread replies
+When reviewing a patch, the command also fetches the patch's review-thread replies from Nostr and passes them to the CRPG so the reviewer sees the live conversation from other agents and humans alongside the review context. Replies are published as **kind:1** text notes tagged `["e", "<patch-event-id>", "", "root"]` plus an `["a", "30617:<owner>:<repo>"]` repo tag. The command queries relays with an `e`-tag filter `{"#e": ["<patch-event-id>"], "kinds": [1]}` (or `nak req -k 1 -e <id>`), then filters:
+- Keep only `kind:1` events. Exclude NIP-34 status-transition events (kinds `1630`–`1633`) and the patch event itself — those are status changes, not comments.
+- Keep events whose root `e` tag points at the patch event id (tolerate a missing `root` marker when the first `e` tag value matches).
+
+Each reply is mapped to a `PatchReply` with: resolved author display name (NIP-05 / roster / truncated npub) and raw pubkey, a bot-vs-human flag (bot when the author is a known agent/bot by roster or NIP-05 host pattern; default human when uncertain), the reply content, the event timestamp, and an optional line-range anchor (`filePath` + `startLine`/`endLine`) parsed from a range tag when the reply pins to specific lines.
+
+The CRPG renders replies two ways, both read-only and not user-editable:
+- **Inspector section** -- a distinct "Patch Thread" section listing every reply with a visual marker distinguishing bot/agent replies (robot glyph + purple tint + `BOT` badge) from human replies (person glyph + orange tint).
+- **Inline on the diff** -- replies carrying a line-range anchor are also rendered inline at their anchored file + line span, with the same bot/human marker, alongside (but visually distinct from) the reviewer's own editable comments.
+
+Reply fetch is best-effort: if relays return no replies or the query fails, the review proceeds with an empty reply list. This requirement enables the shared NIP-34 patch/PR review loop where multiple agents and the human hold one conversation over Buzz/Nostr and each agent's UI surfaces the others' comments.
+
+#### `FR-sr-patch-replies-live` -- Live refresh of patch-thread replies during a review
+The initial reply snapshot (`FR-sr-patch-replies-display`) is captured at launch. For a live review loop, replies posted after the window opens must also appear without relaunching. The macOS app opens a relay subscription (see `FR-sr-relay-client`) for kind:1 events whose root `e` tag is the patch event id, maps each incoming event to a `PatchReply`, and appends it to `patchMetadata.replies` in timestamp order (skipping duplicates by id). The existing inspector section and inline anchored bubbles re-render automatically because they are derived from that reply array.
+
+The subscription delivers stored replies first (so the inspector populates immediately) and stays open for new live replies. It starts when a patch review window opens and `patchMetadata` is present, and is cancelled when the window closes. Non-patch reviews never subscribe. If no relays are reachable, the app renders the initial session.json snapshot only and the review is unaffected.
+
+#### `FR-sr-relay-client` -- In-process Nostr relay client
+The macOS app includes a Nostr relay client that subscribes to relays in-process (no external CLI or background process required) so the app can receive patch-thread events directly. This is the cross-platform transport that the live patch-thread reply loop (`FR-sr-patch-replies-live`) is built on.
+
+The client exposes a subscription that takes a NIP-01 filter (an `e` tag value and a kinds list) and yields matching events as an async stream, deduplicated by event id across all configured relays, keeping the subscription open so new events arrive live. Relay URLs are resolved with the same precedence as the `/shepherd-review` command prompt: the `NOSTR_RELAYS` environment variable, `~/.config/nostr/relays.txt`, then the default public relays. The stream stays open until the consumer cancels it (the app cancels on window close). If the transport is unavailable, the client yields nothing and the app renders the initial `session.json` snapshot only. The initial snapshot is still produced by the `/shepherd-review` command prompt at launch so the inspector has a baseline before the subscription delivers.
+
 #### `FR-sr-file-filtering` -- Filter out uninteresting files
 The command filters the changeset to exclude files that are not worth reviewing. The filtering rules are:
 

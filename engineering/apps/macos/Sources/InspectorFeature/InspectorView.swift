@@ -40,6 +40,12 @@ public struct InspectorView: View {
                 PatchMetadataSectionView(metadata: patchMetadata)
             }
 
+            // NIP-34 patch thread replies (other agents / humans). Implements
+            // FR-sr-patch-replies-display. Shown only for patch reviews with replies.
+            if let replies = reviewContext?.patchMetadata?.replies, !replies.isEmpty {
+                PatchRepliesSectionView(replies: replies)
+            }
+
             // Overall review context (collapsible)
             if let reviewContext {
                 ReviewContextSectionView(

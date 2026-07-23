@@ -1,6 +1,6 @@
 ---
-product-hash: ee06b44196a5bd3d9bc31299feb27b180317837da237958ecac678abc1a64954
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 8ba09106a87a74e22edfa0a753a8972b0ff0fa9955d99a0af80cd8438ecd2250
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
 
@@ -102,6 +102,9 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `FR-sr-patch-validation` | `TC-sr-patch-invalid-diff`, `TC-sr-patch-invalid-event-id` | Not started |
 | `FR-sr-patch-application` | `TC-sr-patch-application-conflicts` | Not started |
 | `FR-sr-patch-metadata-display` | `TC-sr-patch-metadata-displayed` | Not started |
+| `FR-sr-patch-replies-display` | `TC-sr-patch-replies-displayed`, `TC-sr-patch-replies-empty` | Not started |
+| `FR-sr-patch-replies-live` | `TC-sr-patch-replies-live`, `TC-sr-patch-replies-live-no-relays` | Not started |
+| `FR-sr-relay-client` | `TC-sr-patch-replies-live`, `TC-sr-patch-replies-live-no-relays` | Not started |
 
 Filtering, priority ordering, changeset detection, and scope-argument behavior on macOS reuse the web QA cases (the orchestration logic is identical). Run-on-macOS smoke verification is folded into `TC-srm-happy-path` rather than duplicating the full web matrix.
 
@@ -633,6 +636,52 @@ Testing patch review via `--patch <event-id>` mode.
      - Parent commit shows 8-char short hash
      - Status badge shows correct color coding
 - **Expected**: All metadata fields render correctly with proper formatting and color coding.
+
+#### Patch thread replies displayed `TC-sr-patch-replies-displayed`
+- **Type**: Manual
+- **Covers**: `FR-sr-patch-replies-display`
+- **Preconditions**: Valid patch event with at least two kind:1 reply notes tagged `["e", "<patch-event-id>", "", "root"]` on a configured relay -- one from a known bot/agent pubkey, one from a human. At least one reply carries a line-range anchor pointing at a file in the applied patch. A NIP-34 status-transition event (kind 1630-1633) for the same patch also exists on the relay.
+- **Steps**:
+  1. From agent: `/shepherd-review --patch <event-id>`
+  2. Native window opens; inspect the inspector below the patch metadata section
+  3. Verify a "Patch Thread (<n>)" section lists both replies
+  4. Verify the bot reply shows a `BOT` badge + purple tint + cpu glyph; the human reply shows orange tint + person glyph and no badge
+  5. Verify the status-transition event is NOT listed as a reply
+  6. Switch to the file tab the anchored reply points at; verify the anchored reply also renders inline at its line span, read-only (no edit/delete chrome), visually distinct from the reviewer's own Comment bubbles
+  7. Switch to a different file tab; verify the anchored reply does NOT render inline there (only on its anchored file)
+- **Expected**: Both replies appear in the inspector section with correct bot/human markers; the status-transition event is excluded; the anchored reply renders inline only on its anchored file; all reply surfaces are read-only.
+
+#### Patch with no thread replies renders no section `TC-sr-patch-replies-empty`
+- **Type**: Manual
+- **Covers**: `FR-sr-patch-replies-display`
+- **Preconditions**: Valid patch event with zero kind:1 root replies on configured relays.
+- **Steps**:
+  1. From agent: `/shepherd-review --patch <event-id>`
+  2. Native window opens; inspect the inspector
+- **Expected**: No "Patch Thread" section appears (gated on non-empty replies). The patch metadata section still renders. The review completes normally.
+
+#### Patch thread replies refresh live `TC-sr-patch-replies-live`
+- **Type**: Manual
+- **Covers**: `FR-sr-patch-replies-live`, `FR-sr-relay-client`
+- **Preconditions**: Valid patch event reviewed via `/shepherd-review --patch <event-id>`; the macOS window is open; the app can reach at least one configured Nostr relay over WebSocket. A new kind:1 root reply is published to a configured relay while the window is open.
+- **Steps**:
+  1. Open the patch review; confirm the initial reply snapshot (from `session.json`) renders in the inspector
+  2. From another client, publish a new kind:1 note tagged `["e", "<patch-event-id>", "", "root"]` to a configured relay
+  3. Wait for the relay to deliver the event (sub-second to a few seconds)
+  4. Verify the new reply appears in the inspector "Patch Thread" section without relaunching
+  5. If the new reply carries a `["range", file, start, end]` tag whose `file` matches an open tab's absolute path, verify it also renders inline on that tab
+  6. Click Done; verify the window closes and the relay subscription is cancelled (no lingering connection)
+- **Expected**: New replies appear live with no relaunch; the subscription is torn down when the window closes.
+
+#### Patch reply live subscription degrades when relays are unreachable `TC-sr-patch-replies-live-no-relays`
+- **Type**: Manual
+- **Covers**: `FR-sr-patch-replies-live`, `FR-sr-relay-client`
+- **Preconditions**: A patch review is opened with all configured relays unreachable (e.g. `NOSTR_RELAYS=wss://invalid.invalid`); the initial snapshot was baked into `session.json`.
+- **Steps**:
+  1. Open `/shepherd-review --patch <event-id>` with relays unreachable
+  2. Confirm the window opens and renders the initial snapshot (or "no replies")
+  3. Wait; confirm no crash, no errors surfaced, the window remains usable
+- **Expected**: The app renders the initial snapshot only and is otherwise unaffected. Best-effort degradation; no external `nak` process is required.
 
 #### Invalid event ID format `TC-sr-patch-invalid-event-id`
 - **Type**: Manual

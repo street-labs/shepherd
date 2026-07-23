@@ -1,6 +1,6 @@
 Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 
-<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application -->
+<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument -->
 
 Allowed tools: Bash, Read, Write
 
@@ -234,6 +234,20 @@ Extract metadata:
 - `PATCH_STATUS`: Value from `status` tag (default: "open")
 - `SHORT_EVENT_ID`: First 8 characters of `EVENT_ID`
 
+#### Fetch patch-thread replies
+
+Implements FR-sr-patch-replies-display (initial snapshot) and FR-sr-patch-replies-live (live refresh). After the patch event is validated, fetch the review-thread replies so other agents' and humans' comments render in the macOS app alongside the review context. The initial-snapshot fetch+map logic lives in `scripts/shepherd-patch-poll.sh --once`; the live path is the in-app `RelayClient` subscription (FR-sr-relay-client), which reuses the same mapping rules via the Swift `PatchReplyMapper`.
+
+Agent and human comments on a patch are published as **kind:1** text notes tagged `["e", "<patch-event-id>", "", "root"]` plus an `["a", "30617:<owner>:<repo>"]` repo tag. Status transitions (open/merged/closed) are separate NIP-34 events (kinds 1630–1633), NOT comments — the script excludes them.
+
+**Initial snapshot** — call the script in `--once` mode to produce the replies JSON array:
+```bash
+PATCH_REPLIES_JSON=$(bash "$SHEPHERD_ROOT/scripts/shepherd-patch-poll.sh" --once "$EVENT_ID" 2>/dev/null || echo "[]")
+```
+The script reads relays from `NOSTR_RELAYS` / `~/.config/nostr/relays.txt` / defaults, runs `nak req -k 1 -e "$EVENT_ID"`, and maps each kind:1 root reply to a `PatchReply` object (author resolved from `~/.config/nostr/roster.json` else truncated pubkey, `isBot` from roster bot flag, optional `lineAnchor` parsed from a `["range", file, start, end]` tag). It prints `[]` when `nak` is missing or no replies are found. This is best-effort: a relay failure or empty result does not block the review.
+
+Embed `PATCH_REPLIES_JSON` into `patchMetadata.replies` of the context JSON (see "Structured context JSON" below).
+
 #### Apply patch to review branch
 
 1. **Stash uncommitted changes** (if any):
@@ -390,7 +404,7 @@ Build a JSON object with the following structure and write it to `$CTX` using th
 }
 ```
 
-**When SCOPE = `patch`, add `patchMetadata` object:**
+**When SCOPE = `patch`, add `patchMetadata` object (with `replies`):**
 
 ```json
 {
@@ -402,10 +416,27 @@ Build a JSON object with the following structure and write it to `$CTX` using th
     "author": "<resolved author name or truncated npub from PATCH_AUTHOR>",
     "commitMessage": "<PATCH_MESSAGE (truncated to 60 chars if longer)>",
     "parentCommit": "<short 8-char hash from PATCH_PARENT, or null if absent>",
-    "status": "<PATCH_STATUS (open|merged|closed|draft)>"
+    "status": "<PATCH_STATUS (open|merged|closed|draft)>",
+    "replies": [
+      {
+        "id": "<reply event id (64-char hex)>",
+        "author": "<resolved display name or truncated npub>",
+        "authorPubkey": "<raw author pubkey>",
+        "isBot": <true | false>,
+        "content": "<reply text>",
+        "timestamp": <created_at seconds (integer)>,
+        "lineAnchor": {
+          "filePath": "<absolute path matching a files[].path entry>",
+          "startLine": <1-indexed>,
+          "endLine": <1-indexed>
+        }
+      }
+    ]
   }
 }
 ```
+
+Set `replies` to `[]` when there are no thread replies. `lineAnchor` is `null` for replies without a line-range anchor.
 
 For author resolution, try:
 1. Check `~/.config/nostr/roster.json` for a display name for `PATCH_AUTHOR` pubkey
