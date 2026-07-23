@@ -164,8 +164,10 @@ public struct AppFeature {
 
         // Patch-thread reply publishing (bidirectional). Implements:
         // FR-srm-comment-publish-on-submit, FR-srm-reply-to-reply, FR-srm-event-publish,
-        // FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-reviewer-identity.
+        // FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-reviewer-identity,
+        // FR-sr-bunker-signing, FR-srm-bunker-connect, FR-srm-bunker-sign-failure.
         case reviewerIdentityLoaded(ReviewerIdentity?)
+        case bunkerConnectCompleted(String?)
         case replyToPatchReply(ReviewContext.PatchReply)
         case patchReplyPublishResult(Comment.ID, PublishResult, NostrEvent?)
         case dismissPublishConfirmation
@@ -197,6 +199,7 @@ public struct AppFeature {
         case copyConfirmation
         case patchReplySubscription
         case publishConfirmation
+        case bunkerConnect
     }
 
     public init() {}
@@ -504,6 +507,21 @@ public struct AppFeature {
 
             case let .reviewerIdentityLoaded(identity):
                 state.reviewerIdentity = identity
+                // If the identity is a bunker in .connecting state, start the
+                // NIP-46 connect handshake. Implements: FR-srm-bunker-connect.
+                if identity?.source == .bunker, identity?.bunkerState == .connecting {
+                    return .run { [identityClient] send in
+                        let pubkey = await identityClient.connectBunker()
+                        await send(.bunkerConnectCompleted(pubkey))
+                    }
+                    .cancellable(id: CancelID.bunkerConnect, cancelInFlight: true)
+                }
+                return .none
+
+            case .bunkerConnectCompleted:
+                // Reload the identity — connectBunker updated it with the pubkey
+                // and connection state (connected or failed).
+                state.reviewerIdentity = identityClient.loadIdentity()
                 return .none
 
             case let .replyToPatchReply(reply):
@@ -774,11 +792,11 @@ public struct AppFeature {
         return .merge(
             .send(.regeneratePrompt),
             .send(.rebuildFileTree),
-            .run { [identityClient, nostrSigner, relayClient] send in
+            .run { [identityClient, relayClient] send in
                 let outcome = await Self.publishPatchReply(
                     comment: comment, filePath: filePath, patchMeta: patchMeta,
                     replyTarget: replyTarget, identityClient: identityClient,
-                    nostrSigner: nostrSigner, relayClient: relayClient
+                    relayClient: relayClient
                 )
                 await send(.patchReplyPublishResult(commentID, outcome.result, outcome.signed))
             }
@@ -786,36 +804,34 @@ public struct AppFeature {
     }
 
     /// Build, sign, and publish a patch-thread reply.
-    // Implements: FR-sr-patch-reply-publish, FR-sr-patch-reply-respond
+    // Implements: FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-bunker-signing
     ///
     private static func publishPatchReply(
         comment: Comment, filePath: String?,
         patchMeta: ReviewContext.PatchMetadata, replyTarget: ReviewContext.PatchReply?,
-        identityClient: IdentityClient, nostrSigner: NostrSigner, relayClient: RelayClient
+        identityClient: IdentityClient, relayClient: RelayClient
     ) async -> (result: PublishResult, signed: NostrEvent?) {
-        guard let secret = identityClient.currentSecret() else { return (.failed, nil) }
         var tags: [[String]] = [["e", patchMeta.eventID, "", "root"]]
         if let coord = patchMeta.repoCoordinate { tags.append(["a", coord]) }
         if let replyTarget {
             tags.append(["e", replyTarget.id, "", "reply"])
             tags.append(["p", replyTarget.authorPubkey])
-            // Range tag for a reply-to-reply: use the replied-to reply's anchor file
-            // path (not the active file's path), so the `range` tag names the file
-            // the response is pinned to. Omit the range tag when the replied-to
-            // reply is unanchored (the spec says the anchor is optional).
             if let anchorPath = replyTarget.lineAnchor?.filePath {
                 tags.append(["range", anchorPath, String(comment.startLine), String(comment.endLine)])
             }
         } else if let filePath {
-            // Top-level comment: the reviewer clicked a line, so the range tag
-            // names the active file at the comment's line span.
             tags.append(["range", filePath, String(comment.startLine), String(comment.endLine)])
         }
         let unsigned = NostrEvent(
             id: "", pubkey: "", kind: 1, content: comment.text,
             tags: tags, createdAt: Int64(Date().timeIntervalSince1970)
         )
-        guard let signed = nostrSigner.sign(unsigned, secret) else { return (.failed, nil) }
+        // Sign under the loaded identity: in-process Schnorr for a local key,
+        // NIP-46 sign_event for a bunker. nil = bunker sign failure.
+        // Implements: FR-srm-event-sign, FR-srm-bunker-sign-failure.
+        guard let signed = await identityClient.sign(unsigned) else {
+            return (.failed, nil) // Bunker sign failure — signed is nil
+        }
         let result = await relayClient.publish(signed)
         return (result, signed)
     }
@@ -852,9 +868,18 @@ public struct AppFeature {
                 .cancellable(id: CancelID.publishConfirmation, cancelInFlight: true)
             )
         case .rejected, .failed:
-            state.comment.publishState = .failed(
-                "Couldn't publish reply - no relay accepted it. Your comment is saved locally."
-            )
+            // Distinguish bunker sign failure (signedEvent is nil — the bunker
+            // didn't respond) from relay failure (signedEvent exists but no relay
+            // accepted it). Implements: FR-srm-bunker-sign-failure.
+            if signedEvent == nil {
+                state.comment.publishState = .failed(
+                    "Couldn't publish reply — the bunker didn't respond. Your comment is saved locally."
+                )
+            } else {
+                state.comment.publishState = .failed(
+                    "Couldn't publish reply - no relay accepted it. Your comment is saved locally."
+                )
+            }
             state.comment.editorState = .editing(commentID: commentID)
             if let text = state.allComments[id: commentID]?.text { state.comment.editorText = text }
             return .none
