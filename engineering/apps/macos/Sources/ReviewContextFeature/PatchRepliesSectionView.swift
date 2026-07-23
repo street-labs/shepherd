@@ -10,9 +10,21 @@ import SharedModels
 /// distinct visual marker from human comments.
 public struct PatchRepliesSectionView: View {
     let replies: [ReviewContext.PatchReply]
+    /// The reviewer's loaded pubkey (hex). Replies whose `authorPubkey` matches
+    /// render a `YOU` badge. Implements: AC-srm-publish-no-dup (self-marker).
+    let reviewerPubkey: String?
+    /// Invoked when the reviewer taps a row's Reply button.
+    // Implements: FR-srm-reply-to-reply
+    let onReply: (ReviewContext.PatchReply) -> Void
 
-    public init(replies: [ReviewContext.PatchReply]) {
+    public init(
+        replies: [ReviewContext.PatchReply],
+        reviewerPubkey: String? = nil,
+        onReply: @escaping (ReviewContext.PatchReply) -> Void = { _ in }
+    ) {
         self.replies = replies
+        self.reviewerPubkey = reviewerPubkey
+        self.onReply = onReply
     }
 
     public var body: some View {
@@ -33,7 +45,7 @@ public struct PatchRepliesSectionView: View {
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(replies) { reply in
-                        PatchReplyRow(reply: reply)
+                        PatchReplyRow(reply: reply, reviewerPubkey: reviewerPubkey, onReply: onReply)
                     }
                 }
             }
@@ -50,6 +62,12 @@ public struct PatchRepliesSectionView: View {
 /// get a person badge + neutral tint. Anchored replies show a file:line chip.
 private struct PatchReplyRow: View {
     let reply: ReviewContext.PatchReply
+    let reviewerPubkey: String?
+    let onReply: (ReviewContext.PatchReply) -> Void
+
+    private var isSelf: Bool {
+        reviewerPubkey != nil && reply.authorPubkey == reviewerPubkey
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -67,6 +85,14 @@ private struct PatchReplyRow: View {
                         .padding(.vertical, 1)
                         .background(Color.purple.opacity(0.12), in: Capsule())
                 }
+                if isSelf {
+                    Text("YOU")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.green)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.green.opacity(0.12), in: Capsule())
+                }
                 Spacer()
                 Text(timestampLabel)
                     .font(.system(size: 9))
@@ -78,20 +104,29 @@ private struct PatchReplyRow: View {
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let anchor = reply.lineAnchor {
-                HStack(spacing: 3) {
-                    Image(systemName: "link")
-                        .font(.system(size: 8))
-                    Text(anchorLabel(anchor))
-                        .font(.system(size: 9, design: .monospaced))
+            HStack(spacing: 8) {
+                if let anchor = reply.lineAnchor {
+                    HStack(spacing: 3) {
+                        Image(systemName: "link")
+                            .font(.system(size: 8))
+                        Text(anchorLabel(anchor))
+                            .font(.system(size: 9, design: .monospaced))
+                    }
+                    .foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
+                Spacer()
+                Button("Reply") { onReply(reply) }
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .buttonStyle(.plain)
             }
         }
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill((reply.isBot ? Color.purple : Color.orange).opacity(0.08))
+                .fill(isSelf
+                      ? Color.green.opacity(0.10)
+                      : (reply.isBot ? Color.purple : Color.orange).opacity(0.08))
         )
     }
 

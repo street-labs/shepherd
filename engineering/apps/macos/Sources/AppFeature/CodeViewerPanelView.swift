@@ -39,7 +39,11 @@ struct CodeViewerPanelView: View {
                         comments: store.allComments.filter { $0.fileID == activeFile.id },
                         lineWrapEnabled: store.lineWrapEnabled,
                         commentStore: store.scope(state: \.comment, action: \.comment),
-                        patchReplies: anchoredReplies(for: activeFile)
+                        patchReplies: anchoredReplies(for: activeFile),
+                        reviewerPubkey: store.reviewerIdentity?.pubkeyHex,
+                        isPatchReview: store.reviewContextData?.patchMetadata != nil,
+                        identityLoaded: store.reviewerIdentity != nil,
+                        onReply: { reply in store.send(.replyToPatchReply(reply)) }
                     )
                 }
             } else {

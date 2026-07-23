@@ -4,10 +4,37 @@ import ComposableArchitecture
 /// TextEditor with submit (Cmd+Enter) and cancel (Esc)
 public struct InlineCommentEditorView: View {
     @Bindable var store: StoreOf<CommentFeature>
+    /// True when reviewing a NIP-34 patch (`patchMetadata != nil`). Drives the
+    /// submit button label between Publish / Save locally / Add Comment.
+    /// Implements: FR-srm-comment-publish-on-submit.
+    let isPatchReview: Bool
+    /// True when a reviewer Nostr identity is loaded. When false on a patch review,
+    /// the submit button reads "Save locally" and no publish is attempted.
+    let identityLoaded: Bool
     @FocusState private var isFocused: Bool
 
-    public init(store: StoreOf<CommentFeature>) {
+    public init(store: StoreOf<CommentFeature>, isPatchReview: Bool = false, identityLoaded: Bool = false) {
         self.store = store
+        self.isPatchReview = isPatchReview
+        self.identityLoaded = identityLoaded
+    }
+
+    private var submitLabel: String {
+        guard isPatchReview else { return "Add Comment" }
+        guard identityLoaded else { return "Save locally" }
+        switch store.publishState {
+        case .publishing: return "Publishing…"
+        case .failed: return "Retry"
+        case .published: return "Published"
+        default: return "Publish"
+        }
+    }
+
+    private var isPublishing: Bool { store.publishState == .publishing }
+
+    private var failedMessage: String? {
+        if case let .failed(msg) = store.publishState { return msg }
+        return nil
     }
 
     public var body: some View {
@@ -33,12 +60,19 @@ public struct InlineCommentEditorView: View {
                 .keyboardShortcut(.escape, modifiers: [])
                 .buttonStyle(.bordered)
 
-                Button("Add Comment") {
+                Button(submitLabel) {
                     store.send(.submitComment)
                 }
                 .keyboardShortcut(.return, modifiers: .command)
                 .buttonStyle(.borderedProminent)
-                .disabled(store.editorText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(isPublishing || store.editorText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            if let failedMessage {
+                Text(failedMessage)
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(8)

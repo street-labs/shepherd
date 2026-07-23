@@ -48,6 +48,11 @@ public struct ReviewContext: Equatable, Codable, Sendable {
         public var parentCommit: String?
         /// Patch status: open, merged, closed, or draft.
         public var status: String
+        /// NIP-34 repository coordinate (`30617:<owner>:<repo>`) the patch belongs
+        /// to, from the patch event's `a` tag. Used as the `a` tag on published
+        /// patch-thread replies. Implements: FR-srm-comment-publish-on-submit. nil
+        /// when the patch event carried no `a` tag (publish omits the `a` tag).
+        public var repoCoordinate: String?
         /// Replies on the patch review thread from other agents/humans (NIP-34 live
         /// review loop). Implements: FR-sr-patch-replies-display. Read-only
         /// conversation context, not user-editable comments. Empty when no replies.
@@ -60,6 +65,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             commitMessage: String,
             parentCommit: String?,
             status: String,
+            repoCoordinate: String? = nil,
             replies: [PatchReply] = []
         ) {
             self.eventID = eventID
@@ -68,6 +74,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             self.commitMessage = commitMessage
             self.parentCommit = parentCommit
             self.status = status
+            self.repoCoordinate = repoCoordinate
             self.replies = replies
         }
 
@@ -76,7 +83,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
         // throwing a keyNotFound.
         private enum CodingKeys: String, CodingKey {
             case eventID, shortEventID, author, commitMessage
-            case parentCommit, status, replies
+            case parentCommit, status, repoCoordinate, replies
         }
 
         public init(from decoder: Decoder) throws {
@@ -87,6 +94,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             self.commitMessage = try c.decode(String.self, forKey: .commitMessage)
             self.parentCommit = try c.decodeIfPresent(String.self, forKey: .parentCommit)
             self.status = try c.decode(String.self, forKey: .status)
+            self.repoCoordinate = try c.decodeIfPresent(String.self, forKey: .repoCoordinate)
             self.replies = try c.decodeIfPresent([PatchReply].self, forKey: .replies) ?? []
         }
 
@@ -98,6 +106,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             try c.encode(commitMessage, forKey: .commitMessage)
             try c.encodeIfPresent(parentCommit, forKey: .parentCommit)
             try c.encode(status, forKey: .status)
+            try c.encodeIfPresent(repoCoordinate, forKey: .repoCoordinate)
             try c.encode(replies, forKey: .replies)
         }
     }

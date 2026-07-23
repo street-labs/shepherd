@@ -1,5 +1,5 @@
 {
-  "originHash" : "84ec45fdd4d0b4ae5ee7e1f6a0b5cd1aac817b4fa751808567e19850e8fa6927",
+  "originHash" : "9fc2440b6ccb940aefb1487c23033ab1a2c3aecfcce072ac3cb7881e02ff1611",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -116,6 +116,15 @@
       "state" : {
         "revision" : "4f47ebafed5f0b0172cf5c661454fa8e28fb2ac4",
         "version" : "2.0.9"
+      }
+    },
+    {
+      "identity" : "swift-secp256k1",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/21-DOT-DEV/swift-secp256k1",
+      "state" : {
+        "revision" : "e70a10e036a55fffea31568f0af92d69b6d449cd",
+        "version" : "0.23.2"
       }
     },
     {
