@@ -2589,6 +2589,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-metadata-displayed`
 
+### `FR-sr-patch-replies-display`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-replies-displayed`, `TC-sr-patch-replies-empty`
+
 ### `AC-sr-patch-happy-path`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`

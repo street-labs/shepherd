@@ -1,6 +1,6 @@
 Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 
-<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application -->
+<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-patch-replies-display -->
 
 Allowed tools: Bash, Read, Write
 
@@ -234,6 +234,31 @@ Extract metadata:
 - `PATCH_STATUS`: Value from `status` tag (default: "open")
 - `SHORT_EVENT_ID`: First 8 characters of `EVENT_ID`
 
+#### Fetch patch-thread replies
+
+Implements FR-sr-patch-replies-display. After the patch event is validated, fetch the review-thread replies so other agents' and humans' comments render in the macOS app alongside the review context.
+
+Agent and human comments on a patch are published as **kind:1** text notes tagged `["e", "<patch-event-id>", "", "root"]` plus an `["a", "30617:<owner>:<repo>"]` repo tag. Status transitions (open/merged/closed) are separate NIP-34 events (kinds 1630–1633), NOT comments — exclude them from the reply list.
+
+Query relays for reply events with an `e` tag matching the patch event id:
+```bash
+if command -v nak >/dev/null 2>&1; then
+  RELAY_LIST=$(echo "$RELAYS" | tr ',' ' ')
+  REPLIES_JSON=$(nak req -k 1 -e "$EVENT_ID" $RELAY_LIST 2>/dev/null)
+fi
+```
+`nak req -e <id>` filters on the `e` tag. If `nak` is unavailable, fall back to a WebSocket query with filter `{"#e": ["$EVENT_ID"], "kinds": [1]}`.
+
+Filter and map each reply event into a `PatchReply` object:
+1. **Kind**: keep only `kind:1` events (the `-k 1` filter handles this; double-check in code). Exclude kinds `1630`–`1633` (patch status transitions) and the patch event itself.
+2. **Root check**: keep only events whose `e` tag has marker `"root"` (4th element) pointing at `$EVENT_ID`, OR whose first `e` tag value equals `$EVENT_ID` (tolerate missing marker).
+3. **Author identity**: resolve `.pubkey` to a display name — check `~/.config/nostr/roster.json`, else fetch/lookup NIP-05, else truncate the bech32 npub to 12 chars. Store the raw pubkey as `authorPubkey`.
+4. **Bot vs human**: a reply is a bot/agent (`isBot: true`) when its pubkey appears in the local roster as an agent/bot, OR when its NIP-05 domain matches a known bot host pattern (e.g. contains `agent`, `bot`), OR when a kind:0 profile `bot` flag is set. Otherwise `isBot: false`. When in doubt, default to `false` (human).
+5. **Line anchor** (optional): parse an `e`/`q`/`r` tag or a custom `["range", "<file>", <start>, <end>]` tag for a file + line-range anchor. When present, set `lineAnchor.filePath` to the **absolute path** matching a `files[].path` entry in `session.json`, and `startLine`/`endLine` to the 1-indexed line span. Absent anchor → `null` (reply renders only in the inspector section, not inline).
+6. **id**: use the reply event's 64-char id. **content**: `.content`. **timestamp**: `.created_at` (seconds).
+
+Store the assembled replies in `PATCH_REPLIES_JSON` (a JSON array). This is best-effort: if the relay query fails or returns nothing, `PATCH_REPLIES_JSON="[]"` and the review continues without replies.
+
 #### Apply patch to review branch
 
 1. **Stash uncommitted changes** (if any):
@@ -390,7 +415,7 @@ Build a JSON object with the following structure and write it to `$CTX` using th
 }
 ```
 
-**When SCOPE = `patch`, add `patchMetadata` object:**
+**When SCOPE = `patch`, add `patchMetadata` object (with `replies`):**
 
 ```json
 {
@@ -402,10 +427,27 @@ Build a JSON object with the following structure and write it to `$CTX` using th
     "author": "<resolved author name or truncated npub from PATCH_AUTHOR>",
     "commitMessage": "<PATCH_MESSAGE (truncated to 60 chars if longer)>",
     "parentCommit": "<short 8-char hash from PATCH_PARENT, or null if absent>",
-    "status": "<PATCH_STATUS (open|merged|closed|draft)>"
+    "status": "<PATCH_STATUS (open|merged|closed|draft)>",
+    "replies": [
+      {
+        "id": "<reply event id (64-char hex)>",
+        "author": "<resolved display name or truncated npub>",
+        "authorPubkey": "<raw author pubkey>",
+        "isBot": <true | false>,
+        "content": "<reply text>",
+        "timestamp": <created_at seconds (integer)>,
+        "lineAnchor": {
+          "filePath": "<absolute path matching a files[].path entry>",
+          "startLine": <1-indexed>,
+          "endLine": <1-indexed>
+        }
+      }
+    ]
   }
 }
 ```
+
+Set `replies` to `[]` when there are no thread replies. `lineAnchor` is `null` for replies without a line-range anchor.
 
 For author resolution, try:
 1. Check `~/.config/nostr/roster.json` for a display name for `PATCH_AUTHOR` pubkey

@@ -1,6 +1,6 @@
 ---
-product-hash: ee06b44196a5bd3d9bc31299feb27b180317837da237958ecac678abc1a64954
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 1528caa47c2d5a8d47469f97c7991e45156076bc5b4b1b5685955c47508eec7a
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Design Spec
@@ -206,6 +206,36 @@ Each field is laid out as a **label-value pair** in a vertical stack:
 - `AC-sr-patch-metadata-displayed`: Author name resolution, status color coding
 - Author pubkey-to-name resolution: engineering dependency (see Dependencies below)
 
+## NIP-34 Patch Thread Replies Display
+
+When reviewing a patch, the native window surfaces the live review-thread conversation from other agents and humans alongside the patch metadata, so a reviewer sees what other participants already said before adding their own comments. Implements `FR-sr-patch-replies-display`.
+
+### Data source
+
+Replies are fetched by the `/shepherd-review` command prompt (see engineering spec) and delivered inside `reviewContext.patchMetadata.replies` as a JSON array. Each entry carries: `id`, `author` (resolved display name), `authorPubkey`, `isBot`, `content`, `timestamp` (seconds), and an optional `lineAnchor` (`filePath` + `startLine`/`endLine`). The native app does not fetch from relays itself — it only renders what the command handed off. Replies are read-only conversation context, not user-editable comments.
+
+### Two render surfaces
+
+1. **Inspector "Patch Thread" section** -- a distinct section directly below the patch metadata section, listing every reply regardless of anchoring. Each row shows the author (with a `BOT` badge for agent replies), timestamp, content, and -- when anchored -- a `file:line` chip. The section header reads `Patch Thread (<count>)` and shows a "No replies yet on this patch." placeholder when empty (in which case the section is hidden entirely per the gating rule below).
+
+2. **Inline on the diff** -- replies carrying a `lineAnchor` are also rendered inline at their anchored file + line span, inside the code viewer, alongside the reviewer's own editable Comment bubbles. They are visually distinct: read-only, no edit/delete chrome, and a bot/human marker (robot glyph + purple tint for bots, person glyph + orange tint for humans) so the reviewer can tell at a glance which comments are theirs versus the thread's.
+
+### Bot vs human visual marker
+
+| Author type | Glyph | Tint | Badge |
+|---|---|---|---|
+| Bot / agent | `cpu` | Purple (`Color.purple`, 0.08 fill) | `BOT` capsule |
+| Human | `person.fill` | Orange (`Color.orange`, 0.08 fill) | none |
+
+### Gating
+
+The inspector section renders only when `patchMetadata` is present (patch review) AND `patchMetadata.replies` is non-empty. Inline rendering applies only to the subset of replies whose `lineAnchor.filePath` equals the active file's absolute path. Non-patch reviews never show either surface.
+
+### Requirements Satisfied
+
+- `FR-sr-patch-replies-display`: Both render surfaces; bot/human marker; status events excluded upstream
+- Live NIP-34 review loop: shared thread visible across agents reviewing the same patch
+
 ## Concurrency
 
 Two `/shepherd-review` invocations from different working directories produce different session IDs (basename of project root), open independent windows (`FR-crp-macos-window-management`), and read/write disjoint session directories (`AC-srm-session-isolation`). A second invocation from the same project root with the same session ID brings the existing window to front and updates that window's session JSON before reload — same behavior as `/shepherd` (`AC-crp-macos-window-deduplicate`).
@@ -264,6 +294,7 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `FR-sr-patch-validation` | Conversation Surface (inherited - event kind, diff format, repo match, parent commit checks) |
 | `FR-sr-patch-application` | Conversation Surface (inherited - review branch creation, patch apply, changeset detection, stash/restore) |
 | `FR-sr-patch-metadata-display` | NIP-34 Patch Metadata Display (all five fields: ID, author, message, parent, status) |
+| `FR-sr-patch-replies-display` | NIP-34 Patch Thread Replies Display (inspector section + inline anchored bubbles; bot/human marker) |
 | `AC-sr-patch-happy-path` | Command Syntax + Conversation Surface + NIP-34 Patch Metadata Display (full patch review flow) |
 | `AC-sr-patch-event-not-found` | Conversation Surface (inherited error handling) |
 | `AC-sr-patch-invalid-diff` | Conversation Surface (inherited validation) |

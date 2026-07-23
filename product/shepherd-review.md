@@ -91,6 +91,19 @@ When reviewing a patch (not a local branch), the CRPG displays patch-specific me
 
 This metadata appears in a dedicated section of the CRPG UI, visually distinct from the file list and review context. It is read-only display; the user cannot edit it within the CRPG. Changing patch status (e.g., marking as merged) is a separate action outside the review workflow.
 
+#### `FR-sr-patch-replies-display` -- Display other agents' and humans' patch-thread replies
+When reviewing a patch, the command also fetches the patch's review-thread replies from Nostr and passes them to the CRPG so the reviewer sees the live conversation from other agents and humans alongside the review context. Replies are published as **kind:1** text notes tagged `["e", "<patch-event-id>", "", "root"]` plus an `["a", "30617:<owner>:<repo>"]` repo tag. The command queries relays with an `e`-tag filter `{"#e": ["<patch-event-id>"], "kinds": [1]}` (or `nak req -k 1 -e <id>`), then filters:
+- Keep only `kind:1` events. Exclude NIP-34 status-transition events (kinds `1630`–`1633`) and the patch event itself — those are status changes, not comments.
+- Keep events whose root `e` tag points at the patch event id (tolerate a missing `root` marker when the first `e` tag value matches).
+
+Each reply is mapped to a `PatchReply` with: resolved author display name (NIP-05 / roster / truncated npub) and raw pubkey, a bot-vs-human flag (bot when the author is a known agent/bot by roster or NIP-05 host pattern; default human when uncertain), the reply content, the event timestamp, and an optional line-range anchor (`filePath` + `startLine`/`endLine`) parsed from a range tag when the reply pins to specific lines.
+
+The CRPG renders replies two ways, both read-only and not user-editable:
+- **Inspector section** -- a distinct "Patch Thread" section listing every reply with a visual marker distinguishing bot/agent replies (robot glyph + purple tint + `BOT` badge) from human replies (person glyph + orange tint).
+- **Inline on the diff** -- replies carrying a line-range anchor are also rendered inline at their anchored file + line span, with the same bot/human marker, alongside (but visually distinct from) the reviewer's own editable comments.
+
+Reply fetch is best-effort: if relays return no replies or the query fails, the review proceeds with an empty reply list. This requirement enables the shared NIP-34 patch/PR review loop where multiple agents and the human hold one conversation over Buzz/Nostr and each agent's UI surfaces the others' comments.
+
 #### `FR-sr-file-filtering` -- Filter out uninteresting files
 The command filters the changeset to exclude files that are not worth reviewing. The filtering rules are:
 

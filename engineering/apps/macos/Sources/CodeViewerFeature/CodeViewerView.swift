@@ -10,6 +10,10 @@ public struct CodeViewerView: View {
     let comments: [Comment]
     let lineWrapEnabled: Bool
     let commentStore: StoreOf<CommentFeature>
+    /// Anchored patch-thread replies to render inline on this file's diff.
+    /// Implements: FR-sr-patch-replies-display. Read-only; visually marked bot vs
+    /// user, distinct from the user's own editable Comment bubbles.
+    let patchReplies: [ReviewContext.PatchReply]
 
     /// Prebuilt syntax-highlighted lines for `file`, rebuilt when the file or its
     /// tokens change. Empty until highlighting completes (renders plain until then).
@@ -20,13 +24,15 @@ public struct CodeViewerView: View {
         file: FileNode,
         comments: [Comment],
         lineWrapEnabled: Bool,
-        commentStore: StoreOf<CommentFeature>
+        commentStore: StoreOf<CommentFeature>,
+        patchReplies: [ReviewContext.PatchReply] = []
     ) {
         self.store = store
         self.file = file
         self.comments = comments
         self.lineWrapEnabled = lineWrapEnabled
         self.commentStore = commentStore
+        self.patchReplies = patchReplies
     }
 
     /// Map line numbers to comments covering that line
@@ -36,6 +42,16 @@ public struct CodeViewerView: View {
             for line in comment.startLine...comment.endLine {
                 result[line, default: []].append(comment)
             }
+        }
+        return result
+    }
+
+    /// Map line numbers to anchored patch replies whose anchor starts on that line.
+    private var repliesByStartLine: [Int: [ReviewContext.PatchReply]] {
+        var result: [Int: [ReviewContext.PatchReply]] = [:]
+        for reply in patchReplies {
+            guard let anchor = reply.lineAnchor else { continue }
+            result[anchor.startLine, default: []].append(reply)
         }
         return result
     }
@@ -78,6 +94,15 @@ public struct CodeViewerView: View {
                                     .padding(.trailing, 12)
                                     .padding(.vertical, 2)
                                 }
+                            }
+
+                            // Anchored patch-thread replies (read-only, bot/human marked)
+                            let lineReplies = repliesByStartLine[lineNumber] ?? []
+                            ForEach(lineReplies) { reply in
+                                PatchReplyInlineView(reply: reply)
+                                    .padding(.leading, 60)
+                                    .padding(.trailing, 12)
+                                    .padding(.vertical, 2)
                             }
 
                             // Inline editor (if creating at this line)

@@ -38,7 +38,8 @@ struct CodeViewerPanelView: View {
                         file: activeFile,
                         comments: store.allComments.filter { $0.fileID == activeFile.id },
                         lineWrapEnabled: store.lineWrapEnabled,
-                        commentStore: store.scope(state: \.comment, action: \.comment)
+                        commentStore: store.scope(state: \.comment, action: \.comment),
+                        patchReplies: anchoredReplies(for: activeFile)
                     )
                 }
             } else {
@@ -48,6 +49,15 @@ struct CodeViewerPanelView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Anchored patch-thread replies for the active file (FR-sr-patch-replies-display).
+    /// Matches reply.lineAnchor.filePath against the file's absolute path.
+    private func anchoredReplies(for file: FileNode) -> [ReviewContext.PatchReply] {
+        guard let path = file.filePath else { return [] }
+        return (store.reviewContextData?.patchMetadata?.replies ?? []).filter {
+            $0.lineAnchor?.filePath == path
+        }
     }
 
     @ViewBuilder
