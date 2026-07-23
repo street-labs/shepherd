@@ -1,6 +1,6 @@
 Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 
-<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-patch-replies-display, FR-sr-patch-replies-live -->
+<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument -->
 
 Allowed tools: Bash, Read, Write
 
