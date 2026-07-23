@@ -1,6 +1,6 @@
 ---
-product-hash: 8ba09106a87a74e22edfa0a753a8972b0ff0fa9955d99a0af80cd8438ecd2250
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: e2f782a2a1e892586f62ad8132f037dedece6ec76fb1fb0fd1986e06ab8336ea
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Design Spec
@@ -258,6 +258,91 @@ An in-process relay subscription is the cross-platform transport: `URLSessionWeb
 
 - `FR-sr-patch-replies-live`: in-process relay subscription + reactive append; subscription lifecycle
 
+## Patch-Thread Reply Publishing (Bidirectional)
+
+The sections above treat the patch thread as something the reviewer *reads*. This section makes it bidirectional: the reviewer *writes back* to the same thread from inside the native window, under their own Nostr identity. Implements `FR-sr-patch-reply-publish`, `FR-sr-reviewer-identity`, `FR-sr-patch-reply-respond`, and the macOS-specific `FR-srm-identity-load`, `FR-srm-event-sign`, `FR-srm-event-publish`, `FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`, `FR-srm-identity-indicator`.
+
+This entire section applies **only to patch reviews** (`--patch`). Non-patch reviews show none of these surfaces and comments remain local.
+
+### Reviewer identity indicator
+
+A small identity indicator appears in the inspector, directly above the Patch Thread section (and below the Patch Metadata section), so the reviewer knows which identity their replies will be attributed to *before* they publish.
+
+- **Identity loaded** — the indicator shows a key glyph (`key.fill`, secondary label color) followed by the reviewer's resolved display name (roster name if available, else truncated npub `npub1...…`). A tooltip carries the full npub. This is the identity that will sign every reply the reviewer publishes.
+- **No identity configured** — the indicator shows a warning glyph (`exclamationmark.triangle.fill`, orange) with the text `No identity — replies won't publish`, plus a one-line hint naming the configuration path the app reads (e.g. `Set SHEPHERD_NSEC or ~/.config/nostr/identity`). The reviewer can still read the thread and leave local comments, but no publish action is offered and submitting a comment records it locally only.
+
+The indicator is present for every patch review and absent for every non-patch review.
+
+### Reply affordance on patch-thread replies
+
+Today both the inspector Patch Thread rows and the inline anchored bubbles (`PatchReplyInlineView`) are read-only. They gain a lightweight reply affordance so the reviewer can respond to a specific reply, threading the conversation (`FR-srm-reply-to-reply`).
+
+- **Inspector row** — each reply row gains a `Reply` text button (caption font, secondary label color, no fill) aligned to the row's trailing edge. Tapping it opens the inline comment editor (see below) pre-targeted at that reply.
+- **Inline anchored bubble** — `PatchReplyInlineView` gains a `Reply` button in its footer row (same caption style), beneath the reply content. Tapping it opens the inline comment editor at the bubble's anchored line span, pre-targeted at that reply.
+
+The reply button is the only new chrome on an otherwise read-only surface; the bubbles do not gain edit or delete controls (the reviewer cannot mutate someone else's reply).
+
+### Comment editor reuse for publishing
+
+The reviewer's own inline comments already use the existing inline comment editor (`InlineCommentEditorView`, owned by `./code-review-prompt.md`). For patch reviews, submitting a comment from that editor does double duty: it records the comment locally *and* publishes it as a patch-thread reply (`FR-srm-comment-publish-on-submit`). No new editor is introduced.
+
+- **Top-level reply (comment on the diff)** — when the reviewer adds an inline comment on a line/range and submits, the app publishes a kind:1 note with the patch event as root, the repository `a` tag, and a `range` anchor matching the comment's file path and line span.
+- **Response to a reply** — when the reviewer submits from an editor opened via a reply button, the published note additionally carries a reply `e` tag on the responded-to reply's event id (with the `reply` marker) and a `p` tag naming that reply's author.
+
+### Reviewer's own published replies
+
+Once published, the reviewer's reply appears immediately in their own window at both surfaces (inspector Patch Thread row + inline anchored bubble, when anchored), without waiting for a relay round-trip. It is rendered with the same bot/human marker logic as incoming replies, but with one distinction so the reviewer can tell their own contributions from others':
+
+- **Self marker** — a reply whose `authorPubkey` equals the loaded identity's public key shows a subtle `YOU` capsule badge (in addition to the bot/human marker) and a slightly stronger background tint. This is purely a visual affordance; the underlying `PatchReply` model is unchanged.
+
+When the same reply later arrives back over the live relay subscription, it is deduplicated by event id (`AC-srm-publish-no-dup`) so the reviewer does not see it twice.
+
+### Publish states
+
+The editor's submit action reflects publish state for patch reviews:
+
+- **Publishing** — while the signed event is being sent, the submit button shows `Publishing…` and is disabled (brief; sub-second to a couple seconds).
+- **Published** — on success, the editor closes, the reply renders at both surfaces with the self marker, and a transient confirmation (`Reply published to patch thread`) appears near the identity indicator.
+- **Publish failed** — if no relay accepts the event (`AC-srm-publish-relay-failure`), the editor reopens with an inline error `Couldn't publish reply — no relay accepted it. Your comment is saved locally.` and the local comment is retained. The reviewer can retry or keep it local.
+- **No identity** — when no identity is loaded, the submit button reads `Save locally` (not `Publish`) and the editor makes clear the comment will not join the thread. The comment is recorded locally only.
+
+### Interaction flows
+
+#### Publish a top-level reply to the patch thread
+
+The reviewer is reading a patch in the native window and wants to leave feedback that every participant sees.
+
+1. Reviewer clicks a line/range on the diff → the inline comment editor opens.
+2. Reviewer types the comment and clicks **Publish** (identity loaded) → the app signs a kind:1 note under the reviewer's identity and sends an `EVENT` frame to the configured relays.
+3. The editor closes; the reply renders inline at its anchor and in the inspector Patch Thread section with the `YOU` badge — immediately, before any relay round-trip.
+4. A transient `Reply published to patch thread` confirmation appears near the identity indicator.
+
+#### Respond to another participant's reply
+
+The reviewer reads a reply from another agent and wants to respond directly to it.
+
+1. Reviewer clicks **Reply** on that reply's inspector row (or inline bubble) → the inline comment editor opens, pre-targeted at that reply.
+2. Reviewer types the response and clicks **Publish** → the app signs a kind:1 note carrying the root `e` tag on the patch event, a reply `e` tag on the responded-to reply, and a `p` tag naming that reply's author.
+3. The response renders alongside the replied-to reply with the `YOU` badge.
+
+### Accessibility
+
+Inherited from `./code-review-prompt.md` for the editor (`NFR-crp-accessibility-keyboard`):
+- The **Reply** buttons are keyboard-reachable and activated by `Return`/`Space` like any button.
+- The identity indicator exposes its full npub via VoiceOver (tooltip text is the accessibility label).
+- Publish-state text (`Publishing…`, `Reply published`, publish-failed error) is announced to VoiceOver as it appears.
+
+### Requirements Satisfied
+
+- `FR-sr-patch-reply-publish`: comment editor submit publishes a kind:1 reply; immediate local render
+- `FR-sr-reviewer-identity`: replies signed under the loaded identity; identity indicator
+- `FR-sr-patch-reply-respond`: Reply affordance on reply surfaces; threaded `e`/`p` tags on response
+- `FR-srm-identity-load`: identity resolved from config; no-identity state
+- `FR-srm-identity-indicator`: identity indicator with loaded / no-identity states
+- `FR-srm-comment-publish-on-submit`: editor submit doubles as publish for patch reviews
+- `FR-srm-reply-to-reply`: Reply button opens editor pre-targeted at a reply
+- `FR-srm-event-sign` / `FR-srm-event-publish`: publish states (publishing / published / failed)
+
 ## Concurrency
 
 Two `/shepherd-review` invocations from different working directories produce different session IDs (basename of project root), open independent windows (`FR-crp-macos-window-management`), and read/write disjoint session directories (`AC-srm-session-isolation`). A second invocation from the same project root with the same session ID brings the existing window to front and updates that window's session JSON before reload — same behavior as `/shepherd` (`AC-crp-macos-window-deduplicate`).
@@ -319,6 +404,23 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `FR-sr-patch-replies-display` | NIP-34 Patch Thread Replies Display (inspector section + inline anchored bubbles; bot/human marker) |
 | `FR-sr-patch-replies-live` | Patch Thread Replies -- Live Refresh (in-app relay subscription + reactive append) |
 | `FR-sr-relay-client` | Patch Thread Replies -- Live Refresh (in-process Nostr WebSocket relay client) |
+| `FR-sr-patch-reply-publish` | Patch-Thread Reply Publishing (Bidirectional) (editor submit publishes a kind:1 reply) |
+| `FR-sr-reviewer-identity` | Patch-Thread Reply Publishing (Bidirectional) (identity indicator; replies signed under loaded identity) |
+| `FR-sr-patch-reply-respond` | Patch-Thread Reply Publishing (Bidirectional) (Reply affordance; threaded e/p tags) |
+| `FR-srm-identity-load` | Patch-Thread Reply Publishing (Bidirectional) (identity resolved from config; no-identity state) |
+| `FR-srm-identity-indicator` | Patch-Thread Reply Publishing (Bidirectional) (identity indicator with loaded / no-identity states) |
+| `FR-srm-comment-publish-on-submit` | Patch-Thread Reply Publishing (Bidirectional) (editor submit doubles as publish) |
+| `FR-srm-reply-to-reply` | Patch-Thread Reply Publishing (Bidirectional) (Reply button opens editor pre-targeted at a reply) |
+| `FR-srm-event-sign` | Patch-Thread Reply Publishing (Bidirectional) (publish states: signing) |
+| `FR-srm-event-publish` | Patch-Thread Reply Publishing (Bidirectional) (publish states: publishing / published / failed) |
+| `AC-sr-patch-reply-publish` | Patch-Thread Reply Publishing (Bidirectional) (publish + immediate local render) |
+| `AC-sr-patch-reply-respond` | Patch-Thread Reply Publishing (Bidirectional) (respond flow) |
+| `AC-sr-reviewer-identity` | Patch-Thread Reply Publishing (Bidirectional) (identity indicator loaded / no-identity) |
+| `AC-srm-identity-load` | Patch-Thread Reply Publishing (Bidirectional) (identity-load states) |
+| `AC-srm-comment-publish` | Patch-Thread Reply Publishing (Bidirectional) (comment publishes on submit) |
+| `AC-srm-reply-to-reply` | Patch-Thread Reply Publishing (Bidirectional) (respond-to-reply flow) |
+| `AC-srm-publish-no-dup` | Patch-Thread Reply Publishing (Bidirectional) (self-marker + dedup by event id) |
+| `AC-srm-publish-relay-failure` | Patch-Thread Reply Publishing (Bidirectional) (publish-failed state) |
 | `AC-sr-patch-happy-path` | Command Syntax + Conversation Surface + NIP-34 Patch Metadata Display (full patch review flow) |
 | `AC-sr-patch-event-not-found` | Conversation Surface (inherited error handling) |
 | `AC-sr-patch-invalid-diff` | Conversation Surface (inherited validation) |

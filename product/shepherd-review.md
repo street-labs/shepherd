@@ -6,6 +6,8 @@ A slash command (`/shepherd-review`) that orchestrates a multi-file code review 
 
 This addresses the workflow gap between "I have a branch with changes" and "I want to review my changed files in the CRPG." Today, the developer must manually run `git diff --name-only`, mentally filter out noise files, and invoke `/shepherd` repeatedly. `/shepherd-review` collapses that entire workflow into a single command that batch-opens every reviewable file in one CRPG session with full review context.
 
+For patch reviews (`--patch`), the loop is bidirectional: the reviewer reads other participants' patch-thread replies and publishes their own comments back to the Nostr thread from within the review tool, under their own Nostr identity. This turns the patch review into a shared conversation across every agent and human reviewing the same patch, rather than a private annotation that must be exported and handed around manually.
+
 The CRPG already supports multi-file tabs, per-file comments, and multi-file prompt generation. `/shepherd-review` leverages this by passing all files and structured context data to a single launch, letting the user review files in any order with the agent's context and feedback visible alongside each diff. The user adds comments on whichever files they choose and clicks "Done" once to produce a unified multi-file prompt covering all reviewed files. The context is split into neutral (factual descriptions of what changed) and review feedback (the agent's opinions and suggestions), displayed as visually distinct sections so the reviewer always knows which is which.
 
 ## User Stories
@@ -39,6 +41,9 @@ The CRPG already supports multi-file tabs, per-file comments, and multi-file pro
 
 ### US-SR-10: Review patches submitted via Nostr
 **As a** developer receiving code contributions via NIP-34 Nostr patches, **I want to** invoke `/shepherd-review --patch <event-id>` to review the patch in the CRPG, **so that** I can review Nostr-submitted code using the same workflow as local branch reviews without manually applying patches or switching tools.
+
+### US-SR-11: Participate in the patch review thread from the review tool
+**As a** reviewer collaborating with multiple agents and humans on a NIP-34 patch, **I want to** publish my own comments back to the patch thread from within the review tool under my Nostr identity, **so that** my feedback is visible to every other participant in the shared review loop rather than trapped in a local export. I also want to respond directly to other participants' replies, **so that** I can hold focused sub-conversations within the broader thread.
 
 ## Requirements
 
@@ -103,6 +108,23 @@ The CRPG renders replies two ways, both read-only and not user-editable:
 - **Inline on the diff** -- replies carrying a line-range anchor are also rendered inline at their anchored file + line span, with the same bot/human marker, alongside (but visually distinct from) the reviewer's own editable comments.
 
 Reply fetch is best-effort: if relays return no replies or the query fails, the review proceeds with an empty reply list. This requirement enables the shared NIP-34 patch/PR review loop where multiple agents and the human hold one conversation over Buzz/Nostr and each agent's UI surfaces the others' comments.
+
+#### `FR-sr-patch-reply-publish` -- Reviewer publishes replies to the patch thread
+When reviewing a patch, the reviewer can publish their own comments back to the Nostr patch thread from within the review tool, so their feedback is visible to every other agent and human participating in the same patch review loop. Publishing a reply creates a kind:1 text note tagged with the patch event as the thread root (an `e` tag pointing at the patch event id with the `root` marker) plus the repository `a` tag, mirroring the reply format the tool already ingests (`FR-sr-patch-replies-display`). A reply may optionally anchor to a file and line range in the applied patch, using the same line-anchor convention incoming replies use, so the reviewer's comment lands both on the thread and inline on the diff.
+
+The published reply is authored under the reviewer's Nostr identity (see `FR-sr-reviewer-identity`). After publishing, the reply appears immediately in the reviewer's own tool (in the patch-thread section and inline at its anchor, indistinguishable from incoming replies except that it is the reviewer's own) without waiting for a relay round-trip, and other participants' tools surface it via their live subscriptions. This makes the patch review loop bidirectional: the reviewer is not a passive reader of the thread but a participant who writes back to it.
+
+This requirement applies only to patch reviews. In non-patch review scopes (working-tree, branch, commit, range, or ref reviews) there is no Nostr thread to publish to, so the reviewer's comments remain local and are exported via the existing prompt-output mechanism (`FR-sr-feedback-collection`).
+
+#### `FR-sr-reviewer-identity` -- Reviewer's published replies are authored under their Nostr identity
+A reviewer who publishes to a patch thread does so under a Nostr identity they control. The review tool uses a reviewer-owned identity (a secret key the reviewer has configured) to sign every published reply, so each reply's author is the reviewer's own public key rather than an anonymous or tool-generated identity. Other participants see the reviewer's replies attributed to that identity (resolvable to a display name via the same roster/name-resolution path as incoming replies).
+
+The identity is configured by the reviewer before publishing; the tool does not generate or assume an identity. If no identity is configured when the reviewer attempts to publish a reply, the tool does not publish and surfaces a clear indication that an identity is required (see the platform-specific requirements for configuration). The identity persists across review sessions; the reviewer does not re-enter it per reply. The tool surfaces the active identity in its UI so the reviewer knows which identity their replies will be attributed to before they publish.
+
+#### `FR-sr-patch-reply-respond` -- Reviewer can respond to an existing patch-thread reply
+The reviewer can respond not only to the patch as a whole but to a specific existing patch-thread reply, threading the conversation. Responding to a reply publishes a kind:1 note that, in addition to the root `e` tag on the patch event, carries a reply `e` tag pointing at the replied-to reply's event id (with the `reply` marker) and a `p` tag naming the replied-to reply's author, following the standard NIP-10 threaded-reply convention. This lets the reviewer hold a focused sub-conversation with a specific agent or human within the broader patch thread.
+
+The response is authored under the reviewer's identity (`FR-sr-reviewer-identity`) and, like a top-level reply, may optionally anchor to a file and line range. After publishing, the response appears in the reviewer's tool alongside the reply it responds to and is delivered to other participants' live subscriptions.
 
 #### `FR-sr-patch-replies-live` -- Live refresh of patch-thread replies during a review
 The initial reply snapshot (`FR-sr-patch-replies-display`) is captured at launch. For a live review loop, replies posted after the window opens must also appear without relaunching. The macOS app opens a relay subscription (see `FR-sr-relay-client`) for kind:1 events whose root `e` tag is the patch event id, maps each incoming event to a `PatchReply`, and appends it to `patchMetadata.replies` in timestamp order (skipping duplicates by id). The existing inspector section and inline anchored bubbles re-render automatically because they are derived from that reply array.
@@ -331,6 +353,15 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 #### `AC-sr-patch-conflicting-args` -- Reject conflicting scope arguments
 **Given** the user types `/shepherd-review --patch abc123... --staged`, **when** the command parses arguments, **then** it reports "Cannot combine --patch with --staged or --unstaged" and displays a usage message.
 
+#### `AC-sr-patch-reply-publish` -- Reviewer publishes a reply to the patch thread
+**Given** the reviewer is reviewing a patch with their Nostr identity configured, **when** the reviewer writes a comment anchored to a file and line range in the applied patch and submits it, **then** the review tool publishes a kind:1 note to the configured relays tagged with the patch event as root (plus the repository `a` tag and a line-range anchor matching the comment's location), signed under the reviewer's identity. The reply appears immediately in the reviewer's own patch-thread section and inline at its anchor, and is delivered to other participants' live subscriptions.
+
+#### `AC-sr-patch-reply-respond` -- Reviewer responds to an existing reply
+**Given** the patch thread contains a reply from another participant, **when** the reviewer responds to that reply from within the review tool, **then** the tool publishes a kind:1 note that carries a root `e` tag on the patch event, a reply `e` tag on the responded-to reply's event id, and a `p` tag naming that reply's author, signed under the reviewer's identity. The response appears in the reviewer's tool alongside the reply it responds to.
+
+#### `AC-sr-reviewer-identity` -- Replies are authored under the reviewer's identity
+**Given** the reviewer has configured a Nostr identity, **when** the reviewer publishes any reply to a patch thread, **then** the published event's `pubkey` is the reviewer's own public key and other participants resolve it to the reviewer's display name. **Given** no identity is configured, **when** the reviewer attempts to publish a reply, **then** the tool does not publish and surfaces a clear indication that an identity is required.
+
 ## Open Questions
 
 1. **Base branch detection**: The spec defaults to `main` as the base branch. Some repositories use `master`, `develop`, or other branch names. Should the command attempt to auto-detect the default branch (e.g., by reading `git symbolic-ref refs/remotes/origin/HEAD`), or should it accept an optional argument to override the base branch? The command assumes `main`; auto-detection or an override argument is a roadmap candidate.
@@ -370,6 +401,7 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 - **CRPG multi-file prompt generation**: The CRPG already supports generating a unified multi-file prompt from comments across tabs and writing it to the session-scoped path (`~/.shepherd/sessions/<session-id>/prompt-output.md`). No new work needed here beyond session-scoping (see `FR-sc-session-scoped-output`). The agent uses an interactive prompt (`AskUserQuestion`) rather than a file-watcher or polling mechanism to determine when the user is done and which outcome to process. The prompt output file is still written by the CRPG; only the path is now session-scoped.
 - **Git**: The command requires git to be installed and the working directory to be inside a git repository. Git is used for changeset detection (`git diff`, `git merge-base`) and patch application (`git apply` or `git am`, `git checkout`, `git stash`).
 - **Nostr relay access**: For `--patch` mode, the command requires access to Nostr relays to fetch NIP-34 patch events. Relay URLs are read from user configuration (environment variable, config file, or default public relays). No authentication is required for read-only event fetching.
+- **Reviewer Nostr identity**: For publishing replies to a patch thread (`FR-sr-patch-reply-publish`), the review tool requires a reviewer-owned Nostr identity (a secret key the reviewer has configured). The identity is used to sign published replies so they are attributed to the reviewer. If no identity is configured, reply publishing is unavailable; read-only patch review and local comment export still work.
 - **NIP-34 protocol understanding**: The command must parse NIP-34 event structure (kind `1617`/`1621`, specific tags for commit metadata and status). This is implemented as part of the patch fetching logic, not a separate library dependency.
 - **Claude Code or opencode custom commands**: The command is implemented as a `.claude/commands/` markdown file and relies on Claude Code or opencode's custom command execution model. The command uses `AskUserQuestion` (a standard agent capability) to present the interactive prompt after launching the CRPG.
 - **`scripts/install-command.sh`**: The existing install script must be updated to also symlink the new command file for global availability.

@@ -2331,6 +2331,72 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-empty-no-launch`, `TC-srm-no-changes`
 
+### `FR-srm-identity-load`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`
+
+### `FR-srm-event-sign`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-comment-publish`, `TC-srm-signer-unit`
+
+### `FR-srm-event-publish`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-comment-publish`, `TC-srm-publish-relay-failure`
+
+### `FR-srm-comment-publish-on-submit`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-comment-publish`, `TC-srm-comment-publish-no-identity`
+
+### `FR-srm-reply-to-reply`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-reply-to-reply`, `TC-sr-patch-reply-respond`
+
+### `FR-srm-identity-indicator`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-indicator`, `TC-srm-identity-no-key`
+
+### `AC-srm-identity-load`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`
+
+### `AC-srm-comment-publish`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-comment-publish`, `TC-srm-comment-publish-no-identity`
+
+### `AC-srm-reply-to-reply`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-reply-to-reply`
+
+### `AC-srm-publish-no-dup`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-publish-no-dup`
+
+### `AC-srm-publish-relay-failure`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-publish-relay-failure`
+
 ### `FR-mdr-detect-markdown`
 - **Defined in**: `product/markdown-render.md`
 - **Design**: `design/macos/markdown-render.md`
@@ -2607,6 +2673,24 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-replies-live`, `TC-sr-patch-replies-live-no-relays`
 
+### `FR-sr-patch-reply-publish`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-reply-publish`, `TC-srm-comment-publish`
+
+### `FR-sr-reviewer-identity`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-indicator`
+
+### `FR-sr-patch-reply-respond`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-reply-respond`, `TC-srm-reply-to-reply`
+
 ### `AC-sr-patch-happy-path`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
@@ -2648,3 +2732,21 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-conflicting-args`
+
+### `AC-sr-patch-reply-publish`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-reply-publish`, `TC-srm-comment-publish`
+
+### `AC-sr-patch-reply-respond`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-patch-reply-respond`, `TC-srm-reply-to-reply`
+
+### `AC-sr-reviewer-identity`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`, `TC-srm-identity-indicator`
