@@ -9,9 +9,11 @@
 # subscribes to relays directly for ongoing updates (FR-sr-patch-replies-live).
 #
 # Usage:
+#   shepherd-patch-poll.sh --once <event-id>
 #   shepherd-patch-poll.sh <event-id>
 #
-# Relay configuration (same precedence as the command prompt):
+# The leading `--once` flag is accepted for back-compat with earlier command-prompt
+# invocations and is a no-op (this script only ever does a single fetch). Relay configuration (same precedence as the command prompt):
 #   1. NOSTR_RELAYS env var (comma-separated)
 #   2. ~/.config/nostr/relays.txt (one URL per line)
 #   3. Default: wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band
@@ -21,9 +23,13 @@
 
 set -euo pipefail
 
+# Accept an optional leading `--once` flag (no-op; single fetch is all this
+# script does). Keeps the command-prompt invocation `--once <event-id>` working.
+if [[ "${1:-}" == "--once" ]]; then shift; fi
+
 EVENT_ID="${1:-}"
 if [[ -z "$EVENT_ID" ]]; then
-  echo "Usage: $0 <event-id>" >&2
+  echo "Usage: $0 [--once] <event-id>" >&2
   exit 1
 fi
 

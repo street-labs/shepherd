@@ -236,7 +236,7 @@ Extract metadata:
 
 #### Fetch patch-thread replies
 
-Implements FR-sr-patch-replies-display (initial snapshot) and FR-sr-patch-replies-live (live refresh). After the patch event is validated, fetch the review-thread replies so other agents' and humans' comments render in the macOS app alongside the review context. The fetch + mapping logic lives in `scripts/shepherd-patch-poll.sh` so it is shared between the initial snapshot and the background live-poller (single source of truth).
+Implements FR-sr-patch-replies-display (initial snapshot) and FR-sr-patch-replies-live (live refresh). After the patch event is validated, fetch the review-thread replies so other agents' and humans' comments render in the macOS app alongside the review context. The initial-snapshot fetch+map logic lives in `scripts/shepherd-patch-poll.sh --once`; the live path is the in-app `RelayClient` subscription (FR-sr-relay-client), which reuses the same mapping rules via the Swift `PatchReplyMapper`.
 
 Agent and human comments on a patch are published as **kind:1** text notes tagged `["e", "<patch-event-id>", "", "root"]` plus an `["a", "30617:<owner>:<repo>"]` repo tag. Status transitions (open/merged/closed) are separate NIP-34 events (kinds 1630–1633), NOT comments — the script excludes them.
 
