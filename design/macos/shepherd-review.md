@@ -1,6 +1,6 @@
 ---
-product-hash: 72eba4558b538ad77ca4b4593719d1cb13efb0987d3f774a64d15094b8bddc9e
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: c2a2544bfec99b922422da37c925f0dbd393538d49a51192e551e6e0aed7a474
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-quit-early, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Design Spec
@@ -238,21 +238,21 @@ The inspector section renders only when `patchMetadata` is present (patch review
 
 ## Patch Thread Replies -- Live Refresh
 
-The section above renders the launch-time snapshot. `FR-sr-patch-replies-live` makes it live: replies posted after the window opens appear without relaunching, via poll-and-reload.
+The section above renders the launch-time snapshot baked into `session.json`. `FR-sr-patch-replies-live` makes it live: replies posted after the window opens appear without relaunching, via an in-app Nostr relay subscription (`FR-sr-relay-client`).
 
-### Architecture (poll-and-reload)
+### Architecture (relay client abstraction, nak-driven on macOS)
 
-The native app does NOT speak the Nostr relay protocol. Instead:
-- A background poller process (`scripts/shepherd-patch-poll.sh`) is spawned detached by the `/shepherd-review` command prompt after launch (patch mode only). It re-fetches the thread from the same relays every 30s using `nak`, reuses the same fetch+map logic as the initial snapshot, and atomically writes a session-scoped sidecar file. It exits when the review ends (`prompt-output.md` appears) or after 60 minutes.
-- The native app, while a patch review window is open, polls that sidecar on a 30s timer, deduplicates replies by id, orders oldest-first, and replaces the displayed reply list. The inspector section and inline bubbles re-render automatically from that single reply list -- no per-view wiring.
+The native app subscribes to Nostr relays through a `RelayClient` abstraction -- no sidecar file, no poll timer. On macOS the live implementation shells out to `nak req --stream`, which keeps a real subscription open and prints events as they arrive (stored replies first, then live). Each incoming event is mapped to a `PatchReply` and appended to the reply list in timestamp order, skipping duplicates by id. The inspector section and inline bubbles re-render automatically from that single reply list -- no per-view wiring. The abstraction is kept so a future impl that speaks NIP-01 over WebSocket directly (the transport a future iOS app would use, where `nak` does not exist) can replace the macOS live value without touching callers.
+
+The initial snapshot baked into `session.json` at launch (produced by the command prompt via `scripts/shepherd-patch-poll.sh --once`) remains as a baseline so the inspector has replies to show before the subscription delivers; the in-app subscription then provides liveness on top.
 
 ### Gating and lifecycle
 
-Polling starts when a patch review window opens and `patchMetadata` is present (slash-command mode). It is cancelled when the window closes or explicitly stopped. Non-patch reviews never start the timer. If the sidecar is absent (no poller running / `nak` missing), the app renders the initial snapshot only -- the review is unaffected.
+The subscription starts when a patch review window opens and `patchMetadata` is present, and is cancelled when the window closes. Non-patch reviews never subscribe. If no relays are reachable, the app renders the initial snapshot only -- the review is unaffected.
 
-### Why poll-and-reload, not a relay subscription
+### Why a relay client, not poll-and-reload
 
-Poll-and-reload is the lazy complete solution: it reuses `nak` (already a command-prompt dependency) and the existing reactive reply surfaces, adds a small timer + merge in the app plus one shell script, and introduces no new app package dependency. The cost is poll-interval latency (30s) and one relay query per interval -- acceptable for a code-review surface. A persistent in-app relay subscription is the upgrade path if sub-second liveness becomes a requirement.
+A `RelayClient` abstraction decouples the app from the transport. On macOS `nak req --stream` gives a real live subscription (events arrive as published) at no app-level WebSocket cost, and reuses the `nak` the command prompt already depends on. The abstraction leaves room for a direct WebSocket impl where `nak` does not exist (iOS). No sidecar file or poll timer means sub-second liveness and lower relay load than polling. No third-party Swift package is added; the shell-side `--once` snapshot keeps `nak` as the launch-time baseline.
 
 ### Requirements Satisfied
 
@@ -317,7 +317,8 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `FR-sr-patch-application` | Conversation Surface (inherited - review branch creation, patch apply, changeset detection, stash/restore) |
 | `FR-sr-patch-metadata-display` | NIP-34 Patch Metadata Display (all five fields: ID, author, message, parent, status) |
 | `FR-sr-patch-replies-display` | NIP-34 Patch Thread Replies Display (inspector section + inline anchored bubbles; bot/human marker) |
-| `FR-sr-patch-replies-live` | Patch Thread Replies -- Live Refresh (sidecar poll + reactive swap; background poller) |
+| `FR-sr-patch-replies-live` | Patch Thread Replies -- Live Refresh (in-app relay subscription + reactive append) |
+| `FR-sr-relay-client` | Patch Thread Replies -- Live Refresh (in-process Nostr WebSocket relay client) |
 | `AC-sr-patch-happy-path` | Command Syntax + Conversation Surface + NIP-34 Patch Metadata Display (full patch review flow) |
 | `AC-sr-patch-event-not-found` | Conversation Surface (inherited error handling) |
 | `AC-sr-patch-invalid-diff` | Conversation Surface (inherited validation) |

@@ -503,16 +503,6 @@ Use the absolute paths (`REPO_ROOT/<relative-path>`) for each file in the priori
 rm -f "$CTX"
 ```
 
-**5b-live. Start the patch-thread reply poller (patch mode only).**
-
-Implements `FR-sr-patch-replies-live`. When `SCOPE = patch`, after the launcher returns (and you have `SESSION_ID`), spawn the background poller detached so the macOS app's live reply polling has a sidecar to read:
-```bash
-if [[ "$SCOPE" == "patch" ]]; then
-  nohup bash "$SHEPHERD_ROOT/scripts/shepherd-patch-poll.sh" "$SESSION_ID" "$EVENT_ID" 30 60 >/dev/null 2>&1 & disown
-fi
-```
-The poller re-fetches the thread every 30s, writes `~/.shepherd/sessions/$SESSION_ID/patch-replies.json`, and exits when `prompt-output.md` appears (review done) or after 60 minutes. It is best-effort; if `nak` is missing it exits immediately and the app renders the initial snapshot only.
-
 After launching, output:
 
 ```

@@ -167,6 +167,49 @@ struct AppFeatureTests {
         #expect(store.state.reviewContextData?.patchMetadata == nil)
     }
 
+    // Implements: FR-sr-patch-replies-live (live append from RelayClient stream)
+    @Test("Patch reply append inserts in timestamp order and skips dupes")
+    func patchRepliesAppendMerges() async {
+        let meta = ReviewContext.PatchMetadata(
+            eventID: String(repeating: "a", count: 64),
+            shortEventID: "aaaaaaaa",
+            author: "alice", commitMessage: "msg", parentCommit: nil, status: "open",
+            replies: [ReviewContext.PatchReply(
+                id: "r1", author: "borg", authorPubkey: "pk1",
+                isBot: true, content: "first", timestamp: 1700000010
+            )]
+        )
+        let store = TestStore(initialState: AppFeature.State(
+            reviewContextData: ReviewContext(overall: .init(), files: [:], patchMetadata: meta)
+        )) {
+            AppFeature()
+        } withDependencies: {
+            $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
+        }
+        store.exhaustivity = .off
+
+        // Newer reply appends after r1.
+        await store.send(.patchRepliesRefreshedAppend(ReviewContext.PatchReply(
+            id: "r2", author: "luke", authorPubkey: "pk2",
+            isBot: false, content: "second", timestamp: 1700000020
+        )))
+        #expect(store.state.reviewContextData?.patchMetadata?.replies.map(\.id) == ["r1", "r2"])
+
+        // Dupe id is skipped.
+        await store.send(.patchRepliesRefreshedAppend(ReviewContext.PatchReply(
+            id: "r2", author: "luke", authorPubkey: "pk2",
+            isBot: false, content: "dup", timestamp: 1700000020
+        )))
+        #expect(store.state.reviewContextData?.patchMetadata?.replies.count == 2)
+
+        // Older reply inserts before r1 (timestamp ordering).
+        await store.send(.patchRepliesRefreshedAppend(ReviewContext.PatchReply(
+            id: "r0", author: "x", authorPubkey: "pk0",
+            isBot: false, content: "zero", timestamp: 1700000005
+        )))
+        #expect(store.state.reviewContextData?.patchMetadata?.replies.map(\.id) == ["r0", "r1", "r2"])
+    }
+
     @Test("Clear session confirmed removes all state")
     func clearSessionConfirmed() async {
         let fileID = UUID()

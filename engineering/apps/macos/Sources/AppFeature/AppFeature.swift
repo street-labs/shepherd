@@ -143,13 +143,14 @@ public struct AppFeature {
         case windowAppeared
         case windowClosed
 
-        // Patch-thread reply live polling (FR-sr-patch-replies-live). The
-        // background poller script refreshes a sidecar; the app re-reads it on a
-        // timer and swaps in the latest replies. UI is already reactive to
-        // `reviewContextData.patchMetadata.replies`.
-        case startPatchReplyPolling
+        // Patch-thread reply live subscription (FR-sr-patch-replies-live via
+        // FR-sr-relay-client). The app subscribes to Nostr relays in-process and
+        // merges incoming kind:1 root replies into patchMetadata.replies. UI is
+        // already reactive to that array.
+        case startPatchReplySubscription
         case patchRepliesRefreshed([ReviewContext.PatchReply])
-        case stopPatchReplyPolling
+        case patchRepliesRefreshedAppend(ReviewContext.PatchReply)
+        case stopPatchReplySubscription
 
         // Alerts
         case alert(PresentationAction<Alert>)
@@ -167,13 +168,14 @@ public struct AppFeature {
     @Dependency(\.sessionClient) var sessionClient
     @Dependency(\.windowClient) var windowClient
     @Dependency(\.syntaxHighlightClient) var syntaxHighlighter
+    @Dependency(\.relayClient) var relayClient
     @Dependency(\.uuid) var uuid
     @Dependency(\.continuousClock) var clock
 
     private enum CancelID {
         case promptRegeneration
         case copyConfirmation
-        case patchReplyPolling
+        case patchReplySubscription
     }
 
     public init() {}
@@ -429,33 +431,33 @@ public struct AppFeature {
                 }
 
             case .windowClosed:
-                // Stop the reply poller when the window goes away.
-                return .cancel(id: CancelID.patchReplyPolling)
+                // Stop the relay subscription when the window goes away.
+                return .cancel(id: CancelID.patchReplySubscription)
 
-            // MARK: - Patch-thread reply live polling (FR-sr-patch-replies-live)
+            // MARK: - Patch-thread reply live subscription (FR-sr-patch-replies-live)
 
-            case .startPatchReplyPolling:
-                guard let sessionID = state.session.sessionID,
-                      state.reviewContextData?.patchMetadata != nil else { return .none }
-                return .run { [sessionClient, clock] send in
-                    // First refresh promptly, then on an interval. The background
-                    // poller writes the sidecar; we just re-read it.
-                    await send(.patchRepliesRefreshed(
-                        (try? await sessionClient.loadPatchReplies(sessionID)) ?? []
-                    ))
-                    for await _ in clock.timer(interval: .seconds(30)) {
-                        await send(.patchRepliesRefreshed(
-                            (try? await sessionClient.loadPatchReplies(sessionID)) ?? []
-                        ))
+            case .startPatchReplySubscription:
+                guard state.reviewContextData?.patchMetadata != nil,
+                      let patchID = state.reviewContextData?.patchMetadata?.eventID else {
+                    return .none
+                }
+                return .run { [relayClient] send in
+                    // Subscribe to kind:1 events whose root e tag is the patch id.
+                    // The relay delivers stored replies first, then new ones live.
+                    let filter = NostrFilter(eTag: patchID, kinds: [1])
+                    let stream = relayClient.subscribe(filter)
+                    for await event in stream {
+                        if let reply = PatchReplyMapper.mapOne(event, patchEventID: patchID) {
+                            await send(.patchRepliesRefreshedAppend(reply))
+                        }
                     }
                 }
-                .cancellable(id: CancelID.patchReplyPolling, cancelInFlight: true)
+                .cancellable(id: CancelID.patchReplySubscription, cancelInFlight: true)
 
             case let .patchRepliesRefreshed(replies):
+                // Full-snapshot replace path (kept for the initial session.json
+                // snapshot and any bulk refresh).
                 guard state.reviewContextData?.patchMetadata != nil else { return .none }
-                // Replace with the poller's current full view of the thread,
-                // deduped by id and ordered oldest-first. The poller re-fetches
-                // the whole thread each tick, so this is the complete live set.
                 var seen = Set<String>()
                 let ordered = replies
                     .sorted { $0.timestamp < $1.timestamp }
@@ -463,8 +465,18 @@ public struct AppFeature {
                 state.reviewContextData?.patchMetadata?.replies = ordered
                 return .none
 
-            case .stopPatchReplyPolling:
-                return .cancel(id: CancelID.patchReplyPolling)
+            case let .patchRepliesRefreshedAppend(reply):
+                // Incremental live append: merge a single incoming reply into the
+                // existing ordered list, skipping dupes by id.
+                guard var meta = state.reviewContextData?.patchMetadata else { return .none }
+                if meta.replies.contains(where: { $0.id == reply.id }) { return .none }
+                meta.replies.append(reply)
+                meta.replies.sort { $0.timestamp < $1.timestamp }
+                state.reviewContextData?.patchMetadata = meta
+                return .none
+
+            case .stopPatchReplySubscription:
+                return .cancel(id: CancelID.patchReplySubscription)
 
             // MARK: - Child Feature Forwarding
 
@@ -575,14 +587,14 @@ public struct AppFeature {
                 if !loadedFiles.isEmpty {
                     return .merge(
                         .send(.filesLoaded(loadedFiles)),
-                        // Begin live reply polling for patch reviews.
-                        // Implements: FR-sr-patch-replies-live.
-                        data.reviewContext?.patchMetadata != nil && state.session.sessionID != nil
-                            ? .send(.startPatchReplyPolling) : .none
+                        // Begin live relay subscription for patch reviews.
+                        // Implements: FR-sr-patch-replies-live (in-app RelayClient).
+                        data.reviewContext?.patchMetadata != nil
+                            ? .send(.startPatchReplySubscription) : .none
                     )
                 }
-                return data.reviewContext?.patchMetadata != nil && state.session.sessionID != nil
-                    ? .send(.startPatchReplyPolling) : .none
+                return data.reviewContext?.patchMetadata != nil
+                    ? .send(.startPatchReplySubscription) : .none
 
             case .session:
                 return .none
