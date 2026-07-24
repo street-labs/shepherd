@@ -2427,6 +2427,78 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-sign-failure`
 
+### `FR-srm-patch-open-entry`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift`, `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-happy`
+
+### `FR-srm-patch-open-input`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift`, `engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-nevent`, `TC-srm-patch-open-invalid-id`
+
+### `FR-srm-patch-open-fetch`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift`, `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-not-found`, `TC-srm-patch-open-wrong-kind`, `TC-srm-patch-open-bad-diff`, `TC-srm-patch-open-no-relays`
+
+### `FR-srm-patch-open-load`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift`, `engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift`, `engineering/apps/macos/Sources/SharedModels/FileNode.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-happy`, `TC-srm-patch-open-splitter-unit`
+
+### `AC-srm-patch-open-happy`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-happy`, `TC-srm-patch-open-splitter-unit`
+
+### `AC-srm-patch-open-nevent`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-nevent`
+
+### `AC-srm-patch-open-invalid-id`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-invalid-id`
+
+### `AC-srm-patch-open-not-found`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-not-found`
+
+### `AC-srm-patch-open-wrong-kind`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-wrong-kind`
+
+### `AC-srm-patch-open-bad-diff`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-bad-diff`
+
+### `AC-srm-patch-open-no-relays`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-no-relays`
+
+### `AC-srm-patch-open-activates-thread`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-activates-thread`
+
 ### `FR-mdr-detect-markdown`
 - **Defined in**: `product/markdown-render.md`
 - **Design**: `design/macos/markdown-render.md`

@@ -60,6 +60,14 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 | `engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift` | **MODIFIED** | Adds a `Reply` button per inspector row (`FR-srm-reply-to-reply`). |
 | `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` | **MODIFIED** | Identity state, comment-submit publish path (now async-sign then publish), `.replyToPatchReply` action, self-reply dedup, and — for bunker identities — the connect handshake lifecycle (start on patch window open, cancel on close), bunker-failure state on sign/publish, and retry (`FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`, `FR-srm-bunker-connect`, `FR-srm-bunker-sign-failure`). |
 | `engineering/apps/macos/Package.swift` | **MODIFIED** | Adds the `swift-secp256k1` package dependency (module `P256K`, successor to `secp256k1.swift`) for in-process Schnorr signing (`FR-srm-event-sign`). |
+| `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **MODIFIED** | `NostrFilter` gains an `ids: [String]` field (and optional `relays` hint decoded from `nevent1`/`naddr1`) so the in-app patch-open path can fetch a single event by id (`FR-srm-patch-open-fetch`). The existing `eTag`/`kinds` subscription is unchanged. |
+| `engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift` | **NEW** | Minimal NIP-19 bech32 decoder for `nevent1`/`naddr1` references → referenced event id + relays. Reuses the bech32 alphabet already in `Bech32.swift`. (`FR-srm-patch-open-input`.) |
+| `engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift` | **NEW** | Pure function: a NIP-34 patch event's unified-diff content → `[(filePath, diffBlock)]`, split on each `diff --git a/<p> b/<p>` boundary. Also extracts patch metadata tags (`a`, `commit`/`m`, `parent-commit`, `status`, author pubkey) into a `ReviewContext.PatchMetadata`. Implements the parse half of `FR-srm-patch-open-load` and the validation half of `FR-srm-patch-open-fetch`. |
+| `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift` | **NEW** | TCA reducer for the Open Patch dialog: input text, format validation, fetch-via-`RelayClient`, kind/diff validation, and on success a `.patchLoaded([LoadedFile], PatchMetadata)` effect. States map 1:1 to the design's dialog states (idle / invalid / fetching / not-found / wrong-kind / bad-diff / no-relays). Implements `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`. |
+| `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift` | **NEW** | The Open Patch sheet (title, text field, inline error, Fetch/Cancel footer) and the empty-state `Open Patch…` button + `Cmd+Shift+P` shortcut. Implements `FR-srm-patch-open-entry` and the dialog surface in `design/macos/shepherd-review.md` → In-App Patch Open. |
+| `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` | **MODIFIED** | Presents `OpenPatchFeature.State` as a sheet from the empty state; on `.patchLoaded` converts each `LoadedFile` (diff block) into a `FileNode` (language `.diff`), sets `reviewContextData.patchMetadata`, and drives the existing `.filesLoaded`/`rebuildFileTree`/`startPatchReplySubscription` path so the metadata section, live replies, and publish flow activate unchanged (`FR-srm-patch-open-load`). |
+| `engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift` | **MODIFIED** | Adds the `Open Patch…` button to the empty-state button row and routes activation to the new `.openPatchRequested` action (`FR-srm-patch-open-entry`). |
+| `engineering/apps/macos/Sources/SharedModels/FileNode.swift` | **MODIFIED** | `SyntaxLanguage` gains a `.diff` case (TreeSitter has no diff grammar; highlighter falls back to plain text) so diff-block tabs are not mis-detected as the file's native language. |
 
 The change footprint for the original macOS review variant was intentionally minimal (two new prompt files, one bash flag, one array entry). Bidirectional patch-thread publishing extends that footprint into the native app: the Swift files listed above and a new `secp256k1.swift` package dependency. The implementation steps (Steps 7-10) cover that native work.
 
@@ -580,6 +588,50 @@ Add NIP-46 bunker as a second identity form so the reviewer need not place a raw
 
 ---
 
+## In-App Patch Open
+
+A second, CLI-free path into a patch review. The reviewer is in the native app's empty state and enters a NIP-34 patch reference; the app fetches the event in-process and loads it for review using only the event's contents — no `/shepherd-review` invocation, no shell, no local git repository, no temporary review branch. Implements `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`.
+
+### Why fetch by event id reuses the relay client
+
+`FR-sr-relay-client` already speaks NIP-01 over `URLSessionWebSocketTask` in-process for the live patch-thread reply loop. The only gap for fetching a *patch event* by id is that `NostrFilter` exposes `eTag` + `kinds` only. The change is additive: `NostrFilter` gains an `ids: [String]` field (and an optional `relays:` hint so a `nevent1`/`naddr1` reference can direct the fetch at its encoded relays). `RelaySubscriptionTask` already builds a `REQ` frame from the filter's `jsonObject`; `ids` maps to the NIP-01 `ids` filter key. No new transport, no new dependency.
+
+The subscription is opened, the first matching event is taken as the patch, and the subscription is cancelled immediately (we want one event, not a stream). A wait window (a few seconds, configurable) bounds the fetch; if no event arrives, the dialog reports not-found.
+
+### Why diff-as-tabs, not full files
+
+A NIP-34 patch event contains a unified diff, not the full repository state. Reconstructing full post-patch file contents requires the base files the diff is against, which means a git checkout of the parent commit — exactly what the CLI path does (`FR-sr-patch-application` creates a `review/patch-<short-id>` branch). The in-app path has no git repo by design (the reviewer may not even be in one), so v1 loads each changed file as a tab whose content is that file's diff block. The reviewer annotates the diff; line anchors in published replies are diff line numbers. This is a self-contained, useful review surface. Reconstructing full files (by fetching base files via the `a` tag repo coordinate or a configured remote) is a roadmap fast-follow (`roadmap/patch-watcher.md`).
+
+### Why no agent context
+
+The CLI path generates neutral + review context per file via the agent (`FR-sr-per-file-context`) and hands it to the app in `session.json.reviewContext`. The in-app path runs no LLM, so there is no per-file context to show. The review-context panel already supports graceful-missing (`AC-crp-context-graceful-missing`); it simply hides for tabs with no context. The patch metadata section and the live patch thread are the reviewer's orientation instead.
+
+### Data flow
+
+```
+FileDropZoneView
+  └─ .openPatchRequested ──────────────────────► AppFeature (presents sheet)
+                                                     └─ OpenPatchFeature
+                                                          ├─ validate input (hex id | nevent1/naddr1 via NIP19Decode)
+                                                          ├─ RelayClient.subscribe(NostrFilter(ids:[id], kinds:[1617,1621], relays:...))
+                                                          ├─ first event → PatchDiffSplitter.validate (kind + diff format)
+                                                          └─ success → .patchLoaded([LoadedFile], PatchMetadata)
+                  └─ AppFeature.patchLoaded:
+                       ├─ files = diff blocks → FileNode(language: .diff)  (reuses .filesLoaded path)
+                       ├─ reviewContextData.patchMetadata = PatchMetadata
+                       └─ .startPatchReplySubscription  (existing live-replies path activates)
+```
+
+Once `reviewContextData.patchMetadata` is set and files are loaded, every existing patch-review surface activates unchanged: `PatchMetadataSectionView`, `PatchRepliesSectionView` + `RelayClient` live subscription, `IdentityIndicatorView`, and the comment-submit publish path (`FR-srm-comment-publish-on-submit`). No new render surface is introduced.
+
+### Identity
+
+The in-app patch open does not touch identity. The existing `FR-srm-identity-load` path runs at window appear regardless of how the session started. If no identity is configured, the identity indicator shows the no-identity state and comments publish locally only — identical to a CLI-launched patch review with no identity. The reviewer can open the identity screen from the indicator as usual.
+
+> Implements: `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`
+
+---
+
 ## Code Map
 
 Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs are covered by the prompt content in `.claude/commands/shepherd-review.md` and traced via the shared product spec `../../product/shepherd-review.md`; this spec does not duplicate them.
@@ -617,6 +669,10 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-comment-publish-on-submit` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/Comment.swift | implemented |
 | `FR-srm-reply-to-reply` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift | implemented |
 | `FR-srm-identity-indicator` | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-srm-patch-open-entry` | engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift | planned |
+| `FR-srm-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift | planned |
+| `FR-srm-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | planned |
+| `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift; engineering/apps/macos/Sources/SharedModels/FileNode.swift | planned |
 
 Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
@@ -679,6 +735,18 @@ The `--context` flag adds a single file read in the launcher and a single substr
 | `AC-srm-install-symlink` | Implementation Plan step 4 |
 | `AC-srm-install-degraded` | Implementation Plan step 5; existing toolchain check inherited |
 | `AC-srm-install-git-pull` | Implementation Plan step 4 (symlink-based install) |
+| `FR-srm-patch-open-entry` | In-App Patch Open (entry point + button); Components / Files Touched (`FileDropZoneView`, `OpenPatchView`) |
+| `FR-srm-patch-open-input` | In-App Patch Open; Components / Files Touched (`OpenPatchFeature`, `NIP19Decode`) |
+| `FR-srm-patch-open-fetch` | In-App Patch Open (fetch-by-id via `RelayClient`); Components / Files Touched (`OpenPatchFeature`, `RelayClient`) |
+| `FR-srm-patch-open-load` | In-App Patch Open (data flow); Components / Files Touched (`AppFeature`, `PatchDiffSplitter`, `FileNode`) |
+| `AC-srm-patch-open-happy` | In-App Patch Open (data flow: fetch → split → load → activate thread) |
+| `AC-srm-patch-open-nevent` | In-App Patch Open; `NIP19Decode` (nevent/naddr → id + relays) |
+| `AC-srm-patch-open-invalid-id` | In-App Patch Open; `OpenPatchFeature` invalid-input state |
+| `AC-srm-patch-open-not-found` | In-App Patch Open; `OpenPatchFeature` not-found state |
+| `AC-srm-patch-open-wrong-kind` | In-App Patch Open; `PatchDiffSplitter` kind validation |
+| `AC-srm-patch-open-bad-diff` | In-App Patch Open; `PatchDiffSplitter` diff-format validation |
+| `AC-srm-patch-open-no-relays` | In-App Patch Open; `RelayClient` no-relay-reachable state |
+| `AC-srm-patch-open-activates-thread` | In-App Patch Open (once `patchMetadata` set, existing live-replies + publish paths activate unchanged) |
 
 ### Shared (from `product/shepherd-review.md`) — applied as-is on macOS
 
