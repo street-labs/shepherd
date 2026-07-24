@@ -32,14 +32,17 @@ public enum NIP19Decode {
         var index = 0
         var eventID: String? = nil
         var relays: [String] = []
-        // NIP-19 TLV stream: [type:u8, length:u16 BE, value:length bytes]…
-        while index + 3 <= bytes.count {
+        // NIP-19 TLV stream: [type:u8, length:u8, value:length bytes]…
+        // (NIP-19: "T and L being 1 byte each (uint8), V a sequence of bytes of
+        // the size indicated by L".) A 2-byte length would make every real
+        // nevent1 fail to decode.
+        while index + 2 <= bytes.count {
             let type = bytes[index]
-            let len = (UInt16(bytes[index + 1]) << 8) | UInt16(bytes[index + 2])
-            index += 3
-            guard index + Int(len) <= bytes.count else { return nil }
-            let value = Array(bytes[index..<index + Int(len)])
-            index += Int(len)
+            let len = Int(bytes[index + 1])
+            index += 2
+            guard index + len <= bytes.count else { return nil }
+            let value = Array(bytes[index..<index + len])
+            index += len
             switch type {
             case 0: // 32-byte event id
                 guard value.count == 32 else { return nil }

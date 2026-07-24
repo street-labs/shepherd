@@ -14,16 +14,31 @@ import OpenPatchFeature
 import IdentifiedCollections
 import Foundation
 
-/// A file loaded from disk or clipboard.
+/// A file loaded from disk, clipboard, or an in-app-opened patch diff block.
 public struct LoadedFile: Equatable, Sendable {
     public let content: String
     public let name: String
     public let url: URL?
+    /// Explicit language override; nil → detect from `name`. Patch-open tabs pass
+    /// `.plaintext` so a unified-diff block renders cleanly instead of being
+    /// mis-highlighted as the changed file's source language.
+    public let language: SyntaxLanguage?
+    /// Explicit file path override; nil → `url?.path`. Patch-open tabs carry the
+    /// diff file path here (no on-disk URL) so comment publish anchors correctly.
+    public let filePath: String?
 
-    public init(content: String, name: String, url: URL?) {
+    public init(
+        content: String,
+        name: String,
+        url: URL?,
+        language: SyntaxLanguage? = nil,
+        filePath: String? = nil
+    ) {
         self.content = content
         self.name = name
         self.url = url
+        self.language = language
+        self.filePath = filePath
     }
 }
 
@@ -333,11 +348,11 @@ public struct AppFeature {
 
             case let .filesLoaded(loaded):
                 for item in loaded {
-                    let language = SyntaxLanguage.detect(from: item.name)
+                    let language = item.language ?? SyntaxLanguage.detect(from: item.name)
                     let fileNode = FileNode(
                         id: uuid(),
                         name: item.name,
-                        filePath: item.url?.path,
+                        filePath: item.filePath ?? item.url?.path,
                         language: language,
                         content: item.content
                     )
@@ -559,8 +574,10 @@ public struct AppFeature {
                 let loaded = files.map { file in
                     LoadedFile(
                         content: file.diffBlock,
-                        name: (file.filePath as NSString).lastPathComponent,
-                        url: nil
+                        name: file.filePath,
+                        url: nil,
+                        language: .plaintext,
+                        filePath: file.filePath
                     )
                 }
                 // Attach patch metadata first so the live-replies subscription and

@@ -2430,25 +2430,25 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-srm-patch-open-entry`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift`, `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift` (planned)
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift`, `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift` (implemented)
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-happy`
 
 ### `FR-srm-patch-open-input`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift`, `engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift` (planned)
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift`, `engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift` (implemented)
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-nevent`, `TC-srm-patch-open-invalid-id`
 
 ### `FR-srm-patch-open-fetch`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift`, `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` (planned)
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift`, `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` (implemented)
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-not-found`, `TC-srm-patch-open-wrong-kind`, `TC-srm-patch-open-bad-diff`, `TC-srm-patch-open-no-relays`
 
 ### `FR-srm-patch-open-load`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift`, `engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift`, `engineering/apps/macos/Sources/SharedModels/FileNode.swift` (planned)
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift`, `engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift` (implemented)
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-happy`, `TC-srm-patch-open-splitter-unit`
 
 ### `AC-srm-patch-open-happy`

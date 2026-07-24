@@ -376,7 +376,7 @@ Activating the button (or the shortcut) opens a centered modal sheet over the em
 - **Body**: a single `TextField` with a placeholder `Paste a 64-char event id or nevent1…`, an inline error line beneath the field, and a footer with a `Cancel` button and a primary `Fetch` button (default, submits on Return). The field accepts paste and supports drag-in of a text selection. (`naddr1…` is not accepted — NIP-34 patches are kind 1617 with no `naddr` form; see `FR-srm-patch-open-input`.)
 - **States**:
   - **Idle** — field empty; `Fetch` disabled.
-  - **Invalid input** — non-empty but not a valid reference; inline error `Enter a 64-character hex event id or a nevent1 reference`; `Fetch` disabled; field stays focused. (Implements `AC-srm-patch-open-invalid-id`.)
+  - **Invalid input** — non-empty but not a valid reference; inline error `Enter a 64-character hex event id or a nevent1 reference`; field stays focused. (Implements `AC-srm-patch-open-invalid-id`.) _Implementation note: `Fetch` stays enabled for non-empty input and validation runs on submit — simpler than live-format-checking, and the inline error still appears without a relay round-trip._
   - **Fetching** — after submit; the sheet shows a spinner with `Fetching patch from relays…`, the field and `Fetch` button are disabled, `Cancel` remains enabled (cancels the in-flight subscription). (Implements `FR-srm-patch-open-fetch`.)
   - **Fetch failed — not found** — `Patch event <short-id> not found on the configured relays.` (`AC-srm-patch-open-not-found`)
   - **Fetch failed — wrong kind** — `Event <short-id> is not a NIP-34 patch (kind <k>).` (`AC-srm-patch-open-wrong-kind`)
@@ -390,7 +390,7 @@ Activating the button (or the shortcut) opens a centered modal sheet over the em
 Once loaded, the review uses the existing patch-review surfaces unchanged — no new components:
 
 - The **file browser** lists one row per changed file, named by the file path (taken from the `diff --git a/<path> b/<path>` header). The first file is the active tab.
-- The **code viewer** shows that file's diff block as read-only content with syntax highlighting. The reviewer adds inline comments on diff lines exactly as on normal file content; the comment's line anchor is the diff line number, which is what gets published as the `range` anchor on the patch thread.
+- The **code viewer** shows that file's diff block as read-only content (v1 renders it as plain text — a dedicated unified-diff syntax highlighter is a roadmap fast-follow; highlighting the diff as the changed file's source language would mis-render the `+`/`-`/`@@` markers). The reviewer adds inline comments on diff lines exactly as on normal file content; the comment's line anchor is the diff line number, which is what gets published as the `range` anchor on the patch thread.
 - The **inspector** shows the existing Patch Metadata section (`FR-sr-patch-metadata-display`), the reviewer identity indicator (`FR-srm-identity-indicator`), and the live Patch Thread section (`FR-sr-patch-replies-live`). The patch **status** badge in the metadata section renders `open` unconditionally for an in-app-opened patch (v1 does not fetch the kind `1630`–`1633` status events that carry NIP-34 status; see `FR-srm-patch-open-load`). The Review Context (overall + per-file neutral/review) sections are absent for an in-app-opened patch (no agent context was generated); they simply do not render, the same graceful-missing behavior as a CLI review whose context file was not provided.
 
 ### Interaction flow

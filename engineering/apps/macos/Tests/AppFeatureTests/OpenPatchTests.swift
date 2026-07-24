@@ -8,16 +8,17 @@ import Foundation
 
 @Suite("NIP19Decode")
 struct NIP19DecodeTests {
-    /// Build a `nevent1` entity from raw TLVs so the decode round-trip can be
-    /// tested without a fixture pulled from the network.
+    /// Build a `nevent1` entity from raw TLVs using the NIP-19 format
+    /// (1-byte type, 1-byte length, value) so the decode round-trip is valid
+    /// against real NIP-19 entities, not just self-consistent.
     private func encodeNEvent(eventID: String, relays: [String]) -> String {
         var tlv: [UInt8] = []
         let idBytes = hexToBytes(eventID.lowercased())
-        tlv.append(contentsOf: [0x00, 0x00, UInt8(idBytes.count)])
+        tlv.append(contentsOf: [0x00, UInt8(idBytes.count)])
         tlv.append(contentsOf: idBytes)
         for url in relays {
             let u = Array(url.utf8)
-            tlv.append(contentsOf: [0x01, UInt8((u.count >> 8) & 0xFF), UInt8(u.count & 0xFF)])
+            tlv.append(contentsOf: [0x01, UInt8(u.count)])
             tlv.append(contentsOf: u)
         }
         return Bech32.encode(Data(tlv), prefix: "nevent")
@@ -45,6 +46,20 @@ struct NIP19DecodeTests {
         #expect(decoded.relays == ["wss://relay.example.com"])
     }
 
+    @Test("A real-world nevent1 (1-byte TLV length) decodes correctly")
+    func realWorldNEventDecodes() {
+        // Hand-built with the NIP-19 format (1-byte length): TLV type 0 / len 32 /
+        // event id 0102…20, then type 1 / len 25 / "wss://relay.damus.io".
+        // Regression guard: if the decoder ever reads the length as 2 bytes again,
+        // this real-format entity fails to decode.
+        let nevent = "nevent1qqsqzqsrqszsvpcgpy9qkrqdpc83qygjzv2p29shrqv35xcur50p7gqpz3mhxue69uhhyetvv9ujuerpd46hxtnfdu9d348n"
+        guard let decoded = NIP19Decode.decodeNEvent(nevent) else {
+            Issue.record("real-world nevent1 failed to decode"); return
+        }
+        #expect(decoded.eventID == "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
+        #expect(decoded.relays == ["wss://relay.damus.io"])
+    }
+
     @Test("naddr1 is not accepted (wrong prefix)")
     func naddrRejected() {
         #expect(NIP19Decode.decodeNEvent("naddr1qpzry9x8gf2tvdw0s3jn") == nil)
@@ -70,7 +85,8 @@ struct PatchRefTests {
 
     @Test("nevent1 accepted")
     func neventAccepted() {
-        let nevent = Bech32.encode(Data([0x00, 0x00, 0x20] + Array(repeating: 0x01, count: 32)), prefix: "nevent")
+        // NIP-19 1-byte length: type 0, len 32, 32-byte id.
+        let nevent = Bech32.encode(Data([0x00, 0x20] + Array(repeating: 0x01, count: 32)), prefix: "nevent")
         guard case .nevent = PatchRef.parse(nevent) else {
             Issue.record("expected .nevent"); return
         }

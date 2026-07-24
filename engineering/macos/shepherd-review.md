@@ -619,12 +619,14 @@ FileDropZoneView
                                                           ├─ first event → PatchDiffSplitter.validate (kind == 1617, then diff format)
                                                           └─ success → .patchLoaded([LoadedFile], PatchMetadata)
                   └─ AppFeature.patchLoaded:
-                       ├─ files = diff blocks → FileNode(language: .diff)  (reuses .filesLoaded path)
+                       ├─ files = diff blocks → FileNode(language: .plaintext, filePath: <diff path>)  (reuses .filesLoaded path)
                        ├─ reviewContextData.patchMetadata = PatchMetadata
                        └─ .startPatchReplySubscription  (existing live-replies path activates)
 ```
 
 Once `reviewContextData.patchMetadata` is set and files are loaded, every existing patch-review surface activates unchanged: `PatchMetadataSectionView`, `PatchRepliesSectionView` + `RelayClient` live subscription, `IdentityIndicatorView`, and the comment-submit publish path (`FR-srm-comment-publish-on-submit`). No new render surface is introduced.
+
+**Diff tabs render as plaintext.** A patch-open tab's content is a unified-diff block, not the changed file's source; highlighting it as the file's source language would mis-render the `+`/`-`/`@@` markers. v1 sets `FileNode.language = .plaintext` for every patch-open tab. A dedicated diff syntax highlighter is a roadmap fast-follow. Tabs are named by the full file path (taken from the `diff --git a/<path> b/<path>` header) so two files with the same basename in different directories do not collide, and `FileNode.filePath` carries that same path so published comment `range` anchors resolve to the right file.
 
 ### Identity
 
@@ -674,7 +676,7 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-patch-open-entry` | engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift | implemented |
 | `FR-srm-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift | implemented |
 | `FR-srm-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
-| `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift; engineering/apps/macos/Sources/SharedModels/FileNode.swift | implemented |
+| `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | implemented |
 
 Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
