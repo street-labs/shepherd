@@ -25,6 +25,9 @@ public struct BunkerClient: Sendable {
     /// The current connection state for the identity indicator. nil when no
     /// bunker session has been started.
     public var connectionState: @Sendable () -> BunkerConnectionState?
+    /// Close the control channel (cancel WebSocket + receive loop). Called on
+    /// window close. Implements: FR-srm-bunker-connect (lifecycle).
+    public var close: @Sendable () -> Void
 }
 
 /// Parsed `bunker://` URI parameters.
@@ -70,13 +73,17 @@ extension BunkerClient: DependencyKey {
         },
         connectionState: {
             BunkerSession.shared.getState()
+        },
+        close: {
+            BunkerSession.shared.close()
         }
     )
 
     public static let testValue = BunkerClient(
         connect: { _ in nil },
         signEvent: { _ in nil },
-        connectionState: { nil }
+        connectionState: { nil },
+        close: {}
     )
 }
 
@@ -109,6 +116,7 @@ private final class BunkerSession: @unchecked Sendable {
     private var urlSession = URLSession(configuration: .ephemeral)
     private var pending: [String: CheckedContinuation<String?, Never>] = [:]
     private var receiveTask: Task<Void, Never>?
+    private var config: BunkerConfig?
     private var _state: BunkerConnectionState? = nil
 
     // Sync lock helpers — callable from async contexts because the lock/unlock
@@ -121,6 +129,10 @@ private final class BunkerSession: @unchecked Sendable {
 
     func getState() -> BunkerConnectionState? {
         withLock { _state }
+    }
+
+    func getConfig() -> BunkerConfig? {
+        withLock { config }
     }
 
     private func setState(_ s: BunkerConnectionState?) {
@@ -139,6 +151,7 @@ private final class BunkerSession: @unchecked Sendable {
             self.sessionKey = secKey
             self.sessionPubkeyHex = pubHex
             self.bunkerPubkeyHex = config.bunkerPubkeyHex
+            self.config = config
         }
         setState(.connecting)
 
@@ -188,10 +201,37 @@ private final class BunkerSession: @unchecked Sendable {
         return pubkeyResp
     }
 
+    /// Reconnect: close the old channel and re-run the handshake with the
+    /// stored config. Used by the retry path when a sign_event failed.
+    private func reconnect(config: BunkerConfig) async -> Bool {
+        close()
+        return await self.connect(config: config) != nil
+    }
+
+    /// Close the control channel: cancel the receive loop and WebSocket.
+    // Implements: FR-srm-bunker-connect (lifecycle: cancelled on window close)
+    func close() {
+        receiveTask?.cancel()
+        withLock { receiveTask = nil }
+        let task = withLock { wsTask }
+        task?.cancel(with: .goingAway, reason: nil)
+        withLock { wsTask = nil }
+    }
+
     /// Send a sign_event request to the bunker. Returns the signed event, or nil.
     // Implements: FR-sr-bunker-signing, FR-srm-bunker-sign-failure
+    ///
+    /// If the session state is `.failed`, attempts to reconnect (re-run the
+    /// handshake) before signing, so the spec'd retry flow succeeds. A single
+    /// reconnect attempt per sign call — if it also fails, returns nil.
     func signEvent(event: NostrEvent) async -> NostrEvent? {
-        guard getState() == .connected else { return nil }
+        // If the session dropped, reconnect first (spec: "reattempts the bunker
+        // sign, reconnecting the control channel first if it was dropped").
+        if getState() != .connected {
+            guard let config = getConfig(), await reconnect(config: config) else {
+                return nil
+            }
+        }
         let eventDict: [String: Any] = [
             "content": event.content,
             "kind": event.kind,

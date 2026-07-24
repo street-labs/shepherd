@@ -141,23 +141,16 @@ public enum NIP44Crypto {
 
     // MARK: - Padding
 
-    /// NIP-44 padding: 2-byte u16 length prefix (or 6-byte for >= 65536), then
-    /// plaintext, then zero-pad to the next padded chunk size.
+    /// NIP-44 padding: 2-byte u16 length prefix, then plaintext, then zero-pad
+    /// to the next padded chunk size. NIP-44 v2 caps plaintext at 65535 bytes,
+    /// so a 6-byte extended prefix is never needed.
     static func pad(_ plaintext: String) -> Data {
         let unpadded = Data(plaintext.utf8)
         let len = unpadded.count
-        guard len >= 1 else { return Data() }
+        guard len >= 1, len <= 65535 else { return Data() }
         var out = Data()
-        if len >= 65536 {
-            out.append(contentsOf: [0x00, 0x00])
-            out.append(UInt8((len >> 24) & 0xFF))
-            out.append(UInt8((len >> 16) & 0xFF))
-            out.append(UInt8((len >> 8) & 0xFF))
-            out.append(UInt8(len & 0xFF))
-        } else {
-            out.append(UInt8((len >> 8) & 0xFF))
-            out.append(UInt8(len & 0xFF))
-        }
+        out.append(UInt8((len >> 8) & 0xFF))
+        out.append(UInt8(len & 0xFF))
         out.append(unpadded)
         let paddedLen = calcPaddedLen(len)
         out.append(Data(repeating: 0, count: paddedLen - len))
@@ -167,19 +160,10 @@ public enum NIP44Crypto {
     /// Remove NIP-44 padding, returning the plaintext string.
     static func unpad(_ padded: Data) -> String? {
         guard padded.count >= 2 else { return nil }
-        let firstTwo = (Int(padded[0]) << 8) | Int(padded[1])
-        let prefixLen: Int
-        let unpaddedLen: Int
-        if firstTwo == 0 {
-            guard padded.count >= 6 else { return nil }
-            unpaddedLen = (Int(padded[2]) << 24) | (Int(padded[3]) << 16) | (Int(padded[4]) << 8) | Int(padded[5])
-            guard unpaddedLen >= 65536 else { return nil }
-            prefixLen = 6
-        } else {
-            unpaddedLen = firstTwo
-            prefixLen = 2
-        }
-        guard unpaddedLen >= 1, padded.count == prefixLen + calcPaddedLen(unpaddedLen) else { return nil }
+        let unpaddedLen = (Int(padded[0]) << 8) | Int(padded[1])
+        let prefixLen = 2
+        guard unpaddedLen >= 1, unpaddedLen <= 65535,
+              padded.count == prefixLen + calcPaddedLen(unpaddedLen) else { return nil }
         let unpadded = padded[prefixLen..<(prefixLen + unpaddedLen)]
         return String(data: unpadded, encoding: .utf8)
     }

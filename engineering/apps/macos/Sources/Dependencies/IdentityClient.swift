@@ -38,12 +38,18 @@ public struct IdentityClient: Sendable {
     /// local-key identity. Returns the reviewer's pubkey hex on success, nil on
     /// failure. Implements: FR-srm-bunker-connect
     public var connectBunker: @Sendable () async -> String?
+    /// Close the bunker control channel (cancel WebSocket + receive loop).
+    /// Called on window close. No-op for a local-key identity.
+    public var closeBunker: @Sendable () -> Void
 }
 
 extension IdentityClient: DependencyKey {
     public static let liveValue: IdentityClient = {
         // Load once and cache: the identity stays in memory for the app lifetime.
-        let loaded = LoadedIdentity.load()
+        // Capture the injected bunkerClient so the bunker path routes through DI
+        // (testable via withDependencies) rather than hardcoding .liveValue.
+        let bunkerClient = DependencyValues._current.bunkerClient
+        let loaded = LoadedIdentity.load(bunkerClient: bunkerClient)
         return IdentityClient(
             loadIdentity: { loaded?.identity },
             currentSecret: { loaded?.secret },
@@ -52,6 +58,9 @@ extension IdentityClient: DependencyKey {
             },
             connectBunker: {
                 await loaded?.connectBunker()
+            },
+            closeBunker: {
+                loaded?.closeBunker()
             }
         )
     }()
@@ -73,20 +82,29 @@ private final class LoadedIdentity: @unchecked Sendable {
     var identity: ReviewerIdentity
     let secret: Data?
     let bunkerConfig: BunkerConfig?
+    let bunkerClient: BunkerClient
 
-    init(identity: ReviewerIdentity, secret: Data?, bunkerConfig: BunkerConfig?) {
+    init(identity: ReviewerIdentity, secret: Data?, bunkerConfig: BunkerConfig?, bunkerClient: BunkerClient) {
         self.identity = identity
         self.secret = secret
         self.bunkerConfig = bunkerConfig
+        self.bunkerClient = bunkerClient
     }
 
-    static func load() -> LoadedIdentity? {
+    static func load(bunkerClient: BunkerClient) -> LoadedIdentity? {
         let env = ProcessInfo.processInfo.environment
 
         // 1. SHEPHERD_BUNKER env (bunker:// URI)
         if let uri = env["SHEPHERD_BUNKER"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !uri.isEmpty, let config = BunkerConfig.parse(uri) {
-            return LoadedIdentity.bunker(config: config)
+           !uri.isEmpty {
+            if let config = BunkerConfig.parse(uri) {
+                return LoadedIdentity.bunker(config: config, bunkerClient: bunkerClient)
+            }
+            // Malformed bunker:// URI → parse-error identity state (not silent
+            // fallthrough to nsec). Spec: highest precedence, distinct error state.
+            if uri.hasPrefix("bunker://") {
+                return LoadedIdentity.parseError(bunkerClient: bunkerClient)
+            }
         }
 
         // 2. ~/.config/nostr/bunker file
@@ -97,11 +115,11 @@ private final class LoadedIdentity: @unchecked Sendable {
                 let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
                 if let config = BunkerConfig.parse(trimmed) {
-                    return LoadedIdentity.bunker(config: config)
+                    return LoadedIdentity.bunker(config: config, bunkerClient: bunkerClient)
                 }
                 // Malformed bunker URI → parse-error identity state
                 if trimmed.hasPrefix("bunker://") {
-                    return LoadedIdentity.parseError()
+                    return LoadedIdentity.parseError(bunkerClient: bunkerClient)
                 }
             }
         }
@@ -109,7 +127,7 @@ private final class LoadedIdentity: @unchecked Sendable {
         // 3. SHEPHERD_NSEC env (nsec1... or hex)
         if let raw = env["SHEPHERD_NSEC"]?.trimmingCharacters(in: .whitespacesAndNewlines),
            !raw.isEmpty {
-            if let local = loadLocalKey(raw) { return local }
+            if let local = loadLocalKey(raw, bunkerClient: bunkerClient) { return local }
         }
 
         // 4. ~/.config/nostr/identity file
@@ -119,7 +137,7 @@ private final class LoadedIdentity: @unchecked Sendable {
             for line in contents.split(separator: "\n") {
                 let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
-                if let local = loadLocalKey(trimmed) { return local }
+                if let local = loadLocalKey(trimmed, bunkerClient: bunkerClient) { return local }
             }
         }
 
@@ -127,7 +145,7 @@ private final class LoadedIdentity: @unchecked Sendable {
     }
 
     /// Load a local secret key (bech32 nsec1... or hex). Returns nil on a bad key.
-    private static func loadLocalKey(_ raw: String) -> LoadedIdentity? {
+    private static func loadLocalKey(_ raw: String, bunkerClient: BunkerClient) -> LoadedIdentity? {
         var secret: Data?
         if raw.hasPrefix("nsec1") {
             if let decoded = Bech32.decode(raw), decoded.prefix == "nsec" {
@@ -146,7 +164,8 @@ private final class LoadedIdentity: @unchecked Sendable {
                 pubkeyHex: pubkeyHex, npub: npub, displayName: displayName, source: .localKey
             ),
             secret: secret,
-            bunkerConfig: nil
+            bunkerConfig: nil,
+            bunkerClient: bunkerClient
         )
     }
 
@@ -154,25 +173,25 @@ private final class LoadedIdentity: @unchecked Sendable {
     /// is empty until the bunker handshake completes; `loadIdentity` returns the
     /// identity with `.connecting` state so the indicator can show the handshake
     /// in progress. After `connectBunker()` succeeds, the identity is updated.
-    private static func bunker(config: BunkerConfig) -> LoadedIdentity {
+    private static func bunker(config: BunkerConfig, bunkerClient: BunkerClient) -> LoadedIdentity {
         let identity = ReviewerIdentity(
             pubkeyHex: "", npub: "", displayName: "Connecting…",
             source: .bunker,
             bunkerState: .connecting,
             bunkerRelayURL: config.relayURL
         )
-        return LoadedIdentity(identity: identity, secret: nil, bunkerConfig: config)
+        return LoadedIdentity(identity: identity, secret: nil, bunkerConfig: config, bunkerClient: bunkerClient)
     }
 
     /// Create a parse-error identity (malformed bunker:// URI).
-    private static func parseError() -> LoadedIdentity {
+    private static func parseError(bunkerClient: BunkerClient) -> LoadedIdentity {
         let identity = ReviewerIdentity(
             pubkeyHex: "", npub: "", displayName: "Invalid bunker URI",
             source: .bunker,
             bunkerState: .failed("Malformed bunker:// URI"),
             bunkerRelayURL: nil
         )
-        return LoadedIdentity(identity: identity, secret: nil, bunkerConfig: nil)
+        return LoadedIdentity(identity: identity, secret: nil, bunkerConfig: nil, bunkerClient: bunkerClient)
     }
 
     // MARK: - Signing
@@ -185,7 +204,8 @@ private final class LoadedIdentity: @unchecked Sendable {
             return event.sign(secretKey: secret)
         }
         if bunkerConfig != nil {
-            return await BunkerClient.liveValue.signEvent(event)
+            // Route through the injected bunkerClient (DI), not .liveValue.
+            return await bunkerClient.signEvent(event)
         }
         return nil
     }
@@ -195,7 +215,7 @@ private final class LoadedIdentity: @unchecked Sendable {
     // Implements: FR-srm-bunker-connect
     func connectBunker() async -> String? {
         guard let config = bunkerConfig else { return nil }
-        let pubkey = await BunkerClient.liveValue.connect(config)
+        let pubkey = await bunkerClient.connect(config)
         if let pubkey {
             // Update the identity with the resolved pubkey
             let npub = Bech32.encode(Data(hexString: pubkey) ?? Data(), prefix: "npub")
@@ -207,6 +227,11 @@ private final class LoadedIdentity: @unchecked Sendable {
             identity.bunkerState = .failed("Bunker unreachable")
         }
         return pubkey
+    }
+
+    /// Close the bunker control channel. No-op for a local-key identity.
+    func closeBunker() {
+        bunkerClient.close()
     }
 
     /// Display name from roster.json for this pubkey, else truncated npub.

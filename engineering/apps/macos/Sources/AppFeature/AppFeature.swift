@@ -468,8 +468,15 @@ public struct AppFeature {
                 }
 
             case .windowClosed:
-                // Stop the relay subscription when the window goes away.
-                return .cancel(id: CancelID.patchReplySubscription)
+                // Stop the relay subscription and close the bunker control channel
+                // when the window goes away. Implements: FR-srm-bunker-connect (lifecycle).
+                return .merge(
+                    .cancel(id: CancelID.patchReplySubscription),
+                    .cancel(id: CancelID.bunkerConnect),
+                    .run { [identityClient] _ in
+                        identityClient.closeBunker()
+                    }
+                )
 
             // MARK: - Patch-thread reply live subscription (FR-sr-patch-replies-live)
 
@@ -868,12 +875,19 @@ public struct AppFeature {
                 .cancellable(id: CancelID.publishConfirmation, cancelInFlight: true)
             )
         case .rejected, .failed:
-            // Distinguish bunker sign failure (signedEvent is nil — the bunker
-            // didn't respond) from relay failure (signedEvent exists but no relay
-            // accepted it). Implements: FR-srm-bunker-sign-failure.
-            if signedEvent == nil {
+            // Distinguish bunker sign failure (signedEvent is nil AND identity is
+            // a bunker — the bunker didn't sign) from relay failure (signedEvent
+            // exists but no relay accepted it) from local-key sign failure.
+            // Implements: FR-srm-bunker-sign-failure.
+            if signedEvent == nil, state.reviewerIdentity?.source == .bunker {
                 state.comment.publishState = .failed(
                     "Couldn't publish reply — the bunker didn't respond. Your comment is saved locally."
+                )
+                // Flip the indicator's status dot to red with the failure cause.
+                state.reviewerIdentity?.bunkerState = .failed("Bunker didn't respond")
+            } else if signedEvent == nil {
+                state.comment.publishState = .failed(
+                    "Couldn't sign reply — check your identity configuration. Your comment is saved locally."
                 )
             } else {
                 state.comment.publishState = .failed(
