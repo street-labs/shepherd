@@ -8,6 +8,7 @@ import InspectorFeature
 import PromptFeature
 import ReviewContextFeature
 import IdentityFeature
+import OpenPatchFeature
 
 /// Root view. Implements the layout described in the design spec.
 /// Conditional layout: empty -> FileDropZone, 1 file -> HSplitView, 2+ -> NavigationSplitView
@@ -78,6 +79,9 @@ public struct AppView: View {
         .alert($store.scope(state: \.alert, action: \.alert))
         .sheet(item: $store.scope(state: \.identity, action: \.identity)) { identityStore in
             IdentityView(store: identityStore)
+        }
+        .sheet(item: $store.scope(state: \.openPatch, action: \.openPatch)) { openPatchStore in
+            OpenPatchView(store: openPatchStore)
         }
         .onAppear {
             store.send(.windowAppeared)

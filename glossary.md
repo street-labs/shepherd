@@ -64,6 +64,11 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: nip44
 **Not to be confused with**: NIP-04 (the older AES-CBC direct-message scheme, which NIP-46 no longer uses); NIP-46 (the remote-signing protocol that uses NIP-44 for payload encryption, not an encryption scheme itself)
 
+## NIP-34 Patch
+**Definition**: A Nostr event representing a git patch, per NIP-34 (the Nostr git protocol). A NIP-34 patch is **kind `1617`**; its content is the output of `git format-patch` (a unified diff with a commit-message subject line) and its tags carry the repository coordinate (`a` tag, `30617:<owner>:<repo>`), `commit` and `parent-commit` ids, and `committer`. (Kind `1618` is a pull request and kind `1621` is an **issue** — neither is a patch; Shepherd's in-app v1 patch open reviews kind `1617` only.) A patch's status (`open`/`merged`/`closed`/`draft`) is **not** a tag on the patch event — it is conveyed by separate kind `1630`–`1633` status events that reference the patch via an `e` tag. A patch can be opened for review two ways: via the CLI (`/shepherd-review --patch <event-id>`, which applies it to a temporary git review branch) or in-app by entering its event reference in the Open Patch dialog (which loads the diff directly, no git repo required). Reviewers publish kind:1 Patch-Thread Replies against it.
+**Also known as**: ngit patch, Nostr patch, patch event
+**Not to be confused with**: Patch-Thread Reply (a kind:1 comment *on* a patch, not the patch itself); a NIP-34 issue (kind `1621`, a markdown conversational thread, not a diff); a NIP-34 pull request (kind `1618`, which carries a clone URL + commit, not an inline diff); a git patch/commit in a local repo (a NIP-34 patch is a Nostr event that *contains* a unified diff)
+
 ## Patch-Thread Reply
 **Definition**: A kind:1 Nostr text note published as a comment on a NIP-34 patch event, tagged with the patch event as the thread root (an `e` tag with the `root` marker) plus the repository `a` tag, and optionally a line-range anchor pinning it to a file and line span in the applied patch. Both other participants' replies (read by the review tool) and the reviewer's own published replies use this format.
 **Also known as**: Patch reply, thread reply

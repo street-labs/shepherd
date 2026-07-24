@@ -31,6 +31,14 @@ struct FileDropZoneView: View {
                     store.send(.pasteFileFromClipboard)
                 }
                 .keyboardShortcut("v", modifiers: .command)
+
+                Button("Open Patch…") {
+                    store.send(.openPatchRequested)
+                }
+                // Implements: FR-srm-patch-open-entry
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+                .help("Open a NIP-34 patch by event id (⌘⇧P)")
+                .accessibilityLabel("Open a NIP-34 patch by event id")
             }
             .padding(.top, 8)
         }

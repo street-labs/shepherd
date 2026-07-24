@@ -177,6 +177,15 @@ let package = Package(
             swiftSettings: warningsAsErrors
         ),
         .target(
+            name: "OpenPatchFeature",
+            dependencies: [
+                "SharedModels",
+                "ShepherdDependencies",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            ],
+            swiftSettings: warningsAsErrors
+        ),
+        .target(
             name: "MarkdownRenderFeature",
             dependencies: [
                 "SharedModels",
@@ -200,6 +209,7 @@ let package = Package(
                 "ReviewContextFeature",
                 "IdentityFeature",
                 "MarkdownRenderFeature",
+                "OpenPatchFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
             swiftSettings: warningsAsErrors
@@ -228,6 +238,7 @@ let package = Package(
             name: "AppFeatureTests",
             dependencies: [
                 "AppFeature",
+                "OpenPatchFeature",
                 "ShepherdDependencies",
                 .product(name: "P256K", package: "swift-secp256k1"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
