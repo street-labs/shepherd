@@ -8,6 +8,7 @@ import InspectorFeature
 import PromptFeature
 import SessionFeature
 import ReviewContextFeature
+import IdentityFeature
 import MarkdownRenderFeature
 import IdentifiedCollections
 import Foundation
@@ -69,6 +70,11 @@ public struct AppFeature {
 
         // Navigation / alerts
         @Presents public var alert: AlertState<Action.Alert>?
+
+        /// Presented in-app identity login/create window. Presented at launch when
+        /// no identity is available, and on demand for switching/logging out.
+        /// Implements: FR-id-screen-when-no-identity, FR-id-optional-reentry.
+        @Presents public var identity: IdentityFeature.State?
 
         // Derived
         public var isMultiFile: Bool { files.count >= 2 }
@@ -154,6 +160,13 @@ public struct AppFeature {
         // Window lifecycle
         case windowAppeared
         case windowClosed
+
+        // In-app identity login/create/logout. Implements: FR-id-screen-when-no-identity,
+        // FR-id-optional-reentry, FR-id-nsec-login, FR-id-create-new, FR-id-logout,
+        // FR-id-bunker-login.
+        case loadIdentityAtLaunch
+        case openIdentityScreen
+        case identity(PresentationAction<IdentityFeature.Action>)
 
         // Patch-thread reply live subscription (FR-sr-patch-replies-live via
         // FR-sr-relay-client). The app subscribes to Nostr relays in-process and
@@ -462,10 +475,60 @@ public struct AppFeature {
 
             // MARK: - Window Lifecycle
 
+            // Implements: FR-id-screen-when-no-identity (launch gate)
             case .windowAppeared:
-                return .run { [windowClient, sessionID = state.session.sessionID] _ in
-                    await windowClient.configureAutosave(sessionID)
+                return .merge(
+                    .run { [windowClient, sessionID = state.session.sessionID] _ in
+                        await windowClient.configureAutosave(sessionID)
+                    },
+                    .send(.loadIdentityAtLaunch)
+                )
+
+            // Implements: FR-id-screen-when-no-identity
+            case .loadIdentityAtLaunch:
+                let identity = identityClient.loadIdentity()
+                state.reviewerIdentity = identity
+                // Only gate when no identity is available from any source.
+                if identity == nil {
+                    state.identity = IdentityFeature.State()
                 }
+                return .none
+
+            // Implements: FR-id-optional-reentry
+            case .openIdentityScreen:
+                state.identity = IdentityFeature.State(activeIdentity: state.reviewerIdentity)
+                return .none
+
+            // MARK: - In-app identity delegates
+
+            case let .identity(.presented(.identityAdopted(identity))):
+                state.reviewerIdentity = identity
+                state.identity = nil
+                // If the adopted identity is a bunker in .connecting state, start
+                // the handshake (reuses the existing patch-review connect path).
+                if identity.source == .bunker, identity.bunkerState == .connecting {
+                    return .run { [identityClient] send in
+                        let pubkey = await identityClient.connectBunker()
+                        await send(.bunkerConnectCompleted(pubkey))
+                    }
+                    .cancellable(id: CancelID.bunkerConnect, cancelInFlight: true)
+                }
+                return .none
+
+            case .identity(.presented(.identitySkipped)):
+                state.identity = nil
+                return .none
+
+            case .identity(.presented(.identityLoggedOut)):
+                state.reviewerIdentity = nil
+                state.identity = IdentityFeature.State()
+                return .none
+
+            case .identity(.dismiss):
+                return .none
+
+            case .identity:
+                return .none
 
             case .windowClosed:
                 // Stop the relay subscription and close the bunker control channel
@@ -689,6 +752,9 @@ public struct AppFeature {
             case .reviewContext:
                 return .none
             }
+        }
+        .ifLet(\.$identity, action: \.identity) {
+            IdentityFeature()
         }
         .ifLet(\.$alert, action: \.alert)
     }

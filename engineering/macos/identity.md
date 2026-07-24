@@ -139,16 +139,16 @@ Validation, key derivation, and Keychain writes are all synchronous local operat
 
 | Slug | Planned location | Status |
 |---|---|---|
-| FR-id-nsec-login | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-create-new | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-show-new-nsec | engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityView.swift | planned |
-| FR-id-persistence | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | planned |
-| FR-id-active-indicator | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityView.swift | planned |
-| FR-id-logout | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-bunker-login | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-bunker-persist | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | planned |
-| FR-id-bunker-connect-failure | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-out-of-band-honored | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | planned |
-| FR-id-no-silent-override | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | planned |
-| FR-id-screen-when-no-identity | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-optional-reentry | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
+| FR-id-nsec-login | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| FR-id-create-new | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| FR-id-show-new-nsec | engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityView.swift | implemented |
+| FR-id-persistence | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | implemented |
+| FR-id-active-indicator | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityView.swift | implemented |
+| FR-id-logout | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| FR-id-bunker-login | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| FR-id-bunker-persist | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | implemented |
+| FR-id-bunker-connect-failure | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| FR-id-out-of-band-honored | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | implemented |
+| FR-id-no-silent-override | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | implemented |
+| FR-id-screen-when-no-identity | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| FR-id-optional-reentry | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |

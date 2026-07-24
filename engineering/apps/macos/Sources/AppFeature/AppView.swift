@@ -7,6 +7,7 @@ import CommentFeature
 import InspectorFeature
 import PromptFeature
 import ReviewContextFeature
+import IdentityFeature
 
 /// Root view. Implements the layout described in the design spec.
 /// Conditional layout: empty -> FileDropZone, 1 file -> HSplitView, 2+ -> NavigationSplitView
@@ -75,6 +76,9 @@ public struct AppView: View {
         }
         .animation(.easeInOut(duration: 0.12), value: isDropTargeted)
         .alert($store.scope(state: \.alert, action: \.alert))
+        .sheet(item: $store.scope(state: \.identity, action: \.identity)) { identityStore in
+            IdentityView(store: identityStore)
+        }
         .onAppear {
             store.send(.windowAppeared)
         }
