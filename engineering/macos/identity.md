@@ -33,8 +33,10 @@ public struct KeychainClient: Sendable {
     /// form) or a UTF-8 bunker URI string (bunker form), or nil if none is stored.
     public var readIdentity: @Sendable () -> Data?
     /// Store identity material (32-byte secret key or UTF-8 bunker URI as Data).
-    /// Overwrites any existing entry.
-    public var writeIdentity: @Sendable (Data) -> Void
+    /// Overwrites any existing entry. Returns true on success, false on a
+    /// Keychain write failure (locked keychain, duplicate, etc.) so callers can
+    /// refuse to adopt an identity that was not persisted.
+    public var writeIdentity: @Sendable (Data) -> Bool
     /// Delete the stored identity (logout). No-op if none stored.
     public var deleteIdentity: @Sendable () -> Void
 }
@@ -69,12 +71,14 @@ public struct IdentityClient: Sendable {
     /// .failure(.storageFailed) if the Keychain write fails.
     /// Implements: FR-id-create-new, FR-id-show-new-nsec.
     public var createNewIdentity: @Sendable () -> Result<(identity: ReviewerIdentity, nsec: String), IdentityLoginError>
-    /// Parse a bunker:// URI, persist it to Keychain, run the NIP-46 connect
-    /// handshake via BunkerClient, obtain the reviewer's pubkey, and adopt the
-    /// bunker identity. Returns .failure(.invalidURI) for a malformed URI,
-    /// .failure(.connectFailed) if the bunker cannot be reached. On a connect
-    /// failure the persisted URI is removed (no orphaned identity).
-    /// Implements: FR-id-bunker-login, FR-id-bunker-connect-failure.
+    /// Parse a bunker:// URI, run the NIP-46 connect handshake via BunkerClient,
+    /// obtain the reviewer's pubkey, and adopt the bunker identity. The URI is
+    /// persisted only after a successful connect; a failed handshake snapshots
+    /// and restores the previous identity (in memory + Keychain), so a failed
+    /// login attempt cannot wipe the reviewer's existing identity. Returns
+    /// .failure(.invalidURI) for a malformed URI, .failure(.connectFailed) if the
+    /// bunker cannot be reached, .failure(.storageFailed) if the persist fails.
+    /// Implements: FR-id-bunker-login, FR-id-bunker-connect-failure, FR-id-bunker-persist.
     public var loginWithBunker: @Sendable (String) async -> Result<ReviewerIdentity, IdentityLoginError>
     /// Forget the app-stored identity (Keychain delete) and clear the cached
     /// loaded identity. Implements: FR-id-logout (both forms).

@@ -57,6 +57,49 @@ final class IdentityFeatureTests: XCTestCase {
         }
     }
 
+    func testLoginStorageFailureShowsError() async throws {
+        // Keychain write failed — the identity is not adopted and a distinct
+        // error is shown so the reviewer knows it won't survive relaunch.
+        let store = TestStore(initialState: IdentityFeature.State()) {
+            IdentityFeature()
+        } withDependencies: {
+            $0.identityClient.loginWithKey = { _ in .failure(.storageFailed) }
+        }
+        store.exhaustivity = .off
+        await store.send(.set(\.input, "nsec1somekey")) {
+            $0.input = "nsec1somekey"
+        }
+        await store.send(.signInTapped)
+        await store.receive(\.loginResult) {
+            $0.error = "Could not save identity — check Keychain access."
+        }
+    }
+
+    func testBunkerConnectFailureRestoresPreviousIdentity() async throws {
+        // A failed bunker login must not wipe an existing identity. The reducer
+        // sees .connectFailed and surfaces it; the IdentityClient (covered by the
+        // live path + this stub) snapshots/restores the previous identity.
+        let store = TestStore(initialState: IdentityFeature.State()) {
+            IdentityFeature()
+        } withDependencies: {
+            $0.identityClient.loginWithBunker = { _ in .failure(.connectFailed) }
+        }
+        store.exhaustivity = .off
+        await store.send(.formChanged(.bunker)) {
+            $0.form = .bunker
+        }
+        await store.send(.set(\.input, "bunker://abc")) {
+            $0.input = "bunker://abc"
+        }
+        await store.send(.signInTapped) {
+            $0.connecting = true
+        }
+        await store.receive(\.bunkerLoginResult) {
+            $0.connecting = false
+            $0.error = "Couldn't connect to the bunker — check the URI, relay, and secret. Your input is retained."
+        }
+    }
+
     func testCreateNewShowsBackupReveal() async throws {
         let identity = ReviewerIdentity(
             pubkeyHex: "ab", npub: "npub1ab", displayName: "test", source: .localKey

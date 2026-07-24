@@ -12,8 +12,10 @@ public struct KeychainClient: Sendable {
     /// form) or a UTF-8 `bunker://` URI (bunker form), or nil if none stored.
     public var readIdentity: @Sendable () -> Data?
     /// Store identity material (32-byte secret key or UTF-8 bunker URI as Data).
-    /// Overwrites any existing entry.
-    public var writeIdentity: @Sendable (Data) -> Void
+    /// Overwrites any existing entry. Returns true on success, false on a
+    /// Keychain write failure (locked keychain, duplicate, etc.) so callers can
+    /// refuse to adopt an identity that was not persisted.
+    public var writeIdentity: @Sendable (Data) -> Bool = { _ in false }
     /// Delete the stored identity (logout). No-op if none stored.
     public var deleteIdentity: @Sendable () -> Void
 }
@@ -45,7 +47,7 @@ extension KeychainClient: DependencyKey {
         return data
     }
 
-    private static func write(data: Data, service: String, account: String) {
+    private static func write(data: Data, service: String, account: String) -> Bool {
         delete(service: service, account: account)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -53,7 +55,7 @@ extension KeychainClient: DependencyKey {
             kSecAttrAccount as String: account,
             kSecValueData as String: data,
         ]
-        SecItemAdd(query as CFDictionary, nil)
+        return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
     }
 
     private static func delete(service: String, account: String) {

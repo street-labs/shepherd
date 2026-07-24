@@ -132,8 +132,8 @@ final class IdentityHolder: @unchecked Sendable {
     func loginWithKey(_ raw: String) -> Result<ReviewerIdentity, IdentityLoginError> {
         guard let new = LoadedIdentity.loadLocalKey(
             raw, bunkerClient: bunkerClient, keychainClient: keychainClient
-        ) else { return .failure(.invalidKey) }
-        keychainClient.writeIdentity(new.secret!)
+        ), let secret = new.secret else { return .failure(.invalidKey) }
+        guard keychainClient.writeIdentity(secret) else { return .failure(.storageFailed) }
         loaded = new
         return .success(new.identity)
     }
@@ -156,7 +156,9 @@ final class IdentityHolder: @unchecked Sendable {
         let identity = ReviewerIdentity(
             pubkeyHex: pubkeyHex, npub: npub, displayName: displayName, source: .localKey
         )
-        keychainClient.writeIdentity(key)
+        // Persist before adopting: refuse to hand back an nsec the app can't
+        // restore on relaunch. The reviewer backs up an nsec that is actually durable.
+        guard keychainClient.writeIdentity(key) else { return .failure(.storageFailed) }
         loaded = LoadedIdentity(
             identity: identity, secret: key, bunkerConfig: nil,
             bunkerClient: bunkerClient, keychainClient: keychainClient
@@ -170,19 +172,42 @@ final class IdentityHolder: @unchecked Sendable {
               let config = BunkerConfig.parse(uri) else {
             return .failure(.invalidURI)
         }
-        // Persist the URI before the handshake so a successful connect is durable.
-        keychainClient.writeIdentity(Data(uri.utf8))
+        // Snapshot the existing identity so a failed login attempt cannot wipe it.
+        // Persist only after a successful connect: a failed handshake leaves the
+        // previous Keychain entry and in-memory identity untouched.
+        let previousLoaded = loaded
+        let previousKeychain = keychainClient.readIdentity()
         // Close any existing bunker session before reconnecting.
         loaded?.closeBunker()
         let new = LoadedIdentity.bunker(
             config: config, bunkerClient: bunkerClient, keychainClient: keychainClient
         )
-        loaded = new
         guard await new.connectBunker() != nil else {
-            // Connect failed: remove the persisted URI so no orphaned identity lingers.
-            keychainClient.deleteIdentity()
+            // Connect failed: restore the previous identity in memory + Keychain.
+            // Do not adopt the new identity; do not delete the previous one.
+            loaded = previousLoaded
+            if let prev = previousKeychain {
+                _ = keychainClient.writeIdentity(prev)
+            } else {
+                keychainClient.deleteIdentity()
+            }
             return .failure(.connectFailed)
         }
+        // Success: persist the new URI, overwriting the previous entry.
+        guard keychainClient.writeIdentity(Data(uri.utf8)) else {
+            // Persist failed even though the connect succeeded. The identity works
+            // for this session but won't survive relaunch; surface it as a failure
+            // so the reviewer is not surprised next launch. Restore the previous.
+            new.closeBunker()
+            loaded = previousLoaded
+            if let prev = previousKeychain {
+                _ = keychainClient.writeIdentity(prev)
+            } else {
+                keychainClient.deleteIdentity()
+            }
+            return .failure(.storageFailed)
+        }
+        loaded = new
         return .success(new.identity)
     }
 
