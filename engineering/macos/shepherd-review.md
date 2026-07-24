@@ -60,8 +60,8 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 | `engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift` | **MODIFIED** | Adds a `Reply` button per inspector row (`FR-srm-reply-to-reply`). |
 | `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` | **MODIFIED** | Identity state, comment-submit publish path (now async-sign then publish), `.replyToPatchReply` action, self-reply dedup, and — for bunker identities — the connect handshake lifecycle (start on patch window open, cancel on close), bunker-failure state on sign/publish, and retry (`FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`, `FR-srm-bunker-connect`, `FR-srm-bunker-sign-failure`). |
 | `engineering/apps/macos/Package.swift` | **MODIFIED** | Adds the `swift-secp256k1` package dependency (module `P256K`, successor to `secp256k1.swift`) for in-process Schnorr signing (`FR-srm-event-sign`). |
-| `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **MODIFIED** | `NostrFilter` gains an `ids: [String]` field (and optional `relays` hint decoded from `nevent1`/`naddr1`) so the in-app patch-open path can fetch a single event by id (`FR-srm-patch-open-fetch`). The existing `eTag`/`kinds` subscription is unchanged. |
-| `engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift` | **NEW** | Minimal NIP-19 bech32 decoder for `nevent1`/`naddr1` references → referenced event id + relays. Reuses the bech32 alphabet already in `Bech32.swift`. (`FR-srm-patch-open-input`.) |
+| `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **MODIFIED** | `NostrFilter` gains an `ids: [String]` field (and an optional `relays:` hint decoded from `nevent1`) so the in-app patch-open path can fetch a single event by id with no `kinds` filter (`FR-srm-patch-open-fetch`). The existing `eTag`/`kinds` subscription is unchanged. |
+| `engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift` | **NEW** | Minimal NIP-19 bech32 decoder for `nevent1` references → referenced event id + relays. Reuses the bech32 alphabet already in `Bech32.swift`. (`naddr1` is not supported — NIP-34 patches are kind 1617 with no `naddr` form; see `FR-srm-patch-open-input`.) |
 | `engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift` | **NEW** | Pure function: a NIP-34 patch event's unified-diff content → `[(filePath, diffBlock)]`, split on each `diff --git a/<p> b/<p>` boundary. Also extracts patch metadata tags (`a`, `commit`/`m`, `parent-commit`, `status`, author pubkey) into a `ReviewContext.PatchMetadata`. Implements the parse half of `FR-srm-patch-open-load` and the validation half of `FR-srm-patch-open-fetch`. |
 | `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift` | **NEW** | TCA reducer for the Open Patch dialog: input text, format validation, fetch-via-`RelayClient`, kind/diff validation, and on success a `.patchLoaded([LoadedFile], PatchMetadata)` effect. States map 1:1 to the design's dialog states (idle / invalid / fetching / not-found / wrong-kind / bad-diff / no-relays). Implements `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`. |
 | `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift` | **NEW** | The Open Patch sheet (title, text field, inline error, Fetch/Cancel footer) and the empty-state `Open Patch…` button + `Cmd+Shift+P` shortcut. Implements `FR-srm-patch-open-entry` and the dialog surface in `design/macos/shepherd-review.md` → In-App Patch Open. |
@@ -594,7 +594,9 @@ A second, CLI-free path into a patch review. The reviewer is in the native app's
 
 ### Why fetch by event id reuses the relay client
 
-`FR-sr-relay-client` already speaks NIP-01 over `URLSessionWebSocketTask` in-process for the live patch-thread reply loop. The only gap for fetching a *patch event* by id is that `NostrFilter` exposes `eTag` + `kinds` only. The change is additive: `NostrFilter` gains an `ids: [String]` field (and an optional `relays:` hint so a `nevent1`/`naddr1` reference can direct the fetch at its encoded relays). `RelaySubscriptionTask` already builds a `REQ` frame from the filter's `jsonObject`; `ids` maps to the NIP-01 `ids` filter key. No new transport, no new dependency.
+`FR-sr-relay-client` already speaks NIP-01 over `URLSessionWebSocketTask` in-process for the live patch-thread reply loop. The only gap for fetching a *patch event* by id is that `NostrFilter` exposes `eTag` + `kinds` only. The change is additive: `NostrFilter` gains an `ids: [String]` field (and an optional `relays:` hint so a `nevent1` reference can direct the fetch at its encoded relays). `RelaySubscriptionTask` already builds a `REQ` frame from the filter's `jsonObject`; `ids` maps to the NIP-01 `ids` filter key. No new transport, no new dependency.
+
+The fetch uses an **`ids`-only filter with no `kinds` constraint**. This is deliberate: a `kinds:[1617]` filter would make the wrong-kind validation state unreachable (a non-1617 id would be filtered out by the relay and return as "not found" instead of being fetched and rejected as wrong kind). Fetching by `ids` alone returns the event whatever its kind, so `OpenPatchFeature` can produce the precise wrong-kind message (`AC-srm-patch-open-wrong-kind`). The kind check happens in `PatchDiffSplitter.validate` after the event arrives.
 
 The subscription is opened, the first matching event is taken as the patch, and the subscription is cancelled immediately (we want one event, not a stream). A wait window (a few seconds, configurable) bounds the fetch; if no event arrives, the dialog reports not-found.
 
@@ -612,9 +614,9 @@ The CLI path generates neutral + review context per file via the agent (`FR-sr-p
 FileDropZoneView
   └─ .openPatchRequested ──────────────────────► AppFeature (presents sheet)
                                                      └─ OpenPatchFeature
-                                                          ├─ validate input (hex id | nevent1/naddr1 via NIP19Decode)
-                                                          ├─ RelayClient.subscribe(NostrFilter(ids:[id], kinds:[1617,1621], relays:...))
-                                                          ├─ first event → PatchDiffSplitter.validate (kind + diff format)
+                                                          ├─ validate input (hex id | nevent1 via NIP19Decode)
+                                                          ├─ RelayClient.subscribe(NostrFilter(ids:[id], relays:...))   // no kinds filter
+                                                          ├─ first event → PatchDiffSplitter.validate (kind == 1617, then diff format)
                                                           └─ success → .patchLoaded([LoadedFile], PatchMetadata)
                   └─ AppFeature.patchLoaded:
                        ├─ files = diff blocks → FileNode(language: .diff)  (reuses .filesLoaded path)

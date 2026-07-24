@@ -944,14 +944,14 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
   7. Confirm no shell process or `/shepherd-review` invocation was used (the review started entirely in-app).
 - **Expected**: Patch opens in-app by event id; per-file diff tabs load; patch metadata + live thread + publish all activate with no CLI/shell.
 
-#### nevent/naddr reference opens the patch `TC-srm-patch-open-nevent`
+#### nevent reference opens the patch `TC-srm-patch-open-nevent`
 - **Type**: Manual
 - **Covers**: `AC-srm-patch-open-nevent`, `FR-srm-patch-open-input`
-- **Preconditions**: As above; a `nevent1…` (or `naddr1…`) encoding of the patch event is available.
+- **Preconditions**: As above; a `nevent1…` encoding of the patch event is available.
 - **Steps**:
   1. Open the sheet and paste the `nevent1…` reference; submit.
   2. Confirm the fetch is directed at the relays encoded in the reference and the patch loads as in `TC-srm-patch-open-happy`.
-- **Expected**: `nevent1`/`naddr1` references decode to the event id + relays and open the patch.
+- **Expected**: `nevent1` references decode to the event id + relays and open the patch. (`naddr1` is not accepted — NIP-34 patches are kind 1617 with no `naddr` form.)
 
 #### Invalid reference rejected inline `TC-srm-patch-open-invalid-id`
 - **Type**: Automated (unit) + Manual
@@ -959,9 +959,9 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Preconditions**: App in empty state.
 - **Steps**:
   1. Open the sheet; type `not-a-valid-ref` and submit.
-  2. Confirm an inline error `Enter a 64-character hex event id or a nevent1/naddr1 reference` appears, `Fetch` is disabled, no network call is made, and the sheet stays open.
-  3. (Unit) assert `OpenPatchFeature` produces its invalid-input state for non-hex, wrong-length, and non-bech32 inputs.
-- **Expected**: Only well-formed references trigger a fetch; everything else is rejected inline.
+  2. Confirm an inline error `Enter a 64-character hex event id or a nevent1 reference` appears, `Fetch` is disabled, no network call is made, and the sheet stays open.
+  3. (Unit) assert `OpenPatchFeature` produces its invalid-input state for non-hex, wrong-length, non-`nevent1` inputs (including `naddr1…` inputs, which are rejected as invalid for this path).
+- **Expected**: Only a hex id or a `nevent1` reference triggers a fetch; everything else (including `naddr1`) is rejected inline.
 
 #### Patch event not found `TC-srm-patch-open-not-found`
 - **Type**: Manual (with a relay fixture returning no event)
@@ -975,10 +975,10 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Type**: Automated (unit) + Manual
 - **Covers**: `AC-srm-patch-open-wrong-kind`, `FR-srm-patch-open-fetch`
 - **Steps**:
-  1. Submit an id for a real event of kind 1 (a text note) or kind 0.
-  2. Confirm the sheet reports `Event <short-id> is not a NIP-34 patch (kind <k>).` and no review starts.
-  3. (Unit) assert `PatchDiffSplitter` rejects kinds other than 1617/1621.
-- **Expected**: Only NIP-34 patch kinds load; other events are rejected with the kind named.
+  1. Submit the id of a real kind:1 text note (and separately a kind:1621 issue) that exists on the relays.
+  2. Confirm the sheet reports `Event <short-id> is not a NIP-34 patch (kind <k>).` and no review starts. (The fetch uses an `ids`-only filter so the event is returned despite not being kind 1617, then rejected by validation — not filtered out upstream as "not found".)
+  3. (Unit) assert `PatchDiffSplitter` rejects any kind other than `1617`.
+- **Expected**: Only NIP-34 patch events (kind 1617) load; other kinds (notes, issues, PRs) are rejected with the kind named.
 
 #### Malformed diff rejected `TC-srm-patch-open-bad-diff`
 - **Type**: Automated (unit)
@@ -1012,10 +1012,10 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Type**: Automated (unit)
 - **Covers**: `FR-srm-patch-open-load`
 - **Steps**:
-  1. Feed the splitter a unified diff with 3 `diff --git` blocks (files a, b, c).
+  1. Feed the splitter a kind-1617 patch event whose content (`git format-patch` output) has 3 `diff --git` blocks (files a, b, c).
   2. Assert it returns 3 `(filePath, diffBlock)` pairs with the correct paths.
-  3. Assert the extracted `PatchMetadata` carries the `a` tag repo coordinate, status, parent commit, and author pubkey from the event.
-- **Expected**: Diff splitting and metadata extraction are pure and deterministic.
+  3. Assert the extracted patch metadata carries the `a` tag repo coordinate and parent commit, the commit message from the format-patch subject line, and the author pubkey from the event. Assert it does **not** attempt to read a `status` tag (NIP-34 status lives on separate 1630–1633 events; v1 renders `open`).
+- **Expected**: Diff splitting and metadata extraction are pure, deterministic, and NIP-34-correct.
 
 ## Edge Cases and Error Scenarios
 
