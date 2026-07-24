@@ -2792,3 +2792,153 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-bunker-sign`, `TC-srm-bunker-sign-failure`
+
+### `FR-id-nsec-login`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-login-valid`, `TC-id-login-persists`, `TC-id-login-invalid-format`, `TC-id-login-invalid-checksum`, `TC-id-login-invalid-length`
+
+### `FR-id-create-new`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-create-new`, `TC-id-create-shows-nsec`, `TC-id-create-confirm-required`, `TC-id-generated-key-valid`
+
+### `FR-id-persistence`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-login-persists`, `TC-id-create-persists`
+
+### `FR-id-show-new-nsec`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-create-shows-nsec`, `TC-id-create-confirm-required`
+
+### `FR-id-active-indicator`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-active-indicator`
+
+### `FR-id-logout`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-logout`, `TC-id-logout-then-relaunch`
+
+### `FR-id-out-of-band-honored`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-out-of-band-skips`
+
+### `FR-id-no-silent-override`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-precedence-inapp-over-env`
+
+### `FR-id-screen-when-no-identity`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-skip-read-only`, `TC-id-logout-then-relaunch`
+
+### `FR-id-optional-reentry`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-switch-identity`
+
+### `NFR-id-no-plaintext-key`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-no-plaintext-disk`
+
+### `NFR-id-key-stays-local`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-no-plaintext-disk`
+
+### `NFR-id-login-latency`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-login-latency`
+
+### `NFR-id-key-validity`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-generated-key-valid`
+
+### `AC-id-login-valid`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-login-valid`, `TC-id-login-persists`
+
+### `AC-id-login-invalid`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-login-invalid-format`, `TC-id-login-invalid-checksum`, `TC-id-login-invalid-length`
+
+### `AC-id-create-new`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-create-new`, `TC-id-create-shows-nsec`, `TC-id-create-confirm-required`
+
+### `AC-id-create-persists`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-create-persists`
+
+### `AC-id-created-can-publish`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-created-publishes`
+
+### `AC-id-logout`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-logout`, `TC-id-logout-then-relaunch`
+
+### `AC-id-out-of-band-skips`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-out-of-band-skips`
+
+### `AC-id-dismiss-read-only`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-skip-read-only`
+
+### `AC-id-active-shown`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-active-indicator`
+
+### `AC-id-no-plaintext`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-no-plaintext-disk`
+
+### `AC-id-switch`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-switch-identity`
