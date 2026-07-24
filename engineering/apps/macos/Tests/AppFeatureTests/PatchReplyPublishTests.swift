@@ -71,7 +71,7 @@ struct PatchReplyPublishTests {
             $0.continuousClock = clock
             $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
             $0.identityClient.currentSecret = { Data(repeating: 1, count: 32) }
-            $0.nostrSigner.sign = { @Sendable _, _ in Self.signedEvent }
+            $0.identityClient.sign = { @Sendable _ in Self.signedEvent }
             $0.relayClient.publish = { @Sendable _ in .accepted }
         }
         store.exhaustivity = .off
@@ -103,7 +103,7 @@ struct PatchReplyPublishTests {
             $0.continuousClock = TestClock()
             $0.promptGenerator.generate = { @Sendable _, _, _ in nil }
             $0.identityClient.currentSecret = { Data(repeating: 1, count: 32) }
-            $0.nostrSigner.sign = { @Sendable _, _ in Self.signedEvent }
+            $0.identityClient.sign = { @Sendable _ in Self.signedEvent }
             $0.relayClient.publish = { @Sendable _ in .failed }
         }
         store.exhaustivity = .off

@@ -1,6 +1,6 @@
 ---
-product-hash: e2f782a2a1e892586f62ad8132f037dedece6ec76fb1fb0fd1986e06ab8336ea
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 3be8b01ef980231ee907e94c5591e47414c5e047c1e0495541e48426acbca4ae
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Technical Spec
@@ -46,17 +46,19 @@ The agent prompt itself — changeset detection, filtering, priority ordering, n
 | `engineering/apps/macos/Sources/Dependencies/PatchReplyMapper.swift` | **NEW** | Swift port of the poller's mapper: `[NostrEvent]` / single event -> `[PatchReply]` (kind:1 root filter, roster author resolution, `isBot`, `lineAnchor`). |
 | `engineering/apps/macos/Sources/SharedModels/NostrEvent.swift` | **NEW** | Minimal NIP-01 event model for the relay client + mapper. |
 | `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | **MODIFIED** | Adds a `publish` closure alongside `subscribe` that sends `EVENT` frames over WebSocket (`FR-srm-event-publish`). |
-| `engineering/apps/macos/Sources/Dependencies/NostrSigner.swift` | **NEW** | `@Dependency` wrapping secp256k1 Schnorr signing + pubkey derivation (`FR-srm-event-sign`). `testValue` returns deterministic fixtures. |
+| `engineering/apps/macos/Sources/Dependencies/NostrSigner.swift` | **MODIFIED** | `@Dependency` signing interface, now async and mode-agnostic: `sign(event:) async -> NostrEvent?` dispatches to in-process Schnorr (local key) or NIP-46 `sign_event` (bunker). Keeps `publicKey(secretKey:)`. `testValue` returns deterministic fixtures (`FR-srm-event-sign`, `FR-sr-bunker-signing`). |
 | `engineering/apps/macos/Sources/Dependencies/Bech32.swift` | **NEW** | Minimal BIP-173 bech32 encode/decode for `nsec` decode and `npub` display (`FR-srm-identity-load`). |
-| `engineering/apps/macos/Sources/SharedModels/ReviewerIdentity.swift` | **NEW** | Display-only reviewer identity model (pubkey hex, npub, display name) for the identity indicator (`FR-srm-identity-indicator`, `FR-sr-reviewer-identity`). |
-| `engineering/apps/macos/Sources/Dependencies/IdentityClient.swift` | **NEW** | `@Dependency` resolving the reviewer's nsec from `SHEPHERD_NSEC` / `~/.config/nostr/identity` (`FR-srm-identity-load`). |
+| `engineering/apps/macos/Sources/SharedModels/ReviewerIdentity.swift` | **MODIFIED** | Display-only reviewer identity model. Adds an identity-source kind (`.localKey` / `.bunker`) and, for bunker, a connection state (`.connecting` / `.connected` / `.failed`) + the bunker relay URL, so the indicator can render bunker status (`FR-srm-identity-indicator`, `FR-sr-reviewer-identity`). |
+| `engineering/apps/macos/Sources/Dependencies/IdentityClient.swift` | **MODIFIED** | `@Dependency` resolving the reviewer's identity from `SHEPHERD_BUNKER` / `~/.config/nostr/bunker` (a `bunker://` URI) first, then `SHEPHERD_NSEC` / `~/.config/nostr/identity` (raw key). Parses `bunker://<pubkey>?relay=<url>[&secret=<token>]`; a malformed URI yields a parse-error identity state. Exposes the resolved identity (with source kind + bunker params) to `AppFeature` (`FR-srm-identity-load`). |
+| `engineering/apps/macos/Sources/Dependencies/BunkerClient.swift` | **NEW** | NIP-46 bunker control channel over `RelayClient`: generates an ephemeral session keypair, sends a NIP-44-encrypted kind `24133` `connect` request (params: bunker pubkey, secret, empty perms, client metadata), then `get_public_key` and `sign_event` requests; yields the bunker's signed event on `sign_event`. Reuses the relay named in the bunker URI. Implements `FR-srm-bunker-connect`, the bunker half of `FR-srm-event-sign`, `FR-srm-bunker-sign-failure`, `FR-sr-bunker-signing`. |
+| `engineering/apps/macos/Sources/Dependencies/NIP44Crypto.swift` | **NEW** | NIP-44 payload encrypt/decrypt: ECDH shared secret via `P256K` (already a dependency) + ChaCha20-Poly1305 + HKDF via `CryptoKit` (`ChaChaPoly`, `HKDF`). No new package dependency, no AES-CBC. Used only by `BunkerClient` for the kind `24133` control channel. |
 | `engineering/apps/macos/Sources/SharedModels/NostrEvent.swift` | **MODIFIED** | Adds `sign(secretKey:)` computing NIP-01 `id` + `sig`; adds `computedID` (pure SHA-256 of the canonical serialization). |
 | `engineering/apps/macos/Sources/SharedModels/Comment.swift` | **MODIFIED** | Adds optional `publishedEventID: String?` to associate a local comment with its published reply (`FR-srm-comment-publish-on-submit`). |
 | `engineering/apps/macos/Sources/SharedModels/ReviewContext.swift` | **MODIFIED** | Adds optional `repoCoordinate: String?` to `PatchMetadata` (the patch event's `a` tag), used as the `a` tag on published replies (`FR-srm-comment-publish-on-submit`). |
-| `engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift` | **NEW** | Inspector identity indicator (loaded / no-identity states) (`FR-srm-identity-indicator`). |
+| `engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift` | **MODIFIED** | Inspector identity indicator. Adds bunker-source rendering: shield glyph + `BUNKER` badge + status dot (connected/connecting/failed) with failure subtext, and a malformed-URI state. Local-key and no-identity states unchanged (`FR-srm-identity-indicator`). |
 | `engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift` | **MODIFIED** | Adds a `Reply` button routing to `.replyToPatchReply` (`FR-srm-reply-to-reply`). |
 | `engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift` | **MODIFIED** | Adds a `Reply` button per inspector row (`FR-srm-reply-to-reply`). |
-| `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` | **MODIFIED** | Identity state, comment-submit publish path, `.replyToPatchReply` action, self-reply dedup (`FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`). |
+| `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` | **MODIFIED** | Identity state, comment-submit publish path (now async-sign then publish), `.replyToPatchReply` action, self-reply dedup, and — for bunker identities — the connect handshake lifecycle (start on patch window open, cancel on close), bunker-failure state on sign/publish, and retry (`FR-srm-comment-publish-on-submit`, `FR-srm-reply-to-reply`, `FR-srm-bunker-connect`, `FR-srm-bunker-sign-failure`). |
 | `engineering/apps/macos/Package.swift` | **MODIFIED** | Adds the `swift-secp256k1` package dependency (module `P256K`, successor to `secp256k1.swift`) for in-process Schnorr signing (`FR-srm-event-sign`). |
 
 The change footprint for the original macOS review variant was intentionally minimal (two new prompt files, one bash flag, one array entry). Bidirectional patch-thread publishing extends that footprint into the native app: the Swift files listed above and a new `secp256k1.swift` package dependency. The implementation steps (Steps 7-10) cover that native work.
@@ -320,25 +322,43 @@ The initial snapshot is baked into `session.json` at launch by the command promp
 
 **App integration** (`AppFeature`): when session data loads and `patchMetadata != nil`, the reducer sends `.startPatchReplySubscription`. A `.run` effect subscribes via `relayClient.subscribe(NostrFilter(eTag: patchID, kinds: [1]))`, maps each incoming event with `PatchReplyMapper.mapOne`, and sends `.patchRepliesRefreshedAppend(reply)`. That reducer appends the reply to `patchMetadata.replies` in timestamp order, skipping duplicate ids. The inspector section + inline bubbles re-render automatically from the array. The effect is cancellable (`CancelID.patchReplySubscription`) and cancelled on `windowClosed` / `.stopPatchReplySubscription`. The initial `session.json` snapshot (decoded at launch) seeds `patchMetadata.replies` before the first live event arrives. The first live events arrive as soon as relays respond (sub-second for live posts; stored replies arrive immediately on connect).
 
-### Patch-thread reply publishing -- bidirectional (FR-sr-patch-reply-publish, FR-sr-reviewer-identity, FR-sr-patch-reply-respond, FR-srm-identity-load, FR-srm-event-sign, FR-srm-event-publish, FR-srm-comment-publish-on-submit, FR-srm-reply-to-reply, FR-srm-identity-indicator)
+### Patch-thread reply publishing -- bidirectional (FR-sr-patch-reply-publish, FR-sr-reviewer-identity, FR-sr-bunker-signing, FR-sr-patch-reply-respond, FR-srm-identity-load, FR-srm-bunker-connect, FR-srm-event-sign, FR-srm-bunker-sign-failure, FR-srm-event-publish, FR-srm-comment-publish-on-submit, FR-srm-reply-to-reply, FR-srm-identity-indicator)
 
 The patch-thread loop becomes bidirectional: the reviewer publishes signed kind:1 replies to the thread from inside the native app, under their own Nostr identity, and can respond to existing replies. This is the publish-side counterpart of the existing in-process `RelayClient` subscription -- reads and writes both happen in-process, with no external CLI or background process on the critical path.
 
 #### Identity loading (`FR-srm-identity-load`)
 
-A new `IdentityClient` `@Dependency` resolves the reviewer's Nostr secret key at launch, using the same configuration precedence as `RelayClient.resolveRelays`:
+`IdentityClient` `@Dependency` resolves the reviewer's Nostr identity at launch. The identity is one of two forms, resolved with this precedence (first non-empty wins; the bunker form is preferred so a raw secret key need not live on the host):
 
-1. Environment variable `SHEPHERD_NSEC` (bech32 `nsec1...` or hex).
-2. Config file `~/.config/nostr/identity` containing an `nsec1...` or hex secret key (first non-blank, non-`#` line).
-3. No identity (publish unavailable, read-only review + local comments still work).
+1. Environment variable `SHEPHERD_BUNKER` — a `bunker://<remote-signer-pubkey>?relay=<wss-url>[&relay=<wss-url>…][&secret=<token>]` URI. Per NIP-46 the URI may carry multiple `relay=` query params; the app parses the first as the control-channel relay and accepts-but-ignores any additional `relay=` params (they do not make the URI malformed).
+2. Config file `~/.config/nostr/bunker` — first non-blank, non-`#` line, a `bunker://` URI.
+3. Environment variable `SHEPHERD_NSEC` — bech32 `nsec1...` or hex secret key (existing).
+4. Config file `~/.config/nostr/identity` — first non-blank, non-`#` line, `nsec1...` or hex (existing).
+5. No identity (publish unavailable, read-only review + local comments still work).
 
-When a key is loaded, `IdentityClient` derives the public key (secp256k1 scalar multiplication) and exposes both the secret and public keys to the signing path. The secret key is held in memory for the app's lifetime (needed to sign on each submit) and is never written to disk by the app. The public key is surfaced to the UI for the identity indicator (`FR-srm-identity-indicator`) and used to mark the reviewer's own replies (`YOU` badge) and dedup them on relay round-trip.
+For a **local key**, `IdentityClient` derives the public key (secp256k1 scalar multiplication) and exposes both the secret and public keys to the signing path; the secret key is held in memory for the app's lifetime and never written to disk. For a **bunker connection**, `IdentityClient` parses the URI into `(bunkerPubkey, relayURL, secret?)`, stores those parameters, and holds **no** secret key; the reviewer's (user) public key is obtained later from the bunker via `get_public_key` (`FR-srm-bunker-connect`). A malformed `bunker://` URI (missing `relay=`, not `bunker://`, or unparseable remote-signer pubkey) is parsed into a distinct parse-error identity state so the indicator can name the error rather than silently treating it as no-identity. The resolved identity (source kind + display fields + bunker params/connection state) is exposed to `AppFeature` and surfaced by the identity indicator (`FR-srm-identity-indicator`); the public key marks the reviewer's own replies (`YOU` badge) and dedups them on relay round-trip.
 
-Design note: the app does **not** generate or manage keys. The reviewer brings their own identity (created out of band, e.g. via `nak key generate`). This keeps the app out of the key-custody business and matches the existing roster/relay config model.
+Design note: the app does **not** generate or manage the reviewer's keys. The reviewer brings their own identity (a key created out of band via `nak key generate`, or a bunker they run e.g. via `nak bunker`). For a bunker, the app generates only an **ephemeral session keypair** used solely for the NIP-46 encrypted control channel — never as the reviewer's identity and never persisted. This keeps the app out of the key-custody business and matches the existing roster/relay config model.
 
-#### Event signing -- in-process (`FR-srm-event-sign`)
+#### Bunker connection — NIP-46 control channel (`FR-srm-bunker-connect`, `FR-srm-bunker-sign-failure`)
 
-Signing happens in-process via a Swift secp256k1 package, not by shelling out to `nak`. Rationale (decision logged in `decisions-pending.md`):
+When the loaded identity is a bunker connection, a `BunkerClient` `@Dependency` runs the NIP-46 handshake over the relay named in the bunker URI, reusing the in-process `RelayClient` transport (`FR-sr-relay-client`) — no new WebSocket code, no external process. Per the current NIP-46, kind `24133` `content` is **NIP-44**-encrypted (not NIP-04); the client `p`-tags and encrypts to the bunker's (remote-signer) pubkey. The flow:
+
+1. Generate an ephemeral secp256k1 session keypair (in-process via `P256K`); the session pubkey is the NIP-46 client identity for this review window (the kind `24133` event's `pubkey`).
+2. Send a NIP-46 `connect` request: a kind `24133` event, `p`-tagged to the bunker's (remote-signer) pubkey, with `content` = NIP-44-encrypted JSON `{"method": "connect", "params": ["<bunker-pubkey>", "<secret?>", "", "<client-metadata-JSON>"]}`. Per NIP-46, `params[0]` is the **remote-signer (bunker) pubkey**, not the session pubkey (the session pubkey is already the event's `pubkey`, so sending it here is redundant and non-compliant). The `secret` from the URI occupies position 1 when present. Because this is a `bunker://`-initiated connection (not `nostrconnect://`), the client SHOULD include `optional_client_metadata` (position 3) so the bunker can label the connection; an empty string is passed for `optional_requested_perms` (position 2) to hold the metadata in the fourth position. `NIP44Crypto` (new, `Sources/Dependencies/NIP44Crypto.swift`) provides NIP-44 encrypt/decrypt: ECDH shared secret via `P256K` (already a dependency) + ChaCha20-Poly1305 + HKDF, both native to `CryptoKit` (`ChaChaPoly`, `HKDF`) — no new Swift package, and no AES-CBC (CryptoKit exposes no AES-CBC API).
+3. Await the bunker's kind `24133` response (NIP-44-encrypted to the session pubkey). On `connect` success, send a `get_public_key` request and set the reviewer's (user) public key to the returned pubkey; flip the connection state to `.connected`. (The current NIP-46 renamed `get_pubkey` to `get_public_key`; legacy bunkers may still answer `get_pubkey`, but the app uses the current name.) On refusal (e.g. bad `secret`) or timeout, set `.failed` with a one-line cause; publishing is unavailable but read-only review and local commenting remain available.
+4. The control channel stays open for the review window's life so repeated `sign_event` requests do not re-handshake per reply. It is cancelled when the window closes (same `CancelID` lifecycle as the patch-reply subscription).
+
+`sign_event` (the bunker half of `FR-srm-event-sign`, realizes `FR-sr-bunker-signing`): the signer sends a NIP-44-encrypted `{"method": "sign_event", "params": ["<unsigned-event-JSON>"]}` kind `24133` request and awaits the bunker's response, whose payload is the signed event (`id`/`pubkey`/`sig` populated). The app publishes that event unchanged. If the bunker is unreachable, the channel has dropped, the bunker refuses, or the response times out, `sign_event` returns nil and the publish path degrades per `FR-srm-bunker-sign-failure`: the comment is retained locally, the editor reopens with the bunker-named error, the indicator flips to `.failed`, and the reviewer can retry (which reconnects the control channel first if it dropped). The app never silently drops a reply.
+
+#### Event signing (`FR-srm-event-sign`)
+
+Signing produces a valid NIP-01 event (correct `id`, `pubkey`, `sig`) under the loaded identity, behind one **async** signing interface so the publish path is unaware which identity form is active. Two implementations are selected by `FR-srm-identity-load`:
+
+- **Local key** — signing is in-process via a Swift secp256k1 package, not by shelling out to `nak`.
+- **Bunker connection** — signing is delegated to the remote bunker over the NIP-46 control channel (`FR-srm-bunker-connect`); the signer sends a `sign_event` request and awaits the bunker's signed event. No secret key is held in this mode.
+
+Local-key rationale (decision logged in `decisions-pending.md`):
 
 - **Consistency** -- the read path (`RelayClient`) is already in-process via `URLSessionWebSocketTask`; a subprocess on the write path only would be an inconsistent seam.
 - **Key custody** -- passing the secret key to a subprocess (argv/env) exposes it in the process list and crosses a trust boundary. An in-process signer keeps the key inside the app's memory space.
@@ -346,7 +366,7 @@ Signing happens in-process via a Swift secp256k1 package, not by shelling out to
 
 The chosen package is `swift-secp256k1` (21-DOT-DEV, module `P256K`; the maintained successor to `GigaBitcoin/secp256k1.swift`), the standard Swift binding used by the Nostr ecosystem. It provides the scalar multiplication (pubkey derivation) and Schnorr signing primitives NIP-01 requires. This is the one new Swift package dependency introduced by this feature; it is justified by the three points above and is a well-audited C library under the hood. The `NostrEvent` model (`Sources/SharedModels/NostrEvent.swift`) gains a pure `computedID` (SHA-256 of the canonical NIP-01 serialization) and a `sign(secretKey:)` extension (defined alongside `NostrSigner` in ShepherdDependencies so the secp256k1 dependency stays out of the pure-model target) that sets `id`, `pubkey`, and `sig`.
 
-A `NostrSigner` `@Dependency` wraps the crypto so the reducer and tests depend on a protocol, not the raw package: `sign(event: NostrEvent, secretKey: Data) -> NostrEvent` (returns a signed copy) and `publicKey(secretKey: Data) -> String`. `testValue` returns deterministic fixtures.
+A `NostrSigner` `@Dependency` wraps signing behind a protocol so the reducer and tests depend on the interface, not the crypto: `sign(event: NostrEvent) async -> NostrEvent?` (returns a signed copy, or nil on bunker failure) and `publicKey(secretKey: Data) -> String`. The live value dispatches by identity source — in-process Schnorr for a local key, `BunkerClient.signEvent` for a bunker — so the publish path calls one `sign(event:)` regardless of form. `testValue` returns deterministic fixtures (a fixed signed-event stub for the local-key path; an injectable mock bunker for the bunker path).
 
 #### Event publishing (`FR-srm-event-publish`)
 
@@ -357,7 +377,7 @@ A `NostrSigner` `@Dependency` wraps the crypto so the reducer and tests depend o
 The existing comment submit path in `CommentFeature`/`AppFeature` is extended for patch reviews. When the reviewer submits an inline comment and `patchMetadata != nil` and an identity is loaded:
 
 1. Build a `NostrEvent` (kind 1) with `content` = comment text and tags: `["e", patchEventID, "", "root"]`, `["a", repoTag]` (only when `patchMetadata.repoCoordinate` is present -- the command prompt populates it from the patch event's `a` tag), and -- when the comment has a line range -- `["range", filePath, startLine, endLine]`. When responding to a reply (`FR-srm-reply-to-reply`), also add `["e", repliedToReply.id, "", "reply"]` and `["p", repliedToReply.authorPubkey]`.
-2. Sign it via `NostrSigner` with the loaded secret key.
+2. Sign it via `NostrSigner.sign(event:)` (async) — in-process with the loaded secret key for a local-key identity, or via a NIP-46 `sign_event` round-trip for a bunker identity (`FR-srm-event-sign`, `FR-sr-bunker-signing`). If signing returns nil (bunker unreachable/refusal/timeout), degrade per `FR-srm-bunker-sign-failure` and stop before publishing.
 3. Publish via `relayClient.publish`.
 4. On success, append the signed event (mapped via `PatchReplyMapper.mapOne`) to `patchMetadata.replies` immediately so it renders without a relay round-trip, and record the association between the local `Comment` and the published event id (new optional `Comment.publishedEventID` field) so the live subscription dedups it on arrival (`AC-srm-publish-no-dup`).
 5. On failure (no relay accepted), keep the local `Comment` and surface the publish-failed state in the editor (`AC-srm-publish-relay-failure`); the reviewer can retry.
@@ -372,7 +392,7 @@ A new `AppFeature` action `.replyToPatchReply(ReviewContext.PatchReply)` opens t
 
 #### Identity indicator (`FR-srm-identity-indicator`)
 
-A small view in the inspector (`IdentityIndicatorView`, new, in `ReviewContextFeature`) reads the loaded identity state from `AppFeature.State` (a new `reviewerIdentity: ReviewerIdentity?` where `ReviewerIdentity` carries the public key + resolved display name). Loaded state shows the display name + key glyph; no-identity state shows the warning + config hint. Present only when `patchMetadata != nil`.
+A small view in the inspector (`IdentityIndicatorView`, in `ReviewContextFeature`) reads the loaded identity state from `AppFeature.State` (`reviewerIdentity: ReviewerIdentity?`, now carrying an identity-source kind and, for bunker, a connection state + relay URL). Local-key state shows the display name + key glyph. Bunker state shows a shield glyph + `BUNKER` badge + a status dot (green connected / amber-pulsing connecting / red failed with one-line cause). No-identity state shows the warning + config hint naming both `SHEPHERD_BUNKER` / `~/.config/nostr/bunker` and `SHEPHERD_NSEC` / `~/.config/nostr/identity`. A malformed `bunker://` URI shows the parse error. Present only when `patchMetadata != nil`.
 
 #### Dedup of self-published replies (`AC-srm-publish-no-dup`)
 
@@ -543,6 +563,21 @@ With an identity configured (`SHEPHERD_NSEC`) and a test patch open:
 3. Unset `SHEPHERD_NSEC`, relaunch -> verify the identity indicator shows the no-identity state and submit reads `Save locally` with no publish.
 4. Point `NOSTR_RELAYS` at an invalid relay, submit -> verify the publish-failed state surfaces and the local comment is retained.
 
+### Step 11: Bunker (NIP-46) identity support
+
+Add NIP-46 bunker as a second identity form so the reviewer need not place a raw `nsec` on the host.
+
+1. `NIP44Crypto` (`Sources/Dependencies/NIP44Crypto.swift`): NIP-44 encrypt/decrypt — ECDH shared secret via `P256K` + ChaCha20-Poly1305 + HKDF via `CryptoKit` (`ChaChaPoly`, `HKDF`); `encrypt(_:toPeer:with:)` / `decrypt(_:fromPeer:with:)`. Pure, unit-tested standalone. No new package dependency, no AES-CBC (CryptoKit exposes no AES-CBC API).
+2. `BunkerClient` (`Sources/Dependencies/BunkerClient.swift`): parse `bunker://` URIs (first `relay=` used; extra `relay=` accepted-but-ignored); generate an ephemeral session keypair; over `RelayClient` to the bunker relay, send NIP-44-encrypted kind `24133` `connect` (params: bunker pubkey, `secret`, empty perms, client metadata), then `get_public_key`, then `sign_event` per reply. Expose `connect() async -> Bool`, `reviewerPubkey() -> String?`, `signEvent(_:) async -> NostrEvent?`, and a connection-state stream for the indicator. `testValue` is an injectable mock bunker.
+3. `IdentityClient` gains the `SHEPHERD_BUNKER` / `~/.config/nostr/bunker` sources (bunker first, then the existing nsec sources), `bunker://` parsing (malformed → parse-error state), and exposes the source kind + bunker params.
+4. `NostrSigner.sign(event:)` becomes async and dispatches to `BunkerClient` for a bunker identity.
+5. `ReviewerIdentity` gains the source kind + bunker connection state.
+6. `AppFeature`: on patch-window open with a bunker identity, start the connect handshake effect (cancel on close); on submit, `sign` then publish, mapping a nil sign to the bunker-failed editor state; retry reconnects first.
+7. `IdentityIndicatorView` renders the bunker states (shield + `BUNKER` badge + status dot, malformed-URI, failure subtext).
+8. Tests: `BunkerClientTests` against an in-process mock bunker (a fake `RelayClient` echoing NIP-44-encrypted kind `24133` responses); `NIP44CryptoTests` round-trip; `IdentityClientTests` for `bunker://` parsing + precedence + malformed URI (and extra-`relay=` accepted-but-ignored); extend `NostrSignerTests` for the async bunker path.
+
+**Slug coverage**: `FR-srm-identity-load`, `FR-srm-bunker-connect`, `FR-srm-event-sign`, `FR-srm-bunker-sign-failure`, `FR-srm-identity-indicator`, `FR-sr-bunker-signing`
+
 ---
 
 ## Code Map
@@ -572,8 +607,11 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-sr-relay-client` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift; engineering/apps/macos/Sources/SharedModels/NostrEvent.swift | implemented |
 | `FR-sr-patch-reply-publish` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/NostrSigner.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift; engineering/apps/macos/Sources/SharedModels/Comment.swift | implemented |
 | `FR-sr-reviewer-identity` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sr-bunker-signing` | engineering/apps/macos/Sources/Dependencies/BunkerClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-sr-patch-reply-respond` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift | implemented |
 | `FR-srm-identity-load` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | implemented |
+| `FR-srm-bunker-connect` | engineering/apps/macos/Sources/Dependencies/BunkerClient.swift; engineering/apps/macos/Sources/Dependencies/NIP44Crypto.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-srm-bunker-sign-failure` | engineering/apps/macos/Sources/Dependencies/BunkerClient.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-srm-event-sign` | engineering/apps/macos/Sources/Dependencies/NostrSigner.swift; engineering/apps/macos/Sources/SharedModels/NostrEvent.swift; engineering/apps/macos/Package.swift | implemented |
 | `FR-srm-event-publish` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
 | `FR-srm-comment-publish-on-submit` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/Comment.swift | implemented |
@@ -669,16 +707,23 @@ These slugs are covered by the prompt content in the `/shepherd-review` command 
 | `FR-sr-patch-reply-publish` | Patch-thread reply publishing section (comment-submit publish path) |
 | `FR-sr-reviewer-identity` | Patch-thread reply publishing section (identity load + indicator) |
 | `FR-sr-patch-reply-respond` | Patch-thread reply publishing section (reply-to-reply e/p tags) |
-| `FR-srm-identity-load` | Patch-thread reply publishing section (IdentityClient config precedence) |
-| `FR-srm-event-sign` | Patch-thread reply publishing section (in-process NostrSigner + secp256k1.swift) |
+| `FR-srm-identity-load` | Patch-thread reply publishing section (IdentityClient config precedence — bunker URI first, then nsec; malformed-URI state) |
+| `FR-srm-bunker-connect` | Patch-thread reply publishing section (BunkerClient NIP-46 connect/get_public_key over RelayClient; NIP44Crypto) |
+| `FR-srm-event-sign` | Patch-thread reply publishing section (async NostrSigner: in-process Schnorr + secp256k1.swift for local key, sign_event for bunker) |
+| `FR-srm-bunker-sign-failure` | Patch-thread reply publishing section (bunker sign failure -> local retention + retry) |
 | `FR-srm-event-publish` | Patch-thread reply publishing section (RelayClient.publish EVENT frames) |
 | `FR-srm-comment-publish-on-submit` | Patch-thread reply publishing section (comment-submit integration + publishedEventID) |
 | `FR-srm-reply-to-reply` | Patch-thread reply publishing section (.replyToPatchReply + Reply buttons) |
-| `FR-srm-identity-indicator` | Patch-thread reply publishing section (IdentityIndicatorView) |
+| `FR-srm-identity-indicator` | Patch-thread reply publishing section (IdentityIndicatorView; bunker connection states) |
+| `FR-sr-bunker-signing` | Patch-thread reply publishing section (sign_event delegation via BunkerClient; no host secret key) |
 | `AC-sr-patch-reply-publish` | Patch-thread reply publishing section (publish + immediate local render) |
 | `AC-sr-patch-reply-respond` | Patch-thread reply publishing section (reply-to-reply flow) |
 | `AC-sr-reviewer-identity` | Patch-thread reply publishing section (identity loaded / no-identity) |
-| `AC-srm-identity-load` | Patch-thread reply publishing section (identity-load states) |
+| `AC-sr-bunker-signing` | Patch-thread reply publishing section (bunker-signed reply; failure degrades locally) |
+| `AC-srm-identity-load` | Patch-thread reply publishing section (identity-load states; malformed-URI) |
+| `AC-srm-bunker-connect` | Patch-thread reply publishing section (connect handshake; failure branch) |
+| `AC-srm-bunker-sign` | Patch-thread reply publishing section (sign_event round-trip; no host key) |
+| `AC-srm-bunker-sign-failure` | Patch-thread reply publishing section (sign failure -> local retention + retry) |
 | `AC-srm-comment-publish` | Patch-thread reply publishing section (comment publishes on submit) |
 | `AC-srm-reply-to-reply` | Patch-thread reply publishing section (respond-to-reply flow) |
 | `AC-srm-publish-no-dup` | Patch-thread reply publishing section (publishedEventID + id-dedup) |
