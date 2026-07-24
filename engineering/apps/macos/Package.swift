@@ -168,6 +168,15 @@ let package = Package(
             swiftSettings: warningsAsErrors
         ),
         .target(
+            name: "IdentityFeature",
+            dependencies: [
+                "SharedModels",
+                "ShepherdDependencies",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            ],
+            swiftSettings: warningsAsErrors
+        ),
+        .target(
             name: "MarkdownRenderFeature",
             dependencies: [
                 "SharedModels",
@@ -189,6 +198,7 @@ let package = Package(
                 "PromptFeature",
                 "SessionFeature",
                 "ReviewContextFeature",
+                "IdentityFeature",
                 "MarkdownRenderFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
@@ -270,6 +280,15 @@ let package = Package(
             name: "ReviewContextFeatureTests",
             dependencies: [
                 "ReviewContextFeature",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            ],
+            swiftSettings: warningsAsErrors
+        ),
+        .testTarget(
+            name: "IdentityFeatureTests",
+            dependencies: [
+                "IdentityFeature",
+                "ShepherdDependencies",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
             swiftSettings: warningsAsErrors

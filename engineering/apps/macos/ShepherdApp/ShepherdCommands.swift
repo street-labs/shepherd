@@ -69,6 +69,13 @@ struct ShepherdCommands: Commands {
 
             Divider()
 
+            Button("Identity…") {
+                store.send(.openIdentityScreen)
+            }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
+
+            Divider()
+
             Button("Clear Session") {
                 store.send(.clearSessionRequested)
             }
