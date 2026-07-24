@@ -14,6 +14,10 @@ setup:
 dev:
     cd engineering/apps/macos && swift build -c release
 
+# Build and run the macOS app (release binary).
+run: dev
+    engineering/apps/macos/.build/release/ShepherdApp
+
 # Run the macOS app test suite.
 test:
     ./scripts/run-tests.sh
