@@ -299,14 +299,14 @@ Logging in by pasting a `bunker://` URI instead of a raw `nsec`, so the secret k
 ## Edge Cases & Error Scenarios
 
 ### Keychain unavailable at write time
-- **Trigger**: Keychain is locked or the system denies access when `loginWithKey`/`createNewIdentity` tries to write.
-- **Expected behavior**: The operation returns nil with a "Could not save identity" error; the identity is not adopted (so it does not silently vanish on next launch).
+- **Trigger**: Keychain is locked or the system denies access when `loginWithKey`/`createNewIdentity` (local key) or `loginWithBunker` (bunker URI) tries to write.
+- **Expected behavior**: The operation returns `.failure(.storageFailed)` with a "Could not save identity" error; the identity is not adopted (so it does not silently vanish on next launch). For a bunker login, a connect failure (`.connectFailed`) similarly removes any just-persisted URI.
 - **Test case**: `TC-id-keychain-write-failure` (manual / injected via test double)
 
 ### Keychain read returns corrupt data
-- **Trigger**: The stored Keychain entry is not 32 bytes or fails pubkey derivation.
-- **Expected behavior**: `loadIdentity` treats it as no stored identity and falls through to out-of-band sources; if none, the login window appears.
-- **Test case**: `TC-id-keychain-corrupt` (unit — inject a bad data blob via the test double)
+- **Trigger**: The stored Keychain entry cannot be interpreted as an identity of either form — it is not 32 bytes (so not a local secret key) and it is not a parseable `bunker://` URI (so not a bunker identity), or a 32-byte blob fails pubkey derivation.
+- **Expected behavior**: `loadIdentity` treats it as no usable stored identity and falls through to the out-of-band sources; if none, the login window appears.
+- **Test case**: `TC-id-keychain-corrupt` (unit — inject a bad data blob and a non-`bunker://` string blob via the test double)
 
 ### Both in-app and out-of-band identity present
 - **Trigger**: A key is stored in Keychain AND `SHEPHERD_NSEC` is set to a different key.
@@ -318,4 +318,4 @@ Logging in by pasting a `bunker://` URI instead of a raw `nsec`, so the secret k
 - **Existing patch-review publishing**: an identity adopted in-app must flow through the unchanged `reviewerIdentityLoaded` → `patchReviewPublishEffect` path. Verify a patch review still publishes after an in-app login (covered by `TC-id-created-publishes`).
 - **Existing out-of-band users**: adding the Keychain source as highest precedence must not break a user who logs in in-app and then later sets an env var expecting it to take over — this is the precedence open question (Decision 1). The chosen precedence (in-app wins) is documented; if it surprises users, revisit.
 - **`IdentityIndicatorView`**: the indicator must render an in-app-adopted identity identically to an out-of-band one (same `ReviewerIdentity` model), so no indicator regression is expected.
-- **Bunker path**: unaffected — the Keychain source only stores local keys; a configured bunker still loads via its existing precedence slot below Keychain.
+- **Bunker path**: the Keychain source now stores both local keys and bunker URIs. An in-app-stored bunker identity takes precedence over an out-of-band `SHEPHERD_BUNKER` (per the reverse-surprise precedence note in the engineering spec) — a reviewer who logged in with a bunker URI in-app and later sets `SHEPHERD_BUNKER` keeps the in-app identity until they log out. Verify the existing out-of-band bunker load + connect lifecycle still works when no Keychain entry is present (covered by `TC-id-out-of-band-skips`).

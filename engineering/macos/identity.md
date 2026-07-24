@@ -45,9 +45,11 @@ public struct KeychainClient: Sendable {
 `loginWithKey` returns a `Result` so the reducer can distinguish an invalid key from a Keychain write failure (the two produce different user-facing errors):
 
 ```swift
-public struct IdentityLoginError: Error, Equatable, Sendable {
+public enum IdentityLoginError: Error, Equatable, Sendable {
     case invalidKey      // malformed nsec/hex or not a valid 32-byte secret
     case storageFailed   // Keychain write failed (locked, disk full)
+    case invalidURI      // malformed bunker:// URI (missing relay, bad pubkey)
+    case connectFailed   // bunker unreachable, refused, or timed out
 }
 
 // Added to the main IdentityClient declaration (not an extension) so
@@ -82,7 +84,7 @@ public struct IdentityClient: Sendable {
 
 The existing `loadIdentity` is extended so its precedence list begins with the Keychain source (Decision 1):
 
-1. Keychain (`shepherd-nostr-identity`) — **new, highest precedence** — stores either a 32-byte secret key (local-key form) or a `bunker://` URI string (bunker form); the entry's format is distinguishable at read time (a 32-byte Data blob is a secret key; a UTF-8 string is a bunker URI).
+1. Keychain (`shepherd-nostr-identity`) — **new, highest precedence** — stores either a 32-byte secret key (local-key form) or a `bunker://` URI string (bunker form). The entry's format is distinguished at read time by an explicit, order-stable rule: **if the stored `Data` is exactly 32 bytes, it is a secret key; otherwise it is parsed as a UTF-8 `bunker://` URI.** (Matching on the `bunker://` scheme prefix is an equivalent alternative. The length-first rule is unambiguous because a 32-byte secret key is checked before any UTF-8 attempt, so a key that happens to be valid UTF-8 cannot misfire as a URI.)
 2. `SHEPHERD_BUNKER` env var
 3. `~/.config/nostr/bunker` file
 4. `SHEPHERD_NSEC` env var
