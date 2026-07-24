@@ -133,7 +133,18 @@ final class IdentityHolder: @unchecked Sendable {
         guard let new = LoadedIdentity.loadLocalKey(
             raw, bunkerClient: bunkerClient, keychainClient: keychainClient
         ), let secret = new.secret else { return .failure(.invalidKey) }
-        guard keychainClient.writeIdentity(secret) else { return .failure(.storageFailed) }
+        // Snapshot the previous Keychain entry so a write failure (delete-then-add
+        // where the add fails) restores the old identity instead of destroying it.
+        let previousKeychain = keychainClient.readIdentity()
+        guard keychainClient.writeIdentity(secret) else {
+            // Restore the previous entry so a switching reviewer keeps their old key.
+            if let prev = previousKeychain {
+                _ = keychainClient.writeIdentity(prev)
+            } else {
+                keychainClient.deleteIdentity()
+            }
+            return .failure(.storageFailed)
+        }
         loaded = new
         return .success(new.identity)
     }
