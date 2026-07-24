@@ -933,7 +933,7 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 #### Open Patch from empty state (happy path) `TC-srm-patch-open-happy`
 - **Type**: Manual
 - **Covers**: `AC-srm-patch-open-happy`, `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`
-- **Preconditions**: App in standalone empty state; a valid NIP-34 patch event (kind 1617 or 1621) with a unified-diff content exists on the configured relays; reviewer identity configured.
+- **Preconditions**: App in standalone empty state; a valid NIP-34 patch event (kind `1617`) with a unified-diff content exists on the configured relays; reviewer identity configured.
 - **Steps**:
   1. Confirm the empty state shows an `Open Patch…` button alongside `Open Files…` and `Paste from Clipboard`.
   2. Click `Open Patch…`; confirm the Open Patch sheet appears with the text field and `Fetch`/`Cancel` buttons.
