@@ -1,5 +1,5 @@
 ---
-product-hash: 73657271350feabccb5f4c4bd71c6f9b4b1619aa9145ca3c8443a98fc08618d9
+product-hash: 759a7eb8999156e9454875a44bb0df553a15e1756c8d20e8d5047df09b755718
 product-slugs: [AC-id-active-shown, AC-id-bunker-can-publish, AC-id-bunker-connect-failure, AC-id-bunker-login-invalid-uri, AC-id-bunker-login-valid, AC-id-bunker-logout, AC-id-bunker-no-host-key, AC-id-bunker-persists, AC-id-create-new, AC-id-create-persists, AC-id-created-can-publish, AC-id-dismiss-read-only, AC-id-login-invalid, AC-id-login-valid, AC-id-logout, AC-id-no-plaintext, AC-id-out-of-band-skips, AC-id-switch, FR-id-active-indicator, FR-id-bunker-connect-failure, FR-id-bunker-login, FR-id-bunker-persist, FR-id-create-new, FR-id-logout, FR-id-no-silent-override, FR-id-nsec-login, FR-id-optional-reentry, FR-id-out-of-band-honored, FR-id-persistence, FR-id-screen-when-no-identity, FR-id-show-new-nsec, FR-sr-bunker-signing, FR-sr-reviewer-identity, FR-srm-bunker-connect, FR-srm-bunker-sign-failure, FR-srm-event-sign, FR-srm-identity-indicator, FR-srm-identity-load, NFR-id-bunker-connect-latency, NFR-id-key-stays-local, NFR-id-key-validity, NFR-id-login-latency, NFR-id-no-plaintext-key]
 ---
 # Identity — macOS Technical Spec
@@ -24,7 +24,7 @@ The feature owns no new persistent domain model beyond the secret key in Keychai
 
 ## API / Interface Design
 
-New dependency: `KeychainClient` (in `ShepherdDependencies`), wrapping the two Keychain operations the feature needs. Keeping it a dependency (not a direct `Security.framework` call in the reducer) preserves the existing testability pattern used by `IdentityClient`, `RelayClient`, etc.
+New dependency: `KeychainClient` (in `ShepherdDependencies`), wrapping the three Keychain operations the feature needs (read, write, delete). Keeping it a dependency (not a direct `Security.framework` call in the reducer) preserves the existing testability pattern used by `IdentityClient`, `RelayClient`, etc.
 
 ```swift
 @DependencyClient
@@ -40,24 +40,40 @@ public struct KeychainClient: Sendable {
 }
 ```
 
-`IdentityClient` is extended with methods covering both forms. The local-key methods route through `KeychainClient` and the existing `loadLocalKey` helper; the bunker method routes through the existing `BunkerClient.connect` handshake and stores the URI:
+`IdentityClient` is extended with methods covering both forms. These are added to the **main `IdentityClient` struct declaration** (not an extension) so the `@DependencyClient` macro generates their accessors, registration, and test-override machinery. The local-key methods route through `KeychainClient` and the existing `loadLocalKey` helper; the bunker method routes through the existing `BunkerClient.connect` handshake and stores the URI.
+
+`loginWithKey` returns a `Result` so the reducer can distinguish an invalid key from a Keychain write failure (the two produce different user-facing errors):
 
 ```swift
-extension IdentityClient {
-    /// Validate an nsec/hex string, adopt it as the active identity, persist it
-    /// to Keychain, and return the resulting ReviewerIdentity. Returns nil on
-    /// invalid input (caller surfaces the error). Implements: FR-id-nsec-login.
-    public var loginWithKey: @Sendable (String) -> ReviewerIdentity?
+public struct IdentityLoginError: Error, Equatable, Sendable {
+    case invalidKey      // malformed nsec/hex or not a valid 32-byte secret
+    case storageFailed   // Keychain write failed (locked, disk full)
+}
+
+// Added to the main IdentityClient declaration (not an extension) so
+// @DependencyClient generates the test-override machinery:
+public struct IdentityClient: Sendable {
+    // …existing members…
+    /// Validate an nsec (bech32 `nsec1...`) or hex secret key, adopt it as the
+    /// active identity, persist it to Keychain, and return the identity. Returns
+    /// .failure(.invalidKey) for a bad key, .failure(.storageFailed) if the
+    /// Keychain write fails (identity not adopted so it cannot vanish on next
+    /// launch). Hex is accepted as a deliberate superset of the product's
+    /// nsec1... requirement, matching the existing out-of-band `loadLocalKey`.
+    /// Implements: FR-id-nsec-login.
+    public var loginWithKey: @Sendable (String) -> Result<ReviewerIdentity, IdentityLoginError>
     /// Generate a fresh 32-byte secret key, adopt it, persist it, and return
-    /// the identity plus the bech32 nsec for backup display.
+    /// the identity plus the bech32 nsec for backup display. Returns
+    /// .failure(.storageFailed) if the Keychain write fails.
     /// Implements: FR-id-create-new, FR-id-show-new-nsec.
-    public var createNewIdentity: @Sendable () -> (identity: ReviewerIdentity, nsec: String)?
+    public var createNewIdentity: @Sendable () -> Result<(identity: ReviewerIdentity, nsec: String), IdentityLoginError>
     /// Parse a bunker:// URI, persist it to Keychain, run the NIP-46 connect
     /// handshake via BunkerClient, obtain the reviewer's pubkey, and adopt the
-    /// bunker identity. Returns nil on a malformed URI or connect failure
-    /// (caller surfaces the error, URI retained for retry).
+    /// bunker identity. Returns .failure(.invalidURI) for a malformed URI,
+    /// .failure(.connectFailed) if the bunker cannot be reached. On a connect
+    /// failure the persisted URI is removed (no orphaned identity).
     /// Implements: FR-id-bunker-login, FR-id-bunker-connect-failure.
-    public var loginWithBunker: @Sendable (String) async -> ReviewerIdentity?
+    public var loginWithBunker: @Sendable (String) async -> Result<ReviewerIdentity, IdentityLoginError>
     /// Forget the app-stored identity (Keychain delete) and clear the cached
     /// loaded identity. Implements: FR-id-logout (both forms).
     public var logout: @Sendable () -> Void
@@ -72,6 +88,8 @@ The existing `loadIdentity` is extended so its precedence list begins with the K
 4. `SHEPHERD_NSEC` env var
 5. `~/.config/nostr/identity` file
 6. No identity
+
+**Reverse-surprise note.** Because Keychain (in-app) is highest precedence, a reviewer who previously logged in in-app and *later* configures a bunker (`SHEPHERD_BUNKER`) or nsec (`SHEPHERD_NSEC`) out of band will keep publishing under the stale Keychain identity until they explicitly log out in-app. This is the intended trade of Decision 1 (the in-app key is the reviewer's most recent explicit action), but it can make a freshly-configured out-of-band bunker appear to "not take". The identity indicator (`FR-id-no-silent-override`) surfaces which identity is active so the discrepancy is visible, and in-app logout (`FR-id-logout`) is the documented escape hatch that clears the Keychain entry and lets the out-of-band source take over. The UI should make this path discoverable (see design spec).
 
 ## Component Architecture
 
@@ -88,10 +106,11 @@ The existing `loadIdentity` is extended so its precedence list begins with the K
 
 ## Error Handling
 
-- **Invalid nsec on login**: `loginWithKey` returns nil; the reducer sets an inline error string and stays on the input state (`AC-id-login-invalid`). Errors are not thrown — the synchronous validate-and-adopt path returns an optional.
-- **Keychain write failure** (rare: keychain locked, disk full): `loginWithKey`/`createNewIdentity` return nil with a distinct error path (a generic "Could not save identity — check Keychain access" message). The identity is not adopted if it could not be persisted, so the reviewer is not left with an identity that vanishes on next launch.
+- **Invalid nsec on login**: `loginWithKey` returns `.failure(.invalidKey)`; the reducer sets an inline "Not a valid nsec" error and stays on the input state (`AC-id-login-invalid`). The reducer reads the error case to choose the message.
+- **Keychain write failure** (rare: keychain locked, disk full): `loginWithKey`/`createNewIdentity` return `.failure(.storageFailed)`, which the reducer maps to a distinct "Could not save identity — check Keychain access" message. The identity is not adopted if it could not be persisted, so the reviewer is not left with an identity that vanishes on next launch. Returning a `Result` (not a bare optional) is what lets the reducer distinguish this from an invalid key.
+- **Bunker URI malformed / connect failure**: `loginWithBunker` returns `.failure(.invalidURI)` (no connection attempted) or `.failure(.connectFailed)` (bunker unreachable/refused/timeout); the reducer surfaces the matching error and retains the URI for retry (`AC-id-bunker-connect-failure`). On `.connectFailed` the persisted URI is removed so no orphaned identity lingers.
 - **Keychain read failure at launch** (`FR-id-persistence`): if Keychain is unavailable or the entry is corrupt, `loadIdentity` falls through to the out-of-band sources, and if none exist, the login window appears. No silent failure.
-- **Generation failure**: `P256K` key generation is a local RNG + scalar validity check; failure is effectively impossible, but `createNewIdentity` returns nil on a malformed scalar and the reducer surfaces a generic error rather than crashing.
+- **Generation failure**: `P256K` key generation is a local RNG + scalar validity check; failure is effectively impossible, but `createNewIdentity` returns `.failure(.storageFailed)` only on the persist step (generation itself does not fail) and the reducer surfaces a generic error rather than crashing.
 
 ## Performance Considerations
 
