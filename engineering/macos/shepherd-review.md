@@ -671,10 +671,10 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-comment-publish-on-submit` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/Comment.swift | implemented |
 | `FR-srm-reply-to-reply` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/CommentFeature/PatchReplyInlineView.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift | implemented |
 | `FR-srm-identity-indicator` | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
-| `FR-srm-patch-open-entry` | engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift | planned |
-| `FR-srm-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift | planned |
-| `FR-srm-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | planned |
-| `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift; engineering/apps/macos/Sources/SharedModels/FileNode.swift | planned |
+| `FR-srm-patch-open-entry` | engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift | implemented |
+| `FR-srm-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift | implemented |
+| `FR-srm-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
+| `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift; engineering/apps/macos/Sources/SharedModels/FileNode.swift | implemented |
 
 Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 

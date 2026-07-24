@@ -10,6 +10,7 @@ import SessionFeature
 import ReviewContextFeature
 import IdentityFeature
 import MarkdownRenderFeature
+import OpenPatchFeature
 import IdentifiedCollections
 import Foundation
 
@@ -75,6 +76,10 @@ public struct AppFeature {
         /// no identity is available, and on demand for switching/logging out.
         /// Implements: FR-id-screen-when-no-identity, FR-id-optional-reentry.
         @Presents public var identity: IdentityFeature.State?
+
+        /// Presented Open Patch dialog (in-app NIP-34 patch open).
+        /// Implements: FR-srm-patch-open-entry.
+        @Presents public var openPatch: OpenPatchFeature.State?
 
         // Derived
         public var isMultiFile: Bool { files.count >= 2 }
@@ -167,6 +172,10 @@ public struct AppFeature {
         case loadIdentityAtLaunch
         case openIdentityScreen
         case identity(PresentationAction<IdentityFeature.Action>)
+
+        // MARK: - In-app patch open (FR-srm-patch-open-entry/input/fetch/load)
+        case openPatchRequested
+        case openPatch(PresentationAction<OpenPatchFeature.Action>)
 
         // Patch-thread reply live subscription (FR-sr-patch-replies-live via
         // FR-sr-relay-client). The app subscribes to Nostr relays in-process and
@@ -530,6 +539,45 @@ public struct AppFeature {
             case .identity:
                 return .none
 
+            // MARK: - In-app patch open (FR-srm-patch-open-entry/input/fetch/load)
+
+            // Implements: FR-srm-patch-open-entry
+            // Present the Open Patch dialog from the empty state.
+            case .openPatchRequested:
+                state.openPatch = OpenPatchFeature.State()
+                return .none
+
+            case .openPatch(.presented(.delegate(.cancelled))):
+                state.openPatch = nil
+                return .none
+
+            // Implements: FR-srm-patch-open-load
+            // Load the fetched patch for review: diff blocks -> file tabs + metadata.
+            case let .openPatch(.presented(.delegate(.patchLoaded(files, metadata)))):
+                state.openPatch = nil
+                // Diff blocks -> FileNodes (one tab per changed file, named by path).
+                let loaded = files.map { file in
+                    LoadedFile(
+                        content: file.diffBlock,
+                        name: (file.filePath as NSString).lastPathComponent,
+                        url: nil
+                    )
+                }
+                // Attach patch metadata first so the live-replies subscription and
+                // publish path activate the moment files are loaded, identical to a
+                // CLI-launched patch review (FR-srm-patch-open-load).
+                if state.reviewContextData == nil {
+                    state.reviewContextData = ReviewContext()
+                }
+                state.reviewContextData?.patchMetadata = metadata
+                return .merge(
+                    .send(.filesLoaded(loaded)),
+                    .send(.startPatchReplySubscription)
+                )
+
+            case .openPatch:
+                return .none
+
             case .windowClosed:
                 // Stop the relay subscription and close the bunker control channel
                 // when the window goes away. Implements: FR-srm-bunker-connect (lifecycle).
@@ -755,6 +803,9 @@ public struct AppFeature {
         }
         .ifLet(\.$identity, action: \.identity) {
             IdentityFeature()
+        }
+        .ifLet(\.$openPatch, action: \.openPatch) {
+            OpenPatchFeature()
         }
         .ifLet(\.$alert, action: \.alert)
     }
