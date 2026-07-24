@@ -38,7 +38,7 @@ struct BunkerClientTests {
             connectionState: { .connected },
             close: {}
         )
-        let loaded = LoadedIdentity.bunker(config: testConfig, bunkerClient: bunkerClient)
+        let loaded = LoadedIdentity.bunker(config: testConfig, bunkerClient: bunkerClient, keychainClient: KeychainClient.testValue)
 
         let pubkey = try #require(await loaded.connectBunker())
         #expect(pubkey == testPubkey)
@@ -59,7 +59,7 @@ struct BunkerClientTests {
             connectionState: { .failed("bunker down") },
             close: {}
         )
-        let loaded = LoadedIdentity.bunker(config: testConfig, bunkerClient: bunkerClient)
+        let loaded = LoadedIdentity.bunker(config: testConfig, bunkerClient: bunkerClient, keychainClient: KeychainClient.testValue)
         _ = try #require(await loaded.connectBunker())
 
         let unsigned = NostrEvent(
@@ -76,7 +76,7 @@ struct BunkerClientTests {
             connectionState: { .failed("unreachable") },
             close: {}
         )
-        let loaded = LoadedIdentity.bunker(config: testConfig, bunkerClient: bunkerClient)
+        let loaded = LoadedIdentity.bunker(config: testConfig, bunkerClient: bunkerClient, keychainClient: KeychainClient.testValue)
 
         #expect(await loaded.connectBunker() == nil)
         #expect(loaded.identity.bunkerState == .failed("Bunker unreachable"))
@@ -100,7 +100,8 @@ struct BunkerClientTests {
             pubkeyHex: testPubkey, npub: "npub1test", displayName: "test", source: .localKey
         )
         let loaded = LoadedIdentity(
-            identity: identity, secret: secret, bunkerConfig: nil, bunkerClient: bunkerClient
+            identity: identity, secret: secret, bunkerConfig: nil,
+            bunkerClient: bunkerClient, keychainClient: KeychainClient.testValue
         )
 
         let unsigned = NostrEvent(
@@ -120,7 +121,7 @@ struct BunkerClientTests {
             connectionState: { nil },
             close: { closeCalled.set(true) }
         )
-        let loaded = LoadedIdentity.bunker(config: testConfig, bunkerClient: bunkerClient)
+        let loaded = LoadedIdentity.bunker(config: testConfig, bunkerClient: bunkerClient, keychainClient: KeychainClient.testValue)
         loaded.closeBunker()
         #expect(closeCalled.get())
     }
