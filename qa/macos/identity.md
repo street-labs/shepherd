@@ -1,6 +1,6 @@
 ---
-product-hash: a4ede6c56444cd114cece487d208c4b87772e3878443548e17071953dc34aca0
-product-slugs: [AC-id-active-shown, AC-id-create-new, AC-id-create-persists, AC-id-created-can-publish, AC-id-dismiss-read-only, AC-id-login-invalid, AC-id-login-valid, AC-id-logout, AC-id-no-plaintext, AC-id-out-of-band-skips, AC-id-switch, FR-id-active-indicator, FR-id-create-new, FR-id-logout, FR-id-no-silent-override, FR-id-nsec-login, FR-id-optional-reentry, FR-id-out-of-band-honored, FR-id-persistence, FR-id-screen-when-no-identity, FR-id-show-new-nsec, FR-sr-reviewer-identity, FR-srm-event-sign, FR-srm-identity-indicator, FR-srm-identity-load, NFR-id-key-stays-local, NFR-id-key-validity, NFR-id-login-latency, NFR-id-no-plaintext-key]
+product-hash: 73657271350feabccb5f4c4bd71c6f9b4b1619aa9145ca3c8443a98fc08618d9
+product-slugs: [AC-id-active-shown, AC-id-bunker-can-publish, AC-id-bunker-connect-failure, AC-id-bunker-login-invalid-uri, AC-id-bunker-login-valid, AC-id-bunker-logout, AC-id-bunker-no-host-key, AC-id-bunker-persists, AC-id-create-new, AC-id-create-persists, AC-id-created-can-publish, AC-id-dismiss-read-only, AC-id-login-invalid, AC-id-login-valid, AC-id-logout, AC-id-no-plaintext, AC-id-out-of-band-skips, AC-id-switch, FR-id-active-indicator, FR-id-bunker-connect-failure, FR-id-bunker-login, FR-id-bunker-persist, FR-id-create-new, FR-id-logout, FR-id-no-silent-override, FR-id-nsec-login, FR-id-optional-reentry, FR-id-out-of-band-honored, FR-id-persistence, FR-id-screen-when-no-identity, FR-id-show-new-nsec, FR-sr-bunker-signing, FR-sr-reviewer-identity, FR-srm-bunker-connect, FR-srm-bunker-sign-failure, FR-srm-event-sign, FR-srm-identity-indicator, FR-srm-identity-load, NFR-id-bunker-connect-latency, NFR-id-key-stays-local, NFR-id-key-validity, NFR-id-login-latency, NFR-id-no-plaintext-key]
 ---
 # Identity — macOS Test Plan
 
@@ -27,8 +27,16 @@ The in-app Nostr identity login and creation flow for the native macOS app: past
 | `AC-id-active-shown` | `TC-id-active-indicator` | Not started |
 | `AC-id-no-plaintext` | `TC-id-no-plaintext-disk` | Not started |
 | `AC-id-switch` | `TC-id-switch-identity` | Not started |
+| `AC-id-bunker-login-valid` | `TC-id-bunker-login-valid` | Not started |
+| `AC-id-bunker-login-invalid-uri` | `TC-id-bunker-login-invalid-uri` | Not started |
+| `AC-id-bunker-connect-failure` | `TC-id-bunker-connect-failure` | Not started |
+| `AC-id-bunker-persists` | `TC-id-bunker-persists` | Not started |
+| `AC-id-bunker-can-publish` | `TC-id-bunker-can-publish` | Not started |
+| `AC-id-bunker-logout` | `TC-id-bunker-logout` | Not started |
+| `AC-id-bunker-no-host-key` | `TC-id-bunker-no-host-key` | Not started |
 | `NFR-id-key-validity` | `TC-id-generated-key-valid` | Not started |
 | `NFR-id-login-latency` | `TC-id-login-latency` | Not started |
+| `NFR-id-bunker-connect-latency` | `TC-id-bunker-connect-latency` | Not started |
 
 ## Test Cases
 
@@ -153,6 +161,79 @@ Generating a fresh identity in-app.
   1. Open the Identity Window on demand.
   2. Click Switch Identity, paste a different valid `nsec` B, and sign in.
 - **Expected Result**: Identity B becomes active; the indicator reflects B; the previously stored key for A is replaced (a relaunch keeps B, not A).
+
+### Bunker login (NIP-46 remote signer)
+
+Logging in by pasting a `bunker://` URI instead of a raw `nsec`, so the secret key stays off-host.
+
+#### Login with a valid bunker URI `TC-id-bunker-login-valid`
+- **Type**: Integration (mock bunker or live signer)
+- **Covers**: `AC-id-bunker-login-valid`, `FR-id-bunker-login`
+- **Preconditions**: Keychain has no stored identity; no out-of-band identity; a reachable NIP-46 bunker is available (or a mock `BunkerClient` returning a pubkey).
+- **Steps**:
+  1. Launch the app — the Identity Window appears.
+  2. Switch the form toggle to "Bunker URI" and paste a valid `bunker://…` URI.
+  3. Click Sign In.
+- **Expected Result**: The card enters a Connecting state, the app connects to the signer, obtains the reviewer's public key, adopts the bunker identity, the window dismisses, and the indicator shows the bunker identity as connected.
+
+#### Reject malformed bunker URI `TC-id-bunker-login-invalid-uri`
+- **Type**: Unit (reducer) + Integration (UI)
+- **Covers**: `AC-id-bunker-login-invalid-uri`, `FR-id-bunker-login`
+- **Preconditions**: Identity Window shown, "Bunker URI" form active.
+- **Steps**:
+  1. Enter a malformed string (not `bunker://`, missing `relay=`, unparseable pubkey).
+  2. Click Sign In.
+- **Expected Result**: An inline error names the problem; no connection is attempted; no identity is adopted; the window stays open.
+
+#### Bunker connect failure during login `TC-id-bunker-connect-failure`
+- **Type**: Integration (mock bunker that refuses / times out)
+- **Covers**: `AC-id-bunker-connect-failure`, `FR-id-bunker-connect-failure`
+- **Preconditions**: "Bunker URI" form active; a well-formed URI pointing at an unreachable signer.
+- **Steps**:
+  1. Paste the well-formed `bunker://` URI and click Sign In.
+- **Expected Result**: After the connect timeout, an error names the bunker as the cause, the entered URI is retained for correction, no identity is adopted, and the reviewer can retry. The Keychain does not retain a URI for a failed connect.
+
+#### Bunker identity persists across relaunch `TC-id-bunker-persists`
+- **Type**: Integration (manual — relaunch; mock bunker reconnect)
+- **Covers**: `AC-id-bunker-persists`, `FR-id-bunker-persist`
+- **Preconditions**: A successful bunker login just completed.
+- **Steps**:
+  1. Quit and relaunch the app.
+- **Expected Result**: The app reconnects to the bunker using the stored URI, the Identity Window does not appear, and the indicator shows the bunker identity as connected again.
+
+#### Bunker identity can publish `TC-id-bunker-can-publish`
+- **Type**: Integration (manual — patch review; mock bunker signer)
+- **Covers**: `AC-id-bunker-can-publish`, `FR-sr-bunker-signing`, `FR-srm-event-sign`
+- **Preconditions**: A bunker identity is active; a patch review (`--patch`) is opened.
+- **Steps**:
+  1. Add an inline comment anchored to a line range and submit it.
+- **Expected Result**: The reply is signed by the remote bunker under the reviewer's public key and published; it appears in the patch-thread section attributed to that identity; the reviewer's secret key was never present on the host.
+
+#### Bunker logout forgets URI `TC-id-bunker-logout`
+- **Type**: Integration
+- **Covers**: `AC-id-bunker-logout`, `FR-id-logout`
+- **Preconditions**: A reviewer is logged in via a bunker URI.
+- **Steps**:
+  1. Open the Identity Window on demand.
+  2. Click Log Out.
+- **Expected Result**: The stored bunker URI is removed (Keychain entry deleted), the bunker control channel closes, publishing becomes unavailable, and the card returns to the empty/initial state. On next launch (with no out-of-band identity) the login screen appears.
+
+#### Bunker secret never on host `TC-id-bunker-no-host-key`
+- **Type**: Manual
+- **Covers**: `AC-id-bunker-no-host-key`, `NFR-id-key-stays-local`, `NFR-id-no-plaintext-key`
+- **Preconditions**: A reviewer logged in via a bunker URI.
+- **Steps**:
+  1. Inspect `~/Library/Application Support/Shepherd`, `~/Library/Preferences/…plist`, logs, and the Keychain for the reviewer's Nostr secret key.
+  2. Confirm the Keychain holds only the bunker URI (queryable via `security find-generic-password …`), not a 32-byte secret key.
+- **Expected Result**: The reviewer's Nostr secret key is not present anywhere on the host; only the bunker URI is in Keychain (not in plaintext on disk) and an ephemeral control-channel keypair in memory.
+
+#### Bunker connect is bounded by a timeout `TC-id-bunker-connect-latency`
+- **Type**: Unit (timing / mock)
+- **Covers**: `NFR-id-bunker-connect-latency`, `FR-id-bunker-connect-failure`
+- **Preconditions**: A mock bunker that never responds.
+- **Steps**:
+  1. Initiate a bunker login with a URI pointing at the non-responding signer.
+- **Expected Result**: The connect attempt times out within the bounded window (not hanging indefinitely) and is treated as a connect failure with a clear error.
 
 ### Coexistence with out-of-band identity
 

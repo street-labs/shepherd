@@ -2942,3 +2942,69 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/identity.md`
 - **Engineering**: `engineering/macos/identity.md`
 - **QA**: `qa/macos/identity.md` -> `TC-id-switch-identity`
+
+### `FR-id-bunker-login`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-login-valid`
+
+### `FR-id-bunker-persist`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-persists`
+
+### `FR-id-bunker-connect-failure`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-connect-failure`, `TC-id-bunker-connect-latency`
+
+### `NFR-id-bunker-connect-latency`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-connect-latency`
+
+### `AC-id-bunker-login-valid`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-login-valid`
+
+### `AC-id-bunker-login-invalid-uri`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-login-invalid-uri`
+
+### `AC-id-bunker-connect-failure`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-connect-failure`
+
+### `AC-id-bunker-persists`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-persists`
+
+### `AC-id-bunker-can-publish`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-can-publish`
+
+### `AC-id-bunker-logout`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-logout`
+
+### `AC-id-bunker-no-host-key`
+- **Defined in**: `product/identity.md`
+- **Design**: `design/macos/identity.md`
+- **Engineering**: `engineering/macos/identity.md`
+- **QA**: `qa/macos/identity.md` -> `TC-id-bunker-no-host-key`

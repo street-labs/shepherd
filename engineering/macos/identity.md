@@ -1,6 +1,6 @@
 ---
-product-hash: a4ede6c56444cd114cece487d208c4b87772e3878443548e17071953dc34aca0
-product-slugs: [AC-id-active-shown, AC-id-create-new, AC-id-create-persists, AC-id-created-can-publish, AC-id-dismiss-read-only, AC-id-login-invalid, AC-id-login-valid, AC-id-logout, AC-id-no-plaintext, AC-id-out-of-band-skips, AC-id-switch, FR-id-active-indicator, FR-id-create-new, FR-id-logout, FR-id-no-silent-override, FR-id-nsec-login, FR-id-optional-reentry, FR-id-out-of-band-honored, FR-id-persistence, FR-id-screen-when-no-identity, FR-id-show-new-nsec, FR-sr-reviewer-identity, FR-srm-event-sign, FR-srm-identity-indicator, FR-srm-identity-load, NFR-id-key-stays-local, NFR-id-key-validity, NFR-id-login-latency, NFR-id-no-plaintext-key]
+product-hash: 73657271350feabccb5f4c4bd71c6f9b4b1619aa9145ca3c8443a98fc08618d9
+product-slugs: [AC-id-active-shown, AC-id-bunker-can-publish, AC-id-bunker-connect-failure, AC-id-bunker-login-invalid-uri, AC-id-bunker-login-valid, AC-id-bunker-logout, AC-id-bunker-no-host-key, AC-id-bunker-persists, AC-id-create-new, AC-id-create-persists, AC-id-created-can-publish, AC-id-dismiss-read-only, AC-id-login-invalid, AC-id-login-valid, AC-id-logout, AC-id-no-plaintext, AC-id-out-of-band-skips, AC-id-switch, FR-id-active-indicator, FR-id-bunker-connect-failure, FR-id-bunker-login, FR-id-bunker-persist, FR-id-create-new, FR-id-logout, FR-id-no-silent-override, FR-id-nsec-login, FR-id-optional-reentry, FR-id-out-of-band-honored, FR-id-persistence, FR-id-screen-when-no-identity, FR-id-show-new-nsec, FR-sr-bunker-signing, FR-sr-reviewer-identity, FR-srm-bunker-connect, FR-srm-bunker-sign-failure, FR-srm-event-sign, FR-srm-identity-indicator, FR-srm-identity-load, NFR-id-bunker-connect-latency, NFR-id-key-stays-local, NFR-id-key-validity, NFR-id-login-latency, NFR-id-no-plaintext-key]
 ---
 # Identity — macOS Technical Spec
 
@@ -9,7 +9,7 @@ product-slugs: [AC-id-active-shown, AC-id-create-new, AC-id-create-persists, AC-
 
 ## What We're Building
 
-A new TCA feature (`IdentityFeature`) that presents an in-app login/create-identity window, backed by the existing `IdentityClient` and `NostrSigner` dependencies. The secret key is persisted in the macOS Keychain (never plaintext on disk), and the existing identity-load precedence is extended so an in-app-stored key is picked up alongside the env/config sources. The feature reuses the existing `ReviewerIdentity` model and `IdentityIndicatorView` so the active identity surfaces consistently whether it came from the in-app screen or an out-of-band source. Key generation uses the already-vendored `swift-secp256k1` (`P256K`) library — no new dependency.
+A new TCA feature (`IdentityFeature`) that presents an in-app login/create-identity window, backed by the existing `IdentityClient`, `BunkerClient`, and `NostrSigner` dependencies. The screen supports two login forms — a local secret key (`nsec`) and a NIP-46 bunker URI — plus local-key creation. The secret key (local-key form) or bunker URI (bunker form) is persisted in the macOS Keychain (never plaintext on disk), and the existing identity-load precedence is extended so an in-app-stored identity is picked up alongside the env/config sources. The feature reuses the existing `ReviewerIdentity` model and `IdentityIndicatorView` so the active identity surfaces consistently whether it came from the in-app screen or an out-of-band source. Key generation uses the already-vendored `swift-secp256k1` (`P256K`) library; bunker connection reuses the existing `BunkerClient` NIP-46 handshake — no new dependency.
 
 ## Technical Approach
 
@@ -29,16 +29,18 @@ New dependency: `KeychainClient` (in `ShepherdDependencies`), wrapping the two K
 ```swift
 @DependencyClient
 public struct KeychainClient: Sendable {
-    /// Read the stored 32-byte secret key, or nil if none is stored.
-    public var readSecret: @Sendable () -> Data?
-    /// Store the 32-byte secret key (overwrites any existing entry).
-    public var writeSecret: @Sendable (Data) -> Void
-    /// Delete the stored secret key (logout). No-op if none stored.
-    public var deleteSecret: @Sendable () -> Void
+    /// Read the stored identity material: either 32 bytes of secret key (local-key
+    /// form) or a UTF-8 bunker URI string (bunker form), or nil if none is stored.
+    public var readIdentity: @Sendable () -> Data?
+    /// Store identity material (32-byte secret key or UTF-8 bunker URI as Data).
+    /// Overwrites any existing entry.
+    public var writeIdentity: @Sendable (Data) -> Void
+    /// Delete the stored identity (logout). No-op if none stored.
+    public var deleteIdentity: @Sendable () -> Void
 }
 ```
 
-`IdentityClient` is extended with two methods that route through `KeychainClient` and the existing local-key loading logic:
+`IdentityClient` is extended with methods covering both forms. The local-key methods route through `KeychainClient` and the existing `loadLocalKey` helper; the bunker method routes through the existing `BunkerClient.connect` handshake and stores the URI:
 
 ```swift
 extension IdentityClient {
@@ -50,15 +52,21 @@ extension IdentityClient {
     /// the identity plus the bech32 nsec for backup display.
     /// Implements: FR-id-create-new, FR-id-show-new-nsec.
     public var createNewIdentity: @Sendable () -> (identity: ReviewerIdentity, nsec: String)?
+    /// Parse a bunker:// URI, persist it to Keychain, run the NIP-46 connect
+    /// handshake via BunkerClient, obtain the reviewer's pubkey, and adopt the
+    /// bunker identity. Returns nil on a malformed URI or connect failure
+    /// (caller surfaces the error, URI retained for retry).
+    /// Implements: FR-id-bunker-login, FR-id-bunker-connect-failure.
+    public var loginWithBunker: @Sendable (String) async -> ReviewerIdentity?
     /// Forget the app-stored identity (Keychain delete) and clear the cached
-    /// loaded identity. Implements: FR-id-logout.
+    /// loaded identity. Implements: FR-id-logout (both forms).
     public var logout: @Sendable () -> Void
 }
 ```
 
 The existing `loadIdentity` is extended so its precedence list begins with the Keychain source (Decision 1):
 
-1. Keychain (`shepherd-nostr-identity`) — **new, highest precedence**
+1. Keychain (`shepherd-nostr-identity`) — **new, highest precedence** — stores either a 32-byte secret key (local-key form) or a `bunker://` URI string (bunker form); the entry's format is distinguishable at read time (a 32-byte Data blob is a secret key; a UTF-8 string is a bunker URI).
 2. `SHEPHERD_BUNKER` env var
 3. `~/.config/nostr/bunker` file
 4. `SHEPHERD_NSEC` env var
@@ -99,12 +107,12 @@ Validation, key derivation, and Keychain writes are all synchronous local operat
 
 ## Implementation Plan
 
-1. **`KeychainClient`** — add the dependency with `liveValue` (SecItem wrappers) and a test double. Unlocks persistence for every other step.
-2. **Extend `IdentityClient`** — add the Keychain source to `LoadedIdentity.load` (highest precedence), plus `loginWithKey`, `createNewIdentity`, `logout`. Reuses the existing `loadLocalKey` helper for validation + pubkey derivation and `Bech32` for nsec encoding/decoding.
-3. **`IdentityFeature` reducer** — state + actions for the input, error, backup-reveal, and logged-in variants; effects calling `identityClient.loginWithKey` / `createNewIdentity` / `logout`; delegate actions back to the parent.
-4. **`IdentityView`** — the SwiftUI card from the design spec (SecureField, Sign In / Create / Skip / Log Out / Switch, backup reveal with Copy + confirm).
-5. **Wire into `AppFeature`** — present the Identity window at launch when no identity resolves; reopen-on-demand action; handle `identityAdopted` / `identityLoggedOut` delegate actions. Update the existing `reviewerIdentityLoaded` path so an in-app-adopted identity flows through unchanged.
-6. **Tests** — unit tests for `KeychainClient`, `IdentityClient.loginWithKey` (valid/invalid/overwrite), `createNewIdentity` (validity + persistence), `logout` (clears key + identity), and `IdentityFeature` reducer states. See QA plan.
+1. **`KeychainClient`** — add the dependency with `liveValue` (SecItem wrappers) and a test double. Stores either a 32-byte secret key or a UTF-8 bunker URI as `Data`. Unlocks persistence for every other step.
+2. **Extend `IdentityClient`** — add the Keychain source to `LoadedIdentity.load` (highest precedence, format-distinguished at read), plus `loginWithKey`, `createNewIdentity`, `loginWithBunker`, `logout`. Reuses the existing `loadLocalKey` helper for validation + pubkey derivation, `Bech32` for nsec encoding/decoding, and `BunkerClient.connect` + `BunkerConfig.parse` for the bunker path. The bunker login persists the URI to Keychain *before* the connect handshake so a successful connect is immediately durable; if the connect fails the persisted URI is removed (no orphaned identity).
+3. **`IdentityFeature` reducer** — state + actions for the form-toggle (secret key / bunker), input, error, connecting (bunker), backup-reveal, and logged-in variants; effects calling `identityClient.loginWithKey` / `createNewIdentity` / `loginWithBunker` / `logout`; delegate actions back to the parent. The bunker login effect is async (network handshake) and drives the Connecting state.
+4. **`IdentityView`** — the SwiftUI card from the design spec (form toggle, SecureField / bunker TextField, Sign In with Connecting state, Create / Skip / Log Out / Switch, backup reveal with Copy + confirm).
+5. **Wire into `AppFeature`** — present the Identity window at launch when no identity resolves; reopen-on-demand action; handle `identityAdopted` / `identityLoggedOut` delegate actions. Update the existing `reviewerIdentityLoaded` path so an in-app-adopted identity (either form) flows through unchanged. For a bunker identity, `reviewerIdentityLoaded` already triggers the bunker connect lifecycle in the existing `AppFeature` code path — an in-app bunker login reuses it.
+6. **Tests** — unit tests for `KeychainClient` (both formats), `IdentityClient.loginWithKey` (valid/invalid/overwrite), `createNewIdentity` (validity + persistence), `loginWithBunker` (valid URI → connect success, malformed URI, connect failure → URI removed), `logout` (clears key/URI + identity), and `IdentityFeature` reducer states (including the Connecting state). See QA plan.
 
 ## Code Map
 
@@ -116,6 +124,9 @@ Validation, key derivation, and Keychain writes are all synchronous local operat
 | FR-id-persistence | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | planned |
 | FR-id-active-indicator | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityView.swift | planned |
 | FR-id-logout | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
+| FR-id-bunker-login | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
+| FR-id-bunker-persist | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | planned |
+| FR-id-bunker-connect-failure | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
 | FR-id-out-of-band-honored | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | planned |
 | FR-id-no-silent-override | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | planned |
 | FR-id-screen-when-no-identity | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | planned |
