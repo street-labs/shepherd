@@ -866,6 +866,12 @@ public struct AppFeature {
             state.comment.publishState = .published
             state.comment.replyTarget = nil
             state.showPublishConfirmation = true
+            // Reset a previously-failed bunker indicator back to .connected on a
+            // successful publish (e.g. after a retry). Implements: FR-srm-bunker-sign-failure.
+            if state.reviewerIdentity?.source == .bunker,
+               case .failed = state.reviewerIdentity?.bunkerState {
+                state.reviewerIdentity?.bunkerState = .connected
+            }
             return .merge(
                 .send(.rebuildFileTree),
                 .run { [clock] send in

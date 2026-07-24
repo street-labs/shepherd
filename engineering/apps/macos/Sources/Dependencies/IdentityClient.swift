@@ -78,7 +78,7 @@ extension DependencyValues {
 // MARK: - Loading
 
 /// The loaded identity bundle, cached once per process.
-private final class LoadedIdentity: @unchecked Sendable {
+final class LoadedIdentity: @unchecked Sendable {
     var identity: ReviewerIdentity
     let secret: Data?
     let bunkerConfig: BunkerConfig?
@@ -145,7 +145,7 @@ private final class LoadedIdentity: @unchecked Sendable {
     }
 
     /// Load a local secret key (bech32 nsec1... or hex). Returns nil on a bad key.
-    private static func loadLocalKey(_ raw: String, bunkerClient: BunkerClient) -> LoadedIdentity? {
+    static func loadLocalKey(_ raw: String, bunkerClient: BunkerClient) -> LoadedIdentity? {
         var secret: Data?
         if raw.hasPrefix("nsec1") {
             if let decoded = Bech32.decode(raw), decoded.prefix == "nsec" {
@@ -173,7 +173,7 @@ private final class LoadedIdentity: @unchecked Sendable {
     /// is empty until the bunker handshake completes; `loadIdentity` returns the
     /// identity with `.connecting` state so the indicator can show the handshake
     /// in progress. After `connectBunker()` succeeds, the identity is updated.
-    private static func bunker(config: BunkerConfig, bunkerClient: BunkerClient) -> LoadedIdentity {
+    static func bunker(config: BunkerConfig, bunkerClient: BunkerClient) -> LoadedIdentity {
         let identity = ReviewerIdentity(
             pubkeyHex: "", npub: "", displayName: "Connecting…",
             source: .bunker,
@@ -184,7 +184,7 @@ private final class LoadedIdentity: @unchecked Sendable {
     }
 
     /// Create a parse-error identity (malformed bunker:// URI).
-    private static func parseError(bunkerClient: BunkerClient) -> LoadedIdentity {
+    static func parseError(bunkerClient: BunkerClient) -> LoadedIdentity {
         let identity = ReviewerIdentity(
             pubkeyHex: "", npub: "", displayName: "Invalid bunker URI",
             source: .bunker,
