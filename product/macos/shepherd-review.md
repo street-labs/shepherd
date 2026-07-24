@@ -24,6 +24,9 @@ The macOS variant adds one platform-choice user story on top of the shared spec'
 ### US-SRM-4: Sign my replies without exposing my raw secret key
 **As a** reviewer who keeps my Nostr secret key in a bunker (a NIP-46 remote signer), **I want to** point Shepherd at my bunker connection instead of pasting my raw `nsec`, **so that** my secret key never has to live in an env var or config file on my review machine yet my published replies are still signed under my own identity.
 
+### US-SRM-5: Open a patch directly in the app, without the CLI
+**As a** reviewer who has a NIP-34 patch event id (an ngit patch), **I want to** open that patch directly in the Shepherd app from its empty start screen — alongside opening files or pasting content — **so that** I can review the patch and participate in its thread without first dropping into a terminal to run `/shepherd-review --patch`. The app fetches the patch from Nostr itself and loads it for review.
+
 All other shared user stories (`US-SR-1` through `US-SR-9`) apply to the macOS variant unchanged — the review experience itself is the same.
 
 ## Shared Requirements — Applicability on macOS
@@ -201,6 +204,42 @@ The command must never launch the native app with nothing to review. Two guarant
 1. **Empty changeset never launches** — If the selected scope yields zero changed files (or zero *reviewable* files after filtering), the command prints a clear, scope-specific message explaining that there is nothing to review and stops **without** launching the native app. The message names the scope so the user understands why (e.g. no uncommitted changes, no commits on the branch versus the base, an empty commit, or an empty range). This prevents the failure mode where the app opens to a blank window because the changeset was empty.
 2. **Each launch reflects the current changeset** — When the command does launch, it refreshes the session payload and clears any stale prompt output from a previous run, so a reused window shows the files for the current invocation, never leftover state from an earlier review.
 
+### In-app patch open
+
+These requirements add a second, in-app way to start a patch review. The existing `--patch <event-id>` path (`FR-sr-patch-source` and friends) is driven by the `/shepherd-review` command prompt, which fetches the patch, applies it to a temporary git review branch, generates review context, and hands the session to the native app. The in-app path is independent of the CLI and of any local git repository: the reviewer is in the native app's empty state (standalone mode, no files loaded) and initiates the patch review themselves. The app fetches the NIP-34 patch event in-process (reusing `FR-sr-relay-client`), and loads the patch for review using only what the event itself contains. Once loaded, the patch review surface is the one already specified for the CLI path — patch metadata display (`FR-sr-patch-metadata-display`), the live patch-thread replies (`FR-sr-patch-replies-live`), and bidirectional reply publishing (`FR-srm-comment-publish-on-submit` et al.) all activate as if the session had been launched by the command.
+
+The reviewer's identity is handled by the existing in-app identity flow (`FR-srm-identity-load`); the in-app patch open does not introduce a new identity path. If no identity is loaded when a patch is opened, review and local commenting work and the identity indicator surfaces that replies will not publish, identical to the CLI-launched case.
+
+#### `FR-srm-patch-open-entry` — Empty state exposes an "Open Patch" affordance
+The native app's empty state (the drop zone shown when no files are loaded, per `product/macos/code-review-prompt.md`) exposes an "Open Patch…" affordance alongside the existing "Open Files…" (native file open panel) and "Paste from Clipboard" entry points. Activating it opens a lightweight dialog (see design spec) in which the reviewer enters or pastes a NIP-34 patch reference. This affordance is present only in the empty state; it is not shown once files are loaded. It initiates an in-app patch review and does not invoke the `/shepherd-review` command or any shell process.
+
+#### `FR-srm-patch-open-input` — Accept a patch event reference and validate its format
+The Open Patch dialog accepts a patch reference in either of two forms:
+
+1. A 64-character hex Nostr event id.
+2. A NIP-19 `nevent1…` or `naddr1…` bech32 entity that encodes a patch event (the app decodes it to its referenced event id and relays).
+
+Leading/trailing whitespace is trimmed. An input that matches neither form is rejected inline with a clear message ("Enter a 64-character hex event id or a nevent1/naddr1 reference") and the dialog stays open; no fetch is attempted. Pasted text that contains extra surrounding prose is not parsed — the whole (trimmed) field must be one valid reference.
+
+#### `FR-srm-patch-open-fetch` — Fetch and validate the NIP-34 patch event in-process
+When the reviewer submits a valid reference, the app fetches the patch event in-process using `FR-sr-relay-client`: it opens a NIP-01 subscription whose filter is the event id (and kinds `1617`, `1621`) across the configured relays. When `nevent1`/`naddr1` relays are present, those are preferred; otherwise the standard relay resolution (`NOSTR_RELAYS`, `~/.config/nostr/relays.txt`, default public relays) is used.
+
+The first matching event delivered is taken as the patch. The app then validates it (the same semantics as `FR-sr-patch-validation`, performed in Swift rather than shell):
+
+- **Event kind**: must be `1617` (proposal) or `1621` (patch). Any other kind (or an event whose content is not a diff) is rejected with "Event <short-id> is not a NIP-34 patch (kind <k>)."
+- **Diff format**: the event content must be a valid unified diff beginning with `diff --git` and containing `+++`/`---` headers and `@@` hunks. A malformed diff is rejected with "Patch event <short-id> does not contain a valid unified diff."
+
+A fetch that returns no event within the relay wait window is rejected with "Patch event <short-id> not found on the configured relays." If no relay is reachable, the dialog reports "No Nostr relays reachable — check your relay configuration." and no review is started.
+
+#### `FR-srm-patch-open-load` — Load the patch for review from the event alone
+On a successfully fetched and validated patch event, the app loads a patch review session using only the event's contents — no local git repository is required and no temporary review branch is created:
+
+1. **Parse the unified diff per file.** The diff is split on each `diff --git a/<path> b/<path>` boundary into one block per changed file. Each block becomes a tab in the file browser, named by the file path, with the block's diff text as the tab's content. (A file that appears in the diff only via binary or removal-only markers is still loaded as a tab so the reviewer can see and comment on its removal.) This is the v1 in-app review surface: the reviewer annotates the diff. Reconstructing full post-patch file contents would require the base files the diff is against, which the app does not have without a git checkout; that richer view is a roadmap fast-follow (see `roadmap/patch-watcher.md`).
+2. **Attach patch metadata.** The app builds a patch metadata record from the event — full and short event id, author (event pubkey, resolved to a display name via the roster when available), commit message (first line of the event content before the diff, or an `m`/commit tag), parent commit short hash (from a `parent-commit` tag, if present), status (from a `status` tag, defaulting to `open`), and repo coordinate (the `a` tag, when present) — and sets it on the session's patch metadata. This activates the patch metadata section, the live patch-thread reply subscription (`FR-sr-patch-replies-live`), and the reply-publishing path (`FR-srm-comment-publish-on-submit`).
+3. **Enter the review.** The empty state is replaced by the standard multi-file review layout (one tab per changed file). The reviewer adds inline comments on the diff and publishes them to the patch thread under their identity exactly as in the CLI-launched patch review.
+
+There is no agent-generated neutral/review context for an in-app-opened patch (no LLM runs in this path); per-file review context is simply absent, and the review-context panel hides for tabs that have none (graceful-missing, per `AC-crp-context-graceful-missing`). The patch metadata section and patch thread are the orientation the reviewer gets instead.
+
 ## macOS-Specific Non-Functional Requirements
 
 #### `NFR-srm-launch-budget` — Launch within the macOS app budget
@@ -276,6 +315,24 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 
 - [ ] **Updates propagate via git pull** `AC-srm-install-git-pull`: Given the install symlink exists, when the user runs `git pull` in the repo, then changes to `shepherd-review.md` are picked up automatically the next time the command is invoked, with no re-install required.
 
+### In-app patch open
+
+- [ ] **Open Patch from empty state** `AC-srm-patch-open-happy`: Given the native app is in its empty state (no files loaded), when the reviewer opens the "Open Patch…" affordance, pastes a 64-character hex event id for a valid NIP-34 patch event (kind `1617` or `1621`) whose content is a unified diff, and submits, then the app fetches the event in-process from the configured relays, splits the diff into one tab per changed file named by file path, attaches patch metadata (author, message, parent, status, repo coordinate), and enters the multi-file review layout with the patch metadata section, live patch-thread replies, and reply-publishing path all active — without invoking `/shepherd-review` or any shell process and without requiring a local git repository.
+
+- [ ] **nevent/naddr reference accepted** `AC-srm-patch-open-nevent`: Given the reviewer pastes a `nevent1…` (or `naddr1…`) reference that encodes a patch event id, when the app decodes it, then it fetches the referenced event from the relays encoded in the reference (preferred over the default relay list) and proceeds as in `AC-srm-patch-open-happy`.
+
+- [ ] **Invalid reference rejected inline** `AC-srm-patch-open-invalid-id`: Given the reviewer enters text that is neither a 64-character hex event id nor a `nevent1`/`naddr1` reference, when they submit, then the dialog shows "Enter a 64-character hex event id or a nevent1/naddr1 reference", no fetch is attempted, and the dialog stays open for correction.
+
+- [ ] **Patch event not found** `AC-srm-patch-open-not-found`: Given no event with the submitted id exists on the configured relays, when the relay wait window elapses with no match, then the dialog reports "Patch event <short-id> not found on the configured relays." and no review is started.
+
+- [ ] **Non-patch event rejected** `AC-srm-patch-open-wrong-kind`: Given the fetched event's kind is not `1617` or `1621`, when the app validates it, then the dialog reports "Event <short-id> is not a NIP-34 patch (kind <k>)." and no review is started.
+
+- [ ] **Malformed diff rejected** `AC-srm-patch-open-bad-diff`: Given the fetched event's content does not begin with `diff --git` or lacks valid `@@` hunks, when the app validates it, then the dialog reports "Patch event <short-id> does not contain a valid unified diff." and no review is started.
+
+- [ ] **No relays reachable** `AC-srm-patch-open-no-relays`: Given no configured relay is reachable, when the reviewer submits a reference, then the dialog reports "No Nostr relays reachable — check your relay configuration." and no fetch is attempted.
+
+- [ ] **In-app patch open activates the thread** `AC-srm-patch-open-activates-thread`: Given an in-app-opened patch review is loaded, when new patch-thread replies arrive over the live relay subscription, then they appear in the inspector Patch Thread section and inline at their anchors, and when the reviewer submits an inline comment with an identity loaded, then it publishes to the patch thread under that identity — identical to a CLI-launched patch review.
+
 ## Open Questions
 
 1. **Single binary or separate binary**: The proposed approach reuses the existing `/shepherd` binary with an extended `session.json` (multi-file `files[]`). An alternative would be a dedicated review-mode binary. Reusing the existing binary is the default; engineering may revisit if the multi-file path significantly diverges from single-file behavior.
@@ -283,6 +340,8 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 2. **Persistent window across reviews**: When a previous `/shepherd-review` window is still open and the user invokes the command again with the same session ID (rare, but possible if the project root resolves to the same basename), the existing-window behavior follows `AC-crp-macos-window-deduplicate`. Whether the second invocation should always force a new session ID is deferred — the current convention from `/shepherd` (project-root basename as session ID) is reused.
 
 3. **Missing-binary behavior**: If a user runs `/shepherd-review` but the macOS binary is missing (toolchain not installed), should the command error out with instructions? Current decision: error out and instruct the user to install Swift and re-run the installer. No silent fallback.
+
+4. **Diff-as-tabs vs full-file view for in-app patch open**: The v1 in-app path (`FR-srm-patch-open-load`) loads each changed file as a tab whose content is that file's diff block, because reconstructing full post-patch file contents requires the base files the diff is against (which need a git checkout). The CLI path shows full post-patch file content because it applies the patch to a real review branch. Should the in-app path fetch base files from the NIP-34 repo coordinate (or a configured git remote) to reconstruct full files and match the CLI experience? Deferred to the roadmap; the diff-as-tabs view is shipped first and is useful on its own.
 
 ## Dependencies
 

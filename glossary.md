@@ -64,6 +64,11 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: nip44
 **Not to be confused with**: NIP-04 (the older AES-CBC direct-message scheme, which NIP-46 no longer uses); NIP-46 (the remote-signing protocol that uses NIP-44 for payload encryption, not an encryption scheme itself)
 
+## NIP-34 Patch
+**Definition**: A Nostr event representing a git patch, per NIP-34 (the Nostr git protocol). Shepherd reviews kind `1617` (proposal) and `1621` (patch) events whose content is a unified diff and whose tags carry the repository coordinate (`a` tag, `30617:<owner>:<repo>`), commit hash, parent commit, author, and patch status (`open`/`merged`/`closed`/`draft`). A patch can be opened for review two ways: via the CLI (`/shepherd-review --patch <event-id>`, which applies it to a temporary git review branch) or in-app by entering its event reference in the Open Patch dialog (which loads the diff directly, no git repo required). Reviewers publish kind:1 Patch-Thread Replies against it.
+**Also known as**: ngit patch, Nostr patch, patch event
+**Not to be confused with**: Patch-Thread Reply (a kind:1 comment *on* a patch, not the patch itself); a git patch/commit in a local repo (a NIP-34 patch is a Nostr event that *contains* a unified diff)
+
 ## Patch-Thread Reply
 **Definition**: A kind:1 Nostr text note published as a comment on a NIP-34 patch event, tagged with the patch event as the thread root (an `e` tag with the `root` marker) plus the repository `a` tag, and optionally a line-range anchor pinning it to a file and line span in the applied patch. Both other participants' replies (read by the review tool) and the reviewer's own published replies use this format.
 **Also known as**: Patch reply, thread reply

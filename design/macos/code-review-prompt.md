@@ -483,6 +483,7 @@ Handles file loading in the empty state. Implements `FR-crp-file-load`, `FR-crp-
   - Primary text: system font, 17pt, primary label color.
   - Secondary text: system font, 13pt, secondary label color.
   - No explicit "Choose file" or "Paste content" buttons -- macOS users use Cmd+O for file picker and Cmd+V for paste. The drop zone accepts Finder drag-and-drop natively.
+  - **Open Patch button**: the empty state also exposes an "Open Patch…" button (and `Cmd+Shift+P` shortcut) that initiates an in-app NIP-34 patch review. This affordance is owned and fully specified by `./shepherd-review.md` → "In-App Patch Open" (`FR-srm-patch-open-entry`); it is listed here only because it renders inside this component's empty-state surface. No other FileDropZone behavior changes.
 
 - **Visual Structure (drag-hover)**:
   - The entire content area gets a translucent overlay with the system accent color border (3pt, rounded corners matching the window's corner radius).

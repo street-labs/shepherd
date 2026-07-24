@@ -352,6 +352,65 @@ Inherited from `./code-review-prompt.md` for the editor (`NFR-crp-accessibility-
 - `FR-srm-bunker-sign-failure`: publish-failed-bunker state; retry
 - `FR-sr-bunker-signing`: sign_event delegation via bunker; no host secret key
 
+## In-App Patch Open
+
+The empty start screen gains a third way to begin a review: open a NIP-34 ("ngit") patch directly by its event reference, without the `/shepherd-review` CLI. Implements `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`.
+
+### Entry point
+
+The `FileDropZone` (owned by `./code-review-prompt.md`) shows its existing row of buttons — "Open Files…" and "Paste from Clipboard" — and gains an "Open Patch…" button to their right. The button uses the same borderless-prominent style as its siblings so the three read as one row of equivalent starting points.
+
+```
+      [ Open Files… ]   [ Paste from Clipboard ]   [ Open Patch… ]
+```
+
+- **Gating**: present only in the empty state. Once any file is loaded the drop zone is gone and the button is not offered elsewhere (no toolbar item, no menu item in v1).
+- **Keyboard**: `Cmd+Shift+P` opens the Open Patch dialog directly. (Plain `Cmd+P` is reserved by the system for Print.)
+- **Accessibility**: the button exposes "Open a NIP-34 patch by event id" as its VoiceOver label; the shortcut is shown in the button tooltip.
+
+### Open Patch dialog
+
+Activating the button (or the shortcut) opens a centered modal sheet over the empty window.
+
+- **Title**: `Open Patch`
+- **Body**: a single `TextField` with a placeholder `Paste a 64-char event id or nevent1…/naddr1…`, an inline error line beneath the field, and a footer with a `Cancel` button and a primary `Fetch` button (default, submits on Return). The field accepts paste and supports drag-in of a text selection.
+- **States**:
+  - **Idle** — field empty; `Fetch` disabled.
+  - **Invalid input** — non-empty but not a valid reference; inline error `Enter a 64-character hex event id or a nevent1/naddr1 reference`; `Fetch` disabled; field stays focused. (Implements `AC-srm-patch-open-invalid-id`.)
+  - **Fetching** — after submit; the sheet shows a spinner with `Fetching patch from relays…`, the field and `Fetch` button are disabled, `Cancel` remains enabled (cancels the in-flight subscription). (Implements `FR-srm-patch-open-fetch`.)
+  - **Fetch failed — not found** — `Patch event <short-id> not found on the configured relays.` (`AC-srm-patch-open-not-found`)
+  - **Fetch failed — wrong kind** — `Event <short-id> is not a NIP-34 patch (kind <k>).` (`AC-srm-patch-open-wrong-kind`)
+  - **Fetch failed — bad diff** — `Patch event <short-id> does not contain a valid unified diff.` (`AC-srm-patch-open-bad-diff`)
+  - **Fetch failed — no relays** — `No Nostr relays reachable — check your relay configuration.` (`AC-srm-patch-open-no-relays`)
+  - On any failure the sheet stays open on the invalid/fetched input so the reviewer can correct and retry without re-pasting.
+- **On success**: the sheet closes and the window transitions from the empty state into the multi-file review layout (one tab per changed file). No success toast — the loaded review is the confirmation. (Implements `AC-srm-patch-open-happy`.)
+
+### Loaded review surface
+
+Once loaded, the review uses the existing patch-review surfaces unchanged — no new components:
+
+- The **file browser** lists one row per changed file, named by the file path (taken from the `diff --git a/<path> b/<path>` header). The first file is the active tab.
+- The **code viewer** shows that file's diff block as read-only content with syntax highlighting. The reviewer adds inline comments on diff lines exactly as on normal file content; the comment's line anchor is the diff line number, which is what gets published as the `range` anchor on the patch thread.
+- The **inspector** shows the existing Patch Metadata section (`FR-sr-patch-metadata-display`), the reviewer identity indicator (`FR-srm-identity-indicator`), and the live Patch Thread section (`FR-sr-patch-replies-live`). The Review Context (overall + per-file neutral/review) sections are absent for an in-app-opened patch (no agent context was generated); they simply do not render, the same graceful-missing behavior as a CLI review whose context file was not provided.
+
+### Interaction flow
+
+The reviewer has a patch event id (from a Nostr client, a Buzz message, or an ngit notification) and wants to review it in Shepherd without leaving the app.
+
+1. Reviewer opens Shepherd (standalone, empty state) → sees the three-button row including `Open Patch…`.
+2. Reviewer clicks `Open Patch…` (or presses `Cmd+Shift+P`) → the Open Patch sheet appears.
+3. Reviewer pastes the event id and clicks `Fetch` → the sheet shows `Fetching patch from relays…`.
+4. On success the sheet closes; the window shows one tab per changed file with the Patch Metadata section and Patch Thread section in the inspector.
+5. Reviewer adds inline comments on the diff and publishes them to the thread under their identity (`FR-srm-comment-publish-on-submit`), and reads/responds to other participants' replies — identical to a CLI-launched patch review.
+
+### Requirements Satisfied
+
+- `FR-srm-patch-open-entry`: empty-state `Open Patch…` button + `Cmd+Shift+P` shortcut
+- `FR-srm-patch-open-input`: dialog field accepting hex id or `nevent1`/`naddr1`; inline invalid-input state
+- `FR-srm-patch-open-fetch`: fetching state; in-process relay fetch; not-found / wrong-kind / bad-diff / no-relays failure states
+- `FR-srm-patch-open-load`: per-file diff tabs; attached patch metadata; transition into review layout
+- `AC-srm-patch-open-happy`, `AC-srm-patch-open-nevent`, `AC-srm-patch-open-invalid-id`, `AC-srm-patch-open-not-found`, `AC-srm-patch-open-wrong-kind`, `AC-srm-patch-open-bad-diff`, `AC-srm-patch-open-no-relays`, `AC-srm-patch-open-activates-thread`
+
 ## Concurrency
 
 Two `/shepherd-review` invocations from different working directories produce different session IDs (basename of project root), open independent windows (`FR-crp-macos-window-management`), and read/write disjoint session directories (`AC-srm-session-isolation`). A second invocation from the same project root with the same session ID brings the existing window to front and updates that window's session JSON before reload — same behavior as `/shepherd` (`AC-crp-macos-window-deduplicate`).

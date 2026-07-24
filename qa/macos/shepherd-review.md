@@ -47,6 +47,14 @@ Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both c
 | `AC-srm-range-scope` | `TC-srm-range-scope` | Not started |
 | `AC-srm-commit-excludes-untracked` | `TC-srm-branch-scope`, `TC-srm-commit-scope`, `TC-srm-range-scope` | Not started |
 | `AC-srm-empty-no-launch` | `TC-srm-empty-no-launch`, `TC-srm-no-changes` | Not started |
+| `AC-srm-patch-open-happy` | `TC-srm-patch-open-happy`, `TC-srm-patch-open-splitter-unit` | Not started |
+| `AC-srm-patch-open-nevent` | `TC-srm-patch-open-nevent` | Not started |
+| `AC-srm-patch-open-invalid-id` | `TC-srm-patch-open-invalid-id` | Not started |
+| `AC-srm-patch-open-not-found` | `TC-srm-patch-open-not-found` | Not started |
+| `AC-srm-patch-open-wrong-kind` | `TC-srm-patch-open-wrong-kind` | Not started |
+| `AC-srm-patch-open-bad-diff` | `TC-srm-patch-open-bad-diff` | Not started |
+| `AC-srm-patch-open-no-relays` | `TC-srm-patch-open-no-relays` | Not started |
+| `AC-srm-patch-open-activates-thread` | `TC-srm-patch-open-activates-thread` | Not started |
 | `AC-sr-patch-happy-path` | `TC-sr-patch-happy-path` | Not started |
 | `AC-sr-patch-event-not-found` | `TC-sr-patch-event-not-found` | Not started |
 | `AC-sr-patch-invalid-diff` | `TC-sr-patch-invalid-diff` | Not started |
@@ -919,6 +927,95 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Expected**: NIP-44 encrypt/decrypt round-trips and rejects tampered ciphertext. No new package dependency is exercised (uses `P256K` for ECDH + `CryptoKit` `ChaChaPoly`/`HKDF`); no AES-CBC is used.
 
 ---
+
+### In-App Patch Open
+
+#### Open Patch from empty state (happy path) `TC-srm-patch-open-happy`
+- **Type**: Manual
+- **Covers**: `AC-srm-patch-open-happy`, `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`
+- **Preconditions**: App in standalone empty state; a valid NIP-34 patch event (kind 1617 or 1621) with a unified-diff content exists on the configured relays; reviewer identity configured.
+- **Steps**:
+  1. Confirm the empty state shows an `Open Patch…` button alongside `Open Files…` and `Paste from Clipboard`.
+  2. Click `Open Patch…`; confirm the Open Patch sheet appears with the text field and `Fetch`/`Cancel` buttons.
+  3. Paste the patch event's 64-char hex id and click `Fetch`; confirm the sheet shows `Fetching patch from relays…`.
+  4. On success confirm the sheet closes and the window enters the multi-file layout with one tab per changed file (tab name = file path from the `diff --git` header).
+  5. Confirm the inspector shows the Patch Metadata section (author, message, parent, status) and the reviewer identity indicator.
+  6. Add an inline comment on a diff line and submit; confirm it publishes to the patch thread (`TC-srm-comment-publish`).
+  7. Confirm no shell process or `/shepherd-review` invocation was used (the review started entirely in-app).
+- **Expected**: Patch opens in-app by event id; per-file diff tabs load; patch metadata + live thread + publish all activate with no CLI/shell.
+
+#### nevent/naddr reference opens the patch `TC-srm-patch-open-nevent`
+- **Type**: Manual
+- **Covers**: `AC-srm-patch-open-nevent`, `FR-srm-patch-open-input`
+- **Preconditions**: As above; a `nevent1…` (or `naddr1…`) encoding of the patch event is available.
+- **Steps**:
+  1. Open the sheet and paste the `nevent1…` reference; submit.
+  2. Confirm the fetch is directed at the relays encoded in the reference and the patch loads as in `TC-srm-patch-open-happy`.
+- **Expected**: `nevent1`/`naddr1` references decode to the event id + relays and open the patch.
+
+#### Invalid reference rejected inline `TC-srm-patch-open-invalid-id`
+- **Type**: Automated (unit) + Manual
+- **Covers**: `AC-srm-patch-open-invalid-id`, `FR-srm-patch-open-input`
+- **Preconditions**: App in empty state.
+- **Steps**:
+  1. Open the sheet; type `not-a-valid-ref` and submit.
+  2. Confirm an inline error `Enter a 64-character hex event id or a nevent1/naddr1 reference` appears, `Fetch` is disabled, no network call is made, and the sheet stays open.
+  3. (Unit) assert `OpenPatchFeature` produces its invalid-input state for non-hex, wrong-length, and non-bech32 inputs.
+- **Expected**: Only well-formed references trigger a fetch; everything else is rejected inline.
+
+#### Patch event not found `TC-srm-patch-open-not-found`
+- **Type**: Manual (with a relay fixture returning no event)
+- **Covers**: `AC-srm-patch-open-not-found`, `FR-srm-patch-open-fetch`
+- **Steps**:
+  1. Submit a well-formed hex id that no relay has.
+  2. Confirm that after the relay wait window the sheet reports `Patch event <short-id> not found on the configured relays.` and stays open; no review is started.
+- **Expected**: A valid-but-absent id produces a clear not-found message, not a hang or blank review.
+
+#### Non-patch event rejected `TC-srm-patch-open-wrong-kind`
+- **Type**: Automated (unit) + Manual
+- **Covers**: `AC-srm-patch-open-wrong-kind`, `FR-srm-patch-open-fetch`
+- **Steps**:
+  1. Submit an id for a real event of kind 1 (a text note) or kind 0.
+  2. Confirm the sheet reports `Event <short-id> is not a NIP-34 patch (kind <k>).` and no review starts.
+  3. (Unit) assert `PatchDiffSplitter` rejects kinds other than 1617/1621.
+- **Expected**: Only NIP-34 patch kinds load; other events are rejected with the kind named.
+
+#### Malformed diff rejected `TC-srm-patch-open-bad-diff`
+- **Type**: Automated (unit)
+- **Covers**: `AC-srm-patch-open-bad-diff`, `FR-srm-patch-open-fetch`
+- **Steps**:
+  1. (Unit) feed `PatchDiffSplitter` a kind-1617 event whose content is plain text (no `diff --git`) and one with a `diff --git` header but no `@@` hunk.
+  2. Assert both are rejected with `Patch event <short-id> does not contain a valid unified diff.`
+- **Expected**: Events that are not a valid unified diff are rejected before any tabs load.
+
+#### No relays reachable `TC-srm-patch-open-no-relays`
+- **Type**: Manual
+- **Covers**: `AC-srm-patch-open-no-relays`, `FR-srm-patch-open-fetch`
+- **Preconditions**: Relay configuration points only at unreachable hosts (or no relays configured).
+- **Steps**:
+  1. Submit a valid reference.
+  2. Confirm the sheet reports `No Nostr relays reachable — check your relay configuration.` and no fetch is attempted.
+- **Expected**: An unreachable-relay state is surfaced distinctly from not-found.
+
+#### In-app opened patch activates the live thread `TC-srm-patch-open-activates-thread`
+- **Type**: Manual
+- **Covers**: `AC-srm-patch-open-activates-thread`, `FR-sr-patch-replies-live`, `FR-srm-comment-publish-on-submit`
+- **Preconditions**: Patch opened in-app per `TC-srm-patch-open-happy`; a second participant posts a reply to the same patch thread after the window is open.
+- **Steps**:
+  1. Confirm the initial reply snapshot (if any) renders in the inspector Patch Thread section.
+  2. Have the second participant publish a new kind:1 root reply to the patch.
+  3. Confirm the new reply appears in the inspector and inline at its anchor without relaunching.
+  4. Submit a response via the Reply affordance; confirm it publishes with threaded `e`/`p` tags.
+- **Expected**: The in-app-opened patch is indistinguishable from a CLI-launched patch review for live replies and publishing.
+
+#### PatchDiffSplitter unit -- per-file split `TC-srm-patch-open-splitter-unit`
+- **Type**: Automated (unit)
+- **Covers**: `FR-srm-patch-open-load`
+- **Steps**:
+  1. Feed the splitter a unified diff with 3 `diff --git` blocks (files a, b, c).
+  2. Assert it returns 3 `(filePath, diffBlock)` pairs with the correct paths.
+  3. Assert the extracted `PatchMetadata` carries the `a` tag repo coordinate, status, parent commit, and author pubkey from the event.
+- **Expected**: Diff splitting and metadata extraction are pure and deterministic.
 
 ## Edge Cases and Error Scenarios
 

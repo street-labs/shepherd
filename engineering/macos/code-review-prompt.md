@@ -1946,7 +1946,7 @@ func testFileBrowserSnapshot() {
 13. **Implement `SessionFeature`.** Slash command launch, session data loading, window title. Write reducer tests.
 14. **Implement Done flow.** Prompt handoff, clipboard copy, window close, error fallback. Write reducer tests.
 15. **Implement menu bar.** All menus (File, Edit, View, Review, Window) with keyboard shortcuts. Validate shortcut conflicts.
-16. **Implement empty state.** FileDropZone with drag-and-drop, paste, open panel integration.
+16. **Implement empty state.** FileDropZone with drag-and-drop, paste, open panel integration. The empty state also hosts an "Open Patch…" button owned by the shepherd-review feature (see `engineering/macos/shepherd-review.md` → In-App Patch Open, `FR-srm-patch-open-entry`); `FileDropZoneView` renders the button and routes activation to `AppFeature`, but the patch-fetch/load logic lives in `OpenPatchFeature`, not in the CRPG.
 17. **Implement confirmation dialogs.** Clear session, remove file (with comments). Wire up alert states.
 
 ### Phase 5: Distribution
