@@ -2,6 +2,8 @@ import ComposableArchitecture
 import SharedModels
 import Foundation
 
+// Implements: FR-crp-line-comment-delete
+
 /// Implements: FR-crp-line-comment-create, FR-crp-line-comment-edit,
 /// FR-crp-line-comment-delete, FR-crp-comment-navigation
 @Reducer
@@ -39,7 +41,7 @@ public struct CommentFeature {
     }
 
     /// Publish state for the comment submit button on patch reviews.
-    /// Implements: FR-srm-comment-publish-on-submit, AC-srm-publish-relay-failure.
+    /// Implements: FR-srm-comment-publish-on-submit, AC-srm-publish-relay-failure, FR-sri-comment-publish-on-submit.
     public enum PublishState: Equatable, Sendable {
         case idle
         case publishing

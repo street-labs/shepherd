@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import ComposableArchitecture
 import SharedModels
@@ -129,3 +130,5 @@ public struct AppView: View {
         }
     }
 }
+
+#endif

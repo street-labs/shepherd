@@ -13,9 +13,25 @@ let warningsAsErrors: [SwiftSetting] = [
 
 let package = Package(
     name: "Shepherd",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v14), .iOS(.v17)],
     products: [
         .executable(name: "ShepherdApp", targets: ["ShepherdApp"]),
+        // Library products exposed so the iOS app target (engineering/apps/ios) can link
+        // the shared, multiplatform feature modules. Each product maps to one target;
+        // transitive dependencies are resolved by SPM.
+        .library(name: "SharedModels", targets: ["SharedModels"]),
+        .library(name: "ShepherdDependencies", targets: ["ShepherdDependencies"]),
+        .library(name: "FileBrowserFeature", targets: ["FileBrowserFeature"]),
+        .library(name: "CodeViewerFeature", targets: ["CodeViewerFeature"]),
+        .library(name: "CommentFeature", targets: ["CommentFeature"]),
+        .library(name: "InspectorFeature", targets: ["InspectorFeature"]),
+        .library(name: "PromptFeature", targets: ["PromptFeature"]),
+        .library(name: "SessionFeature", targets: ["SessionFeature"]),
+        .library(name: "ReviewContextFeature", targets: ["ReviewContextFeature"]),
+        .library(name: "IdentityFeature", targets: ["IdentityFeature"]),
+        .library(name: "OpenPatchFeature", targets: ["OpenPatchFeature"]),
+        .library(name: "MarkdownRenderFeature", targets: ["MarkdownRenderFeature"]),
+        .library(name: "AppFeature", targets: ["AppFeature"]),
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.17.0"),

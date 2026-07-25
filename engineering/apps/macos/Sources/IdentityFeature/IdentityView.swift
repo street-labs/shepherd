@@ -27,7 +27,7 @@ public struct IdentityView: View {
         }
         .padding(28)
         .frame(maxWidth: 440)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Color.windowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(radius: 8)
     }
@@ -121,7 +121,7 @@ public struct IdentityView: View {
                 .font(.system(.body, design: .monospaced))
                 .textSelection(.enabled)
                 .padding(8)
-                .background(Color(nsColor: .quaternaryLabelColor).opacity(0.3))
+                .background(Color.quaternaryLabelFill.opacity(0.3))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
             HStack {
                 Button("Copy") { store.send(.copyNsecTapped) }

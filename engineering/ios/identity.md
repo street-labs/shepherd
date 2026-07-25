@@ -16,7 +16,7 @@ An iOS `IdentityFeature` (TCA) that presents the in-app login/create-identity sh
 
 The sheet is a standalone TCA reducer presented by `AppFeature` at launch when no identity resolves from Keychain, and reachable on demand. It does three things: validate/adopt a pasted `nsec`, generate a new keypair, and parse/connect a `bunker://` URI. The adopted secret key (local-key form) or bunker URI (bunker form) is persisted in the iOS Keychain (never plaintext on disk) via `KeychainClient`; `IdentityClient.loadIdentity` reads from Keychain as its sole source on iOS. Everything downstream (signing, indicator, publishing) is unchanged because it keys off the loaded `ReviewerIdentity` + cached secret, exactly as on macOS.
 
-For v1 the iOS app target carries its own copies of `IdentityClient`, `BunkerClient`, `NostrSigner`, `Bech32`, and `ReviewerIdentity` under `engineering/apps/ios/Sources/` (see `./code-review-prompt.md` and `./shepherd-review.md` Open Question 1 — lifting these into a shared multiplatform target is a follow-up).
+The existing shared `IdentityFeature`, `IdentityView`, `IdentityClient`, `KeychainClient`, `BunkerClient`, `NostrSigner`, `Bech32` (via `NIP19Decode`), and `ReviewerIdentity` already live in the macOS SPM package (`engineering/apps/macos/Sources/`) and are compiled for iOS via the multiplatform package (see `./code-review-prompt.md`). They are reused verbatim — no iOS copy is maintained. `KeychainClient` uses `SecItem*` (Foundation/Security), `IdentityClient` is Foundation-based, and `IdentityFeature`/`IdentityView` are SwiftUI, so all compile for iOS unchanged. On iOS the env-var and `~/.config` out-of-band sources are empty, so `loadIdentity` resolves Keychain-only (`FR-id-ios-screen-is-only-path`).
 
 ### Key Technical Decisions
 
@@ -38,7 +38,7 @@ The feature owns no new persistent domain model beyond the Keychain entry. It us
 
 ## API / Interface Design
 
-New dependency: `KeychainClient` (iOS), wrapping the three Keychain operations:
+Existing shared dependency: `KeychainClient` (already in `ShepherdDependencies`), wrapping the three Keychain operations:
 
 ```swift
 @DependencyClient
@@ -55,14 +55,14 @@ public struct KeychainClient: Sendable {
 }
 ```
 
-`IdentityClient` (iOS copy) is extended with the login/create/logout methods (same `IdentityLoginError` enum and signatures as macOS — `loginWithKey`, `createNewIdentity`, `loginWithBunker`, `logout`), routing the local-key path through `KeychainClient` + `loadLocalKey` and the bunker path through `BunkerClient.connect`. `loadIdentity` reads Keychain only (no env/config sources on iOS).
+`IdentityClient` (shared, already in `ShepherdDependencies`) already provides the login/create/logout methods (`loginWithKey`, `createNewIdentity`, `loginWithBunker`, `logout`; same `IdentityLoginError` enum and signatures), routing the local-key path through `KeychainClient` + `loadLocalKey` and the bunker path through `BunkerClient.connect`. On iOS `loadIdentity` reads Keychain only (the env/file out-of-band sources are empty).
 
 ## Component Architecture
 
-- **`IdentityFeature`** (`engineering/apps/ios/Sources/IdentityFeature/` — new): reducer + view for the login/create sheet. `IdentityFeature.swift` (state, actions, validation/login/create/logout effects) and `IdentityView.swift` (the SwiftUI form from the design spec).
-- **`KeychainClient`** (`engineering/apps/ios/Sources/Dependencies/KeychainClient.swift` — new): `SecItemAdd`/`SecItemCopyMatching`/`SecItemDelete` wrappers with `@DependencyClient` + `liveValue`.
-- **`IdentityClient`** (iOS copy — extended): add `loginWithKey`, `createNewIdentity`, `loginWithBunker`, `logout`, and the Keychain source to `loadIdentity`. The cached `LoadedIdentity` is refreshed when a login/create/logout mutates the Keychain.
-- **`AppFeature`** (iOS — extended): at launch, resolve identity from Keychain; if `nil`, present the Identity sheet. Add an action to reopen the sheet on demand (`FR-id-optional-reentry`).
+- **`IdentityFeature`** (shared, reused from `engineering/apps/macos/Sources/IdentityFeature/`): the existing reducer + view for the login/create sheet. `IdentityFeature.swift` (state, actions, validation/login/create/logout effects) and `IdentityView.swift` (the SwiftUI form) compile for iOS unchanged.
+- **`KeychainClient`** (shared, reused from `engineering/apps/macos/Sources/Dependencies/KeychainClient.swift`): the existing `SecItemAdd`/`SecItemCopyMatching`/`SecItemDelete` wrappers with `@DependencyClient` + `liveValue` (Foundation/Security — cross-platform).
+- **`IdentityClient`** (shared, reused): already provides `loginWithKey`, `createNewIdentity`, `loginWithBunker`, `logout`, and the Keychain source in `loadIdentity`. The cached `LoadedIdentity` is refreshed when a login/create/logout mutates the Keychain. On iOS the env/file out-of-band sources are empty, so `loadIdentity` resolves Keychain-only.
+- **`AppFeature`** (shared, reused): the existing reducer already resolves identity from Keychain at launch (`loadIdentityAtLaunch`), presents the Identity sheet when `nil` (`FR-id-screen-when-no-identity`), and reopens it on demand (`openIdentityScreen`, `FR-id-optional-reentry`).
 
 ## State Management
 
@@ -89,30 +89,29 @@ Validation, key derivation, and Keychain writes are synchronous local operations
 
 ## Implementation Plan
 
-1. **`KeychainClient` (iOS)** — add the dependency with `liveValue` (SecItem wrappers) and a test double. Stores either a 32-byte secret key or a UTF-8 bunker URI as `Data`. Unlocks persistence.
-2. **Extend `IdentityClient` (iOS)** — add the Keychain-only `loadIdentity` source plus `loginWithKey`, `createNewIdentity`, `loginWithBunker`, `logout`. Reuse `loadLocalKey`, `Bech32`, and `BunkerClient.connect`/`BunkerConfig.parse`.
-3. **`IdentityFeature` reducer** — state + actions for the form-toggle, input, error, connecting (bunker), backup-reveal, and logged-in variants; effects calling the `IdentityClient` methods; delegate actions to the parent.
-4. **`IdentityView`** — the SwiftUI form from the design spec.
-5. **Wire into `AppFeature`** — present the Identity sheet at launch when no identity resolves; reopen-on-demand action; handle `identityAdopted` / `identityLoggedOut` delegate actions; flow an adopted identity into the existing publishing path.
-6. **Tests** — unit tests for `KeychainClient` (both formats), `IdentityClient.loginWithKey` (valid/invalid/overwrite), `createNewIdentity` (validity + persistence), `loginWithBunker` (valid URI → connect success, malformed URI, connect failure → URI removed), `logout`, and `IdentityFeature` reducer states (including Connecting). See QA plan.
+The identity feature already exists in the shared macOS package and is reused on iOS, so the iOS-side work is wiring (the shared `AppFeature` already does it) plus build verification:
+
+1. **Verify multiplatform build** — confirm `KeychainClient`, `IdentityClient`, `BunkerClient`, `NostrSigner`, `IdentityFeature`, and `IdentityView` compile for the iOS app target via the multiplatform package.
+2. **Re-wire `AppFeature` launch gate on iOS** — the existing `loadIdentityAtLaunch`/`openIdentityScreen`/`identityAdopted`/`identityLoggedOut` paths drive the sheet on iOS exactly as on macOS; verify the iOS root view presents `IdentityFeature` as a sheet over the empty state.
+3. **Tests** — the shared `IdentityFeatureTests`/`KeychainClient` tests run on iOS; add any iOS-specific Keychain-format assertions if needed. See QA plan.
 
 ## Code Map
 
 | Slug | Planned location | Status |
 |---|---|---|
-| FR-id-nsec-login | engineering/apps/ios/Sources/Dependencies/IdentityClient.swift; engineering/apps/ios/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-create-new | engineering/apps/ios/Sources/Dependencies/IdentityClient.swift; engineering/apps/ios/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-show-new-nsec | engineering/apps/ios/Sources/IdentityFeature/IdentityFeature.swift; engineering/apps/ios/Sources/IdentityFeature/IdentityView.swift | planned |
-| FR-id-persistence | engineering/apps/ios/Sources/Dependencies/KeychainClient.swift; engineering/apps/ios/Sources/Dependencies/IdentityClient.swift | planned |
-| FR-id-active-indicator | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppView.swift | planned |
-| FR-id-logout | engineering/apps/ios/Sources/Dependencies/IdentityClient.swift; engineering/apps/ios/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-bunker-login | engineering/apps/ios/Sources/Dependencies/IdentityClient.swift; engineering/apps/ios/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-bunker-persist | engineering/apps/ios/Sources/Dependencies/KeychainClient.swift; engineering/apps/ios/Sources/Dependencies/IdentityClient.swift | planned |
-| FR-id-bunker-connect-failure | engineering/apps/ios/Sources/Dependencies/IdentityClient.swift; engineering/apps/ios/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-screen-when-no-identity | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift; engineering/apps/ios/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-optional-reentry | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift; engineering/apps/ios/Sources/IdentityFeature/IdentityFeature.swift | planned |
-| FR-id-ios-keychain-storage | engineering/apps/ios/Sources/Dependencies/KeychainClient.swift | planned |
-| FR-id-ios-screen-is-only-path | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift | planned |
+| `FR-id-nsec-login` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| `FR-id-create-new` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| `FR-id-show-new-nsec` | engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityView.swift | implemented |
+| `FR-id-persistence` | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | implemented |
+| `FR-id-active-indicator` | engineering/apps/ios/ShepherdiOSApp/iOSAppView.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityView.swift | implemented |
+| `FR-id-logout` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| `FR-id-bunker-login` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| `FR-id-bunker-persist` | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift; engineering/apps/macos/Sources/Dependencies/IdentityClient.swift | implemented |
+| `FR-id-bunker-connect-failure` | engineering/apps/macos/Sources/Dependencies/IdentityClient.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| `FR-id-screen-when-no-identity` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| `FR-id-optional-reentry` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/IdentityFeature/IdentityFeature.swift | implemented |
+| `FR-id-ios-keychain-storage` | engineering/apps/macos/Sources/Dependencies/KeychainClient.swift | implemented |
+| `FR-id-ios-screen-is-only-path` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 
 Notes:
 - `FR-id-out-of-band-honored` and `FR-id-no-silent-override` do not apply on iOS (no out-of-band sources) and are omitted from the Code Map; see `../../product/ios/identity.md`.
@@ -120,6 +119,6 @@ Notes:
 
 ## Open Questions
 
-1. **Shared deps** — as in `./code-review-prompt.md` Open Question 1: `IdentityClient`/`BunkerClient`/`NostrSigner`/`Bech32`/`ReviewerIdentity` are duplicated into the iOS target for v1; lifting to a shared multiplatform target is a follow-up.
+1. **Shared deps** — resolved: `IdentityClient`/`BunkerClient`/`NostrSigner`/`Bech32`/`ReviewerIdentity`/`KeychainClient` are reused from the shared multiplatform package; no iOS copy is maintained (see `./code-review-prompt.md`).
 2. **Keychain access group** — whether to use a keychain-access-group (for future iCloud Keychain sharing with the macOS app) is an engineering decision; v1 uses the app's default Keychain.
-3. **`P256K` on iOS** — verify `swift-secp256k1` builds for the iOS app target at implementation time; it is already vendored for macOS signing.
+3. **`P256K` on iOS** — `swift-secp256k1` builds for iOS (verified at implementation time); it is already vendored and now consumed via the multiplatform package.

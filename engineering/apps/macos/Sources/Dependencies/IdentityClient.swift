@@ -287,7 +287,7 @@ final class LoadedIdentity: @unchecked Sendable {
         }
 
         // 2. ~/.config/nostr/bunker file
-        let bunkerFile = FileManager.default.homeDirectoryForCurrentUser
+        let bunkerFile = FileManager.default.shepherdHome
             .appendingPathComponent(".config/nostr/bunker")
         if let contents = try? String(contentsOf: bunkerFile) {
             for line in contents.split(separator: "\n") {
@@ -310,7 +310,7 @@ final class LoadedIdentity: @unchecked Sendable {
         }
 
         // 4. ~/.config/nostr/identity file
-        let identityFile = FileManager.default.homeDirectoryForCurrentUser
+        let identityFile = FileManager.default.shepherdHome
             .appendingPathComponent(".config/nostr/identity")
         if let contents = try? String(contentsOf: identityFile) {
             for line in contents.split(separator: "\n") {
@@ -432,7 +432,7 @@ final class LoadedIdentity: @unchecked Sendable {
 
     /// Display name from roster.json for this pubkey, else truncated npub.
     static func resolveDisplayName(pubkeyHex: String, npub: String) -> String {
-        let rosterURL = FileManager.default.homeDirectoryForCurrentUser
+        let rosterURL = FileManager.default.shepherdHome
             .appendingPathComponent(".config/nostr/roster.json")
         if let data = try? Data(contentsOf: rosterURL),
            let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

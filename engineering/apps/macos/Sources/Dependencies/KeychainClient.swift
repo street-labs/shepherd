@@ -2,10 +2,12 @@ import Foundation
 import Security
 import ComposableArchitecture
 
+// Implements: FR-id-ios-keychain-storage
+
 /// Secure storage for the reviewer's in-app Nostr identity. Holds either a
 /// 32-byte secret key (local-key form) or a UTF-8 `bunker://` URI (bunker form),
 /// never written to disk in plaintext. Implements: FR-id-persistence,
-/// FR-id-bunker-persist, NFR-id-no-plaintext-key.
+/// FR-id-bunker-persist, NFR-id-no-plaintext-key, FR-id-ios-keychain-storage.
 @DependencyClient
 public struct KeychainClient: Sendable {
     /// Read the stored identity material: 32 bytes of secret key (local-key

@@ -51,7 +51,7 @@ public struct PatchRepliesSectionView: View {
             }
         }
         .padding(12)
-        .background(Color(nsColor: .quaternaryLabelColor).opacity(0.3))
+        .background(Color.quaternaryLabelFill.opacity(0.3))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 8)
         .padding(.bottom, 16)

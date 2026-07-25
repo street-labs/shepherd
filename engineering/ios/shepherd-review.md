@@ -14,7 +14,7 @@ The iOS in-app patch open and the bidirectional patch-thread review loop — the
 
 ## Technical Approach
 
-The patch-open and publishing paths are iOS ports of the macOS `RelayClient`/`NostrSigner`/`PatchReplyMapper` machinery. For v1 the iOS app target carries its own copies of these dependencies under `engineering/apps/ios/Sources/Dependencies/` (see `./code-review-prompt.md` Open Question 1); a later refactor can lift them into a shared multiplatform target. The in-process relay client uses `URLSessionWebSocketTask`; signing is a single async `NostrSigner.sign(event:)` that dispatches to in-process secp256k1 Schnorr (local key) or a NIP-46 `sign_event` round-trip (bunker).
+The patch-open and publishing paths reuse the macOS `RelayClient`/`NostrSigner`/`PatchReplyMapper`/`PatchDiffSplitter`/`OpenPatchFeature`/`ReviewContextFeature` machinery verbatim, compiled for iOS via the multiplatform package (see `./code-review-prompt.md`). No iOS copies are maintained. The in-process relay client uses `URLSessionWebSocketTask`; signing is a single async `NostrSigner.sign(event:)` that dispatches to in-process secp256k1 Schnorr (local key) or a NIP-46 `sign_event` round-trip (bunker). The shared `AppFeature` reducer already orchestrates the open-patch sheet, live-thread subscription, reply publishing, and identity load — the iOS app reuses it unchanged and only supplies the root view that surfaces these.
 
 ### Key Technical Decisions
 
@@ -39,26 +39,25 @@ The patch-open and publishing paths are iOS ports of the macOS `RelayClient`/`No
 
 ## API / Interface Design
 
-- `RelayClient` (iOS copy):
+- `RelayClient` (shared, reused):
   - `func subscribe(_ filter: NostrFilter) -> AsyncStream<NostrEvent>`
   - `func publish(_ event: NostrEvent) async -> PublishResult` (`.accepted` / `.rejected` / `.noRelays`)
   - relay URL resolution: in-app configured list → default public fallback.
-- `NostrSigner` (iOS copy):
+- `NostrSigner` (shared, reused):
   - `func sign(event: UnsignedNostrEvent) async -> NostrEvent?`
   - `func publicKey(for identity: ReviewerIdentity) async -> PublicKey?`
   - `testValue` returns deterministic fixtures.
-- `PatchParser`:
-  - `func parse(_ event: NostrEvent) -> PatchParseResult` (`.success([FileBlock], PatchMetadata)` / `.wrongKind` / `.badDiff`).
-- `PatchReplyMapper`:
+- `PatchParser` — the shared `PatchDiffSplitter` splits on `diff --git a/<p> b/<p>` boundaries (`FR-sri-patch-open-load`); `OpenPatchFeature` wraps the parse + kind-1617 validation into `PatchParseResult`.
+- `PatchReplyMapper` (shared, reused):
   - `func map(_ events: [NostrEvent], patchEventId: String) -> [PatchReply]` (kind:1 root filter, bot/human, line anchor parse).
-- `PatchOpenFeature` reducer actions: `openButtonTapped`, `referenceChanged(String)`, `submitTapped`, `.success(PatchReviewSession)`, `.failure(PatchOpenError)`.
+- `PatchOpenFeature` reducer actions (shared, reused): `openButtonTapped`, `referenceChanged(String)`, `submitTapped`, `.delegate(.patchLoaded(...))`, `.delegate(.cancelled)`.
 
 ## Component Architecture
 
-- `PatchOpenFeature` — the Open Patch sheet reducer. Validates the reference (`Bech32`/hex), runs the fetch effect (`RelayClient.subscribe` ids-only, cancel-on-first), parses (`PatchParser`), and emits `sessionLoaded`. Owns the sheet's idle/fetching/error states.
-- `PatchThreadFeature` (composed into the inspector) — subscribes live to the patch's replies, maps them, and renders the inspector Thread section + inline anchored bubbles. Owns the live `AsyncStream` lifecycle (tear down on dismiss).
-- `PublishingFeature` (or extension of `CommentFeature`) — on comment submit in a patch review: build the unsigned kind:1 (root `e`, repo `a`, line-range anchor), `sign`, `publish`, record locally, dedupe the echo. Handles bunker-sign-failure reopen.
-- `IdentityFeature` — loads/holds `ReviewerIdentity` from in-app Settings, drives the identity indicator, opens/closes the bunker control channel.
+- `PatchOpenFeature` (shared, reused) — the existing Open Patch sheet reducer. Validates the reference (`Bech32`/hex), runs the fetch effect (`RelayClient.subscribe` ids-only, cancel-on-first), parses (`PatchDiffSplitter`), and emits `delegate.patchLoaded`. Owns the sheet's idle/fetching/error states.
+- `PatchThreadFeature` (realized by the shared `AppFeature` + `ReviewContextFeature`) — the existing `startPatchReplySubscription` effect subscribes live to the patch's replies, maps them via `PatchReplyMapper`, and the `ReviewContextFeature` renders the inspector Thread section + inline anchored bubbles. The live `AsyncStream` lifecycle is a cancellable TCA effect torn down on session clear/window close.
+- `PublishingFeature` (realized by the shared `AppFeature.patchReviewPublishEffect`) — on comment submit in a patch review: builds the unsigned kind:1 (root `e`, repo `a`, line-range anchor), `sign`, `publish`, records locally, dedupes the echo. Handles bunker-sign-failure reopen.
+- `IdentityFeature` (shared, reused) — loads/holds `ReviewerIdentity` from the Keychain, drives the identity indicator (`IdentityIndicatorView`), opens/closes the bunker control channel.
 
 ## State Management
 
@@ -84,37 +83,37 @@ TCA. `PatchOpenFeature.State` holds the sheet UI state and a `PatchOpenError?`. 
 
 ## Implementation Plan
 
-1. **`Bech32` + `NostrEvent` + `RelayClient` (iOS copies)** — enables fetch/subscribe/publish. (Cross-ref `./code-review-prompt.md`.)
-2. **`PatchParser` + `PatchOpenFeature` + Open Patch sheet** — enables opening a patch and loading the session.
-3. **`PatchReplyMapper` + `PatchThreadFeature` (live subscription)** — enables reading the thread.
-4. **`NostrSigner` (local key) + `PublishingFeature`** — enables publishing replies under a local key.
-5. **Bunker path: `IdentityFeature` NIP-46 connect/get_public_key/sign_event + indicator** — enables bunker signing and the identity indicator.
-6. **Settings (identity + relays) + error/edge states** — enables in-app configuration and all `AC-sri-*` coverage.
+The patch-open and publishing machinery already exists in the shared macOS package and is reused on iOS, so the iOS-side work is build verification + root-view wiring:
+
+1. **Verify multiplatform build** — confirm `RelayClient`, `NostrSigner`, `PatchReplyMapper`, `PatchDiffSplitter`, `OpenPatchFeature`, and `ReviewContextFeature` compile for the iOS app target.
+2. **Root-view wiring** — the iOS `iOSAppView` surfaces the shared `AppFeature.openPatchRequested` (Open Patch sheet) from the empty state, and the inspector's `ReviewContextFeature` (metadata, thread, identity indicator) in the detail column / pushed screens.
+3. **Settings (relays)** — relay configuration UI is an iOS-only settings surface (the shared `RelayClient` reads its relay list from a source that the iOS app supplies); exact shape deferred (Open Question 3).
+4. **Tests** — the shared `OpenPatchFeature`/relay/mapper tests run on iOS; verify at build.
 
 ## Code Map
 
 | Slug | Planned location | Status |
 |---|---|---|
-| FR-sr-relay-client | engineering/apps/ios/Sources/Dependencies/RelayClient.swift | planned |
-| FR-sr-patch-metadata-display | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppView.swift | planned |
-| FR-sr-patch-replies-display | engineering/apps/ios/Sources/Dependencies/PatchReplyMapper.swift | planned |
-| FR-sr-patch-replies-live | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift | planned |
-| FR-sr-patch-reply-publish | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift | planned |
-| FR-sr-patch-reply-respond | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift | planned |
-| FR-sr-reviewer-identity | engineering/apps/ios/Sources/Dependencies/NostrSigner.swift | planned |
-| FR-sr-bunker-signing | engineering/apps/ios/Sources/Dependencies/NostrSigner.swift | planned |
-| FR-sri-patch-open-entry | engineering/apps/ios/Sources/PatchOpenFeature/PatchOpenView.swift | planned |
-| FR-sri-patch-open-input | engineering/apps/ios/Sources/PatchOpenFeature/PatchOpenFeature.swift | planned |
-| FR-sri-patch-open-fetch | engineering/apps/ios/Sources/PatchOpenFeature/PatchOpenFeature.swift | planned |
-| FR-sri-patch-open-load | engineering/apps/ios/Sources/Dependencies/PatchParser.swift | planned |
-| FR-sri-identity-load | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift | planned |
-| FR-sri-bunker-connect | engineering/apps/ios/Sources/Dependencies/NostrSigner.swift | planned |
-| FR-sri-event-sign | engineering/apps/ios/Sources/Dependencies/NostrSigner.swift | planned |
-| FR-sri-bunker-sign-failure | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift | planned |
-| FR-sri-event-publish | engineering/apps/ios/Sources/Dependencies/RelayClient.swift | planned |
-| FR-sri-comment-publish-on-submit | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift | planned |
-| FR-sri-reply-to-reply | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppFeature.swift | planned |
-| FR-sri-identity-indicator | engineering/apps/ios/ShepherdiOSApp/AppFeature/AppView.swift | planned |
+| `FR-sr-relay-client` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
+| `FR-sr-patch-metadata-display` | engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | implemented |
+| `FR-sr-patch-replies-display` | engineering/apps/macos/Sources/ReviewContextFeature/PatchRepliesSectionView.swift | implemented |
+| `FR-sr-patch-replies-live` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sr-patch-reply-publish` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sr-patch-reply-respond` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sr-reviewer-identity` | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift | implemented |
+| `FR-sr-bunker-signing` | engineering/apps/macos/Sources/Dependencies/NostrSigner.swift | implemented |
+| `FR-sri-patch-open-entry` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchView.swift | implemented |
+| `FR-sri-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
+| `FR-sri-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
+| `FR-sri-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
+| `FR-sri-identity-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sri-bunker-connect` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/BunkerClient.swift | implemented |
+| `FR-sri-event-sign` | engineering/apps/macos/Sources/Dependencies/NostrSigner.swift | implemented |
+| `FR-sri-bunker-sign-failure` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sri-event-publish` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
+| `FR-sri-comment-publish-on-submit` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sri-reply-to-reply` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-sri-identity-indicator` | engineering/apps/macos/Sources/ReviewContextFeature/IdentityIndicatorView.swift | implemented |
 
 Notes:
 - Shared `FR-sr-*` requirements that do not apply on iOS (changeset detection, file filtering, context generation, CLI launch, install, git, feedback collection, etc.) are omitted from the Code Map; see `../../product/ios/shepherd-review.md` "Do not apply on iOS".
@@ -123,7 +122,7 @@ Notes:
 
 ## Open Questions
 
-1. **Shared Nostr dependencies** — as in `./code-review-prompt.md` Open Question 1: duplicate for v1, lift to a shared multiplatform target as a follow-up.
+1. **Shared Nostr dependencies** — resolved: reused from the shared multiplatform package; no iOS copy maintained (see `./code-review-prompt.md`).
 2. **Roster / display-name resolution** — v1 uses truncated npub. Bundling a roster or fetching NIP-05 is a follow-up (product Open Question 3). `PatchReplyMapper` resolves display name via a pluggable resolver that returns npub in v1.
-3. **Relay default set** — the in-app "use defaults" toggle needs a default public relay list; reuse the macOS default set. Exact list is an engineering decision.
-4. **NIP-46 library** — implement NIP-46 (`connect`/`get_public_key`/`sign_event`, NIP-44 encryption) in Swift in the iOS `NostrSigner`, mirroring the macOS implementation. If a Swift NIP-46 library is already used by macOS, reuse it; otherwise port the minimal pieces. Verify at implementation time.
+3. **Relay default set** — the in-app "use defaults" toggle needs a default public relay list; reuse the macOS default set. Exact list is an engineering decision; the iOS settings UI shape is deferred.
+4. **NIP-46 library** — resolved: the macOS `BunkerClient`/`NostrSigner` already implement NIP-46 (`connect`/`get_public_key`/`sign_event`, NIP-44 encryption) in Swift and are reused on iOS via the multiplatform package.

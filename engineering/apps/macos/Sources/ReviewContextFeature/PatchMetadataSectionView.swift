@@ -1,6 +1,5 @@
 import SwiftUI
 import SharedModels
-import AppKit
 
 /// NIP-34 patch metadata display for Nostr patch reviews.
 /// Implements: FR-sr-patch-metadata-display
@@ -26,8 +25,12 @@ public struct PatchMetadataSectionView: View {
                         .textSelection(.enabled)
 
                     Button(action: {
+                        #if os(macOS)
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(metadata.eventID, forType: .string)
+                        #elseif os(iOS)
+                        UIPasteboard.general.string = metadata.eventID
+                        #endif
                     }) {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 9))
@@ -91,7 +94,7 @@ public struct PatchMetadataSectionView: View {
             }
         }
         .padding(12)
-        .background(Color(nsColor: .quaternaryLabelColor).opacity(0.3))
+        .background(Color.quaternaryLabelFill.opacity(0.3))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 8)
         .padding(.bottom, 16)

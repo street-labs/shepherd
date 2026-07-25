@@ -5,7 +5,7 @@ import P256K
 import SharedModels
 
 /// In-process NIP-01 event signing under the reviewer's Nostr identity.
-// Implements: FR-srm-event-sign
+// Implements: FR-srm-event-sign, FR-sri-event-sign
 ///
 /// Wraps secp256k1 Schnorr signing + x-only pubkey derivation behind a
 /// `@Dependency` protocol so reducers and tests depend on a protocol, not the

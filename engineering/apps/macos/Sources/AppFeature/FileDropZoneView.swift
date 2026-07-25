@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import ComposableArchitecture
 import AppKit
@@ -94,3 +95,5 @@ struct FileDropZoneView: View {
         }
     }
 }
+
+#endif

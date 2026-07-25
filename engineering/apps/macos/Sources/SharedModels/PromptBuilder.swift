@@ -1,6 +1,8 @@
 import Foundation
 import IdentifiedCollections
 
+// Implements: FR-crp-prompt-format, FR-crp-multi-file-prompt-format
+
 /// Implements: FR-crp-prompt-format, FR-crp-multi-file-prompt-format,
 /// NFR-crp-prompt-gen-time
 ///

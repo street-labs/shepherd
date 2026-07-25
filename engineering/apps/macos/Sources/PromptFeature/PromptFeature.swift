@@ -1,6 +1,8 @@
 import ComposableArchitecture
 import SharedModels
 import ShepherdDependencies
+
+// Implements: FR-crp-prompt-generate, FR-crp-multi-file-prompt
 import IdentifiedCollections
 
 /// Implements: FR-crp-prompt-generate, FR-crp-prompt-format, FR-crp-multi-file-prompt,
