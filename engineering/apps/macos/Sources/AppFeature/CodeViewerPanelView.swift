@@ -8,10 +8,14 @@ import MarkdownRenderFeature
 
 /// Wraps file header + review context + code viewer
 /// Implements: FR-mdr-render-toggle (conditional rendering)
-struct CodeViewerPanelView: View {
+public struct CodeViewerPanelView: View {
     let store: StoreOf<AppFeature>
 
-    var body: some View {
+    public init(store: StoreOf<AppFeature>) {
+        self.store = store
+    }
+
+    public var body: some View {
         VStack(spacing: 0) {
             // Active file header
             if let activeFile = store.activeFile {

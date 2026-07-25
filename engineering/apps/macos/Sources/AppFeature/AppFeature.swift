@@ -14,6 +14,8 @@ import OpenPatchFeature
 import IdentifiedCollections
 import Foundation
 
+// Implements: FR-id-ios-screen-is-only-path, FR-sri-identity-load, FR-sri-bunker-connect, FR-sri-bunker-sign-failure, FR-sri-comment-publish-on-submit, FR-sri-reply-to-reply
+
 /// A file loaded from disk, clipboard, or an in-app-opened patch diff block.
 public struct LoadedFile: Equatable, Sendable {
     public let content: String
@@ -67,7 +69,8 @@ public struct AppFeature {
         public var reviewContextData: ReviewContext?
 
         /// The reviewer's loaded Nostr identity for publishing patch-thread replies.
-        /// Implements: FR-srm-identity-load, FR-srm-identity-indicator, FR-sr-reviewer-identity.
+        /// Implements: FR-srm-identity-load, FR-srm-identity-indicator, FR-sr-reviewer-identity,
+        /// FR-sri-identity-load, FR-sri-identity-indicator.
         /// nil for non-patch reviews, or patch reviews with no identity configured.
         public var reviewerIdentity: ReviewerIdentity?
 
@@ -89,11 +92,11 @@ public struct AppFeature {
 
         /// Presented in-app identity login/create window. Presented at launch when
         /// no identity is available, and on demand for switching/logging out.
-        /// Implements: FR-id-screen-when-no-identity, FR-id-optional-reentry.
+        /// Implements: FR-id-screen-when-no-identity, FR-id-optional-reentry, FR-id-ios-screen-is-only-path.
         @Presents public var identity: IdentityFeature.State?
 
         /// Presented Open Patch dialog (in-app NIP-34 patch open).
-        /// Implements: FR-srm-patch-open-entry.
+        /// Implements: FR-srm-patch-open-entry, FR-sri-patch-open-entry.
         @Presents public var openPatch: OpenPatchFeature.State?
 
         // Derived
@@ -400,6 +403,7 @@ public struct AppFeature {
                 }
                 return .none
 
+            // Implements: FR-crp-multi-file-remove
             case let .removeFileRequested(fileID):
                 let hasComments = state.allComments.contains(where: { $0.fileID == fileID })
                 if hasComments {
@@ -566,7 +570,7 @@ public struct AppFeature {
                 state.openPatch = nil
                 return .none
 
-            // Implements: FR-srm-patch-open-load
+            // Implements: FR-srm-patch-open-load, FR-sri-patch-open-load
             // Load the fetched patch for review: diff blocks -> file tabs + metadata.
             case let .openPatch(.presented(.delegate(.patchLoaded(files, metadata)))):
                 state.openPatch = nil
@@ -643,7 +647,7 @@ public struct AppFeature {
             case let .reviewerIdentityLoaded(identity):
                 state.reviewerIdentity = identity
                 // If the identity is a bunker in .connecting state, start the
-                // NIP-46 connect handshake. Implements: FR-srm-bunker-connect.
+                // NIP-46 connect handshake. Implements: FR-srm-bunker-connect, FR-sri-bunker-connect.
                 if identity?.source == .bunker, identity?.bunkerState == .connecting {
                     return .run { [identityClient] send in
                         let pubkey = await identityClient.connectBunker()
@@ -662,7 +666,7 @@ public struct AppFeature {
             case let .replyToPatchReply(reply):
                 // Switch to the reply's anchor file before opening the editor, so
                 // the editor opens on the right file and the published `range` tag
-                // names the correct path. Implements: FR-srm-reply-to-reply.
+                // names the correct path. Implements: FR-srm-reply-to-reply, FR-sri-reply-to-reply.
                 // Without this, a Reply from the inspector (where the active file
                 // may differ from the reply's anchored file) would anchor the
                 // editor to the wrong file.
@@ -915,7 +919,8 @@ public struct AppFeature {
     // MARK: - Patch-thread reply publishing helpers
 
     /// Kick off the sign + publish flow for a patch-review comment submit.
-    // Implements: FR-srm-comment-publish-on-submit, FR-srm-event-sign, FR-srm-event-publish
+    // Implements: FR-srm-comment-publish-on-submit, FR-srm-event-sign, FR-srm-event-publish,
+    // FR-sri-comment-publish-on-submit, FR-sri-event-sign, FR-sri-event-publish
     ///
     private func patchReviewPublishEffect(
         state: inout State,
@@ -969,7 +974,7 @@ public struct AppFeature {
         )
         // Sign under the loaded identity: in-process Schnorr for a local key,
         // NIP-46 sign_event for a bunker. nil = bunker sign failure.
-        // Implements: FR-srm-event-sign, FR-srm-bunker-sign-failure.
+        // Implements: FR-srm-event-sign, FR-srm-bunker-sign-failure, FR-sri-bunker-sign-failure.
         guard let signed = await identityClient.sign(unsigned) else {
             return (.failed, nil) // Bunker sign failure — signed is nil
         }

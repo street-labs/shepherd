@@ -2,6 +2,8 @@ import ComposableArchitecture
 import SharedModels
 import ShepherdDependencies
 
+// Implements: FR-crp-comment-indicator
+
 /// Implements: FR-crp-file-display, FR-crp-syntax-highlight, FR-crp-comment-indicator,
 /// FR-crp-line-wrap, FR-crp-line-range-comment, NFR-crp-large-file-perf
 @Reducer

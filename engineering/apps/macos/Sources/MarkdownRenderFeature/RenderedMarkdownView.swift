@@ -1,5 +1,6 @@
 import SwiftUI
 import Markdown
+import SharedModels
 
 // Implements: FR-mdr-render-commonmark, FR-mdr-render-styling
 
@@ -155,7 +156,7 @@ private struct CodeBlockView: View {
             .font(.system(.body, design: .monospaced))
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
+            .background(Color.textBackground.opacity(0.5))
             .cornerRadius(6)
     }
 }

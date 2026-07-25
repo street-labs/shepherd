@@ -66,7 +66,7 @@ public struct OpenPatchFeature {
             case .binding:
                 return .none
 
-            // Implements: FR-srm-patch-open-input, FR-srm-patch-open-fetch
+            // Implements: FR-srm-patch-open-input, FR-srm-patch-open-fetch, FR-sri-patch-open-input, FR-sri-patch-open-fetch
             case .fetchButtonTapped:
                 guard let ref = PatchRef.parse(state.input) else {
                     state.status = .invalidInput
@@ -105,7 +105,7 @@ public struct OpenPatchFeature {
                 state.status = .noRelays
                 return .none
 
-            // Implements: FR-srm-patch-open-fetch, FR-srm-patch-open-load
+            // Implements: FR-srm-patch-open-fetch, FR-srm-patch-open-load, FR-sri-patch-open-load
             // kind + diff validation, then parse into per-file diff blocks.
             case let .eventFetched(event):
                 switch PatchDiffSplitter.validate(event) {

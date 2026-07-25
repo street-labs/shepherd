@@ -4,7 +4,7 @@ import SharedModels
 /// Surfaces the active reviewer Nostr identity in the inspector so the reviewer
 /// knows which identity their published patch-thread replies will be attributed
 /// to.
-// Implements: FR-srm-identity-indicator, FR-sr-reviewer-identity
+// Implements: FR-srm-identity-indicator, FR-sr-reviewer-identity, FR-sri-identity-indicator
 ///
 /// Present only for patch reviews. Local-key state shows a key glyph + display
 /// name (full npub in the tooltip/accessibility label). Bunker state shows a
@@ -37,7 +37,7 @@ public struct IdentityIndicatorView: View {
             }
         }
         .padding(12)
-        .background(Color(nsColor: .quaternaryLabelColor).opacity(0.3))
+        .background(Color.quaternaryLabelFill.opacity(0.3))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 8)
         .padding(.bottom, 8)

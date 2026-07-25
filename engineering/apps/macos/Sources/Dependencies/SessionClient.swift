@@ -15,14 +15,14 @@ public struct SessionClient: Sendable {
 extension SessionClient: DependencyKey {
     public static let liveValue = SessionClient(
         loadSession: { sessionID in
-            let sessionDir = FileManager.default.homeDirectoryForCurrentUser
+            let sessionDir = FileManager.default.shepherdHome
                 .appendingPathComponent(".shepherd/sessions/\(sessionID)")
             let sessionFile = sessionDir.appendingPathComponent("session.json")
             let data = try Data(contentsOf: sessionFile)
             return try JSONDecoder().decode(SessionData.self, from: data)
         },
         writePromptOutput: { sessionID, promptText in
-            let outputPath = FileManager.default.homeDirectoryForCurrentUser
+            let outputPath = FileManager.default.shepherdHome
                 .appendingPathComponent(".shepherd/sessions/\(sessionID)/prompt-output.md")
             try promptText.write(to: outputPath, atomically: true, encoding: .utf8)
         }

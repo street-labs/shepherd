@@ -4,7 +4,8 @@
 Shepherd is a native macOS app for giving your AI coding agent precise, in-context feedback on its work. You annotate source code with inline comments and export a structured review prompt handed back to the agent — so feedback lands as exact instructions paired with the code they refer to, not vague prose.
 
 ## Platforms
-- **`macos`** — Native macOS app (SwiftUI + TCA). Active — all features. Source code lives at `engineering/apps/macos/`. (The browser-based `web` platform was removed; Shepherd is macOS-only.)
+- **`macos`** — Native macOS app (SwiftUI + TCA). Active — all features. Source code lives at `engineering/apps/macos/`. (The browser-based `web` platform was removed.)
+- **`ios`** — Native iOS app (SwiftUI + TCA) for iPhone and iPad. Active — patch review and commenting only; no local file loading or slash-command/server handoff. Source code lives at `engineering/apps/ios/`.
 
 ## Tech stack
 Swift, SwiftUI, and the Composable Architecture (TCA) for app logic. Syntax highlighting via TreeSitter (13+ languages). Built and tested with the Swift Package Manager (`swift build` / `swift test` in `engineering/apps/macos/`). Targets macOS 14+.

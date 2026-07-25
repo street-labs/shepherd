@@ -1,8 +1,12 @@
+#if os(macOS)
 import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 import ComposableArchitecture
 
 /// System pasteboard operations.
-/// Implements: FR-crp-prompt-copy, FR-crp-macos-clipboard
+/// Implements: FR-crp-prompt-copy, FR-crp-macos-clipboard, FR-crp-ios-clipboard
 @DependencyClient
 public struct ClipboardClient: Sendable {
     /// Copy text to the system clipboard.
@@ -15,13 +19,21 @@ extension ClipboardClient: DependencyKey {
     public static let liveValue = ClipboardClient(
         copyText: { text in
             await MainActor.run {
+                #if os(macOS)
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
+                #elseif os(iOS)
+                UIPasteboard.general.string = text
+                #endif
             }
         },
         readText: {
             await MainActor.run {
-                NSPasteboard.general.string(forType: .string)
+                #if os(macOS)
+                return NSPasteboard.general.string(forType: .string)
+                #elseif os(iOS)
+                return UIPasteboard.general.string
+                #endif
             }
         }
     )

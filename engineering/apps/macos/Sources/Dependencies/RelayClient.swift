@@ -2,6 +2,8 @@ import Foundation
 import ComposableArchitecture
 import SharedModels
 
+// Implements: FR-sri-event-publish
+
 /// Nostr relay subscription client.
 /// Implements: FR-sr-relay-client
 ///
@@ -15,7 +17,7 @@ public struct RelayClient: Sendable {
     /// returned stream emits each matching event (deduplicated by id across
     /// relays) as it arrives -- both stored events (delivered immediately) and
     /// new live events. The stream stays open until the consumer cancels it.
-    /// Implements: FR-sr-relay-client, FR-srm-patch-open-fetch.
+    /// Implements: FR-sr-relay-client, FR-srm-patch-open-fetch, FR-sri-patch-open-fetch.
     public var subscribe: @Sendable (NostrFilter) -> AsyncStream<NostrEvent>
     /// Probe which of the given relay URLs are reachable (complete the WebSocket
     /// handshake within a short budget). Implements the no-relays-reachable guard
@@ -23,7 +25,7 @@ public struct RelayClient: Sendable {
     /// dialog calls this before fetching so it can report a precise no-relays
     /// error rather than timing out as "not found".
     public var reachableRelays: @Sendable ([String]) async -> [String]
-    /// Publish a signed event to the configured relays. Implements: FR-srm-event-publish.
+    /// Publish a signed event to the configured relays. Implements: FR-srm-event-publish, FR-sri-event-publish.
     /// Sends an `EVENT` frame to each reachable relay and resolves to `accepted`
     /// when at least one relay returns `OK`, `rejected` when every reachable
     /// relay returns `OK: false`, or `failed` when no relay is reachable. Relay
@@ -31,7 +33,7 @@ public struct RelayClient: Sendable {
     public var publish: @Sendable (NostrEvent) async -> PublishResult
 }
 
-/// Input validation for the Open Patch dialog. Implements: FR-srm-patch-open-input.
+/// Input validation for the Open Patch dialog. Implements: FR-srm-patch-open-input, FR-sri-patch-open-input.
 /// A reference is either a 64-character hex event id or a `nevent1…` entity;
 /// `naddr1` is rejected (NIP-34 patches are kind 1617 with no `naddr` form).
 public enum PatchRef {
@@ -153,7 +155,7 @@ extension RelayClient: DependencyKey {
         if let env = ProcessInfo.processInfo.environment["NOSTR_RELAYS"], !env.isEmpty {
             return env.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
         }
-        let file = FileManager.default.homeDirectoryForCurrentUser
+        let file = FileManager.default.shepherdHome
             .appendingPathComponent(".config/nostr/relays.txt")
         if let contents = try? String(contentsOf: file) {
             let lines = contents.split(separator: "\n")

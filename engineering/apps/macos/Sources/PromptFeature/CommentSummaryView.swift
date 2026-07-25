@@ -2,6 +2,8 @@ import SwiftUI
 import SharedModels
 import IdentifiedCollections
 
+// Implements: FR-crp-comment-count
+
 /// All Comments tab: grouped by file
 public struct CommentSummaryView: View {
     let comments: IdentifiedArrayOf<Comment>

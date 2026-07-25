@@ -2,6 +2,8 @@ import ComposableArchitecture
 import SharedModels
 import Foundation
 
+// Implements: FR-crp-file-reviewed-visual
+
 /// Implements: FR-crp-multi-file-nav, FR-crp-panel-resize, FR-crp-file-reviewed-toggle,
 /// FR-crp-file-reviewed-visual, FR-crp-file-reviewed-grouping, FR-crp-file-reviewed-progress,
 /// FR-crp-file-tooltip, FR-crp-active-file-path

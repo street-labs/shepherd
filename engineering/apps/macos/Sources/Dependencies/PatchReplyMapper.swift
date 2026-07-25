@@ -85,7 +85,7 @@ public enum PatchReplyMapper {
     }
 
     private static func loadRoster() -> [String: Any] {
-        let url = FileManager.default.homeDirectoryForCurrentUser
+        let url = FileManager.default.shepherdHome
             .appendingPathComponent(".config/nostr/roster.json")
         guard let data = try? Data(contentsOf: url),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {

@@ -1,4 +1,6 @@
+#if os(macOS)
 import AppKit
+#endif
 import ComposableArchitecture
 
 /// Window management operations.
@@ -16,48 +18,60 @@ public struct WindowClient: Sendable {
 }
 
 extension WindowClient: DependencyKey {
-    public static let liveValue = WindowClient(
-        closeWindow: {
-            await MainActor.run {
-                NSApplication.shared.keyWindow?.close()
-            }
-        },
-        bringWindowToFront: { sessionID in
-            await MainActor.run {
-                for window in NSApplication.shared.windows {
-                    if window.frameAutosaveName == "session-\(sessionID)" {
-                        window.makeKeyAndOrderFront(nil)
-                        NSApplication.shared.activate(ignoringOtherApps: true)
-                        return true
-                    }
+    public static let liveValue: WindowClient = {
+        #if os(macOS)
+        return WindowClient(
+            closeWindow: {
+                await MainActor.run {
+                    NSApplication.shared.keyWindow?.close()
                 }
-                return false
+            },
+            bringWindowToFront: { sessionID in
+                await MainActor.run {
+                    for window in NSApplication.shared.windows {
+                        if window.frameAutosaveName == "session-\(sessionID)" {
+                            window.makeKeyAndOrderFront(nil)
+                            NSApplication.shared.activate(ignoringOtherApps: true)
+                            return true
+                        }
+                    }
+                    return false
+                }
+            },
+            configureAutosave: { sessionID in
+                await MainActor.run {
+                    guard let window = NSApplication.shared.keyWindow else { return }
+                    let name = sessionID.map { "session-\($0)" } ?? "standalone"
+                    window.setFrameAutosaveName(name)
+                }
+                // Force an initial layout/draw pass shortly after launch. A freshly created
+                // SwiftUI window — most reliably when the root view swaps to a NavigationSplitView
+                // as session data loads asynchronously — can stay blank (empty sidebar and
+                // content) until the user first resizes it. Nudging the window width by 1pt and
+                // back triggers the same layout pass the manual resize does. The delay lets the
+                // async session load switch the root view in first.
+                try? await Task.sleep(for: .milliseconds(200))
+                await MainActor.run {
+                    guard let window = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first
+                    else { return }
+                    let frame = window.frame
+                    var nudged = frame
+                    nudged.size.width += 1
+                    window.setFrame(nudged, display: true)
+                    window.setFrame(frame, display: true)
+                }
             }
-        },
-        configureAutosave: { sessionID in
-            await MainActor.run {
-                guard let window = NSApplication.shared.keyWindow else { return }
-                let name = sessionID.map { "session-\($0)" } ?? "standalone"
-                window.setFrameAutosaveName(name)
-            }
-            // Force an initial layout/draw pass shortly after launch. A freshly created
-            // SwiftUI window — most reliably when the root view swaps to a NavigationSplitView
-            // as session data loads asynchronously — can stay blank (empty sidebar and
-            // content) until the user first resizes it. Nudging the window width by 1pt and
-            // back triggers the same layout pass the manual resize does. The delay lets the
-            // async session load switch the root view in first.
-            try? await Task.sleep(for: .milliseconds(200))
-            await MainActor.run {
-                guard let window = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first
-                else { return }
-                let frame = window.frame
-                var nudged = frame
-                nudged.size.width += 1
-                window.setFrame(nudged, display: true)
-                window.setFrame(frame, display: true)
-            }
-        }
-    )
+        )
+        #else
+        // iOS: no multi-window, no frame autosave. No-ops so the shared AppFeature
+        // reducer's window lifecycle actions are harmless on iOS.
+        return WindowClient(
+            closeWindow: {},
+            bringWindowToFront: { _ in false },
+            configureAutosave: { _ in }
+        )
+        #endif
+    }()
 
     public static let testValue = Self()
 }
