@@ -28,7 +28,7 @@ The patch-open and publishing paths are iOS ports of the macOS `RelayClient`/`No
 | Publishing | `RelayClient.publish` sends `EVENT` frames; best-effort, ≥1 relay accepts | `FR-sri-event-publish`, `AC-sri-publish-relay-failure`. |
 | Signing | `NostrSigner` async, mode-agnostic (local Schnorr \| NIP-46) | One publish path unaware of the identity form (`FR-sri-event-sign`). |
 | Bunker | NIP-46 over the same relay client; ephemeral session keypair; `connect`/`get_public_key`/`sign_event` | `FR-sri-bunker-connect`; no secret key on device in this mode. |
-| Identity config | In-app Settings form; held in memory for the session | iOS has no env vars/dotfiles (`FR-sri-identity-load`). |
+| Identity config | In-app Identity sheet; persists in iOS Keychain (`./identity.md`) | iOS has no env vars/dotfiles (`FR-sri-identity-load`); login/create/persist/logout are specified in `./identity.md` (`FR-id-ios-keychain-storage`). |
 
 ## Data Model
 

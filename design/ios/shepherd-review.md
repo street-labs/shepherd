@@ -67,9 +67,9 @@ Surfaces which identity will sign published replies, before the reviewer publish
 - **States**:
   - **local-key loaded** — key glyph + reviewer display name (or truncated npub). Tooltip/label carries the full npub.
   - **bunker loaded** — shield glyph + display name + status dot (`BUNKER` capsule). Status dot: green = connected, amber = connecting, red = failed.
-  - **no identity** — warning glyph + `No identity — replies won't publish`, with a hint to configure one in Settings. No publish action is offered; comments save locally only.
+  - **no identity** — warning glyph + `No identity — replies won't publish`, with a hint to sign in via the Identity sheet (see `./identity.md`). No publish action is offered; comments save locally only.
   - **malformed bunker** — warning glyph + the parse error; publishing unavailable.
-- **Actions**: Tap to open Settings (identity + relay configuration).
+- **Actions**: Tap to open the Identity sheet (`./identity.md`) to view, switch, or log out the active identity; relays are configured in Settings (see below).
 - **Requirements satisfied**: `FR-sri-identity-load`, `FR-sri-identity-indicator`, `AC-sri-identity-load`.
 
 ### Patch Thread Section
@@ -83,15 +83,15 @@ The live conversation from other agents and humans on the patch.
 - **Actions**: Tap a reply's `Reply` affordance → opens the inline comment editor pre-targeted at that reply (`FR-sri-reply-to-reply`).
 - **Requirements satisfied**: `FR-sr-patch-replies-display`, `FR-sr-patch-replies-live`, `FR-sri-reply-to-reply`, `AC-sri-patch-open-activates-thread`.
 
-### Settings (Identity + Relays)
+### Settings (Relays)
 
-Where the reviewer configures their Nostr identity and relays in-app — the iOS counterpart to macOS's env vars / dotfiles.
+Where the reviewer configures their Nostr relays in-app — the iOS counterpart to macOS's `~/.config/nostr/relays.txt`. Identity is configured in the Identity sheet (`./identity.md`), not here; Settings links out to it.
 
-- **Entry points**: identity indicator tap; app settings.
-- **Layout**: A form. Sections: **Identity** (a picker: None / Local key / Bunker); when Local key, a secure `nsec` or hex field; when Bunker, a `bunker://` URI field. **Relays** (a list of relay URLs with add/remove, plus a "use defaults" toggle).
-- **States**: unset (None); local-key entered; bunker entered; invalid (inline validation message).
-- **Actions**: Save → identity/relays take effect for the session (and per Open Question 2, may persist via secure storage).
-- **Requirements satisfied**: `FR-sri-identity-load` (in-app configuration path), `FR-sr-relay-client` (relay resolution source on iOS).
+- **Entry points**: app settings.
+- **Layout**: A form. **Relays** section: a list of relay URLs with add/remove, plus a "use defaults" toggle. A footer link opens the Identity sheet (`./identity.md`) for login/logout/switch.
+- **States**: defaults active; custom relays entered; invalid relay URL (inline validation message).
+- **Actions**: Add/remove a relay; toggle "use defaults"; Save → relays take effect for the session. Open the Identity sheet via the footer link.
+- **Requirements satisfied**: `FR-sr-relay-client` (relay resolution source on iOS); identity UI is `./identity.md` (`FR-id-ios-screen-is-only-path`).
 
 ## Interaction Flows
 

@@ -77,7 +77,7 @@ There is no agent-generated neutral/review context for an in-app-opened patch (n
 These are the iOS implementation of the shared `FR-sr-patch-reply-publish`, `FR-sr-reviewer-identity`, and `FR-sr-patch-reply-respond`, ported from the macOS variants (`../macos/shepherd-review.md`). They apply only to patch reviews; there is no non-patch review on iOS.
 
 #### `FR-sri-identity-load` — Load the reviewer's Nostr identity
-The app loads a reviewer-owned Nostr identity so the reviewer can publish signed replies to patch threads. The identity takes one of two forms, both configured by the reviewer in-app (the app neither generates nor manages keys):
+The app loads a reviewer-owned Nostr identity so the reviewer can publish signed replies to patch threads. The identity takes one of two forms, both configured by the reviewer in-app via the Identity feature (see `./identity.md`): the reviewer pastes an existing local key or bunker URI, or generates a brand-new local key in-app (`FR-id-create-new`). The identity-load requirement here covers how the loaded identity is used for publishing; the login/create/persist/logout surface is specified in `./identity.md`.
 
 - **Local key** — a Nostr secret key (`nsec1…` or hex).
 - **Bunker connection** — a NIP-46 bunker URI (`bunker://<remote-signer-pubkey>?relay=<wss-url>[&secret=<token>]`) pointing at a remote signer that holds the reviewer's secret key.
@@ -149,7 +149,7 @@ The app targets iOS and runs on iPhone and iPad. It is not available on other op
 
 1. **Relay configuration UI**: macOS resolves relays from env vars / `~/.config/nostr/relays.txt`. iOS has neither. Where does the reviewer configure relays? Default decision: in-app settings with a default public relay fallback, mirroring the identity configuration path. Exact UI is a design decision.
 
-2. **Identity persistence**: Should the iOS app persist the reviewer's identity (bunker URI, or a local key in secure storage) across launches so it need not be re-entered each session? v1 holds identity in memory for the session only; persistence is an engineering/security decision deferred to implementation.
+2. **Identity persistence**: Resolved by `./identity.md` — the identity persists across launches via the iOS Keychain (`FR-id-ios-keychain-storage`), not in-memory only. See `./identity.md` for the full login/create/persist/logout flow.
 
 3. **Roster / display-name resolution on iOS**: The macOS app resolves author display names via a roster file. iOS has no dotfiles. Does the iOS app ship a bundled roster, fetch NIP-05, or show truncated npubs only for v1? Deferred — truncated npub is the safe fallback; richer resolution is a follow-up.
 

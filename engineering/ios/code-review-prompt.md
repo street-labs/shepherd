@@ -26,7 +26,7 @@ The macOS app is already structured as an SPM workspace of feature-module packag
 | Adaptive layout | `NavigationSplitView` with `horizontalSizeClass` selection | SwiftUI picks compact (stack) vs expanded (columns) automatically; one view tree reflows both. `FR-crp-ios-adaptive-layout`. |
 | Code viewer | Reuse the macOS `CodeViewerFeature` (LazyVStack + TreeSitter) | Already virtualized for 10k-line files and handles wrapping. iOS `ScrollView` performance is adequate for patch diffs (typically far smaller than 10k lines). |
 | Clipboard | `UIPasteboard` | iOS system clipboard for Copy. `FR-crp-ios-clipboard`. |
-| Persistence | None for session data (`NFR-crp-no-data-persistence`); backgrounding handled by keeping the scene alive | `scenePhase` transitions preserve in-memory state across background→resume (`FR-crp-ios-background-handoff`). No disk persistence in v1. |
+| Persistence | Session data (files/comments/preamble) is not persisted (`NFR-crp-no-data-persistence`); the reviewer identity persists in Keychain via `./identity.md`. Backgrounding handled by keeping the scene alive | `scenePhase` transitions preserve in-memory state across background→resume (`FR-crp-ios-background-handoff`). No session-data disk persistence in v1; identity persistence is specified in `./identity.md`. |
 | Identity/Nostr | iOS copies of `RelayClient`, `NostrSigner`, `Bech32`, `PatchReplyMapper`, `NostrEvent` under `engineering/apps/ios/Sources/Dependencies/` | These live under `engineering/apps/macos/` today; duplicating into the iOS target keeps this kickoff from modifying the macOS app. A future refactor can lift them into a shared multiplatform target (see Open Questions). |
 | Build system | Xcode + SPM, iOS app target | New `ShepherdiOS` app target in a new `engineering/apps/ios/` Xcode project, depending on the shared SPM feature packages. |
 | Minimum target | iOS 17 | Required for modern SwiftUI (`NavigationSplitView` column visibility, `@Observable`, inspector-style layouts). `NFR-crp-ios-min-version`. |
@@ -95,7 +95,7 @@ TCA, as macOS. The session is held in `AppFeature.State`; switching files, addin
 
 ## Security Considerations
 
-- A local secret key (`nsec`) is held in memory only for the session and never written to unprotected storage (`FR-sri-identity-load`). Any cross-launch persistence must use the platform secure enclave / Keychain; v1 does not persist.
+- A local secret key (`nsec`) is held in memory for the session and never written to unprotected storage; it persists across launches in the iOS Keychain via the Identity feature (`FR-id-ios-keychain-storage`, see `./identity.md`), never in plaintext on disk. The secret key never leaves the device (`NFR-id-key-stays-local`).
 - Nostr relay traffic is the only network egress; it carries published replies and subscription reads. No file content leaves the device except as published patch-thread replies (`NFR-crp-client-only`).
 - Relay URLs and identity are configured in-app; input is validated before use (bunker URI parse, relay URL scheme).
 
@@ -104,7 +104,7 @@ TCA, as macOS. The session is held in `AppFeature.State`; switching files, addin
 1. **iOS app target + adaptive shell** — create `engineering/apps/ios/`, the `ShepherdiOS` app target, `AppFeature`/`AppView` with `NavigationSplitView` size-class adaptation, and the Empty State. Wire shared feature modules as SPM dependencies. Unlocks rendering the review surface.
 2. **Patch parsing + `PatchOpenFeature`** — `PatchParser` (unified diff → per-file blocks), the Open Patch sheet, fetch/validate effects, `sessionLoaded`. Unlocks opening a patch.
 3. **Review composition** — compose `FileBrowserFeature` + `CodeViewerFeature` + `InspectorFeature` over the loaded session; wire prompt generation, copy, comments summary, reviewed tracking, clear. Unlocks the full CRPG surface.
-4. **Identity + Nostr dependencies + publishing** — `RelayClient`, `NostrSigner`, `Bech32`, `PatchReplyMapper`, `PatchOpenFeature` bunker path; patch-thread live subscription and reply publishing (cross-ref `./shepherd-review.md`). Unlocks bidirectional review.
+4. **Identity + Nostr dependencies + publishing** — `IdentityFeature` + `KeychainClient` (see `./identity.md`), `RelayClient`, `NostrSigner`, `Bech32`, `PatchReplyMapper`, `PatchOpenFeature` bunker path; patch-thread live subscription and reply publishing (cross-ref `./shepherd-review.md`). Unlocks identity login/create/persist and bidirectional review.
 5. **Backgrounding + accessibility + polish** — `scenePhase` preservation, VoiceOver labels, Dynamic Type, keyboard shortcuts, system appearance. Unlocks NFR/AC coverage.
 
 ## Code Map
