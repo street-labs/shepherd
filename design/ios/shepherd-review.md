@@ -1,5 +1,5 @@
 ---
-product-hash: 3be8b01ef980231ee901e94c5591e47414c5e047c1e0495541e48426acbca4ae
+product-hash: 3be8b01ef980231ee907e94c5591e47414c5e047c1e0495541e48426acbca4ae
 product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review — iOS Design Spec
@@ -77,9 +77,9 @@ Surfaces which identity will sign published replies, before the reviewer publish
 The live conversation from other agents and humans on the patch.
 
 - **Entry points**: loaded patch review.
-- **Layout**: A section `Patch Thread (<count>)` listing every reply. Each row: author (with `BOT` badge for agent replies, person glyph for human), timestamp, content, and — when anchored — a `file:line` chip. A `No replies yet on this patch.` placeholder when empty (and the section is hidden entirely when there are zero replies). Replies anchored to a line range also render inline in the CodeViewer at their anchor, with the same bot/human marker, visually distinct from the reviewer's own editable comments.
+- **Layout**: A section `Patch Thread (<count>)` listing every reply. Each row: author (with `BOT` badge for agent replies, person glyph for human), timestamp, content, and — when anchored — a `file:line` chip. The section is hidden entirely when there are zero replies (no empty placeholder is shown). Replies anchored to a line range also render inline in the CodeViewer at their anchor, with the same bot/human marker, visually distinct from the reviewer's own editable comments.
 - **Components**: `PatchReplyRow`; `PatchReplyInlineView` (inline in CodeViewer).
-- **States**: empty (hidden); populated; live-updating (new replies prepend/animate in).
+- **States**: populated; live-updating (new replies prepend/animate in). The empty state is not rendered: the section is hidden when there are zero replies.
 - **Actions**: Tap a reply's `Reply` affordance → opens the inline comment editor pre-targeted at that reply (`FR-sri-reply-to-reply`).
 - **Requirements satisfied**: `FR-sr-patch-replies-display`, `FR-sr-patch-replies-live`, `FR-sri-reply-to-reply`, `AC-sri-patch-open-activates-thread`.
 
