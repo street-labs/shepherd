@@ -1,0 +1,3 @@
+# swiftformat config — https://github.com/nicklockwood/SwiftFormat
+# Shepherd targets Swift 6 (see engineering/apps/macos/Package.swift).
+--swiftversion 6
