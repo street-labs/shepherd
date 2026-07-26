@@ -119,29 +119,40 @@ public struct NostrFilter: Sendable, Equatable {
 }
 
 extension RelayClient: DependencyKey {
-    public static let liveValue = RelayClient(
-        subscribe: { filter in
-            AsyncStream { continuation in
-                let relays = filter.relays ?? Self.resolveRelays()
-                let subID = "shep-" + UUID().uuidString.lowercased().prefix(8)
-                let task = RelaySubscriptionTask(
-                    relays: relays, filter: filter, subID: String(subID)
-                ) { event in
-                    continuation.yield(event)
-                }
-                task.start()
-                continuation.onTermination = { _ in
-                    task.cancel()
-                }
-            }
-        },
-        reachableRelays: { candidates in
-            await RelayReachability.probe(candidates)
-        },
-        publish: { event in
-            await RelayPublisher.publish(event)
+    public static let liveValue: RelayClient = {
+        // NIP-42 AUTH: resolve the identity + signer at call time (not capture
+        // time) so `withDependencies` overrides reach the auth closure.
+        let auth: @Sendable (String, String) -> String? = { challenge, relayURL in
+            let deps = DependencyValues._current
+            return RelayAuth.authFrame(
+                challenge: challenge, relayURL: relayURL,
+                secret: deps.identityClient.currentSecret(), signer: deps.nostrSigner
+            )
         }
-    )
+        return RelayClient(
+            subscribe: { filter in
+                AsyncStream { continuation in
+                    let relays = filter.relays ?? Self.resolveRelays()
+                    let subID = "shep-" + UUID().uuidString.lowercased().prefix(8)
+                    let task = RelaySubscriptionTask(
+                        relays: relays, filter: filter, subID: String(subID), auth: auth
+                    ) { event in
+                        continuation.yield(event)
+                    }
+                    task.start()
+                    continuation.onTermination = { _ in
+                        task.cancel()
+                    }
+                }
+            },
+            reachableRelays: { candidates in
+                await RelayReachability.probe(candidates)
+            },
+            publish: { event in
+                await RelayPublisher.publish(event, auth: auth)
+            }
+        )
+    }()
 
     public static let testValue = RelayClient(
         subscribe: { _ in AsyncStream { _ in } },
@@ -181,15 +192,20 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
     let filter: NostrFilter
     let subID: String
     let onEvent: @Sendable (NostrEvent) -> Void
+    /// NIP-42 AUTH frame builder: (challenge, relayURL) -> `["AUTH", {event}]` JSON,
+    /// or nil when no reviewer key is configured. Implements NIP-42 relay auth.
+    let auth: @Sendable (String, String) -> String?
     private let session = URLSession(configuration: .ephemeral)
     private var tasks: [URLSessionWebSocketTask] = []
     private let lock = NSLock()
     private var seen = Set<String>()
+    private var reqString: String = ""
 
-    init(relays: [String], filter: NostrFilter, subID: String, onEvent: @escaping @Sendable (NostrEvent) -> Void) {
+    init(relays: [String], filter: NostrFilter, subID: String, auth: @escaping @Sendable (String, String) -> String?, onEvent: @escaping @Sendable (NostrEvent) -> Void) {
         self.relays = relays
         self.filter = filter
         self.subID = subID
+        self.auth = auth
         self.onEvent = onEvent
     }
 
@@ -197,6 +213,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
         let reqFrame: [Any] = ["REQ", subID, filter.jsonObject]
         guard let reqData = try? JSONSerialization.data(withJSONObject: reqFrame),
               let reqString = String(data: reqData, encoding: .utf8) else { return }
+        self.reqString = reqString
         for url in relays {
             guard let URL = URL(string: url) else { continue }
             let task = session.webSocketTask(with: URL)
@@ -205,7 +222,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
             Task { [weak self] in
                 // Send the REQ frame; tolerate send failure (relay may reject).
                 try? await task.send(.string(reqString))
-                await self?.receiveLoop(task: task)
+                await self?.receiveLoop(task: task, relayURL: url)
             }
         }
     }
@@ -223,16 +240,16 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
         }
     }
 
-    private func receiveLoop(task: URLSessionWebSocketTask) async {
+    private func receiveLoop(task: URLSessionWebSocketTask, relayURL: String) async {
         while task.closeCode == .invalid {
             do {
                 let message = try await task.receive()
                 switch message {
                 case .string(let text):
-                    handleFrame(text)
+                    await handleFrame(text, task: task, relayURL: relayURL)
                 case .data(let data):
                     if let text = String(data: data, encoding: .utf8) {
-                        handleFrame(text)
+                        await handleFrame(text, task: task, relayURL: relayURL)
                     }
                 @unknown default:
                     break
@@ -244,21 +261,35 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
         }
     }
 
-    private func handleFrame(_ text: String) {
+    private func handleFrame(_ text: String, task: URLSessionWebSocketTask, relayURL: String) async {
         guard let data = text.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
-              array.count >= 3,
-              let type = array[0] as? String,
-              type == "EVENT" else { return }
-        // ["EVENT", subID, eventObject]
-        guard let eventObject = array[2] as? [String: Any] else { return }
-        guard let id = eventObject["id"] as? String else { return }
+              array.count >= 2,
+              let type = array[0] as? String else { return }
+        switch type {
+        case "AUTH":
+            // NIP-42: sign challenge, re-send REQ.
+            guard let challenge = array[1] as? String,
+                  let frame = auth(challenge, relayURL) else { return }
+            try? await task.send(.string(frame))
+            if !reqString.isEmpty { try? await task.send(.string(reqString)) }
+        case "EVENT":
+            // ["EVENT", subID, eventObject]
+            guard array.count >= 3, let eventObject = array[2] as? [String: Any] else { return }
+            guard let id = eventObject["id"] as? String else { return }
+            guard recordSeen(id) else { return }
+            guard let event = decodeEvent(eventObject) else { return }
+            onEvent(event)
+        default:
+            break // NOTICE (incl. auth-required), OK, EOSE, etc. — ignored.
+        }
+    }
+
+    /// Dedup-by-id gate. Synchronous so the NSLock stays out of async context.
+    private func recordSeen(_ id: String) -> Bool {
         lock.lock()
-        let inserted = seen.insert(id).inserted
-        lock.unlock()
-        guard inserted else { return }
-        guard let event = decodeEvent(eventObject) else { return }
-        onEvent(event)
+        defer { lock.unlock() }
+        return seen.insert(id).inserted
     }
 
     private func decodeEvent(_ o: [String: Any]) -> NostrEvent? {
@@ -278,7 +309,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
 /// A relay is "reachable" if its socket connects and returns an `OK` frame; success
 /// is at-least-one-relay-accepted, individual relay failures tolerated.
 private enum RelayPublisher {
-    static func publish(_ event: NostrEvent) async -> PublishResult {
+    static func publish(_ event: NostrEvent, auth: @escaping @Sendable (String, String) -> String?) async -> PublishResult {
         let relays = RelayClient.resolveRelays()
         guard !relays.isEmpty else { return .failed }
         // Build the EVENT frame once: ["EVENT", {event-object}].
@@ -294,7 +325,7 @@ private enum RelayPublisher {
             for url in relays {
                 guard let URL = URL(string: url) else { continue }
                 group.addTask {
-                    await self.publishToOne(url: URL, frame: frameString, eventID: event.id, session: session)
+                    await self.publishToOne(url: URL, frame: frameString, eventID: event.id, session: session, auth: auth, relayURL: url)
                 }
             }
             for await result in group {
@@ -310,7 +341,7 @@ private enum RelayPublisher {
 
     /// Publish to one relay. Returns true if the relay accepted (OK: true),
     /// false if it reached us but rejected, nil if unreachable.
-    private static func publishToOne(url: URL, frame: String, eventID: String, session: URLSession) async -> Bool? {
+    private static func publishToOne(url: URL, frame: String, eventID: String, session: URLSession, auth: @escaping @Sendable (String, String) -> String?, relayURL: String) async -> Bool? {
         let task = session.webSocketTask(with: url)
         task.resume()
         try? await task.send(.string(frame))
@@ -325,9 +356,15 @@ private enum RelayPublisher {
                 case .data(let d): String(data: d, encoding: .utf8)
                 @unknown default: nil
                 }
-                if let text, let outcome = parseOK(text, eventID: eventID) {
+                guard let text else { continue }
+                if let outcome = parseOK(text, eventID: eventID) {
                     task.cancel()
                     return outcome
+                }
+                // NIP-42: sign challenge, re-send EVENT.
+                if let authFrame = parseAuthChallenge(text, relayURL: relayURL, auth: auth) {
+                    try? await task.send(.string(authFrame))
+                    try? await task.send(.string(frame))
                 }
             } catch {
                 task.cancel()
@@ -336,6 +373,17 @@ private enum RelayPublisher {
         }
         task.cancel()
         return nil
+    }
+
+    /// If `text` is a `["AUTH", challenge]` frame, return the signed
+    /// `["AUTH", {event}]` response for `relayURL` (or nil if no key/unparseable).
+    private static func parseAuthChallenge(_ text: String, relayURL: String, auth: @escaping @Sendable (String, String) -> String?) -> String? {
+        guard let data = text.data(using: .utf8),
+              let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
+              array.count >= 2,
+              array[0] as? String == "AUTH",
+              let challenge = array[1] as? String else { return nil }
+        return auth(challenge, relayURL)
     }
 
     /// Parse a `["OK", <id>, <bool>, ...]` frame for our event id. Returns the
@@ -363,10 +411,40 @@ private enum RelayPublisher {
     }
 }
 
+/// NIP-42 relay AUTH. Builds and signs the kind-22242 challenge-response event
+/// and serializes the `["AUTH", {event}]` frame. Returns nil when no secret key
+/// is configured or signing fails, so the caller falls back to unauthenticated
+/// behavior (public relays keep working). Implements NIP-42 relay auth.
+enum RelayAuth {
+    /// `["AUTH", {event}]` frame JSON for `challenge`+`relayURL`, signed with
+    /// `secret` via `signer`, or nil.
+    static func authFrame(challenge: String, relayURL: String, secret: Data?, signer: NostrSigner) -> String? {
+        guard let secret else { return nil }
+        let event = NostrEvent(
+            id: "", pubkey: "", kind: 22242, content: "",
+            tags: [["challenge", challenge], ["relay", relayURL]],
+            createdAt: Int64(Date().timeIntervalSince1970)
+        )
+        guard let signed = signer.sign(event, secret) else { return nil }
+        let dict: [String: Any] = [
+            "id": signed.id, "pubkey": signed.pubkey, "created_at": signed.createdAt,
+            "kind": signed.kind, "tags": signed.tags, "content": signed.content, "sig": signed.sig,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: ["AUTH", dict]) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+}
+
 /// Reachability probe for the Open Patch dialog. Implements: FR-srm-patch-open-fetch
 /// (the no-relays-reachable guard). A relay is reachable if its WebSocket
 /// completes the handshake quickly enough to answer a ping. ponytail: fixed 3s
 /// budget per relay; an adaptive RTT estimate is not worth it for a one-shot gate.
+/// NIP-42: the probe only checks the handshake. Auth-required relays pass the
+/// ping, then `RelaySubscriptionTask`/`RelayPublisher` authenticate on their own
+/// sockets before the REQ/EVENT, so the fetch unblocks without probe changes.
+/// Adding an auth-aware verdict here would penalize public relays with extra
+/// latency; revisit only if no-key auth-required relays need a precise
+/// noRelaysReached error instead of the not-found fallback.
 private enum RelayReachability {
     static func probe(_ candidates: [String]) async -> [String] {
         let session = URLSession(configuration: .ephemeral)
