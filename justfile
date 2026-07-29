@@ -47,6 +47,12 @@ dev-ios: gen-ios
 # in engineering/apps/macos). Add test-ios when an iOS-specific test target
 # exists (xcodebuild test ... -scheme ShepherdiOS).
 
+# Build, archive, and upload the iOS app to TestFlight in one shot (runs on
+# the Mac Studio self-hosted host; needs SHEPHERD_ASC_APP_ID, SHEPHERD_TEAM_ID,
+# SHEPHERD_TF_GROUP env + `asc auth login` done once). See scripts/deploy-ios.sh.
+deploy-ios:
+    ./scripts/deploy-ios.sh
+
 # --- format / editor -------------------------------------------------------
 
 # Format all Swift sources (macOS package + iOS app).

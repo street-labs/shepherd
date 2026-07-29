@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- app-store distribution for TestFlight upload -->
+	<key>method</key>
+	<string>app-store</string>
+	<!-- automatic signing: Xcode resolves the profile from DEVELOPMENT_TEAM
+	     (passed through to xcodebuild by deploy-ios.sh) and the host's
+	     signing certs. -allowProvisioningUpdates lets it download/refresh
+	     profiles non-interactively on the Studio. -->
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>uploadBitcode</key>
+	<false/>
+	<key>uploadSymbols</key>
+	<true/>
+	<key>stripSwiftSymbols</key>
+	<true/>
+</dict>
+</plist>
