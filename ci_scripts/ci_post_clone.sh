@@ -85,7 +85,11 @@ echo "ci_post_clone: Generated $PROJECT_PATH/ShepherdiOS.xcodeproj"
 # ci_post_clone - but it's NOT critical to generation, so it runs AFTER xcodegen
 # and is guarded so a failure here can't abort the script and leave no project.
 # A failed defaults write would otherwise reproduce the "does not exist" error.
-defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES || true
-defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES || true
+if ! defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES; then
+  echo "ci_post_clone: WARN - IDESkipPackagePluginFingerprintValidation defaults write failed (build may prompt to trust plugins)"
+fi
+if ! defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES; then
+  echo "ci_post_clone: WARN - IDESkipMacroFingerprintValidation defaults write failed (build may prompt to trust macros)"
+fi
 
 echo "ci_post_clone: Done."
