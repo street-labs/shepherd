@@ -45,7 +45,8 @@ defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
 # .xcodeproj bundle, any of which silently skips generation and reproduces the
 # "does not exist" failure. Unconditional generation is cheap and safe.
 PROJECT_DIR="engineering/apps/ios"
-echo "ci_post_clone: Generating iOS project at $PROJECT_DIR from project.yml..."
+PROJECT_PATH="$REPO_ROOT/$PROJECT_DIR"
+echo "ci_post_clone: Generating iOS project at $PROJECT_PATH from project.yml..."
 
 # Self-contained: download the prebuilt XcodeGen binary from GitHub releases.
 # No package manager required (Xcode Cloud may not have Homebrew).
