@@ -1,0 +1,61 @@
+#!/bin/sh
+# deploy-ios.sh — build, archive, export, and upload shepherd iOS to TestFlight.
+#
+# One command: `asc publish testflight` local-build mode runs xcodebuild archive
+# + export to IPA + upload to App Store Connect + distribute to a TestFlight
+# group. We just feed it the project, scheme, ExportOptions.plist, and the
+# signing pass-throughs the build host owns.
+#
+# Run on a host with Xcode, signing certs/profiles, and asc authed via
+# `asc auth login`. Invoke via `just deploy-ios` or directly.
+#
+# Required env (set on the build host or a sourced .env):
+#   SHEPHERD_ASC_APP_ID  App Store Connect app numeric ID
+#   SHEPHERD_TEAM_ID     Apple Developer Team ID (passed as DEVELOPMENT_TEAM)
+#   SHEPHERD_TF_GROUP    TestFlight beta group name or ID to distribute to
+#
+# Auth: `asc auth login` must have been run once on this host so a keychain
+# profile is active. See https://appstoreconnect.apple.com/access/integrations/api
+# to create the API key (App Manager role minimum).
+#
+# Skipped (add when needed): --notify (tester notification), --test-notes,
+#   --submit (beta app review). Ship the minimal upload-to-group flow first.
+
+set -e -u
+
+for v in SHEPHERD_ASC_APP_ID SHEPHERD_TEAM_ID SHEPHERD_TF_GROUP; do
+  eval "val=\${$v:-}"
+  [ -n "$val" ] || { echo "deploy-ios: $v is required (set it on the host)"; exit 2; }
+done
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+IOS_DIR="$REPO_ROOT/engineering/apps/ios"
+PROJECT="$IOS_DIR/ShepherdiOS.xcodeproj"
+EXPORT_OPTS="$IOS_DIR/export/ExportOptions.plist"
+BUILD_DIR="$IOS_DIR/build"
+
+# Materialize the gitignored .xcodeproj from project.yml first — same root cause
+# as the Xcode Cloud "does not exist" failure; no point reproducing it here.
+( cd "$IOS_DIR" && xcodegen generate )
+
+# ponytail: known risk — an Xcode 26.5 JWT bug may block the upload leg.
+# Archive + export to IPA still succeed; the IPA is left at --ipa-path and
+# can be uploaded via Xcode Organizer until the bug clears.
+mkdir -p "$BUILD_DIR"
+
+set -x
+asc publish testflight \
+  --app "$SHEPHERD_ASC_APP_ID" \
+  --project "$PROJECT" \
+  --scheme ShepherdiOS \
+  --export-options "$EXPORT_OPTS" \
+  --group "$SHEPHERD_TF_GROUP" \
+  --archive-xcodebuild-flag -allowProvisioningUpdates \
+  --archive-xcodebuild-flag "DEVELOPMENT_TEAM=$SHEPHERD_TEAM_ID" \
+  --export-xcodebuild-flag -allowProvisioningUpdates \
+  --archive-path "$BUILD_DIR/ShepherdiOS.xcarchive" \
+  --ipa-path "$BUILD_DIR/ShepherdiOS.ipa" \
+  --wait
+set +x
+
+echo "deploy-ios: Done. IPA at $BUILD_DIR/ShepherdiOS.ipa"
