@@ -33,9 +33,13 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.street-labs.shepherd-ios
         PRODUCT_NAME: ShepherdiOS
         INFOPLIST_FILE: ShepherdiOSApp/Resources/Info.plist
-        CODE_SIGNING_REQUIRED: "NO"
-        CODE_SIGNING_ALLOWED: "NO"
-        CODE_SIGN_IDENTITY: ""
+        # Automatic signing for TestFlight deploy: DEVELOPMENT_TEAM is passed
+        # through by scripts/deploy-ios.sh (asc local-build mode). The prior
+        # CODE_SIGNING_ALLOWED/REQUIRED=NO + empty IDENTITY blocked signing
+        # entirely and overrode -allowProvisioningUpdates, which is fine for
+        # simulator-only `just dev-ios` but fatal for an app-store archive.
+        DEVELOPMENT_TEAM: "9C9LVX9RE8"
+        CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: "NO"
         CODE_SIGN_ENTITLEMENTS: ShepherdiOSApp/Resources/ShepherdiOS.entitlements
     dependencies:
