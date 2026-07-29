@@ -29,12 +29,20 @@ set -e -u
 : "${CI_PRIMARY_REPOSITORY_PATH:=$(cd "$(dirname "$0")/.." && pwd)}"
 REPO_ROOT="$CI_PRIMARY_REPOSITORY_PATH"
 
-# 1. Skip plugin/macro trust prompts for every Xcode Cloud workflow. Must be
-#    set before package resolution, which is why this lives in ci_post_clone.
-defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES
-defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+# Echo the resolved inputs so a failing Cloud build's log shows exactly what
+# we received and where generation will run. This is the single most useful
+# diagnostic when "Project ... does not exist" fires: it reveals whether the
+# env var came through, whether $0 resolved correctly, and what path we'll
+# generate into - without it we're guessing from outside the Cloud sandbox.
+PROJECT_DIR="engineering/apps/ios"
+PROJECT_PATH="$REPO_ROOT/$PROJECT_DIR"
+echo "ci_post_clone: CI_PRIMARY_REPOSITORY_PATH=${CI_PRIMARY_REPOSITORY_PATH:-<unset>}"
+echo "ci_post_clone: CI_PROJECT_FILE_PATH=${CI_PROJECT_FILE_PATH:-<unset>}"
+echo "ci_post_clone: REPO_ROOT=$REPO_ROOT"
+echo "ci_post_clone: PROJECT_PATH=$PROJECT_PATH"
+echo "ci_post_clone: Generating iOS project from project.yml..."
 
-# 2. Regenerate the iOS project unconditionally.
+# Regenerate the iOS project unconditionally.
 #
 # The .xcodeproj is gitignored (XcodeGen-generated) and absent at clone time,
 # so Xcode Cloud's Archive action fails with "Project ShepherdiOS.xcodeproj
@@ -45,9 +53,6 @@ defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
 # fragile: the env var may be empty, absolute, or carry a trailing slash on the
 # .xcodeproj bundle, any of which silently skips generation and reproduces the
 # "does not exist" failure. Unconditional generation is cheap and safe.
-PROJECT_DIR="engineering/apps/ios"
-PROJECT_PATH="$REPO_ROOT/$PROJECT_DIR"
-echo "ci_post_clone: Generating iOS project at $PROJECT_PATH from project.yml..."
 
 # Self-contained: download the prebuilt XcodeGen binary from GitHub releases.
 # No package manager required (Xcode Cloud may not have Homebrew).
@@ -63,5 +68,24 @@ unzip -o -q xcodegen.zip
 
 cd "$REPO_ROOT/$PROJECT_DIR"
 /tmp/xcodegen/bin/xcodegen generate
+
+# Verify the project actually landed where Xcode Cloud's build step will look
+# for it. If this fails, `set -e` aborts here with a clear message instead of
+# letting Cloud proceed to a build with no project and report a confusing
+# "does not exist" upstream of the real cause.
+if [ ! -d "$PROJECT_PATH/ShepherdiOS.xcodeproj" ]; then
+  echo "ci_post_clone: ERROR - ShepherdiOS.xcodeproj missing at $PROJECT_PATH after generation"
+  ls -la "$PROJECT_PATH" || true
+  exit 1
+fi
+echo "ci_post_clone: Generated $PROJECT_PATH/ShepherdiOS.xcodeproj"
+
+# Skip plugin/macro trust prompts for every Xcode Cloud workflow. Must be set
+# before package resolution (the build action), which is why this runs in
+# ci_post_clone - but it's NOT critical to generation, so it runs AFTER xcodegen
+# and is guarded so a failure here can't abort the script and leave no project.
+# A failed defaults write would otherwise reproduce the "does not exist" error.
+defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES || true
+defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES || true
 
 echo "ci_post_clone: Done."
