@@ -24,8 +24,9 @@
 set -e -u
 
 # Capture the repo root before any `cd`. Xcode Cloud clones into
-# $CI_PRIMARY_REPOSITORY_PATH; fall back to the script's cwd if unset.
-: "${CI_PRIMARY_REPOSITORY_PATH:=$(pwd)}"
+# $CI_PRIMARY_REPOSITORY_PATH; fall back to the script's own location
+# (it lives in ci_scripts/ at the repo root) so local runs work from any cwd.
+: "${CI_PRIMARY_REPOSITORY_PATH:=$(cd "$(dirname "$0")/.." && pwd)}"
 REPO_ROOT="$CI_PRIMARY_REPOSITORY_PATH"
 
 # 1. Skip plugin/macro trust prompts for every Xcode Cloud workflow. Must be
