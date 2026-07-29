@@ -28,8 +28,11 @@ echo "ci_post_clone: Generating Xcode project from project.yml..."
 
 # Self-contained: download the prebuilt XcodeGen binary from GitHub releases.
 # No package manager required (Xcode Cloud may not have Homebrew).
+# Pinned (not releases/latest) so CI is reproducible and a future breaking
+# release can't move the build overnight. Bump deliberately.
+XCODEGEN_VERSION="2.46.0"
 cd /tmp
-curl -fsSL -o xcodegen.zip "https://github.com/yonaskolb/XcodeGen/releases/latest/download/xcodegen.zip"
+curl -fsSL -o xcodegen.zip "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
 unzip -o -q xcodegen.zip
 
 cd "$PROJECT_DIR"
