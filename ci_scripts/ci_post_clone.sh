@@ -21,7 +21,7 @@
 #   2. When this workflow targets the iOS project, regenerate it from
 #      project.yml via XcodeGen (the .xcodeproj is gitignored on purpose).
 
-set -e
+set -e -u
 
 : "${CI_PROJECT_FILE_PATH:=}"
 
@@ -32,7 +32,7 @@ defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
 
 # 2. Regenerate the iOS project only when this workflow targets it.
 case "$CI_PROJECT_FILE_PATH" in
-  */ShepherdiOS.xcodeproj)
+  *ShepherdiOS.xcodeproj)
     PROJECT_DIR="$(dirname "$CI_PROJECT_FILE_PATH")"
     echo "ci_post_clone: Generating iOS project at $PROJECT_DIR from project.yml..."
 
@@ -40,9 +40,12 @@ case "$CI_PROJECT_FILE_PATH" in
     # No package manager required (Xcode Cloud may not have Homebrew).
     # Pinned (not releases/latest) so CI is reproducible; bump deliberately.
     XCODEGEN_VERSION="2.46.0"
+    XCODEGEN_SHA256="4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806"
     cd /tmp
     curl -fsSL -o xcodegen.zip \
       "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+    # Verify the download so a compromised/re-tagged release can't run code in CI.
+    echo "${XCODEGEN_SHA256}  xcodegen.zip" | shasum -a 256 -c -
     unzip -o -q xcodegen.zip
 
     cd "$PROJECT_DIR"
