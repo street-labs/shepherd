@@ -11,7 +11,9 @@ decisions-pending.md
 FP_CLAUDE.md
 .claude/skills/fp-*
 
-# iOS app (XcodeGen) — generated project is committed; ignore build output & user data
+# iOS app (XcodeGen) — project is generated from project.yml; ignore the
+# generated .xcodeproj, build output, and user data. Regenerate with `just gen-ios`.
+engineering/apps/ios/ShepherdiOS.xcodeproj/
 engineering/apps/ios/build/
 engineering/apps/ios/**/xcuserdata/
 engineering/apps/ios/*.xcworkspace/xcuserdata/
