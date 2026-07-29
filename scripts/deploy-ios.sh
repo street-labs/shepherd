@@ -4,12 +4,12 @@
 # One command: `asc publish testflight` local-build mode runs xcodebuild archive
 # + export to IPA + upload to App Store Connect + distribute to a TestFlight
 # group. We just feed it the project, scheme, ExportOptions.plist, and the
-# signing pass-throughs the Studio host owns.
+# signing pass-throughs the build host owns.
 #
-# Runs on the Mac Studio (borg-owned host: Xcode, signing certs/profiles, asc
-# auth via `asc auth login`). Invoke via `just deploy-ios` or directly.
+# Run on a host with Xcode, signing certs/profiles, and asc authed via
+# `asc auth login`. Invoke via `just deploy-ios` or directly.
 #
-# Required env (set on the Studio host or a sourced .env):
+# Required env (set on the build host or a sourced .env):
 #   SHEPHERD_ASC_APP_ID  App Store Connect app numeric ID
 #   SHEPHERD_TEAM_ID     Apple Developer Team ID (passed as DEVELOPMENT_TEAM)
 #   SHEPHERD_TF_GROUP    TestFlight beta group name or ID to distribute to
@@ -38,9 +38,9 @@ BUILD_DIR="$IOS_DIR/build"
 # as the Xcode Cloud "does not exist" failure; no point reproducing it here.
 ( cd "$IOS_DIR" && xcodegen generate )
 
-# ponytail: known risk — Xcode 26.5 JWT bug (borg priorities.md) may block the
-# upload leg. Archive + export to IPA still succeed; the IPA is left at
-# --ipa-path and can be uploaded via Xcode Organizer until the bug clears.
+# ponytail: known risk — an Xcode 26.5 JWT bug may block the upload leg.
+# Archive + export to IPA still succeed; the IPA is left at --ipa-path and
+# can be uploaded via Xcode Organizer until the bug clears.
 mkdir -p "$BUILD_DIR"
 
 set -x
