@@ -10,8 +10,8 @@
 # `asc auth login`. Invoke via `just deploy-ios` or directly.
 #
 # Required env (set on the build host, or run `just setup-deploy-ios` once to
-# write a gitignored .env at the repo root — this script sources it
-# automatically; exported shell env vars take precedence over .env):
+# store them in the shared creds store — this script pulls from `creds`
+# automatically; exported shell env vars take precedence over the store):
 #   SHEPHERD_ASC_APP_ID  App Store Connect app numeric ID
 #   SHEPHERD_TEAM_ID     Apple Developer Team ID (passed as DEVELOPMENT_TEAM)
 #   SHEPHERD_TF_GROUP    TestFlight beta group name or ID to distribute to
@@ -27,13 +27,13 @@ set -e -u
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Source per-host .env if present, but don't clobber vars already set in the
-# environment (an exported shell var should win over a stale .env).
-if [ -f "$REPO_ROOT/.env" ]; then
+# Fill unset vars from the shared creds store, but don't clobber vars already
+# set in the environment (an exported shell var should win over the store).
+if command -v creds >/dev/null 2>&1; then
   for v in SHEPHERD_ASC_APP_ID SHEPHERD_TEAM_ID SHEPHERD_TF_GROUP; do
     eval "cur=\${$v:-}"
     if [ -z "$cur" ]; then
-      val="$(grep -E "^$v=" "$REPO_ROOT/.env" | tail -1 | cut -d= -f2-)"
+      val="$(creds get shepherd "$v" 2>/dev/null || true)"
       [ -n "$val" ] && export "$v=$val"
     fi
   done

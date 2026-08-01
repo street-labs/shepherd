@@ -54,8 +54,8 @@ deploy-ios:
     ./scripts/deploy-ios.sh
 
 # Interactive one-time setup for deploy-ios on this host: prompts for
-# SHEPHERD_ASC_APP_ID / SHEPHERD_TEAM_ID / SHEPHERD_TF_GROUP into a gitignored
-# .env and optionally runs `asc auth login`.
+# SHEPHERD_ASC_APP_ID / SHEPHERD_TEAM_ID / SHEPHERD_TF_GROUP into the shared
+# creds store and optionally runs `asc auth login`.
 setup-deploy-ios:
     ./scripts/setup-deploy-ios.sh
 

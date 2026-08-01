@@ -3,7 +3,8 @@
 #
 # Detects what's already configured and only asks for what's missing:
 #   - SHEPHERD_ASC_APP_ID / SHEPHERD_TEAM_ID / SHEPHERD_TF_GROUP (from env or
-#     the gitignored .env at the repo root) — prompts only for unset ones
+#     the shared creds store, `creds env shepherd`) — prompts only for unset ones
+#     and stores answers back into the creds store (never a repo .env)
 #   - asc CLI on PATH (offers `brew install asc` if missing)
 #   - asc auth (runs `asc auth login` only if no credentials are stored)
 #
@@ -12,14 +13,13 @@
 set -e -u
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-ENV_FILE="$REPO_ROOT/.env"
 
-# Load existing .env values as defaults (env vars already exported win).
-if [ -f "$ENV_FILE" ]; then
+# Load creds-store values as defaults (env vars already exported win).
+if command -v creds >/dev/null 2>&1; then
   for v in SHEPHERD_ASC_APP_ID SHEPHERD_TEAM_ID SHEPHERD_TF_GROUP; do
     eval "cur=\${$v:-}"
     if [ -z "$cur" ]; then
-      val="$(grep -E "^$v=" "$ENV_FILE" | tail -1 | cut -d= -f2-)"
+      val="$(creds get shepherd "$v" 2>/dev/null || true)"
       [ -n "$val" ] && export "$v=$val"
     fi
   done
@@ -56,16 +56,18 @@ if [ -z "${SHEPHERD_TF_GROUP:-}" ]; then
 fi
 
 if [ "$changed" = 1 ]; then
-  umask 077
+  if ! command -v creds >/dev/null 2>&1; then
+    echo "setup-deploy-ios: the creds CLI is required to store these (see borg setup/creds.md)."
+    exit 1
+  fi
   {
-    echo "# Written by scripts/setup-deploy-ios.sh — gitignored, per-host secrets."
     echo "SHEPHERD_ASC_APP_ID=$SHEPHERD_ASC_APP_ID"
     echo "SHEPHERD_TEAM_ID=$SHEPHERD_TEAM_ID"
     echo "SHEPHERD_TF_GROUP=$SHEPHERD_TF_GROUP"
-  } > "$ENV_FILE"
-  echo "Wrote $ENV_FILE (chmod 600, gitignored)."
+  } | creds set shepherd
+  echo "Stored in the shared creds store (keychain + Proton Pass vault)."
 else
-  echo "✓ env vars already set (.env: SHEPHERD_ASC_APP_ID, SHEPHERD_TEAM_ID, SHEPHERD_TF_GROUP)"
+  echo "✓ env vars already set (creds: SHEPHERD_ASC_APP_ID, SHEPHERD_TEAM_ID, SHEPHERD_TF_GROUP)"
 fi
 
 # --- 2. asc CLI ---------------------------------------------------------------
