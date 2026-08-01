@@ -9,7 +9,9 @@
 # Run on a host with Xcode, signing certs/profiles, and asc authed via
 # `asc auth login`. Invoke via `just deploy-ios` or directly.
 #
-# Required env (set on the build host or a sourced .env):
+# Required env (set on the build host, or run `just setup-deploy-ios` once to
+# write a gitignored .env at the repo root — this script sources it
+# automatically; exported shell env vars take precedence over .env):
 #   SHEPHERD_ASC_APP_ID  App Store Connect app numeric ID
 #   SHEPHERD_TEAM_ID     Apple Developer Team ID (passed as DEVELOPMENT_TEAM)
 #   SHEPHERD_TF_GROUP    TestFlight beta group name or ID to distribute to
@@ -23,16 +25,35 @@
 
 set -e -u
 
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Source per-host .env if present, but don't clobber vars already set in the
+# environment (an exported shell var should win over a stale .env).
+if [ -f "$REPO_ROOT/.env" ]; then
+  for v in SHEPHERD_ASC_APP_ID SHEPHERD_TEAM_ID SHEPHERD_TF_GROUP; do
+    eval "cur=\${$v:-}"
+    if [ -z "$cur" ]; then
+      val="$(grep -E "^$v=" "$REPO_ROOT/.env" | tail -1 | cut -d= -f2-)"
+      [ -n "$val" ] && export "$v=$val"
+    fi
+  done
+fi
+
 for v in SHEPHERD_ASC_APP_ID SHEPHERD_TEAM_ID SHEPHERD_TF_GROUP; do
   eval "val=\${$v:-}"
-  [ -n "$val" ] || { echo "deploy-ios: $v is required (set it on the host)"; exit 2; }
+  [ -n "$val" ] || { echo "deploy-ios: $v is required (run \`just setup-deploy-ios\` or set it on the host)"; exit 2; }
 done
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 IOS_DIR="$REPO_ROOT/engineering/apps/ios"
 PROJECT="$IOS_DIR/ShepherdiOS.xcodeproj"
 EXPORT_OPTS="$IOS_DIR/export/ExportOptions.plist"
 BUILD_DIR="$IOS_DIR/build"
+
+# asc requires --version in local-build mode; source of truth is the
+# hand-maintained Info.plist (project.yml sets GENERATE_INFOPLIST_FILE=NO).
+INFO_PLIST="$IOS_DIR/ShepherdiOSApp/Resources/Info.plist"
+VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")"
+[ -n "$VERSION" ] || { echo "deploy-ios: could not read CFBundleShortVersionString from $INFO_PLIST"; exit 2; }
 
 # Materialize the gitignored .xcodeproj from project.yml first — same root cause
 # as the Xcode Cloud "does not exist" failure; no point reproducing it here.
@@ -43,16 +64,23 @@ BUILD_DIR="$IOS_DIR/build"
 # can be uploaded via Xcode Organizer until the bug clears.
 mkdir -p "$BUILD_DIR"
 
+# -skipPackagePluginValidation: swift-secp256k1 ships a build-tool plugin
+# (SharedSourcesPlugin) and Xcode refuses to validate plugins from remote
+# packages during device archives. Long-term fix is a secp256k1 release that
+# drops the plugin; the flag unblocks TestFlight deploys meanwhile.
 set -x
 asc publish testflight \
   --app "$SHEPHERD_ASC_APP_ID" \
   --project "$PROJECT" \
   --scheme ShepherdiOS \
   --export-options "$EXPORT_OPTS" \
+  --version "$VERSION" \
   --group "$SHEPHERD_TF_GROUP" \
   --archive-xcodebuild-flag -allowProvisioningUpdates \
   --archive-xcodebuild-flag "DEVELOPMENT_TEAM=$SHEPHERD_TEAM_ID" \
+  --archive-xcodebuild-flag -skipPackagePluginValidation \
   --export-xcodebuild-flag -allowProvisioningUpdates \
+  --export-xcodebuild-flag -skipPackagePluginValidation \
   --archive-path "$BUILD_DIR/ShepherdiOS.xcarchive" \
   --ipa-path "$BUILD_DIR/ShepherdiOS.ipa" \
   --wait
