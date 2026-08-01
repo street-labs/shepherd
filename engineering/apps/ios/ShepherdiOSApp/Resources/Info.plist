@@ -18,6 +18,11 @@
     <string>1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <!-- Export compliance: app only uses standard encryption algorithms
+         (secp256k1/Schnorr signing, TLS via Apple networking). Declaring this
+         bypasses the per-upload encryption questionnaire in App Store Connect. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UILaunchScreen</key>

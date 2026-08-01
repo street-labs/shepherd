@@ -30,16 +30,20 @@ targets:
       - ShepherdiOSApp/Resources/Assets.xcassets
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.streetlabs.shepherd-ios
+        # Bundle ID must match the app registered in App Store Connect exactly
+        # (ITMS-90055); it cannot be changed after first upload.
+        PRODUCT_BUNDLE_IDENTIFIER: com.street-labs.shepherd-ios
         PRODUCT_NAME: ShepherdiOS
         INFOPLIST_FILE: ShepherdiOSApp/Resources/Info.plist
         # Automatic signing for TestFlight deploy: DEVELOPMENT_TEAM is passed
-        # through by scripts/deploy-ios.sh (asc local-build mode). The prior
-        # CODE_SIGNING_ALLOWED/REQUIRED=NO + empty IDENTITY blocked signing
-        # entirely and overrode -allowProvisioningUpdates, which is fine for
-        # simulator-only `just dev-ios` but fatal for an app-store archive.
-        DEVELOPMENT_TEAM: "9C9LVX9RE8"
+        # through by scripts/deploy-ios.sh (asc local-build mode) from the
+        # per-host .env — not hardcoded here, since this is an open-source
+        # repo and team IDs are per-developer. Simulator builds (`just
+        # dev-ios`) don't need a team.
         CODE_SIGN_STYLE: Automatic
+        # Single 1024x1024 icon; actool generates all required sizes at build
+        # time and injects CFBundleIconName (ITMS-90022/90023/90713).
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: "NO"
         CODE_SIGN_ENTITLEMENTS: ShepherdiOSApp/Resources/ShepherdiOS.entitlements
     dependencies:
