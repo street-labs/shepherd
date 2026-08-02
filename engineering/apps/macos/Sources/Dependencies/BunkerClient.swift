@@ -117,6 +117,12 @@ private final class BunkerSession: @unchecked Sendable {
     private var pending: [String: CheckedContinuation<String?, Never>] = [:]
     private var receiveTask: Task<Void, Never>?
     private var config: BunkerConfig?
+    /// The REQ subscription frame, retained so it can be re-sent after a NIP-42
+    /// AUTH challenge (the relay re-evaluates the subscription once authed).
+    private var reqString: String?
+    /// The most recently sent request EVENT frame, retained so it can be re-sent
+    /// after a NIP-42 AUTH challenge (auth-required relays reject the first EVENT).
+    private var lastEventFrame: String?
     private var _state: BunkerConnectionState? = nil
 
     // Sync lock helpers — callable from async contexts because the lock/unlock
@@ -174,6 +180,7 @@ private final class BunkerSession: @unchecked Sendable {
         let reqFrame: [Any] = ["REQ", subID, ["#p": [pubHex], "kinds": [24133]]]
         if let reqData = try? JSONSerialization.data(withJSONObject: reqFrame),
            let reqString = String(data: reqData, encoding: .utf8) {
+            withLock { self.reqString = reqString }
             try? await task.send(.string(reqString))
         }
 
@@ -215,7 +222,11 @@ private final class BunkerSession: @unchecked Sendable {
         withLock { receiveTask = nil }
         let task = withLock { wsTask }
         task?.cancel(with: .goingAway, reason: nil)
-        withLock { wsTask = nil }
+        withLock {
+            wsTask = nil
+            reqString = nil
+            lastEventFrame = nil
+        }
     }
 
     /// Send a sign_event request to the bunker. Returns the signed event, or nil.
@@ -307,6 +318,7 @@ private final class BunkerSession: @unchecked Sendable {
         let frame: [Any] = ["EVENT", signed.eventJSONObject]
         guard let frameData = try? JSONSerialization.data(withJSONObject: frame),
               let frameString = String(data: frameData, encoding: .utf8) else { return nil }
+        withLock { self.lastEventFrame = frameString }
         try? await task.send(.string(frameString))
 
         return await withCheckedContinuation { continuation in
@@ -337,20 +349,52 @@ private final class BunkerSession: @unchecked Sendable {
                 @unknown default: nil
                 }
                 guard let text else { continue }
-                handleResponse(text)
+                await handleResponse(text)
             } catch {
                 return
             }
         }
     }
 
-    private func handleResponse(_ text: String) {
-        let convKey = withLock { conversationKey }
-        guard let convKey else { return }
+    private func handleResponse(_ text: String) async {
         guard let data = text.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
-              array.count >= 3,
-              array[0] as? String == "EVENT",
+              array.count >= 2,
+              let type = array[0] as? String else { return }
+        switch type {
+        case "AUTH":
+            await handleAuth(challenge: array[1] as? String)
+        case "EVENT":
+            handleEvent(array)
+        default:
+            break // NOTICE (incl. auth-required), OK, CLOSED, EOSE — ignored.
+        }
+    }
+
+    /// NIP-42: sign the relay's challenge with the session key, send the AUTH
+    /// frame, then re-send the REQ subscription and any in-flight request EVENT
+    /// so the relay re-evaluates them under the now-authenticated session.
+    // Implements: FR-srm-bunker-connect (NIP-42 auth-required relay support)
+    private func handleAuth(challenge: String?) async {
+        guard let challenge else { return }
+        let secret = withLock { sessionKey }
+        let relay = withLock { config }?.relayURL ?? ""
+        guard let frame = RelayAuth.authFrame(
+            challenge: challenge, relayURL: relay,
+            secret: secret, signer: NostrSigner.liveValue
+        ) else { return }
+        let task = withLock { wsTask }
+        try? await task?.send(.string(frame))
+        let req = withLock { reqString }
+        let evt = withLock { lastEventFrame }
+        if let req { try? await task?.send(.string(req)) }
+        if let evt { try? await task?.send(.string(evt)) }
+    }
+
+    private func handleEvent(_ array: [Any]) {
+        let convKey = withLock { conversationKey }
+        guard let convKey else { return }
+        guard array.count >= 3,
               let eventObj = array[2] as? [String: Any],
               let kind = eventObj["kind"] as? Int, kind == 24133,
               let content = eventObj["content"] as? String,
