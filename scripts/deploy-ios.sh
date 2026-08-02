@@ -6,8 +6,8 @@
 # group. We just feed it the project, scheme, ExportOptions.plist, and the
 # signing pass-throughs the build host owns.
 #
-# Run on a host with Xcode, signing certs/profiles, and asc authed via
-# `asc auth login`. Invoke via `just deploy-ios` or directly.
+# Run on a host with Xcode and iOS signing certs/profiles. Invoke via
+# `just deploy-ios` or directly.
 #
 # Required env (set on the build host, or run `just setup-deploy-ios` once to
 # store them in the shared creds store — this script pulls from `creds`
@@ -16,9 +16,12 @@
 #   SHEPHERD_TEAM_ID     Apple Developer Team ID (passed as DEVELOPMENT_TEAM)
 #   SHEPHERD_TF_GROUP    TestFlight beta group name or ID to distribute to
 #
-# Auth: `asc auth login` must have been run once on this host so a keychain
-# profile is active. See https://appstoreconnect.apple.com/access/integrations/api
-# to create the API key (App Manager role minimum).
+# Auth: asc reads the App Store Connect API key from env vars sourced via
+# `creds env asc` (the shared creds store / borg-asc-env blob). No
+# `asc auth login` profile is required, though one coexists fine (env vars
+# only fill missing fields). To populate the blob, create an API key at
+# https://appstoreconnect.apple.com/access/integrations/api (App Manager
+# role minimum) and `creds set asc`.
 #
 # Skipped (add when needed): --notify (tester notification), --test-notes,
 #   --submit (beta app review). Ship the minimal upload-to-group flow first.
@@ -44,10 +47,45 @@ for v in SHEPHERD_ASC_APP_ID SHEPHERD_TEAM_ID SHEPHERD_TF_GROUP; do
   [ -n "$val" ] || { echo "deploy-ios: $v is required (run \`just setup-deploy-ios\` or set it on the host)"; exit 2; }
 done
 
+# App Store Connect API auth. asc reads env vars (ASC_KEY_ID / ASC_ISSUER_ID /
+# ASC_PRIVATE_KEY) sourced from the shared creds store (borg-asc-env blob)
+# when present, and also accepts a keychain profile created via
+# `asc auth login`. Either source works; env vars only fill missing fields
+# unless --strict-auth is set (this script does not set it).
+if command -v creds >/dev/null 2>&1; then
+  eval "$(creds env asc 2>/dev/null || true)"
+fi
+# Fail-fast auth preflight: `asc auth token` signs a JWT locally (no network)
+# and succeeds only when asc has a usable auth source (env creds OR profile).
+# Avoids a multi-minute archive + export only to die at the upload leg.
+if ! asc auth token --confirm >/dev/null 2>&1; then
+  echo "deploy-ios: asc not authenticated. Populate creds (creds set asc /"
+  echo "  creds sync) or run \`asc auth login\` to create a keychain profile."
+  exit 2
+fi
+
 IOS_DIR="$REPO_ROOT/engineering/apps/ios"
 PROJECT="$IOS_DIR/ShepherdiOS.xcodeproj"
 EXPORT_OPTS="$IOS_DIR/export/ExportOptions.plist"
 BUILD_DIR="$IOS_DIR/build"
+
+# Pre-flight signing check: fail in 1s with an actionable message instead of
+# letting xcodebuild archive run for minutes then die on "No Accounts" / "No
+# profiles". Requires an iOS Distribution or Development identity in the
+# keychain (automatic signing with -allowProvisioningUpdates generates the
+# profile, but only if a cert + Apple account already exist on this host).
+# ponytail: matches name prefixes across old ("iPhone Distribution"/
+# "iPhone Developer") and new ("Apple Distribution") Xcode cert naming; broad
+# gate is fine since the archive itself errors precisely if the wrong type
+# is present.
+if ! security find-identity -v -p codesigning 2>/dev/null \
+    | grep -qE '"(iPhone|Apple) (Distribution|Developer):'; then
+  echo "deploy-ios: no iOS signing identity in keychain."
+  echo "  Add the Apple Developer account in Xcode -> Settings -> Accounts,"
+  echo "  then let automatic signing create the distribution cert + profile"
+  echo "  (or import an existing .p12 + .mobileprovision). Re-run after."
+  exit 2
+fi
 
 # asc requires --version in local-build mode; source of truth is the
 # hand-maintained Info.plist (project.yml sets GENERATE_INFOPLIST_FILE=NO).
