@@ -378,7 +378,9 @@ private final class BunkerSession: @unchecked Sendable {
     private func handleAuth(challenge: String?) async {
         guard let challenge else { return }
         let secret = withLock { sessionKey }
-        let relay = withLock { config }?.relayURL ?? ""
+        // `config` is set before connect() runs, but guard rather than emit a
+        // kind-22242 event with an empty `relay` tag, which strict relays reject.
+        guard let relay = withLock({ config })?.relayURL else { return }
         guard let frame = RelayAuth.authFrame(
             challenge: challenge, relayURL: relay,
             secret: secret, signer: NostrSigner.liveValue
@@ -386,9 +388,16 @@ private final class BunkerSession: @unchecked Sendable {
         let task = withLock { wsTask }
         try? await task?.send(.string(frame))
         let req = withLock { reqString }
+        // Re-send the in-flight request EVENT once. Clearing it after the re-send
+        // means a relay that re-challenges on the same socket won't duplicate the
+        // request (the bunker would otherwise process + respond twice). The REQ
+        // subscription is idempotent, so it's safe to re-send on every challenge.
         let evt = withLock { lastEventFrame }
         if let req { try? await task?.send(.string(req)) }
-        if let evt { try? await task?.send(.string(evt)) }
+        if let evt {
+            try? await task?.send(.string(evt))
+            withLock { lastEventFrame = nil }
+        }
     }
 
     private func handleEvent(_ array: [Any]) {
