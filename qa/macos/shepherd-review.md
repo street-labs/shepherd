@@ -1,5 +1,5 @@
 ---
-product-hash: 75b34569386afeabe8b48e6d210c89ccbb30c95a55a49767e810c43c629e2db2
+product-hash: 3690acf162292d9c87169800429f77532c40192326fcf3225ba44915e0f24463
 product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
@@ -1134,6 +1134,42 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
   3. With the app now **running**, open a second `shepherd://patch/<hex-id>` link.
   4. Confirm the existing window comes to the foreground (no second window spawns).
 - **Expected**: The OS routes `shepherd:` links to Shepherd — launching it when cold, focusing the existing window when warm.
+
+#### PR missing required tags `TC-srm-pr-open-missing-tags`
+- **Type**: Automated (unit) + Manual
+- **Covers**: `AC-srm-pr-open-missing-tags`, `FR-srm-pr-open-fetch`
+- **Steps**:
+  1. Submit a kind `1618` event with no `clone` tag (or no `c` tag); confirm the sheet reports ``PR event <short-id> is missing a clone URL or tip commit (`c` tag).`` and no review starts.
+  2. Submit a kind `1618` event with `clone` and `c` but no `merge-base`; confirm the sheet reports ``PR event <short-id> has no `merge-base` tag; cannot determine the diff base.`` and no review starts.
+  3. (Unit) assert the PR tag validator rejects each missing-tag case with the matching message.
+- **Expected**: PRs missing `clone`, `c`, or `merge-base` are rejected with a precise message before any git fetch.
+
+#### PR git fetch failure `TC-srm-pr-open-fetch-fails`
+- **Type**: Manual (with an unreachable clone URL fixture)
+- **Covers**: `AC-srm-pr-open-fetch-fails`, `FR-srm-pr-open-diff`
+- **Preconditions**: A kind `1618` event whose `clone` URLs are unreachable, or whose referenced commits cannot be fetched by the server.
+- **Steps**:
+  1. Submit the PR event id.
+  2. Confirm the sheet reports the specific git error (e.g. `Could not fetch commits from <clone-url>: <git error>`) and no review starts.
+  3. Confirm the temporary repository created for the fetch is cleaned up after the failure.
+- **Expected**: Clone/fetch failures surface a clear error and leave no temp-dir litter.
+
+#### PR with empty diff `TC-srm-pr-open-empty-diff`
+- **Type**: Manual (with a fixture PR whose tip equals its merge-base)
+- **Covers**: `AC-srm-pr-open-empty-diff`, `FR-srm-pr-open-diff`
+- **Steps**:
+  1. Submit a kind `1618` event whose `c` and `merge-base` resolve to the same tree (no net changes).
+  2. Confirm the sheet reports `PR <short-id> has no changes between its merge-base and tip.` and no review starts.
+- **Expected**: A no-op PR is rejected with a clear message rather than opening an empty review window.
+
+#### PR metadata displayed `TC-srm-pr-open-metadata`
+- **Type**: Manual
+- **Covers**: `AC-srm-pr-open-metadata`, `FR-sr-pr-metadata-display`
+- **Preconditions**: A PR review is loaded in the app (via the in-app Open Patch or PR dialog).
+- **Steps**:
+  1. Open a PR review; inspect the inspector's metadata section.
+  2. Confirm the rows show the PR author, subject, merge-base (as Parent), tip commit, branch name (when present), status `open`, and the short event id with a copy affordance for the full id.
+- **Expected**: PR metadata is displayed read-only alongside the review context, with PR-specific rows (tip, branch) rendered.
 
 #### Patch deeplink loads the patch `TC-srm-deeplink-patch-load`
 - **Type**: Manual

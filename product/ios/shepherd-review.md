@@ -115,8 +115,8 @@ The app surfaces the active reviewer identity so the reviewer knows, before publ
 #### `NFR-sri-no-server` — No local server is started
 The app does not start or rely on any local server. It is self-contained.
 
-#### `NFR-sri-no-git` — No local git repository required
-In-app patch review requires no local git repository and no git tooling. The patch is loaded from the event contents alone.
+#### `NFR-sri-no-git` — No local git repository or git tooling required
+In-app patch review requires no local git repository, no git tooling, and no shell subprocess. The patch is loaded from the event contents alone, fetched over the relay client in-process. Because the app invokes no shell process, it cannot run `git` to fetch objects or compute a diff — this is why NIP-34 pull requests (kind `1618`), whose review requires fetching git objects from a `clone` URL and computing `git diff <merge-base>..<c>`, are rejected on iOS in v1 (see `FR-sri-patch-open-fetch` kind contract and Open Questions).
 
 #### `NFR-sri-platform-restriction` — iOS only
 The app targets iOS and runs on iPhone and iPad. It is not available on other operating systems.
