@@ -1,6 +1,6 @@
 ---
-product-hash: 3be8b01ef980231ee907e94c5591e47414c5e047c1e0495541e48426acbca4ae
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 75b34569386afeabe8b48e6d210c89ccbb30c95a55a49767e810c43c629e2db2
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
 
@@ -55,6 +55,20 @@ Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both c
 | `AC-srm-patch-open-bad-diff` | `TC-srm-patch-open-bad-diff` | Not started |
 | `AC-srm-patch-open-no-relays` | `TC-srm-patch-open-no-relays` | Not started |
 | `AC-srm-patch-open-activates-thread` | `TC-srm-patch-open-activates-thread` | Not started |
+| `AC-srm-pr-open-happy` | `TC-srm-pr-open-happy` | Not started |
+| `AC-srm-pr-open-missing-tags` | `TC-srm-pr-open-missing-tags` | Not started |
+| `AC-srm-pr-open-fetch-fails` | `TC-srm-pr-open-fetch-fails` | Not started |
+| `AC-srm-pr-open-empty-diff` | `TC-srm-pr-open-empty-diff` | Not started |
+| `AC-srm-pr-open-metadata` | `TC-srm-pr-open-metadata` | Not started |
+| `AC-srm-pr-open-activates-thread` | `TC-srm-pr-open-activates-thread` | Not started |
+| `AC-srm-pr-open-no-git` | `TC-srm-pr-open-no-git` | Not started |
+| `AC-sr-pr-happy-path` | `TC-sr-pr-happy-path` | Not started |
+| `AC-sr-pr-event-not-found` | `TC-sr-pr-event-not-found` | Not started |
+| `AC-sr-pr-wrong-kind` | `TC-sr-pr-wrong-kind` | Not started |
+| `AC-sr-pr-missing-tags` | `TC-sr-pr-missing-tags` | Not started |
+| `AC-sr-pr-fetch-fails` | `TC-sr-pr-fetch-fails` | Not started |
+| `AC-sr-pr-metadata-displayed` | `TC-sr-pr-metadata-displayed` | Not started |
+| `AC-sr-pr-conflicting-args` | `TC-sr-pr-conflicting-args` | Not started |
 | `AC-sr-patch-happy-path` | `TC-sr-patch-happy-path` | Not started |
 | `AC-sr-patch-event-not-found` | `TC-sr-patch-event-not-found` | Not started |
 | `AC-sr-patch-invalid-diff` | `TC-sr-patch-invalid-diff` | Not started |
@@ -733,6 +747,61 @@ Testing patch review via `--patch <event-id>` mode.
   2. Observe agent output
 - **Expected**: Command reports "Cannot combine --patch with --staged or --unstaged" and displays usage message. No work is performed.
 
+### NIP-34 Pull Request Review (CLI `--pr`)
+
+These cases verify the CLI `--pr <event-id>` path that fetches a kind `1618` PR, acquires its diff from the PR's `clone` URL, and reviews it. They require a test PR event on a reachable relay whose `clone` URL is reachable and whose server allows fetching the referenced commits.
+
+#### Review a NIP-34 PR successfully `TC-sr-pr-happy-path`
+- **Type**: Manual
+- **Covers**: `AC-sr-pr-happy-path`, `FR-sr-pr-source`, `FR-sr-pr-fetch`, `FR-sr-pr-diff-acquisition`, `FR-sr-pr-metadata-display`
+- **Preconditions**: A valid kind `1618` PR event on configured relays with `clone`, `c`, and `merge-base` tags; the clone URL reachable.
+- **Steps**:
+  1. From agent: `/shepherd-review --pr <event-id>`.
+  2. Confirm the command fetches the PR event, fetches the referenced commits from the `clone` URL, computes `git diff <merge-base>..<c>`, and applies the diff to `review/pr-<short-id>`.
+  3. Confirm the native window opens with one tab per changed file and PR metadata (author, subject, tip, merge-base, branch, status `open`) in the inspector.
+  4. Confirm the live thread and publish path are active (reply to the PR thread).
+  5. End the review; confirm the original branch is restored and any stashed changes popped.
+- **Expected**: A PR reviews end-to-end via `--pr`, with the diff acquired from the referenced git repo, not the event content.
+
+#### PR event not found `TC-sr-pr-event-not-found`
+- **Type**: Manual
+- **Covers**: `AC-sr-pr-event-not-found`, `FR-sr-pr-fetch`
+- **Steps**: From agent: `/shepherd-review --pr <unknown-id>`.
+- **Expected**: Command reports "PR event <id> not found on relays: [urls]" and stops without creating a review branch.
+
+#### Non-PR event rejected `TC-sr-pr-wrong-kind`
+- **Type**: Manual
+- **Covers**: `AC-sr-pr-wrong-kind`, `FR-sr-pr-fetch`
+- **Steps**: From agent: `/shepherd-review --pr <id-of-a-kind-1617-patch>`.
+- **Expected**: Command reports "Event <short-id> is not a NIP-34 pull request (kind 1617)." and stops.
+
+#### PR missing required tags `TC-sr-pr-missing-tags`
+- **Type**: Manual
+- **Covers**: `AC-sr-pr-missing-tags`, `FR-sr-pr-diff-acquisition`
+- **Steps**:
+  1. `/shepherd-review --pr <id-with-no-clone-or-c>` → reports "PR event <short-id> is missing a clone URL or tip commit (`c` tag)."
+  2. `/shepherd-review --pr <id-with-no-merge-base>` → reports "PR event <short-id> has no `merge-base` tag; cannot determine the diff base."
+- **Expected**: Missing `clone`/`c`/`merge-base` each produce the precise error and stop.
+
+#### PR git fetch failure `TC-sr-pr-fetch-fails`
+- **Type**: Manual
+- **Covers**: `AC-sr-pr-fetch-fails`, `FR-sr-pr-diff-acquisition`
+- **Preconditions**: A kind `1618` event whose `clone` URLs are unreachable.
+- **Steps**: From agent: `/shepherd-review --pr <id>`.
+- **Expected**: Command reports the specific git error and stops without creating a review branch.
+
+#### PR metadata displayed `TC-sr-pr-metadata-displayed`
+- **Type**: Manual
+- **Covers**: `AC-sr-pr-metadata-displayed`, `FR-sr-pr-metadata-display`
+- **Steps**: Open a PR with `subject`, `c`, `merge-base`, `branch-name` tags via `--pr`.
+- **Expected**: Inspector shows author, subject, tip short hash, merge-base short hash, branch name, status `open`, repo coordinate, short event id.
+
+#### Conflicting PR arguments `TC-sr-pr-conflicting-args`
+- **Type**: Manual
+- **Covers**: `AC-sr-pr-conflicting-args`
+- **Steps**: `/shepherd-review --pr abc... --staged` and `/shepherd-review --pr abc... --patch def...`.
+- **Expected**: Command reports "Cannot combine --pr with --staged, --unstaged, or --patch" and displays usage.
+
 ### Patch-Thread Reply Publishing (Bidirectional)
 
 These cases verify the reviewer can publish replies to the patch thread from the native app under their own Nostr identity, respond to existing replies, and that publish state and failure are handled. They require a configured reviewer identity (`SHEPHERD_NSEC` or `~/.config/nostr/identity`) and a test patch event on a reachable relay.
@@ -976,9 +1045,9 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Covers**: `AC-srm-patch-open-wrong-kind`, `FR-srm-patch-open-fetch`
 - **Steps**:
   1. Submit the id of a real kind:1 text note (and separately a kind:1621 issue) that exists on the relays.
-  2. Confirm the sheet reports `Event <short-id> is not a NIP-34 patch (kind <k>).` and no review starts. (The fetch uses an `ids`-only filter so the event is returned despite not being kind 1617, then rejected by validation — not filtered out upstream as "not found".)
-  3. (Unit) assert `PatchDiffSplitter` rejects any kind other than `1617`.
-- **Expected**: Only NIP-34 patch events (kind 1617) load; other kinds (notes, issues, PRs) are rejected with the kind named.
+  2. Confirm the sheet reports `Event <short-id> is not a NIP-34 patch or PR (kind <k>).` and no review starts. (The fetch uses an `ids`-only filter so the event is returned despite not being kind 1617/1618, then rejected by validation — not filtered out upstream as "not found".)
+  3. (Unit) assert the open-patch reducer rejects any kind other than `1617` and `1618`; a kind `1618` event routes to the PR load path (`TC-srm-pr-open-happy`), not this rejection.
+- **Expected**: Only NIP-34 patch (kind 1617) and PR (kind 1618) events load; other kinds (notes, issues) are rejected with the kind named. PRs are handled by the PR open path, not rejected here.
 
 #### Malformed diff rejected `TC-srm-patch-open-bad-diff`
 - **Type**: Automated (unit)
@@ -1016,6 +1085,76 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
   2. Assert it returns 3 `(filePath, diffBlock)` pairs with the correct paths.
   3. Assert the extracted patch metadata carries the `a` tag repo coordinate and parent commit, the commit message from the format-patch subject line, and the author pubkey from the event. Assert it does **not** attempt to read a `status` tag (NIP-34 status lives on separate 1630–1633 events; v1 renders `open`).
 - **Expected**: Diff splitting and metadata extraction are pure, deterministic, and NIP-34-correct.
+
+### In-App PR Open
+
+#### Open PR from empty state (happy path) `TC-srm-pr-open-happy`
+- **Type**: Manual
+- **Covers**: `AC-srm-pr-open-happy`, `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-pr-open-fetch`, `FR-srm-pr-open-diff`, `FR-srm-pr-open-load`, `NFR-srm-pr-git-required`
+- **Preconditions**: App in standalone empty state; a valid NIP-34 PR event (kind `1618`) exists on the configured relays, carrying at least one `clone` URL, a `c` tip commit, and a `merge-base` tag; the clone URL is reachable and the server allows fetching the referenced commits; `git` is on the PATH; reviewer identity configured.
+- **Steps**:
+  1. Confirm the empty state shows an `Open Patch or PR…` button.
+  2. Click it; paste the PR event's 64-char hex id and click `Fetch`; confirm the sheet shows a fetching/progress state while the git fetch runs.
+  3. On success confirm the sheet closes and the window enters the multi-file layout with one tab per changed file from `git diff <merge-base>..<c>`.
+  4. Confirm the inspector shows PR metadata (author, subject, tip commit, merge-base, branch name, status `open`, repo coordinate, short event id).
+  5. Add an inline comment on a diff line and submit; confirm it publishes to the PR thread with the PR event as root.
+  6. Confirm no `/shepherd-review` invocation and no local git repository were required (only the `git` binary fetching into a temp dir).
+- **Expected**: PR opens in-app by event id; the diff is acquired via a git subprocess from the PR's `clone` URL; per-file diff tabs load; PR metadata + live thread + publish all activate.
+
+#### PR missing required tags `TC-srm-pr-open-missing-tags`
+- **Type**: Automated (unit) + Manual
+- **Covers**: `AC-srm-pr-open-missing-tags`, `FR-srm-pr-open-fetch`
+- **Steps**:
+  1. Submit a kind `1618` event with no `clone` tag (or no `c` tag); confirm the sheet reports `PR event <short-id> is missing a clone URL or tip commit ('c' tag).` and no review starts.
+  2. Submit a kind `1618` event with `clone` and `c` but no `merge-base`; confirm the sheet reports `PR event <short-id> has no 'merge-base' tag; cannot determine the diff base.` and no review starts.
+  3. (Unit) assert the PR tag validator rejects each missing-tag case with the matching message.
+- **Expected**: PRs missing `clone`, `c`, or `merge-base` are rejected with a precise message before any git fetch.
+
+#### PR git fetch failure `TC-srm-pr-open-fetch-fails`
+- **Type**: Manual (with an unreachable clone URL fixture)
+- **Covers**: `AC-srm-pr-open-fetch-fails`, `FR-srm-pr-open-diff`
+- **Preconditions**: A kind `1618` event whose `clone` URLs are unreachable, or whose referenced commits cannot be fetched by the server.
+- **Steps**:
+  1. Submit the PR event id.
+  2. Confirm the sheet reports the specific git error (e.g. `Could not fetch commits from <clone-url>: <git error>`) and no review starts.
+  3. Confirm the temporary repository created for the fetch is cleaned up after the failure.
+- **Expected**: Clone/fetch failures surface a clear error and leave no temp-dir litter.
+
+#### PR with empty diff `TC-srm-pr-open-empty-diff`
+- **Type**: Manual (with a fixture PR whose tip equals its merge-base)
+- **Covers**: `AC-srm-pr-open-empty-diff`, `FR-srm-pr-open-diff`
+- **Steps**:
+  1. Submit a kind `1618` event whose `c` and `merge-base` resolve to the same tree (no net changes).
+  2. Confirm the sheet reports `PR <short-id> has no changes between its merge-base and tip.` and no review starts.
+- **Expected**: A no-op PR is rejected with a clear message rather than opening an empty review window.
+
+#### PR metadata displayed `TC-srm-pr-open-metadata`
+- **Type**: Manual
+- **Covers**: `AC-srm-pr-open-metadata`, `FR-sr-pr-metadata-display`
+- **Steps**:
+  1. Open a PR per `TC-srm-pr-open-happy` whose event has `subject`, `c`, `merge-base`, and `branch-name` tags.
+  2. Confirm the metadata section displays author (display name if known, else short pubkey), subject, tip commit short hash, merge-base short hash, branch name, status `open`, repo coordinate, and short event id.
+- **Expected**: PR-specific metadata (tip / merge-base / branch) renders in the metadata section.
+
+#### In-app opened PR activates the live thread `TC-srm-pr-open-activates-thread`
+- **Type**: Manual
+- **Covers**: `AC-srm-pr-open-activates-thread`, `FR-sr-patch-replies-live`, `FR-srm-comment-publish-on-submit`
+- **Preconditions**: PR opened in-app per `TC-srm-pr-open-happy`; a second participant posts a reply to the same PR thread after the window is open.
+- **Steps**:
+  1. Confirm the initial reply snapshot (if any) renders in the inspector Patch Thread section.
+  2. Have the second participant publish a new kind:1 root reply to the PR event.
+  3. Confirm the new reply appears in the inspector and inline at its anchor without relaunching.
+  4. Submit a response; confirm it publishes with the PR event as the thread root.
+- **Expected**: The in-app-opened PR is indistinguishable from a patch review for live replies and publishing, with the PR event as thread root.
+
+#### PR open requires git `TC-srm-pr-open-no-git`
+- **Type**: Manual
+- **Covers**: `AC-srm-pr-open-no-git`, `NFR-srm-pr-git-required`
+- **Preconditions**: `git` is not on the PATH (rename/hide it for the test run).
+- **Steps**:
+  1. Submit a valid kind `1618` PR reference.
+  2. Confirm the sheet reports `Opening a PR requires 'git' on your PATH.` and no review starts. Confirm in-app patch open (kind 1617) still works without git.
+- **Expected**: PR open fails clearly without git; patch open is unaffected (patches need no git).
 
 ## Edge Cases and Error Scenarios
 

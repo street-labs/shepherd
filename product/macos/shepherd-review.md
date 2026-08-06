@@ -24,8 +24,8 @@ The macOS variant adds one platform-choice user story on top of the shared spec'
 ### US-SRM-4: Sign my replies without exposing my raw secret key
 **As a** reviewer who keeps my Nostr secret key in a bunker (a NIP-46 remote signer), **I want to** point Shepherd at my bunker connection instead of pasting my raw `nsec`, **so that** my secret key never has to live in an env var or config file on my review machine yet my published replies are still signed under my own identity.
 
-### US-SRM-5: Open a patch directly in the app, without the CLI
-**As a** reviewer who has a NIP-34 patch event id (an ngit patch), **I want to** open that patch directly in the Shepherd app from its empty start screen — alongside opening files or pasting content — **so that** I can review the patch and participate in its thread without first dropping into a terminal to run `/shepherd-review --patch`. The app fetches the patch from Nostr itself and loads it for review.
+### US-SRM-5: Open a patch or PR directly in the app, without the CLI
+**As a** reviewer who has a NIP-34 patch or pull request event id (an ngit patch or PR), **I want to** open it directly in the Shepherd app from its empty start screen — alongside opening files or pasting content — **so that** I can review the patch or PR and participate in its thread without first dropping into a terminal to run `/shepherd-review --patch` or `--pr`. The app fetches the event from Nostr itself and loads it for review (fetching the PR's git objects when the event is a PR).
 
 All other shared user stories (`US-SR-1` through `US-SR-9`) apply to the macOS variant unchanged — the review experience itself is the same.
 
@@ -210,16 +210,16 @@ These requirements add a second, in-app way to start a patch review. The existin
 
 The reviewer's identity is handled by the existing in-app identity flow (`FR-srm-identity-load`); the in-app patch open does not introduce a new identity path. If no identity is loaded when a patch is opened, review and local commenting work and the identity indicator surfaces that replies will not publish, identical to the CLI-launched case.
 
-#### `FR-srm-patch-open-entry` — Empty state exposes an "Open Patch" affordance
-The native app's empty state (the drop zone shown when no files are loaded, per `product/macos/code-review-prompt.md`) exposes an "Open Patch…" affordance alongside the existing "Open Files…" (native file open panel) and "Paste from Clipboard" entry points. Activating it opens a lightweight dialog (see design spec) in which the reviewer enters or pastes a NIP-34 patch reference. This affordance is present only in the empty state; it is not shown once files are loaded. It initiates an in-app patch review and does not invoke the `/shepherd-review` command or any shell process.
+#### `FR-srm-patch-open-entry` — Empty state exposes an "Open Patch or PR" affordance
+The native app's empty state (the drop zone shown when no files are loaded, per `product/macos/code-review-prompt.md`) exposes an "Open Patch or PR…" affordance alongside the existing "Open Files…" (native file open panel) and "Paste from Clipboard" entry points. Activating it opens a lightweight dialog (see design spec) in which the reviewer enters or pastes a NIP-34 patch or PR reference. The same dialog and affordance serve both kinds: the app fetches the event by id and dispatches on its kind — kind `1617` loads as a patch (`FR-srm-patch-open-load`), kind `1618` loads as a PR (`FR-srm-pr-open-load`). This affordance is present only in the empty state; it is not shown once files are loaded. It initiates an in-app review and does not invoke the `/shepherd-review` command or any shell process for patch events; PR events require a git subprocess to acquire the diff (see `FR-srm-pr-open-diff`).
 
-#### `FR-srm-patch-open-input` — Accept a patch event reference and validate its format
-The Open Patch dialog accepts a patch reference in either of two forms:
+#### `FR-srm-patch-open-input` — Accept a patch or PR event reference and validate its format
+The Open Patch or PR dialog accepts a reference in either of two forms:
 
 1. A 64-character hex Nostr event id.
-2. A NIP-19 `nevent1…` bech32 entity that encodes a patch event (the app decodes it to its referenced event id and relays).
+2. A NIP-19 `nevent1…` bech32 entity that encodes a patch or PR event (the app decodes it to its referenced event id and relays).
 
-A `naddr1…` reference is **not** accepted: NIP-19 `naddr` encodes an addressable coordinate (pubkey + kind + `d` tag), not an event id, and NIP-34 patch events are kind `1617` (non-parameterized, non-replaceable) with no `naddr` form. Supporting `naddr` would require a different fetch (a coordinate filter, not an `ids` filter) for no realistic copy source — patches are shared by event id or `nevent` from ngit clients and Buzz. (PRs, kind `1618`, are addressable but are out of scope for v1 in-app review; see roadmap.)
+A `naddr1…` reference is **not** accepted: NIP-19 `naddr` encodes an addressable coordinate (pubkey + kind + `d` tag), not an event id, and NIP-34 patch events are kind `1617` (non-parameterized, non-replaceable) with no `naddr` form. Supporting `naddr` would require a different fetch (a coordinate filter, not an `ids` filter) for no realistic copy source — patches and PRs are shared by event id or `nevent` from ngit clients and Buzz. (PRs, kind `1618`, are also non-parameterized event-id entities and are accepted by the same `ids` fetch; see the In-app PR open section.)
 
 Leading/trailing whitespace is trimmed. An input that matches neither form is rejected inline with a clear message ("Enter a 64-character hex event id or a nevent1 reference") and the dialog stays open; no fetch is attempted. Pasted text that contains extra surrounding prose is not parsed — the whole (trimmed) field must be one valid reference.
 
@@ -228,8 +228,8 @@ When the reviewer submits a valid reference, the app fetches the patch event in-
 
 The first matching event delivered is taken as the fetched event and the subscription is cancelled immediately (one event, not a stream). The app then validates it (the diff-format semantics of `FR-sr-patch-validation`, performed in Swift rather than shell, with the in-app kind contract below):
 
-- **Event kind**: must be `1617` (NIP-34 patch). Any other kind is rejected with "Event <short-id> is not a NIP-34 patch (kind <k>)." In particular a kind:1 note, a kind:1621 issue, or a kind:1618 pull request all produce this error. (The shared `FR-sr-patch-validation` currently labels kind 1621 a "patch"; per NIP-34 kind 1621 is an *issue*. The in-app path reviews kind 1617 patches only — issues and PRs are out of scope for v1 — so it does not inherit the shared spec's kind set. See Open Questions.)
-- **Diff format**: the event content must be a valid unified diff beginning with `diff --git` and containing `+++`/`---` headers and `@@` hunks. (A NIP-34 patch event's content is the output of `git format-patch`, whose body is a unified diff; the subject line before the diff is the commit message, extracted in `FR-srm-patch-open-load`.) A malformed diff is rejected with "Patch event <short-id> does not contain a valid unified diff."
+- **Event kind**: must be `1617` (NIP-34 patch) or `1618` (NIP-34 pull request). A kind `1617` event is validated as a patch (its content is a unified diff) and routed to the patch load path (`FR-srm-patch-open-load`). A kind `1618` event is routed to the PR load path (`FR-srm-pr-open-fetch` / `FR-srm-pr-open-load`); its content is markdown (not a diff) and is not diff-validated here. Any other kind is rejected with "Event <short-id> is not a NIP-34 patch or PR (kind <k>)." In particular a kind:1 note or a kind:1621 issue produces this error. (The shared `FR-sr-patch-validation` currently labels kind 1621 a "patch"; per NIP-34 kind 1621 is an *issue*. The in-app path reviews kind `1617` patches and kind `1618` PRs only — issues are out of scope — so it does not inherit the shared spec's kind set. See Open Questions.)
+- **Diff format** (patch path only): the event content must be a valid unified diff beginning with `diff --git` and containing `+++`/`---` headers and `@@` hunks. (A NIP-34 patch event's content is the output of `git format-patch`, whose body is a unified diff; the subject line before the diff is the commit message, extracted in `FR-srm-patch-open-load`.) A malformed diff is rejected with "Patch event <short-id> does not contain a valid unified diff."
 
 A fetch that returns no event within the relay wait window is rejected with "Patch event <short-id> not found on the configured relays." If no relay is reachable, the dialog reports "No Nostr relays reachable — check your relay configuration." and no review is started.
 
@@ -243,6 +243,43 @@ On a successfully fetched and validated patch event, the app loads a patch revie
 3. **Enter the review.** The empty state is replaced by the standard multi-file review layout (one tab per changed file). The reviewer adds inline comments on the diff and publishes them to the patch thread under their identity exactly as in the CLI-launched patch review.
 
 There is no agent-generated neutral/review context for an in-app-opened patch (no LLM runs in this path); per-file review context is simply absent, and the review-context panel hides for tabs that have none (graceful-missing, per `AC-crp-context-graceful-missing`). The patch metadata section and patch thread are the orientation the reviewer gets instead.
+
+### In-app PR open
+
+These requirements add an in-app way to start a PR review, parallel to the in-app patch open above. The reviewer enters a NIP-34 PR event reference in the same Open Patch or PR dialog (`FR-srm-patch-open-entry` / `FR-srm-patch-open-input`); the app fetches the kind `1618` event in-process (reusing `FR-sr-relay-client`) and routes it to the PR load path. Unlike a patch, a PR event does not contain its diff, so the app acquires the diff by fetching the PR's referenced git objects with a `git` subprocess (`FR-srm-pr-open-diff`) — this is the one place the in-app review path shells out, and it requires `git` on the PATH (see `NFR-srm-pr-git-required`). Once the diff is acquired and split, the review surface is the same multi-file diff-as-tabs layout used for in-app patches, and the patch-thread reply loop (`FR-sr-patch-replies-live`, `FR-srm-comment-publish-on-submit` et al.) activates with the PR event as the thread root.
+
+The reviewer's identity is handled by the existing in-app identity flow (`FR-srm-identity-load`); the in-app PR open does not introduce a new identity path.
+
+#### `FR-srm-pr-open-fetch` — Fetch and validate the NIP-34 PR event in-process
+When the fetched event is kind `1618`, the app validates it as a PR (the tag contract of `FR-sr-pr-fetch`, performed in Swift):
+
+- **Required tags**: the event must carry at least one `clone` URL and a `c` (tip commit) tag. If either is missing, the dialog reports "PR event <short-id> is missing a clone URL or tip commit (`c` tag)." and no review is started.
+- **Merge base**: a `merge-base` tag is required in v1 to compute the diff base. If it is absent, the dialog reports "PR event <short-id> has no `merge-base` tag; cannot determine the diff base." and no review is started (see Open Questions).
+- **Subject**: optional; falls back to the first non-empty line of the content.
+- **Repo coordinate**: the `a` tag, used as the `a` tag on published thread replies.
+
+The fetch itself reuses the patch path's `ids`-only subscription (`FR-srm-patch-open-fetch`); the same not-found, no-relays, and wrong-kind error states apply, with PR-specific messages where the kind is `1618`.
+
+#### `FR-srm-pr-open-diff` — Acquire the PR diff with a git subprocess
+Because a PR event does not contain its diff, the app acquires it by fetching the referenced git objects and computing the net change between the tip and the merge-base, using a `git` subprocess (the in-app patch path needs no git; the PR path does):
+
+1. **Create a temporary review repository.** The app creates a temporary directory and runs `git init` in it. (It does not touch the user's local repository, and no local git repository is required to open a PR in-app.)
+2. **Fetch the referenced commits.** The app tries the PR event's `clone` URLs in order. For the first reachable clone URL, it fetches the tip commit and the merge-base commit (`git fetch <clone-url> <c>` and `git fetch <clone-url> <merge-base>`). When the server does not allow fetching by arbitrary SHA and a `branch-name` tag is present, the app fetches the branch (`git fetch <clone-url> <branch-name>`), which delivers the tip and its ancestors including the merge-base. If no clone URL is reachable or the commits cannot be fetched, the dialog reports the specific git error (e.g. "Could not fetch commits from <clone-url>: <git error>") and no review is started. The temporary repository is cleaned up after the diff is computed.
+3. **Compute the diff.** The app runs `git diff <merge-base>..<c>` in the temporary repository to produce the net unified diff of the PR. If the diff is empty, the dialog reports "PR <short-id> has no changes between its merge-base and tip." and no review is started.
+
+This is a network operation (fetching from the clone URL) and may take several seconds; the dialog shows a fetching/progress state while it runs and is cancellable. The app does not persist the temporary repository or the fetched objects after the diff is computed.
+
+#### `FR-srm-pr-open-load` — Load the PR for review from the acquired diff
+On a successfully acquired PR diff, the app loads a PR review session by splitting the diff and attaching PR metadata, reusing the patch load path's mechanics:
+
+1. **Parse the unified diff per file.** The diff is split on each `diff --git a/<path> b/<path>` boundary into one block per changed file (the same splitter the patch path uses, `FR-srm-patch-open-load`). Each block becomes a tab in the file browser, named by the file path, with the block's diff text as the tab's content. (Same v1 diff-as-tabs surface and full-file-reconstruction caveat as in-app patches.)
+2. **Attach PR metadata.** The app builds a patch metadata record from the PR event — full and short event id, author (event pubkey, resolved to a display name via the roster when available), commit message (the PR `subject` tag, or the first non-empty line of the content), tip commit short hash (from the `c` tag), merge-base short hash (from the `merge-base` tag), branch name (from the `branch-name` tag, when present), repo coordinate (the `a` tag, when present), and status `open` (v1, same status-event caveat as patches) — and sets it on the session's patch metadata. This activates the metadata section, the live patch-thread reply subscription (`FR-sr-patch-replies-live`), and the reply-publishing path (`FR-srm-comment-publish-on-submit`), with the PR event as the thread root.
+3. **Enter the review.** The empty state is replaced by the standard multi-file review layout (one tab per changed file). The reviewer adds inline comments on the diff and publishes them to the PR thread under their identity exactly as in a patch review.
+
+There is no agent-generated neutral/review context for an in-app-opened PR (no LLM runs in this path); per-file review context is absent and the review-context panel hides for tabs that have none, identical to in-app patches.
+
+#### `NFR-srm-pr-git-required` — PR review requires git on the PATH
+In-app PR review shells out to `git` to fetch the PR's referenced objects and compute the diff (`FR-srm-pr-open-diff`), so it requires `git` on the user's `PATH`. This is a macOS-only, PR-only requirement; in-app patch review needs no git, and the patch path does not invoke a shell process. If `git` is not available when a reviewer opens a PR, the dialog reports "Opening a PR requires `git` on your PATH." and no review is started. (macOS ships `git` with the Xcode Command Line Tools; the requirement is met on any developer machine that has run `xcode-select --install`.)
 
 ## macOS-Specific Non-Functional Requirements
 
@@ -336,6 +373,22 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 - [ ] **No relays reachable** `AC-srm-patch-open-no-relays`: Given no configured relay is reachable, when the reviewer submits a reference, then the dialog reports "No Nostr relays reachable — check your relay configuration." and no fetch is attempted.
 
 - [ ] **In-app patch open activates the thread** `AC-srm-patch-open-activates-thread`: Given an in-app-opened patch review is loaded, when new patch-thread replies arrive over the live relay subscription, then they appear in the inspector Patch Thread section and inline at their anchors, and when the reviewer submits an inline comment with an identity loaded, then it publishes to the patch thread under that identity — identical to a CLI-launched patch review.
+
+### In-app PR open
+
+- [ ] **Open PR from empty state** `AC-srm-pr-open-happy`: Given the native app is in its empty state, when the reviewer opens the "Open Patch or PR…" affordance, pastes a 64-character hex event id for a valid NIP-34 PR (kind `1618`) carrying a `clone` URL, a `c` tip commit, and a `merge-base` tag, and submits, then the app fetches the event in-process, fetches the referenced git objects from the clone URL via a `git` subprocess, computes `git diff <merge-base>..<c>`, splits the diff into one tab per changed file named by file path, attaches PR metadata (author, subject, tip commit, merge-base, branch name, status `open`, repo coordinate), and enters the multi-file review layout with the metadata section, live thread replies, and reply-publishing path all active — without invoking `/shepherd-review` and without requiring a local git repository (only the `git` binary on the PATH).
+
+- [ ] **PR missing required tags rejected** `AC-srm-pr-open-missing-tags`: Given a fetched PR event has no `clone` tag or no `c` tag, when the app validates the required tags, then the dialog reports "PR event <short-id> is missing a clone URL or tip commit (`c` tag)." and no review is started. Given the event has `clone` and `c` but no `merge-base` tag, then the dialog reports "PR event <short-id> has no `merge-base` tag; cannot determine the diff base." and no review is started.
+
+- [ ] **PR git fetch failure** `AC-srm-pr-open-fetch-fails`: Given the PR event's `clone` URLs are unreachable or the referenced commits cannot be fetched, when the app attempts to acquire the diff, then the dialog reports the specific git error and no review is started; the temporary repository is cleaned up.
+
+- [ ] **PR with empty diff** `AC-srm-pr-open-empty-diff`: Given the computed `git diff <merge-base>..<c>` is empty, when the app finishes computing the diff, then the dialog reports "PR <short-id> has no changes between its merge-base and tip." and no review is started.
+
+- [ ] **PR metadata displayed** `AC-srm-pr-open-metadata`: Given a PR event with author pubkey, subject "Add new feature", tip commit `feedface`, merge-base `deadbeef`, and branch name `feat/x`, when the review opens, then the metadata section displays the author (display name if known, otherwise short pubkey), subject, tip commit short hash, merge-base short hash, branch name, status `open`, repo coordinate, and short event id.
+
+- [ ] **PR open activates the thread** `AC-srm-pr-open-activates-thread`: Given an in-app-opened PR review is loaded, when new thread replies arrive over the live relay subscription, then they appear in the inspector Patch Thread section and inline at their anchors, and submitting an inline comment with an identity loaded publishes to the PR thread (root `e` tag on the PR event) under that identity — identical to a patch review, with the PR event as the thread root.
+
+- [ ] **PR open requires git** `AC-srm-pr-open-no-git`: Given `git` is not on the PATH when the reviewer submits a PR reference, when the app attempts to acquire the diff, then the dialog reports "Opening a PR requires `git` on your PATH." and no review is started.
 
 ## Open Questions
 
