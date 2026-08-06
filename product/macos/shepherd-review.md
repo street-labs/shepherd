@@ -24,8 +24,8 @@ The macOS variant adds one platform-choice user story on top of the shared spec'
 ### US-SRM-4: Sign my replies without exposing my raw secret key
 **As a** reviewer who keeps my Nostr secret key in a bunker (a NIP-46 remote signer), **I want to** point Shepherd at my bunker connection instead of pasting my raw `nsec`, **so that** my secret key never has to live in an env var or config file on my review machine yet my published replies are still signed under my own identity.
 
-### US-SRM-5: Open a patch directly in the app, without the CLI
-**As a** reviewer who has a NIP-34 patch event id (an ngit patch), **I want to** open that patch directly in the Shepherd app from its empty start screen — alongside opening files or pasting content — **so that** I can review the patch and participate in its thread without first dropping into a terminal to run `/shepherd-review --patch`. The app fetches the patch from Nostr itself and loads it for review.
+### US-SRM-5: Open a patch or PR directly in the app, without the CLI
+**As a** reviewer who has a NIP-34 patch or pull request event id (an ngit patch or PR), **I want to** open it directly in the Shepherd app from its empty start screen — alongside opening files or pasting content — **so that** I can review the patch or PR and participate in its thread without first dropping into a terminal to run `/shepherd-review --patch` or `--pr`. The app fetches the event from Nostr itself and loads it for review (fetching the PR's git objects when the event is a PR).
 
 ### US-SRM-6: Open a patch or PR from a link another agent sent me
 **As a** a reviewer coordinating with agents across tools, **I want to** click a link one of my agents sends me (in a chat, a notification, or a message) and have it open the referenced ngit patch or pull request directly in Shepherd, already loaded for review — **so that** I go from a mention of a patch or PR to reviewing it in one click, without copying an event id into the app's Open Patch field by hand. The link uses the app's custom URL scheme and carries the patch or PR reference; the app launches (or focuses) and loads it the same way the in-app open path does.
@@ -216,14 +216,14 @@ These requirements add a second, in-app way to start a patch review. The existin
 
 The reviewer's identity is handled by the existing in-app identity flow (`FR-srm-identity-load`); the in-app patch open does not introduce a new identity path. If no identity is loaded when a patch is opened, review and local commenting work and the identity indicator surfaces that replies will not publish, identical to the CLI-launched case.
 
-#### `FR-srm-patch-open-entry` — Empty state exposes an "Open Patch" affordance
-The native app's empty state (the drop zone shown when no files are loaded, per `product/macos/code-review-prompt.md`) exposes an "Open Patch…" affordance alongside the existing "Open Files…" (native file open panel) and "Paste from Clipboard" entry points. Activating it opens a lightweight dialog (see design spec) in which the reviewer enters or pastes a NIP-34 patch reference. This affordance is present only in the empty state; it is not shown once files are loaded. It initiates an in-app patch review and does not invoke the `/shepherd-review` command or any shell process.
+#### `FR-srm-patch-open-entry` — Empty state exposes an "Open Patch or PR" affordance
+The native app's empty state (the drop zone shown when no files are loaded, per `product/macos/code-review-prompt.md`) exposes an "Open Patch or PR…" affordance alongside the existing "Open Files…" (native file open panel) and "Paste from Clipboard" entry points. Activating it opens a lightweight dialog (see design spec) in which the reviewer enters or pastes a NIP-34 patch or PR reference. The same dialog and affordance serve both kinds: the app fetches the event by id and dispatches on its kind — kind `1617` loads as a patch (`FR-srm-patch-open-load`), kind `1618` loads as a PR (`FR-srm-pr-open-load`). This affordance is present only in the empty state; it is not shown once files are loaded. It initiates an in-app review and does not invoke the `/shepherd-review` command or any shell process for patch events; PR events require a git subprocess to acquire the diff (see `FR-srm-pr-open-diff`).
 
-#### `FR-srm-patch-open-input` — Accept a patch event reference and validate its format
-The Open Patch dialog accepts a patch reference in either of two forms:
+#### `FR-srm-patch-open-input` — Accept a patch or PR event reference and validate its format
+The Open Patch or PR dialog accepts a reference in either of two forms:
 
 1. A 64-character hex Nostr event id.
-2. A NIP-19 `nevent1…` bech32 entity that encodes a patch event (the app decodes it to its referenced event id and relays).
+2. A NIP-19 `nevent1…` bech32 entity that encodes a patch or PR event (the app decodes it to its referenced event id and relays).
 
 A `naddr1…` reference is **not** accepted: NIP-19 `naddr` encodes an addressable coordinate (pubkey + kind + `d` tag), not an event id, and NIP-34 patch events are kind `1617` and pull request events are kind `1618` — both are non-parameterized, non-replaceable events referenced by event id, with no `naddr` form. Supporting `naddr` would require a different fetch (a coordinate filter, not an `ids` filter) for no realistic copy source — patches and PRs are shared by event id or `nevent` from ngit clients and Buzz.
 

@@ -58,7 +58,7 @@ A `naddr1…` reference is not accepted (NIP-34 patches are kind `1617`, non-par
 #### `FR-sri-patch-open-fetch` — Fetch and validate the NIP-34 patch event in-process
 When the reviewer submits a valid reference, the app fetches the patch event in-process using the relay client (`FR-sr-relay-client`): a NIP-01 subscription whose filter is the event id only (`{"ids": ["<id>"]}`), with no `kinds` filter, across the configured relays. Fetching by `ids` alone lets the app receive the event whatever its kind, then reject non-patch kinds explicitly with a precise error. When the decoded `nevent1` carries relay hints, those relays are preferred. The first matching event is taken and the subscription is cancelled immediately. The app then validates:
 
-- **Event kind**: must be `1617` (NIP-34 patch). Any other kind is rejected with "Event <short-id> is not a NIP-34 patch (kind <k>)."
+- **Event kind**: must be `1617` (NIP-34 patch). Any other kind is rejected with "Event <short-id> is not a NIP-34 patch (kind <k>)." In particular a kind:1 note, a kind:1621 issue, or a kind:1618 pull request produces this error. PRs (kind `1618`) are not supported on iOS in v1 because reviewing a PR requires fetching its referenced git objects and computing a diff, which needs `git` — and iOS has no git and invokes no shell process (`NFR-sri-no-git`). iOS PR support is a roadmap follow-up; until then, reviewers open PRs on macOS.
 - **Diff format**: the content must be a valid unified diff beginning with `diff --git` and containing `+++`/`---` headers and `@@` hunks. A malformed diff is rejected with "Patch event <short-id> does not contain a valid unified diff."
 
 A fetch that returns no event within the relay wait window is rejected with "Patch event <short-id> not found on the configured relays." If no relay is reachable, the entry reports "No Nostr relays reachable — check your relay configuration." and no review is started.
@@ -154,6 +154,8 @@ The app targets iOS and runs on iPhone and iPad. It is not available on other op
 3. **Roster / display-name resolution on iOS**: The macOS app resolves author display names via a roster file. iOS has no dotfiles. Does the iOS app ship a bundled roster, fetch NIP-05, or show truncated npubs only for v1? Deferred — truncated npub is the safe fallback; richer resolution is a follow-up.
 
 4. **Same NIP-34 spec corrections as macOS**: The shared `product/shepherd-review.md` kind set and status-tag claims are pre-existing errors (see `../macos/shepherd-review.md` Open Question 5). The iOS path is written NIP-34-correctly and does not inherit them. Correcting the shared spec is a separate follow-up, shared with the macOS path.
+
+5. **PR support on iOS**: Kind `1618` PR review requires fetching git objects from the PR's `clone` URL and computing a diff (`FR-sr-pr-diff-acquisition`), which needs `git`. iOS has no git and invokes no shell process (`NFR-sri-no-git`), so PRs are rejected on iOS in v1. A future iOS PR path would need a remote diff service (e.g. a grasp server or HTTP diff endpoint) rather than a local git subprocess; deferred to the roadmap.
 
 ## Dependencies
 
