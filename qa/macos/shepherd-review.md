@@ -1,5 +1,5 @@
 ---
-product-hash: 75b34569386afeabe8b48e6d210c89ccbb30c95a55a49767e810c43c629e2db2
+product-hash: 3690acf162292d9c87169800429f77532c40192326fcf3225ba44915e0f24463
 product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
@@ -1105,8 +1105,8 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Type**: Automated (unit) + Manual
 - **Covers**: `AC-srm-pr-open-missing-tags`, `FR-srm-pr-open-fetch`
 - **Steps**:
-  1. Submit a kind `1618` event with no `clone` tag (or no `c` tag); confirm the sheet reports `PR event <short-id> is missing a clone URL or tip commit ('c' tag).` and no review starts.
-  2. Submit a kind `1618` event with `clone` and `c` but no `merge-base`; confirm the sheet reports `PR event <short-id> has no 'merge-base' tag; cannot determine the diff base.` and no review starts.
+  1. Submit a kind `1618` event with no `clone` tag (or no `c` tag); confirm the sheet reports ``PR event <short-id> is missing a clone URL or tip commit (`c` tag).`` and no review starts.
+  2. Submit a kind `1618` event with `clone` and `c` but no `merge-base`; confirm the sheet reports ``PR event <short-id> has no `merge-base` tag; cannot determine the diff base.`` and no review starts.
   3. (Unit) assert the PR tag validator rejects each missing-tag case with the matching message.
 - **Expected**: PRs missing `clone`, `c`, or `merge-base` are rejected with a precise message before any git fetch.
 
@@ -1153,7 +1153,7 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Preconditions**: `git` is not on the PATH (rename/hide it for the test run).
 - **Steps**:
   1. Submit a valid kind `1618` PR reference.
-  2. Confirm the sheet reports `Opening a PR requires 'git' on your PATH.` and no review starts. Confirm in-app patch open (kind 1617) still works without git.
+  2. Confirm the sheet reports ``Opening a PR requires `git` on your PATH.`` and no review starts. Confirm in-app patch open (kind 1617) still works without git.
 - **Expected**: PR open fails clearly without git; patch open is unaffected (patches need no git).
 
 ## Edge Cases and Error Scenarios
