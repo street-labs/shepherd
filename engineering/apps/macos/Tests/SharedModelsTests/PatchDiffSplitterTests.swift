@@ -93,4 +93,92 @@ struct PatchDiffSplitterTests {
         }
         #expect(metadata.commitMessage.count == 60)
     }
+
+    // MARK: - PR (kind 1618) helpers — Implements: FR-sr-pr-metadata-display,
+    // FR-srm-pr-open-load, FR-sri-pr-open-load
+
+    private func prEvent(tags: [[String]], content: String = "PR body\nsecond line") -> NostrEvent {
+        NostrEvent(id: patchID, pubkey: author, kind: 1618, content: content, tags: tags, createdAt: 1)
+    }
+
+    @Test("PR tag extractors read clone/c/merge-base/branch-name/e tags")
+    func prTagExtractors() {
+        let tags: [[String]] = [
+            ["clone", "https://git.example/acme/widget"],
+            ["clone", "git@git.example:acme/widget"],
+            ["c", "c0ffee1111111111111111111111111111111111"],
+            ["merge-base", "deadbeef2222222222222222222222222222222222"],
+            ["branch-name", "feature/x"],
+            ["subject", "Add widget frobber"],
+            ["a", "30617:acme:widget"],
+            ["e", String(repeating: "f", count: 64)],
+            ["e", String(repeating: "e", count: 64)],
+        ]
+        #expect(PatchDiffSplitter.cloneURLs(from: tags).count == 2)
+        #expect(PatchDiffSplitter.tipCommit(from: tags) == "c0ffee1111111111111111111111111111111111")
+        #expect(PatchDiffSplitter.mergeBase(from: tags) == "deadbeef2222222222222222222222222222222222")
+        #expect(PatchDiffSplitter.branchName(from: tags) == "feature/x")
+        #expect(PatchDiffSplitter.referencedPatchIDs(from: tags).count == 2)
+    }
+
+    @Test("prMetadata builds PR fields from a 1618 event")
+    func prMetadataBuilds() {
+        let tags: [[String]] = [
+            ["c", "c0ffee1111111111111111111111111111111111111"],
+            ["merge-base", "deadbeef2222222222222222222222222222222222"],
+            ["branch-name", "feature/x"],
+            ["subject", "Add widget frobber"],
+            ["a", "30617:acme:widget"],
+        ]
+        let meta = PatchDiffSplitter.prMetadata(from: prEvent(tags: tags))
+        #expect(meta.eventID == patchID)
+        #expect(meta.shortEventID == "aaaaaaaa")
+        #expect(meta.commitMessage == "Add widget frobber")
+        #expect(meta.parentCommit == "deadbeef")  // merge-base shortened
+        #expect(meta.tipCommit == "c0ffee11")     // c shortened
+        #expect(meta.branchName == "feature/x")
+        #expect(meta.repoCoordinate == "30617:acme:widget")
+        #expect(meta.status == "open")
+        #expect(meta.replies == [])
+    }
+
+    @Test("prMetadata subject falls back to first content line, truncated")
+    func prMetadataSubjectFallback() {
+        let long = String(repeating: "y", count: 80)
+        let meta = PatchDiffSplitter.prMetadata(from: prEvent(tags: [], content: "\(long)\nrest"))
+        #expect(meta.commitMessage.count == 60)
+        #expect(meta.tipCommit == nil)
+        #expect(meta.branchName == nil)
+        #expect(meta.parentCommit == nil)
+    }
+
+    @Test("splitUnifiedDiff parses a git-diff string into per-file blocks")
+    func splitUnifiedDiffParses() {
+        let diff = """
+        diff --git a/a.swift b/a.swift
+        index 111..222 100644
+        --- a/a.swift
+        +++ b/a.swift
+        @@ -1 +1,2 @@
+         line
+        +added
+        diff --git a/b.md b/b.md
+        @@ -1 +1 @@
+        -old
+        +new
+        """
+        guard let files = PatchDiffSplitter.splitUnifiedDiff(diff) else {
+            Issue.record("expected non-nil split"); return
+        }
+        #expect(files.count == 2)
+        #expect(files[0].filePath == "a.swift")
+        #expect(files[1].filePath == "b.md")
+    }
+
+    @Test("splitUnifiedDiff returns nil for empty or header-less input")
+    func splitUnifiedDiffInvalid() {
+        #expect(PatchDiffSplitter.splitUnifiedDiff("") == nil)
+        #expect(PatchDiffSplitter.splitUnifiedDiff("no diff here") == nil)
+        #expect(PatchDiffSplitter.splitUnifiedDiff("diff --git a/x b/x\n(no hunk)") == nil)
+    }
 }
