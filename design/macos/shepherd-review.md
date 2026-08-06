@@ -144,7 +144,7 @@ All error messages follow the `/shepherd-review` command prompt verbatim, with t
 
 ## NIP-34 Patch Metadata Display
 
-When reviewing a patch via `--patch <event-id>`, the native macOS window displays patch-specific metadata in a dedicated section above the overall review context in the right inspector pane. The metadata section appears only for patch reviews; it is absent for all other review modes.
+When reviewing a patch via `--patch <event-id>` or a pull request via `--pr <event-id>` (or the in-app Open Patch or PR dialog), the native macOS window displays patch/PR-specific metadata in a dedicated section above the overall review context in the right inspector pane. The metadata section appears only for patch/PR reviews; it is absent for all other review modes. For a PR, the same section renders PR-specific rows (tip commit, branch name) in addition to the shared fields (`FR-sr-pr-metadata-display`).
 
 ### Patch Metadata Section Layout
 
@@ -171,10 +171,18 @@ Each field is laid out as a **label-value pair** in a vertical stack:
    - **Value**: First line of patch commit message (truncated to 60 chars with `…` if longer). System font, 13pt. If message is empty, show `(no message)` in tertiary label color.
 
 4. **Parent Commit**
-   - **Label**: "Parent" (secondary text color, 11pt)
-   - **Value**: Short hash (8 chars) in monospace font. If no parent commit tag exists (initial commit patch), show `(none)` in tertiary label color.
+   - **Label**: "Parent" (secondary text color, 11pt) for a patch; "Merge Base" for a PR (the PR event's `merge-base` tag, shown as the parent commit).
+   - **Value**: Short hash (8 chars) in monospace font. If no parent commit tag exists (initial commit patch, or a PR with no `merge-base` tag), show `(none)` in tertiary label color.
 
-5. **Status**
+5. **Tip Commit** (PR only — `FR-sr-pr-metadata-display`)
+   - **Label**: "Tip" (secondary text color, 11pt)
+   - **Value**: Short hash (8 chars) from the PR event's `c` tag, monospace font. Omitted entirely for a patch review (no `c` tag).
+
+6. **Branch Name** (PR only, when present — `FR-sr-pr-metadata-display`)
+   - **Label**: "Branch" (secondary text color, 11pt)
+   - **Value**: The PR event's `branch-name` tag. Omitted when no `branch-name` tag is present, and omitted entirely for a patch review.
+
+7. **Status**
    - **Label**: "Status" (secondary text color, 11pt)
    - **Value**: Status tag from NIP-34 event (`open`, `merged`, `closed`, `draft`) with color-coded badge:
      - **Open**: Blue background (`NSColor.systemBlue.withAlphaComponent(0.15)`), blue text
@@ -203,6 +211,7 @@ Each field is laid out as a **label-value pair** in a vertical stack:
 ### Requirements Satisfied
 
 - `FR-sr-patch-metadata-display`: All five metadata fields displayed
+- `FR-sr-pr-metadata-display`: PR-specific rows (tip commit, branch name) rendered for a PR review, alongside the shared fields
 - `AC-sr-patch-metadata-displayed`: Author name resolution, status color coding
 - Author pubkey-to-name resolution: engineering dependency (see Dependencies below)
 
@@ -354,34 +363,38 @@ Inherited from `./code-review-prompt.md` for the editor (`NFR-crp-accessibility-
 
 ## In-App Patch Open
 
-The empty start screen gains a third way to begin a review: open a NIP-34 ("ngit") patch directly by its event reference, without the `/shepherd-review` CLI. Implements `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`.
+The empty start screen gains a third way to begin a review: open a NIP-34 ("ngit") patch or pull request directly by its event reference, without the `/shepherd-review` CLI. Implements `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`, and (for a kind `1618` event) `FR-srm-pr-open-fetch`, `FR-srm-pr-open-diff`, `FR-srm-pr-open-load`.
 
 ### Entry point
 
-The `FileDropZone` (owned by `./code-review-prompt.md`) shows its existing row of buttons — "Open Files…" and "Paste from Clipboard" — and gains an "Open Patch…" button to their right. The button uses the same borderless-prominent style as its siblings so the three read as one row of equivalent starting points.
+The `FileDropZone` (owned by `./code-review-prompt.md`) shows its existing row of buttons — "Open Files…" and "Paste from Clipboard" — and gains an "Open Patch or PR…" button to their right. The button uses the same borderless-prominent style as its siblings so the three read as one row of equivalent starting points.
 
 ```
-      [ Open Files… ]   [ Paste from Clipboard ]   [ Open Patch… ]
+      [ Open Files… ]   [ Paste from Clipboard ]   [ Open Patch or PR… ]
 ```
 
 - **Gating**: present only in the empty state. Once any file is loaded the drop zone is gone and the button is not offered elsewhere (no toolbar item, no menu item in v1).
-- **Keyboard**: `Cmd+Shift+P` opens the Open Patch dialog directly. (Plain `Cmd+P` is reserved by the system for Print.)
-- **Accessibility**: the button exposes "Open a NIP-34 patch by event id" as its VoiceOver label; the shortcut is shown in the button tooltip.
+- **Keyboard**: `Cmd+Shift+P` opens the Open Patch or PR dialog directly. (Plain `Cmd+P` is reserved by the system for Print.)
+- **Accessibility**: the button exposes "Open a NIP-34 patch or PR by event id" as its VoiceOver label; the shortcut is shown in the button tooltip.
 
-### Open Patch dialog
+### Open Patch or PR dialog
 
 Activating the button (or the shortcut) opens a centered modal sheet over the empty window.
 
-- **Title**: `Open Patch`
-- **Body**: a single `TextField` with a placeholder `Paste a 64-char event id or nevent1…`, an inline error line beneath the field, and a footer with a `Cancel` button and a primary `Fetch` button (default, submits on Return). The field accepts paste and supports drag-in of a text selection. (`naddr1…` is not accepted — NIP-34 patches are kind 1617 with no `naddr` form; see `FR-srm-patch-open-input`.)
+- **Title**: `Open Patch or PR`
+- **Body**: a single `TextField` with a placeholder `Paste a 64-char event id or nevent1… (patch or PR)`, an inline error line beneath the field, and a footer with a `Cancel` button and a primary `Fetch` button (default, submits on Return). The field accepts paste and supports drag-in of a text selection. The same dialog serves both kinds: the app fetches the event by id and dispatches on its kind — kind `1617` loads as a patch, kind `1618` loads as a PR (`FR-srm-pr-open-fetch`). (`naddr1…` is not accepted — NIP-34 patches and PRs are kind `1617`/`1618` with no `naddr` form; see `FR-srm-patch-open-input`.)
 - **States**:
   - **Idle** — field empty; `Fetch` disabled.
   - **Invalid input** — non-empty but not a valid reference; inline error `Enter a 64-character hex event id or a nevent1 reference`; field stays focused. (Implements `AC-srm-patch-open-invalid-id`.) _Implementation note: `Fetch` stays enabled for non-empty input and validation runs on submit — simpler than live-format-checking, and the inline error still appears without a relay round-trip._
-  - **Fetching** — after submit; the sheet shows a spinner with `Fetching patch from relays…`, the field and `Fetch` button are disabled, `Cancel` remains enabled (cancels the in-flight subscription). (Implements `FR-srm-patch-open-fetch`.)
+  - **Fetching** — after submit; the sheet shows a spinner with `Fetching event from relays…` (for a PR, this continues into `Acquiring PR diff…` while the git subprocess runs), the field and `Fetch` button are disabled, `Cancel` remains enabled (cancels the in-flight subscription / diff acquisition). (Implements `FR-srm-patch-open-fetch`, `FR-srm-pr-open-diff`.)
   - **Fetch failed — not found** — `Patch event <short-id> not found on the configured relays.` (`AC-srm-patch-open-not-found`)
-  - **Fetch failed — wrong kind** — `Event <short-id> is not a NIP-34 patch (kind <k>).` (`AC-srm-patch-open-wrong-kind`)
+  - **Fetch failed — wrong kind** — `Event <short-id> is not a NIP-34 patch or PR (kind <k>).` (`AC-srm-patch-open-wrong-kind`)
   - **Fetch failed — bad diff** — `Patch event <short-id> does not contain a valid unified diff.` (`AC-srm-patch-open-bad-diff`)
   - **Fetch failed — no relays** — `No Nostr relays reachable — check your relay configuration.` (`AC-srm-patch-open-no-relays`)
+  - **PR — missing tags** — `PR event <short-id> is missing a clone URL or tip commit (\`c\` tag).` or `PR event <short-id> has no \`merge-base\` tag; cannot determine the diff base.` (`FR-srm-pr-open-fetch`)
+  - **PR — fetch failed** — `Could not fetch commits from <clone-url>: <git error>` (`FR-srm-pr-open-diff`)
+  - **PR — empty diff** — `PR <short-id> has no changes between its merge-base and tip.` (`FR-srm-pr-open-diff`)
+  - **PR — no git** — `Opening a PR requires \`git\` on your PATH.` (`NFR-srm-pr-git-required`)
   - On any failure the sheet stays open on the invalid/fetched input so the reviewer can correct and retry without re-pasting.
 - **On success**: the sheet closes and the window transitions from the empty state into the multi-file review layout (one tab per changed file). No success toast — the loaded review is the confirmation. (Implements `AC-srm-patch-open-happy`.)
 
@@ -397,18 +410,19 @@ Once loaded, the review uses the existing patch-review surfaces unchanged — no
 
 The reviewer has a patch event id (from a Nostr client, a Buzz message, or an ngit notification) and wants to review it in Shepherd without leaving the app.
 
-1. Reviewer opens Shepherd (standalone, empty state) → sees the three-button row including `Open Patch…`.
-2. Reviewer clicks `Open Patch…` (or presses `Cmd+Shift+P`) → the Open Patch sheet appears.
-3. Reviewer pastes the event id and clicks `Fetch` → the sheet shows `Fetching patch from relays…`.
+1. Reviewer opens Shepherd (standalone, empty state) → sees the three-button row including `Open Patch or PR…`.
+2. Reviewer clicks `Open Patch or PR…` (or presses `Cmd+Shift+P`) → the Open Patch or PR sheet appears.
+3. Reviewer pastes the event id and clicks `Fetch` → the sheet shows `Fetching event from relays…` (and, for a PR, `Acquiring PR diff…` while the git subprocess runs).
 4. On success the sheet closes; the window shows one tab per changed file with the Patch Metadata section and Patch Thread section in the inspector.
 5. Reviewer adds inline comments on the diff and publishes them to the thread under their identity (`FR-srm-comment-publish-on-submit`), and reads/responds to other participants' replies — identical to a CLI-launched patch review.
 
 ### Requirements Satisfied
 
-- `FR-srm-patch-open-entry`: empty-state `Open Patch…` button + `Cmd+Shift+P` shortcut
+- `FR-srm-patch-open-entry`: empty-state `Open Patch or PR…` button + `Cmd+Shift+P` shortcut
 - `FR-srm-patch-open-input`: dialog field accepting hex id or `nevent1`; inline invalid-input state
 - `FR-srm-patch-open-fetch`: fetching state; in-process relay fetch; not-found / wrong-kind / bad-diff / no-relays failure states
 - `FR-srm-patch-open-load`: per-file diff tabs; attached patch metadata; transition into review layout
+- `FR-srm-pr-open-fetch` / `FR-srm-pr-open-diff` / `FR-srm-pr-open-load` / `NFR-srm-pr-git-required`: kind `1618` dispatch, git-subprocess diff acquisition, PR metadata attach, and the no-git failure state
 - `AC-srm-patch-open-happy`, `AC-srm-patch-open-nevent`, `AC-srm-patch-open-invalid-id`, `AC-srm-patch-open-not-found`, `AC-srm-patch-open-wrong-kind`, `AC-srm-patch-open-bad-diff`, `AC-srm-patch-open-no-relays`, `AC-srm-patch-open-activates-thread`
 
 ## Concurrency

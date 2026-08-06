@@ -570,7 +570,7 @@ public struct AppFeature {
                 state.openPatch = nil
                 return .none
 
-            // Implements: FR-srm-patch-open-load, FR-sri-patch-open-load
+            // Implements: FR-srm-patch-open-load, FR-sri-patch-open-load, FR-srm-pr-open-load, FR-sri-pr-open-load
             // Load the fetched patch for review: diff blocks -> file tabs + metadata.
             case let .openPatch(.presented(.delegate(.patchLoaded(files, metadata)))):
                 state.openPatch = nil
