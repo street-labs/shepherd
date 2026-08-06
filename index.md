@@ -4190,6 +4190,54 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/ios/shepherd-review.md`
 - **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-thread-live`, `TC-sri-thread-inline-anchor`
 
+### `FR-sri-pr-open-patches`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-happy`, `TC-sri-pr-open-no-patches`, `TC-sri-pr-open-patch-not-found`, `TC-sri-pr-open-patch-wrong-kind`
+
+### `FR-sri-pr-open-load`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-happy`, `TC-sri-pr-open-metadata`, `TC-sri-pr-open-activates-thread`
+
+### `AC-sri-pr-open-happy`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-happy`
+
+### `AC-sri-pr-open-no-patches`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-no-patches`
+
+### `AC-sri-pr-open-patch-not-found`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-patch-not-found`
+
+### `AC-sri-pr-open-patch-wrong-kind`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-patch-wrong-kind`
+
+### `AC-sri-pr-open-metadata`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-metadata`
+
+### `AC-sri-pr-open-activates-thread`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-activates-thread`
+
 <!-- iOS identity platform entries -->
 
 ### `FR-id-ios-keychain-storage`

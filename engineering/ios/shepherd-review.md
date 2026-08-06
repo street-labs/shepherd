@@ -73,7 +73,8 @@ TCA. `PatchOpenFeature.State` holds the sheet UI state and a `PatchOpenError?`. 
 
 - The fetch subscription is cancelled on the first event (one event, not a stream). The live thread subscription runs for the review's lifetime only.
 - NIP-46 bunker round-trips are network calls; the publish button reflects `Publishing…` and the indicator's status dot during them (`../../design/ios/shepherd-review.md`).
-- NFR-sri-no-git / NFR-sri-no-server hold: no git, no local server.
+- NFR-sri-no-git / NFR-sri-no-server hold: no git, no local server. iOS PR review acquires the diff from referenced kind `1617` patch events over the relay client, not a git fetch.
+- iOS PR open fetches N+1 events in-process (the PR event plus each referenced patch) and unions their diffs; this is a handful of small relay round-trips, well within the iOS review budget. No git objects are fetched.
 
 ## Security Considerations
 
@@ -106,6 +107,9 @@ The patch-open and publishing machinery already exists in the shared macOS packa
 | `FR-sri-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
 | `FR-sri-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
 | `FR-sri-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
+| `FR-sri-pr-open-patches` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | unimplemented |
+| `FR-sri-pr-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | unimplemented |
+| `FR-sr-pr-metadata-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | unimplemented |
 | `FR-sri-identity-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-sri-bunker-connect` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/BunkerClient.swift | implemented |
 | `FR-sri-event-sign` | engineering/apps/macos/Sources/Dependencies/NostrSigner.swift | implemented |
@@ -118,7 +122,8 @@ The patch-open and publishing machinery already exists in the shared macOS packa
 Notes:
 - Shared `FR-sr-*` requirements that do not apply on iOS (changeset detection, file filtering, context generation, CLI launch, install, git, feedback collection, etc.) are omitted from the Code Map; see `../../product/ios/shepherd-review.md` "Do not apply on iOS".
 - `FR-sr-patch-fetch` and `FR-sr-patch-application` are superseded on iOS by the in-app fetch/load (`FR-sri-patch-open-fetch`/`FR-sri-patch-open-load`); they are omitted.
-- `FR-sr-patch-validation` is realized by `PatchParser`/`PatchOpenFeature` validation (kind 1617 + diff), NIP-34-correct; covered by `FR-sri-patch-open-fetch`.
+- `FR-sr-patch-validation` is realized by `PatchParser`/`PatchOpenFeature` validation (kind 1617 + diff), NIP-34-correct; covered by `FR-sri-patch-open-fetch`. A kind `1618` event skips diff validation and routes to `FR-sri-pr-open-patches`.
+- `FR-sr-pr-source`, `FR-sr-pr-fetch`, `FR-sr-pr-diff-acquisition` are realized on iOS by the in-app iterate-patches path (`FR-sri-pr-open-patches` / `FR-sri-pr-open-load`) rather than the shared git-fetch acquisition; they are listed under the iOS PR rows above where iOS-specific, and the shared git-fetch acquisition (`FR-sr-pr-diff-acquisition`) does not apply on iOS (`NFR-sri-no-git`).
 
 ## Open Questions
 
