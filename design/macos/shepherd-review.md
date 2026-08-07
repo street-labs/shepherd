@@ -411,6 +411,60 @@ The reviewer has a patch event id (from a Nostr client, a Buzz message, or an ng
 - `FR-srm-patch-open-load`: per-file diff tabs; attached patch metadata; transition into review layout
 - `AC-srm-patch-open-happy`, `AC-srm-patch-open-nevent`, `AC-srm-patch-open-invalid-id`, `AC-srm-patch-open-not-found`, `AC-srm-patch-open-wrong-kind`, `AC-srm-patch-open-bad-diff`, `AC-srm-patch-open-no-relays`, `AC-srm-patch-open-activates-thread`
 
+## Deeplink Entry
+
+The app gains a way to begin a patch review that the reviewer did not initiate by hand: another agent or tool sends a link using the app's custom URL scheme, and opening it loads the referenced patch directly. Implements `FR-srm-deeplink-scheme`, `FR-srm-deeplink-patch-format`, `FR-srm-deeplink-route`, `FR-srm-deeplink-cold-launch`, `FR-srm-deeplink-warm-empty`, `FR-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-malformed`, `FR-srm-deeplink-errors`.
+
+### What the reviewer sees
+
+The deeplink itself is invisible — the reviewer clicks a link in another tool (a Buzz message, a notification, a PR description) and Shepherd comes to the foreground already loading the patch. There is no Open Patch dialog in this path (the reviewer did not request one); the link *is* the request. The loaded review surface is identical to a dialog-opened patch review: one tab per changed file, the Patch Metadata section, the live Patch Thread section, and the identity indicator all active.
+
+### Launch states
+
+- **Cold launch (app not running).** The app launches straight into loading the patch. It does *not* flash the empty start screen first — the window appears in a loading state and resolves into the review surface when the fetch completes. If the fetch fails, the window lands on the empty start screen with the failure notice shown, so the reviewer is never left staring at a blank window with no explanation.
+- **Warm launch, nothing loaded.** The app is already running in its empty state. The empty state is replaced by the patch loading, then the review surface — same visual transition as a successful Open Patch dialog fetch.
+- **Warm launch, a review in progress.** The app is already running with files loaded. Because the reviewer did not ask to leave their current review, the app confirms before replacing it. A standard confirmation alert is shown:
+  - **Title**: `Open Patch from Link`
+  - **Message**: `Opening this patch will replace your current review. Unsaved comments that haven't been published to the patch thread will be lost.`
+  - **Buttons**: `Replace` (destructive) · `Cancel`
+  - On `Replace`, the current review is cleared and the deeplinked patch loads. On `Cancel`, the in-progress review is untouched and the link is dropped.
+  - A review with no local comments skips the alert and loads directly, since nothing is lost.
+
+### Loading and error states
+
+Because there is no dialog to host the fetching state, the window itself reflects the load:
+
+- **Loading** — while the patch is being fetched from relays, the window (or the area that will hold the review) shows an indeterminate progress indicator with the text `Fetching patch from relays…`. This is the same loading affordance used by the Open Patch dialog's fetching state, repurposed for the dialog-less path.
+- **Failure notices** use the app's standard transient notice surface (the same one used for other non-dialog errors), with the identical per-cause wording as the Open Patch dialog:
+  - Not found: `Patch event <short-id> not found on the configured relays.`
+  - Wrong kind: `Event <short-id> is not a NIP-34 patch (kind <k>).`
+  - Bad diff: `Patch event <short-id> does not contain a valid unified diff.`
+  - No relays: `No Nostr relays reachable — check your relay configuration.`
+  - Malformed/unsupported link: `This link could not be opened. It isn't a recognized Shepherd patch link.` (the one notice that has no dialog counterpart, since the dialog validated its own input)
+  On a cold-launch failure the notice is shown over the empty start screen; on a warm-launch failure the in-progress review (if any) is untouched and the notice is shown above it.
+
+### No new identity or context path
+
+The deeplink carries only the patch reference. Identity handling, the live reply subscription, and reply publishing all reuse the existing in-app patch-review surfaces unchanged — no new components are introduced for the deeplink path beyond the launch-state handling and the dialog-less loading/error surfaces above.
+
+### Accessibility
+
+- The loading state's progress indicator and text are announced to VoiceOver ("Fetching patch from relays"), so a reviewer who activated a link does not wonder whether anything is happening.
+- The replace-confirmation alert is a standard modal alert and inherits the app's existing alert accessibility (title, message, and button labels announced; `Cancel` is the safe default).
+- Failure notices are announced as they appear.
+
+### Requirements Satisfied
+
+- `FR-srm-deeplink-scheme`: the registered URL scheme routes links to the app (foreground/launch)
+- `FR-srm-deeplink-patch-format`: link carries a hex id or `nevent1` reference in its path
+- `FR-srm-deeplink-route`: load reuses the in-app open-patch fetch-validate-load path; no dialog presented
+- `FR-srm-deeplink-cold-launch`: cold launch goes straight to loading; failure lands on empty state with notice
+- `FR-srm-deeplink-warm-empty`: warm launch with empty state loads the patch
+- `FR-srm-deeplink-warm-in-progress`: warm launch with a review in progress confirms before replacing; no-comments case skips confirm
+- `FR-srm-deeplink-malformed`: unknown action / invalid reference rejected with a notice; in-progress review untouched
+- `FR-srm-deeplink-errors`: fetch/validation failures surface via the notice surface with the same wording as the dialog
+- `AC-srm-deeplink-scheme`, `AC-srm-deeplink-patch-load`, `AC-srm-deeplink-nevent`, `AC-srm-deeplink-cold-launch`, `AC-srm-deeplink-warm-empty`, `AC-srm-deeplink-warm-in-progress`, `AC-srm-deeplink-malformed`, `AC-srm-deeplink-not-found`, `AC-srm-deeplink-wrong-kind`, `AC-srm-deeplink-bad-diff`, `AC-srm-deeplink-no-relays`, `AC-srm-deeplink-activates-thread`
+
 ## Concurrency
 
 Two `/shepherd-review` invocations from different working directories produce different session IDs (basename of project root), open independent windows (`FR-crp-macos-window-management`), and read/write disjoint session directories (`AC-srm-session-isolation`). A second invocation from the same project root with the same session ID brings the existing window to front and updates that window's session JSON before reload — same behavior as `/shepherd` (`AC-crp-macos-window-deduplicate`).
@@ -500,3 +554,17 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `AC-sr-patch-metadata-displayed` | NIP-34 Patch Metadata Display (author resolution, status color coding) |
 | `AC-sr-patch-invalid-event-id` | Conversation Surface (inherited validation) |
 | `AC-sr-patch-conflicting-args` | Command Syntax (usage message for conflicting args) |
+| `FR-srm-patch-open-entry` | In-App Patch Open (empty-state `Open Patch…` button + `Cmd+Shift+P`) |
+| `FR-srm-patch-open-input` | In-App Patch Open (dialog field; hex id / `nevent1`; inline invalid state) |
+| `FR-srm-patch-open-fetch` | In-App Patch Open (fetching state; relay fetch; not-found / wrong-kind / bad-diff / no-relays) |
+| `FR-srm-patch-open-load` | In-App Patch Open (per-file diff tabs; patch metadata; review layout) |
+| `AC-srm-patch-open-happy`, `AC-srm-patch-open-nevent`, `AC-srm-patch-open-invalid-id`, `AC-srm-patch-open-not-found`, `AC-srm-patch-open-wrong-kind`, `AC-srm-patch-open-bad-diff`, `AC-srm-patch-open-no-relays`, `AC-srm-patch-open-activates-thread` | In-App Patch Open |
+| `FR-srm-deeplink-scheme` | Deeplink Entry (registered URL scheme routes links to the app) |
+| `FR-srm-deeplink-patch-format` | Deeplink Entry (link carries hex id or `nevent1` in its path) |
+| `FR-srm-deeplink-route` | Deeplink Entry (load reuses in-app open-patch path; no dialog) |
+| `FR-srm-deeplink-cold-launch` | Deeplink Entry (cold launch loads the patch; failure lands on empty state) |
+| `FR-srm-deeplink-warm-empty` | Deeplink Entry (warm launch with empty state loads the patch) |
+| `FR-srm-deeplink-warm-in-progress` | Deeplink Entry (warm launch with review in progress confirms before replacing) |
+| `FR-srm-deeplink-malformed` | Deeplink Entry (unknown action / invalid reference rejected with a notice) |
+| `FR-srm-deeplink-errors` | Deeplink Entry (fetch/validation failures surface via notice surface) |
+| `AC-srm-deeplink-scheme`, `AC-srm-deeplink-patch-load`, `AC-srm-deeplink-nevent`, `AC-srm-deeplink-cold-launch`, `AC-srm-deeplink-warm-empty`, `AC-srm-deeplink-warm-in-progress`, `AC-srm-deeplink-malformed`, `AC-srm-deeplink-not-found`, `AC-srm-deeplink-wrong-kind`, `AC-srm-deeplink-bad-diff`, `AC-srm-deeplink-no-relays`, `AC-srm-deeplink-activates-thread` | Deeplink Entry |

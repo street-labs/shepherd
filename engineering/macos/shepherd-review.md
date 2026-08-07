@@ -586,6 +586,21 @@ Add NIP-46 bunker as a second identity form so the reviewer need not place a raw
 
 **Slug coverage**: `FR-srm-identity-load`, `FR-srm-bunker-connect`, `FR-srm-event-sign`, `FR-srm-bunker-sign-failure`, `FR-srm-identity-indicator`, `FR-sr-bunker-signing`
 
+### Step 12: Deeplink entry (custom URL scheme)
+
+Wire inbound `shepherd://patch/<ref>` links to the in-app open-patch load path, with launch-state handling and dialog-less error surfacing. The scheme is already registered (`Info.plist`) and `.handlesExternalEvents` already dedupes to the existing window; this step adds URL reception, parsing, a shared fetch helper, and the warm/cold/malformed handling.
+
+1. `PatchFetcher` (`Sources/Dependencies/PatchFetcher.swift`, new): extract the probe → `RelayClient.subscribe(NostrFilter(ids:relays:))` → `firstEventOrTimeout` → `PatchDiffSplitter.validate` sequence out of `OpenPatchFeature.fetchButtonTapped` into a shared `DependencyKey` exposing `fetch(_ ref: PatchRef.Valid) async -> FetchResult`, where `FetchResult` is `.patch([DiffFile], PatchMetadata) | .notFound(String) | .wrongKind(String, Int) | .badDiff(String) | .noRelays`. No new transport; wraps `relayClient` + `clock`.
+2. `OpenPatchFeature.fetchButtonTapped`: rewrite to call `PatchFetcher.fetch(ref)` and map `FetchResult` onto the existing `FetchStatus` states. No dialog behavior change.
+3. `ShepherdApp.swift`: add `.onOpenURL { url in store.send(.deeplinkReceived(url)) }` to the `WindowGroup`. (Scheme registration and `.handlesExternalEvents` already present.)
+4. URL parsing: `url.host == "patch"`; reference = percent-decoded `url.path` with leading `/` stripped; `PatchRef.parse(ref)`. Any other host, empty reference, or a `nil` parse → `.deeplinkFailed(.malformed)`.
+5. `AppFeature`: add `deeplinkLoading`, `@Presents deeplinkConfirm`, `pendingDeeplinkRef`, and the `deeplinkReceived` / `deeplinkFetchStarted` / `deeplinkFetchResult` / `deeplinkFailed` / `deeplinkConfirm` actions per the "AppFeature wiring" section above. On `.patch(files, metadata)` reuse the existing `patchLoaded` load path verbatim (build `LoadedFile`s, set `patchMetadata`, `.filesLoaded` + `.startPatchReplySubscription`). On failure, surface via `AlertState` with the per-cause wording; clear `deeplinkLoading`.
+6. Launch-state handling: `files.isEmpty` → fetch immediately (covers cold launch + warm-empty); `files` non-empty and `!hasComments` → `performClearSession` then fetch; `files` non-empty and `hasComments` → present `deeplinkConfirm`, stash ref, clear+fetch on `.replaceConfirmed`. A second deeplink while `deeplinkLoading` → `.deeplinkFailed(.alreadyLoading)` notice, no queue.
+7. `AppView`: render a `Fetching patch from relays…` progress overlay when `deeplinkLoading`; present `deeplinkConfirm` via `.alert`; failure notices ride the existing alert surface.
+8. Tests: `PatchFetcherTests` against an in-process mock `RelayClient` (one patch, wrong-kind, bad-diff, not-found, no-relays cases) shared by both callers; `DeeplinkParsingTests` for the URL grammar (`shepherd://patch/<hex>`, `shepherd://patch/<nevent1>`, unknown host, empty ref, malformed ref); `AppFeatureDeeplinkTests` for cold-launch load, warm-empty load, warm-in-progress confirm + replace, warm-in-progress cancel (review untouched), no-comments skip-confirm, malformed, and each fetch-failure notice.
+
+**Slug coverage**: `FR-srm-deeplink-scheme`, `FR-srm-deeplink-patch-format`, `FR-srm-deeplink-route`, `FR-srm-deeplink-cold-launch`, `FR-srm-deeplink-warm-empty`, `FR-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-malformed`, `FR-srm-deeplink-errors`, `NFR-srm-deeplink-latency`
+
 ---
 
 ## In-App Patch Open
@@ -634,6 +649,94 @@ The in-app patch open does not touch identity. The existing `FR-srm-identity-loa
 
 > Implements: `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`
 
+## Deeplink Entry
+
+A third entry point into in-app patch review: an inbound link using the app's custom URL scheme, opened from another tool (Buzz, an ngit client, a notification). The app parses the link, loads the referenced patch through the same fetch-validate-load path as the Open Patch dialog, and surfaces launch-state handling and errors without presenting the dialog. Implements `FR-srm-deeplink-scheme`, `FR-srm-deeplink-patch-format`, `FR-srm-deeplink-route`, `FR-srm-deeplink-cold-launch`, `FR-srm-deeplink-warm-empty`, `FR-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-malformed`, `FR-srm-deeplink-errors`, `NFR-srm-deeplink-latency`.
+
+### URL scheme and grammar
+
+The scheme is already registered: `engineering/apps/macos/ShepherdApp/Resources/Info.plist` declares `CFBundleURLSchemes = ["shepherd"]`, and `ShepherdApp.swift` already attaches `.handlesExternalEvents(matching: ["shepherd"])` to the `WindowGroup` so the OS routes an inbound `shepherd:` link to the existing window (warm launch) rather than spawning a second window. The missing piece is receiving the URL payload: add SwiftUI's `.onOpenURL { url in store.send(.deeplinkReceived(url)) }` to the `WindowGroup` scene in `ShepherdApp.swift`. No new entitlement, no new Info.plist key, no new dependency.
+
+The link grammar is fixed and stable so external tools can construct links without app updates:
+
+```
+shepherd://patch/<ref>
+```
+
+- `patch` is the action (the host). v1 defines exactly one action.
+- `<ref>` is the patch reference carried in the URL path: a 64-character hex Nostr event id, or a NIP-19 `nevent1…` reference (URL-safe bech32; no percent-encoding needed, but the parser percent-decodes the path component for safety). These are the same two forms `PatchRef.parse` already accepts (`Sources/Dependencies/RelayClient.swift`).
+- Any other host (action), an empty/missing reference, or a reference that fails `PatchRef.parse` is rejected as malformed (`FR-srm-deeplink-malformed`).
+
+Parsing reuses `PatchRef.parse` verbatim — no second reference parser. `url.host` selects the action; the reference is `url.path` with a leading slash stripped (or `url.lastPathComponent`), percent-decoded, then handed to `PatchRef.parse`.
+
+### Reusing the fetch-validate-load path
+
+The Open Patch dialog's fetch-validate-load sequence (`OpenPatchFeature.fetchButtonTapped` → relay probe → `RelayClient.subscribe(NostrFilter(ids:[id], relays:...))` → `firstEventOrTimeout` → `PatchDiffSplitter.validate` → `.delegate(.patchLoaded(...))`) is exactly the sequence a deeplink needs, minus the dialog UI and with errors surfaced as a notice rather than dialog state. To avoid duplicating that sequence, extract it into a small shared helper:
+
+- `PatchFetcher` (a `DependencyKey` / struct in `Sources/Dependencies/`, wrapping `relayClient` + `clock`) exposes `func fetch(_ ref: PatchRef.Valid) async -> FetchResult` where `FetchResult` is one of `.patch([PatchDiffSplitter.DiffFile], ReviewContext.PatchMetadata)`, `.notFound(String)`, `.wrongKind(String, Int)`, `.badDiff(String)`, `.noRelays`. It runs the same probe-then-subscribe-then-validate logic `OpenPatchFeature` runs today.
+- `OpenPatchFeature.fetchButtonTapped` is rewritten to call `PatchFetcher.fetch(ref)` and map the result onto its existing `FetchStatus` states (no behavior change to the dialog).
+- The deeplink path calls the same `PatchFetcher.fetch(ref)` and maps the result onto a deeplink-specific outcome (see below).
+
+This keeps one fetch-validate implementation behind both entry points. `PatchRef`, `RelayClient`, `NostrFilter(ids:relays:)`, and `PatchDiffSplitter.validate` are reused unchanged.
+
+### AppFeature wiring
+
+New state and actions on `AppFeature`:
+
+```swift
+public var deeplinkLoading: Bool = false          // drives the in-window progress overlay
+@Presents public var deeplinkConfirm: AlertState<Action.DeeplinkConfirm>?  // replace-in-progress confirmation
+// A pending deeplink held while the replace-confirmation alert is up:
+public var pendingDeeplinkRef: PatchRef.Valid?
+
+public enum Action {
+    case deeplinkReceived(URL)
+    case deeplinkFetchStarted(PatchRef.Valid)
+    case deeplinkFetchResult(PatchFetcher.FetchResult)
+    case deeplinkFailed(DeeplinkError)            // malformed + fetch/validation failures
+    case deeplinkConfirm(PresentationAction<DeeplinkConfirm>)
+    public enum DeeplinkConfirm: Equatable { case replaceConfirmed }
+}
+```
+
+`deeplinkReceived`:
+1. Parse the URL per the grammar above. On a malformed link, send `.deeplinkFailed(.malformed)` and return — do not disturb an in-progress review.
+2. Determine launch state from current state:
+   - `files.isEmpty` → no review in progress. Send `.deeplinkFetchStarted(ref)` and begin the fetch immediately (covers both cold launch and warm-with-empty-state; the same code path). Set `deeplinkLoading = true` so the view renders the `Fetching patch from relays…` progress overlay.
+   - `files` non-empty and `hasComments == false` → nothing is lost. Clear the session (`performClearSession`) then send `.deeplinkFetchStarted(ref)`.
+   - `files` non-empty and `hasComments == true` → present `deeplinkConfirm` alert (`Open Patch from Link` / `Replace` destructive · `Cancel`), stashing `ref` in `pendingDeeplinkRef`. On `.replaceConfirmed`, clear the session, pop `pendingDeeplinkRef`, and send `.deeplinkFetchStarted(ref)`. On `.dismiss` (Cancel), drop `pendingDeeplinkRef` and leave the in-progress review untouched.
+3. A fetch already in progress (`deeplinkLoading == true`) when a second deeplink arrives is treated as an in-progress review with no comments to lose for the *second* link's purposes: the second link is dropped with a `.deeplinkFailed(.alreadyLoading)` notice rather than queueing, to avoid interleaving two fetches (Open Question 10). This is the rare edge case; the choice avoids silent data loss without building a queue.
+
+`deeplinkFetchStarted(ref)` runs `PatchFetcher.fetch(ref)` as an effect and emits `.deeplinkFetchResult(result)`.
+
+`deeplinkFetchResult`:
+- `.patch(files, metadata)` → set `deeplinkLoading = false` and reuse the **exact same load path** as `openPatch(.presented(.delegate(.patchLoaded(files, metadata))))`: build `LoadedFile`s (`.plaintext`, `filePath` from the diff header), set `reviewContextData?.patchMetadata`, `.send(.filesLoaded(loaded))`, `.send(.startPatchReplySubscription)`. No new load code.
+- `.notFound` / `.wrongKind` / `.badDiff` / `.noRelays` → `.deeplinkFailed(<matching case>)` with the same per-cause message strings the dialog uses.
+
+`deeplinkFailed`:
+- Set `deeplinkLoading = false`.
+- Surface the failure via the app's existing `AlertState` notice path (the same surface `fileErrorAlert` uses for file-load failures) with the per-cause wording from the design spec. On a cold launch that failed, `files` is still empty so the alert is shown over the empty start screen; on a warm launch that failed with a review in progress, the review is untouched and the alert is shown over it.
+- `.malformed` uses `This link could not be opened. It isn't a recognized Shepherd patch link.`
+
+### Loading and notice UI
+
+`AppView` renders:
+- A progress overlay when `store.deeplinkLoading` is true (`Fetching patch from relays…` with an indeterminate `ProgressView`), over whatever is currently shown (empty state or in-progress review being replaced). This is the dialog-less counterpart of the Open Patch dialog's fetching state.
+- The `deeplinkConfirm` alert via `.alert($store.scope(state: \.deeplinkConfirm, action: \.deeplinkConfirm))` alongside the existing `.alert` for `alert`.
+- Failure notices ride the existing `alert` presentation (a new alert case is added to `Action.Alert` or a dedicated `deeplinkFailed` alert is presented through `deeplinkConfirm`'s slot — either way, one modal alert, consistent with file-load errors).
+
+### Cold launch ordering
+
+On a cold launch the OS opens the app and delivers the URL after the window appears. `ShepherdApp.init` already creates the store and dispatches `.session(.launched(...))` when a `--session` arg is present; for a deeplink cold launch there is no `--session` arg, so the app starts in its standalone empty state and `.onOpenURL` delivers the URL once the window is up. `windowAppeared` has already run `loadIdentityAtLaunch`, so the reviewer's identity is resolving in parallel with the patch fetch — identical to a dialog-opened patch review. There is no flash of the empty start screen requiring user action: `deeplinkLoading` is set true as soon as the URL arrives, so the window shows the loading overlay rather than the interactive empty state. If the fetch fails, `deeplinkLoading` clears and the empty state + failure alert is shown.
+
+`NFR-srm-deeplink-latency` holds: parsing the URL and dispatching the action is near-zero-cost; the relay fetch is the same async path as the dialog's and does not block window activation.
+
+### No new identity or context path
+
+The deeplink carries only the patch reference. Identity loading (`FR-srm-identity-load`), the live reply subscription (`FR-sr-patch-replies-live`), and the publish path (`FR-srm-comment-publish-on-submit`) all activate from `reviewContextData.patchMetadata` + loaded files exactly as in a dialog-opened patch review. No deeplink-specific identity or context code.
+
+> Implements: `FR-srm-deeplink-scheme`, `FR-srm-deeplink-patch-format`, `FR-srm-deeplink-route`, `FR-srm-deeplink-cold-launch`, `FR-srm-deeplink-warm-empty`, `FR-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-malformed`, `FR-srm-deeplink-errors`, `NFR-srm-deeplink-latency`
+
 ---
 
 ## Code Map
@@ -677,8 +780,17 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift | implemented |
 | `FR-srm-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
 | `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | implemented |
+| `FR-srm-deeplink-scheme` | engineering/apps/macos/ShepherdApp/Resources/Info.plist; engineering/apps/macos/ShepherdApp/ShepherdApp.swift | planned |
+| `FR-srm-deeplink-patch-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift (`PatchRef.parse`) | planned |
+| `FR-srm-deeplink-route` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/PatchFetcher.swift (new) | planned |
+| `FR-srm-deeplink-cold-launch` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
+| `FR-srm-deeplink-warm-empty` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
+| `FR-srm-deeplink-warm-in-progress` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
+| `FR-srm-deeplink-malformed` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
+| `FR-srm-deeplink-errors` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/PatchFetcher.swift (new) | planned |
+| `NFR-srm-deeplink-latency` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
 
-Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
+Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The deeplink rows above are `planned` (new work from this kickoff). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
 ---
 
@@ -743,6 +855,15 @@ The `--context` flag adds a single file read in the launcher and a single substr
 | `FR-srm-patch-open-input` | In-App Patch Open; Components / Files Touched (`OpenPatchFeature`, `NIP19Decode`) |
 | `FR-srm-patch-open-fetch` | In-App Patch Open (fetch-by-id via `RelayClient`); Components / Files Touched (`OpenPatchFeature`, `RelayClient`) |
 | `FR-srm-patch-open-load` | In-App Patch Open (data flow); Components / Files Touched (`AppFeature`, `PatchDiffSplitter`, `FileNode`) |
+| `FR-srm-deeplink-scheme` | Deeplink Entry (Info.plist scheme + `.handlesExternalEvents` + `.onOpenURL`) |
+| `FR-srm-deeplink-patch-format` | Deeplink Entry (`shepherd://patch/<ref>` grammar; reuses `PatchRef.parse`) |
+| `FR-srm-deeplink-route` | Deeplink Entry (`PatchFetcher` + existing `patchLoaded` load path) |
+| `FR-srm-deeplink-cold-launch` | Deeplink Entry (cold-launch ordering; loading overlay) |
+| `FR-srm-deeplink-warm-empty` | Deeplink Entry (warm-empty → fetch immediately) |
+| `FR-srm-deeplink-warm-in-progress` | Deeplink Entry (replace-confirmation alert; no-comments skip) |
+| `FR-srm-deeplink-malformed` | Deeplink Entry (URL parse rejection; `.malformed` notice) |
+| `FR-srm-deeplink-errors` | Deeplink Entry (fetch/validation failures via `AlertState`; per-cause wording) |
+| `NFR-srm-deeplink-latency` | Deeplink Entry (async fetch; no launch blocking) |
 | `AC-srm-patch-open-happy` | In-App Patch Open (data flow: fetch → split → load → activate thread) |
 | `AC-srm-patch-open-nevent` | In-App Patch Open; `NIP19Decode` (nevent → id + relays) |
 | `AC-srm-patch-open-invalid-id` | In-App Patch Open; `OpenPatchFeature` invalid-input state |

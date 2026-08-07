@@ -55,6 +55,18 @@ Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both c
 | `AC-srm-patch-open-bad-diff` | `TC-srm-patch-open-bad-diff` | Not started |
 | `AC-srm-patch-open-no-relays` | `TC-srm-patch-open-no-relays` | Not started |
 | `AC-srm-patch-open-activates-thread` | `TC-srm-patch-open-activates-thread` | Not started |
+| `AC-srm-deeplink-scheme` | `TC-srm-deeplink-scheme` | Not started |
+| `AC-srm-deeplink-patch-load` | `TC-srm-deeplink-patch-load`, `TC-srm-deeplink-fetcher-unit` | Not started |
+| `AC-srm-deeplink-nevent` | `TC-srm-deeplink-nevent` | Not started |
+| `AC-srm-deeplink-cold-launch` | `TC-srm-deeplink-cold-launch` | Not started |
+| `AC-srm-deeplink-warm-empty` | `TC-srm-deeplink-warm-empty` | Not started |
+| `AC-srm-deeplink-warm-in-progress` | `TC-srm-deeplink-warm-in-progress-replace`, `TC-srm-deeplink-warm-in-progress-cancel`, `TC-srm-deeplink-warm-no-comments` | Not started |
+| `AC-srm-deeplink-malformed` | `TC-srm-deeplink-malformed`, `TC-srm-deeplink-parse-unit` | Not started |
+| `AC-srm-deeplink-not-found` | `TC-srm-deeplink-not-found` | Not started |
+| `AC-srm-deeplink-wrong-kind` | `TC-srm-deeplink-wrong-kind` | Not started |
+| `AC-srm-deeplink-bad-diff` | `TC-srm-deeplink-bad-diff` | Not started |
+| `AC-srm-deeplink-no-relays` | `TC-srm-deeplink-no-relays` | Not started |
+| `AC-srm-deeplink-activates-thread` | `TC-srm-deeplink-activates-thread` | Not started |
 | `AC-sr-patch-happy-path` | `TC-sr-patch-happy-path` | Not started |
 | `AC-sr-patch-event-not-found` | `TC-sr-patch-event-not-found` | Not started |
 | `AC-sr-patch-invalid-diff` | `TC-sr-patch-invalid-diff` | Not started |
@@ -137,6 +149,15 @@ The shared `AC-sr-*` slugs from `product/shepherd-review.md` apply to the macOS 
 | `FR-srm-comment-publish-on-submit` | `TC-srm-comment-publish`, `TC-srm-comment-publish-no-identity` | Not started |
 | `FR-srm-reply-to-reply` | `TC-srm-reply-to-reply` | Not started |
 | `FR-srm-identity-indicator` | `TC-srm-identity-indicator`, `TC-srm-identity-no-key`, `TC-srm-bunker-identity-indicator` | Not started |
+| `FR-srm-deeplink-scheme` | `TC-srm-deeplink-scheme` | Not started |
+| `FR-srm-deeplink-patch-format` | `TC-srm-deeplink-parse-unit`, `TC-srm-deeplink-nevent` | Not started |
+| `FR-srm-deeplink-route` | `TC-srm-deeplink-patch-load`, `TC-srm-deeplink-fetcher-unit` | Not started |
+| `FR-srm-deeplink-cold-launch` | `TC-srm-deeplink-cold-launch` | Not started |
+| `FR-srm-deeplink-warm-empty` | `TC-srm-deeplink-warm-empty` | Not started |
+| `FR-srm-deeplink-warm-in-progress` | `TC-srm-deeplink-warm-in-progress-replace`, `TC-srm-deeplink-warm-in-progress-cancel`, `TC-srm-deeplink-warm-no-comments` | Not started |
+| `FR-srm-deeplink-malformed` | `TC-srm-deeplink-malformed`, `TC-srm-deeplink-parse-unit` | Not started |
+| `FR-srm-deeplink-errors` | `TC-srm-deeplink-not-found`, `TC-srm-deeplink-wrong-kind`, `TC-srm-deeplink-bad-diff`, `TC-srm-deeplink-no-relays` | Not started |
+| `NFR-srm-deeplink-latency` | `TC-srm-deeplink-cold-launch` (timed observation) | Not started |
 
 Filtering, priority ordering, changeset detection, and scope-argument behavior on macOS reuse the web QA cases (the orchestration logic is identical). Run-on-macOS smoke verification is folded into `TC-srm-happy-path` rather than duplicating the full web matrix.
 
@@ -1016,6 +1037,170 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
   2. Assert it returns 3 `(filePath, diffBlock)` pairs with the correct paths.
   3. Assert the extracted patch metadata carries the `a` tag repo coordinate and parent commit, the commit message from the format-patch subject line, and the author pubkey from the event. Assert it does **not** attempt to read a `status` tag (NIP-34 status lives on separate 1630–1633 events; v1 renders `open`).
 - **Expected**: Diff splitting and metadata extraction are pure, deterministic, and NIP-34-correct.
+
+### Deeplink Entry
+
+#### Scheme routes a link to the app `TC-srm-deeplink-scheme`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-scheme`, `FR-srm-deeplink-scheme`
+- **Preconditions**: The Shepherd app is installed (scheme registered). A valid patch event exists on the configured relays.
+- **Steps**:
+  1. With the app **not running**, open a `shepherd://patch/<hex-id>` link from another tool (Browser, Buzz, `open` command).
+  2. Confirm the app launches and comes to the foreground.
+  3. With the app now **running**, open a second `shepherd://patch/<hex-id>` link.
+  4. Confirm the existing window comes to the foreground (no second window spawns).
+- **Expected**: The OS routes `shepherd:` links to Shepherd — launching it when cold, focusing the existing window when warm.
+
+#### Patch deeplink loads the patch `TC-srm-deeplink-patch-load`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-patch-load`, `FR-srm-deeplink-route`, `FR-srm-deeplink-warm-empty`
+- **Preconditions**: App running in its empty state; a valid kind-1617 patch event with a 3-file unified diff exists on the configured relays.
+- **Steps**:
+  1. Open `shepherd://patch/<hex-id>`.
+  2. Confirm the Open Patch dialog is **not** presented.
+  3. Confirm a `Fetching patch from relays…` loading indicator shows.
+  4. On fetch completion, confirm the window enters the multi-file review layout with one tab per changed file (named by path), the Patch Metadata section, the live Patch Thread section, and the identity indicator all active — identical to a dialog-opened patch review.
+  5. Confirm no `/shepherd-review` shell process ran (no review branch created in any local repo).
+- **Expected**: A patch deeplink loads the patch through the in-app open-patch path without presenting the dialog and without any shell/CLI involvement.
+
+#### nevent deeplink prefers encoded relays `TC-srm-deeplink-nevent`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-nevent`, `FR-srm-deeplink-patch-format`
+- **Preconditions**: A `nevent1…` reference for a valid patch encodes relay hints pointing at a relay that has the event; the default relay list does **not** have the event (to prove the hints are used).
+- **Steps**:
+  1. Open `shepherd://patch/<nevent1…>`.
+  2. Confirm the app fetches from the relays encoded in the `nevent` (preferred over the default list) and loads the patch.
+- **Expected**: `nevent1` relay hints are honored for a deeplink fetch.
+
+#### Cold launch loads the patch `TC-srm-deeplink-cold-launch`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-cold-launch`, `FR-srm-deeplink-cold-launch`, `NFR-srm-deeplink-latency`
+- **Preconditions**: App not running; a valid patch event exists on the configured relays.
+- **Steps**:
+  1. Quit Shepherd fully.
+  2. Open `shepherd://patch/<hex-id>`.
+  3. Confirm the app launches directly into loading (no interactive empty start screen requiring action); the loading indicator shows.
+  4. Confirm the review surface appears when the fetch completes.
+  5. (Timed observation) Confirm the window becomes responsive without measurable launch delay attributable to deeplink parsing (parsing is near-zero; the fetch is async).
+- **Expected**: A cold-launch deeplink goes straight to loading the patch and never leaves the reviewer on a blank/empty window.
+
+#### Warm launch with empty state loads the patch `TC-srm-deeplink-warm-empty`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-warm-empty`, `FR-srm-deeplink-warm-empty`
+- **Preconditions**: App running in its empty state (no files loaded).
+- **Steps**:
+  1. Open `shepherd://patch/<hex-id>` for a valid patch.
+  2. Confirm the empty state is replaced by the patch loading, then the review surface — same transition as a successful dialog fetch.
+- **Expected**: A warm deeplink into the empty state loads the patch.
+
+#### Warm launch with in-progress review confirms before replacing `TC-srm-deeplink-warm-in-progress-replace`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-warm-in-progress`
+- **Preconditions**: App running with a patch review in progress that has at least one unsaved local comment (not published to the thread).
+- **Steps**:
+  1. Open `shepherd://patch/<other-hex-id>` for a different valid patch.
+  2. Confirm a confirmation alert appears (`Open Patch from Link` / message naming unsaved comments will be lost / `Replace` destructive · `Cancel`).
+  3. Tap `Replace`.
+  4. Confirm the current review is cleared and the deeplinked patch loads.
+- **Expected**: A deeplink replacing an in-progress review with unsaved comments prompts for confirmation and replaces only on `Replace`.
+
+#### Warm launch cancel leaves the review untouched `TC-srm-deeplink-warm-in-progress-cancel`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-warm-in-progress`
+- **Preconditions**: App running with a patch review in progress with unsaved local comments.
+- **Steps**:
+  1. Open `shepherd://patch/<other-hex-id>`.
+  2. When the confirmation alert appears, tap `Cancel`.
+  3. Confirm the in-progress review is untouched (files, comments, and editor state all intact) and the deeplink is dropped (no fetch started).
+- **Expected**: Cancelling the replace confirmation preserves the current review entirely.
+
+#### Warm launch with no comments skips confirm `TC-srm-deeplink-warm-no-comments`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-warm-in-progress`
+- **Preconditions**: App running with a review in progress that has **no** local comments.
+- **Steps**:
+  1. Open `shepherd://patch/<other-hex-id>` for a valid patch.
+  2. Confirm **no** confirmation alert appears; the current review is replaced and the deeplinked patch loads.
+- **Expected**: A review with nothing to lose is replaced without a confirmation prompt.
+
+#### Malformed deeplink rejected cleanly `TC-srm-deeplink-malformed`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-malformed`, `FR-srm-deeplink-malformed`
+- **Preconditions**: App running with a review in progress (to prove the rejection does not disrupt it).
+- **Steps**:
+  1. Open `shepherd://unknown/<ref>` (unknown action).
+  2. Confirm a notice `This link could not be opened. It isn't a recognized Shepherd patch link.` appears and no fetch is attempted.
+  3. Open `shepherd://patch/` (empty reference) and `shepherd://patch/not-a-valid-ref` (invalid reference); confirm the same notice for each.
+  4. Confirm the in-progress review is untouched after each rejected link.
+- **Expected**: Unknown action / empty / invalid references are rejected with a clear notice and never disturb an in-progress review.
+
+#### Deeplink URL grammar unit `TC-srm-deeplink-parse-unit`
+- **Type**: Automated (unit)
+- **Covers**: `FR-srm-deeplink-patch-format`, `FR-srm-deeplink-malformed`
+- **Steps**:
+  1. Assert `shepherd://patch/<64-hex-id>` parses to action `patch` with the hex id via `PatchRef.parse`.
+  2. Assert `shepherd://patch/nevent1…` parses to action `patch` with the `nevent` reference.
+  3. Assert `shepherd://patch/` (empty), `shepherd://patch/not-valid` (non-reference), and `shepherd://other/<ref>` (unknown host) all parse to a malformed outcome (no `PatchRef`).
+  4. Assert a percent-encoded `nevent` path round-trips through decode to the same reference.
+- **Expected**: The URL grammar accepts only `patch` action + valid reference; everything else is malformed.
+
+#### PatchFetcher shared fetch unit `TC-srm-deeplink-fetcher-unit`
+- **Type**: Automated (unit)
+- **Covers**: `FR-srm-deeplink-route`, `FR-srm-deeplink-errors`, `FR-srm-patch-open-fetch` (shared helper)
+- **Steps**:
+  1. With an in-process mock `RelayClient` that returns one kind-1617 event with a valid diff, assert `PatchFetcher.fetch(ref)` returns `.patch(files, metadata)` with the expected file count.
+  2. With a mock returning a kind:1 event, assert `.wrongKind(short-id, 1)`.
+  3. With a mock returning a 1617 event whose content is not a unified diff, assert `.badDiff(short-id)`.
+  4. With a mock that delivers no event within the wait window, assert `.notFound(short-id)`.
+  5. With a mock where no relay is reachable, assert `.noRelays`.
+- **Expected**: The shared fetch helper produces the same per-cause outcomes the Open Patch dialog relies on, so the deeplink path inherits dialog-correct error behavior.
+
+#### Deeplink not found `TC-srm-deeplink-not-found`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-not-found`, `FR-srm-deeplink-errors`
+- **Preconditions**: App running in empty state.
+- **Steps**:
+  1. Open `shepherd://patch/<id-with-no-event>`.
+  2. Confirm the notice `Patch event <short-id> not found on the configured relays.` appears and no review starts; the app remains on the empty state.
+- **Expected**: A not-found deeplink surfaces the precise not-found notice over the empty state.
+
+#### Deeplink wrong kind `TC-srm-deeplink-wrong-kind`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-wrong-kind`, `FR-srm-deeplink-errors`
+- **Preconditions**: A kind:1 (or kind:1621) event exists on the configured relays with the given id.
+- **Steps**:
+  1. Open `shepherd://patch/<non-1617-id>`.
+  2. Confirm the notice `Event <short-id> is not a NIP-34 patch (kind <k>).` appears and no review starts.
+- **Expected**: A non-patch event referenced by a deeplink is rejected with the wrong-kind notice.
+
+#### Deeplink malformed diff `TC-srm-deeplink-bad-diff`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-bad-diff`, `FR-srm-deeplink-errors`
+- **Preconditions**: A kind-1617 event exists whose content is not a valid unified diff.
+- **Steps**:
+  1. Open `shepherd://patch/<bad-diff-id>`.
+  2. Confirm the notice `Patch event <short-id> does not contain a valid unified diff.` appears and no review starts.
+- **Expected**: A patch event with a malformed diff is rejected with the bad-diff notice.
+
+#### Deeplink no relays reachable `TC-srm-deeplink-no-relays`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-no-relays`, `FR-srm-deeplink-errors`
+- **Preconditions**: No configured relay is reachable (disconnect network / point relays at dead hosts).
+- **Steps**:
+  1. Open `shepherd://patch/<hex-id>`.
+  2. Confirm the notice `No Nostr relays reachable — check your relay configuration.` appears and no fetch is attempted.
+- **Expected**: A deeplink with no reachable relays surfaces the no-relays notice.
+
+#### Deeplink-opened patch activates the live thread `TC-srm-deeplink-activates-thread`
+- **Type**: Manual
+- **Covers**: `AC-srm-deeplink-activates-thread`, `FR-sr-patch-replies-live`, `FR-srm-comment-publish-on-submit`
+- **Preconditions**: A patch loaded via deeplink; a second participant posts a reply to the same patch thread after the window is open.
+- **Steps**:
+  1. Confirm the initial reply snapshot (if any) renders in the inspector Patch Thread section.
+  2. Have the second participant publish a new kind:1 root reply to the patch.
+  3. Confirm the new reply appears in the inspector and inline at its anchor without relaunching.
+  4. Submit an inline comment with an identity loaded; confirm it publishes to the patch thread under that identity.
+- **Expected**: A deeplink-opened patch review is indistinguishable from a dialog-opened one for live replies and publishing.
 
 ## Edge Cases and Error Scenarios
 
