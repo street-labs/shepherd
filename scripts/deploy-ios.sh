@@ -93,6 +93,26 @@ INFO_PLIST="$IOS_DIR/ShepherdiOSApp/Resources/Info.plist"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")"
 [ -n "$VERSION" ] || { echo "deploy-ios: could not read CFBundleShortVersionString from $INFO_PLIST"; exit 2; }
 
+# Resolve the next free CFBundleVersion from App Store Connect and stamp it
+# into Info.plist before archiving. asc publish testflight (local-build mode)
+# archives whatever CFBundleVersion Info.plist carries — it does NOT auto-
+# increment — so a stale build number makes the upload die at the create-
+# upload-record step with "bundle version must be higher than the previously
+# uploaded version". Querying ASC for next-build-number makes every deploy
+# self-healing regardless of what the committed Info.plist holds. The
+# committed CFBundleVersion is just a seed; this line overwrites it for the
+# archive only (the working-tree edit is left in place as a record of what
+# was shipped — commit it if you want to track that, or revert).
+NEXT_BUILD_JSON="$(asc builds next-build-number --app "$SHEPHERD_ASC_APP_ID" --version "$VERSION" --platform IOS 2>/dev/null)"
+NEXT_BUILD="$(printf '%s' "$NEXT_BUILD_JSON" | sed -n 's/.*"nextBuildNumber":"\([0-9]*\)".*/\1/p')"
+[ -n "$NEXT_BUILD" ] || { echo "deploy-ios: could not resolve next build number from ASC; got: $NEXT_BUILD_JSON"; exit 2; }
+echo "deploy-ios: stamping CFBundleVersion=$NEXT_BUILD (next free build for $VERSION) into $INFO_PLIST"
+# sed (not PlistBuddy/plutil) so only the CFBundleVersion <string> value
+# changes — PlistBuddy/plutil rewrite the whole plist, dropping the export-
+# compliance XML comment and re-indenting. Find the CFBundleVersion key, on
+# the next line replace the <string>…</string> value.
+sed -i '' "/<key>CFBundleVersion<\/key>/{n;s/<string>[0-9][0-9]*<\/string>/<string>$NEXT_BUILD<\/string>/;}" "$INFO_PLIST"
+
 # Materialize the gitignored .xcodeproj from project.yml first — same root cause
 # as the Xcode Cloud "does not exist" failure; no point reproducing it here.
 ( cd "$IOS_DIR" && xcodegen generate )
