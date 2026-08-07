@@ -27,6 +27,9 @@ The macOS variant adds one platform-choice user story on top of the shared spec'
 ### US-SRM-5: Open a patch directly in the app, without the CLI
 **As a** reviewer who has a NIP-34 patch event id (an ngit patch), **I want to** open that patch directly in the Shepherd app from its empty start screen — alongside opening files or pasting content — **so that** I can review the patch and participate in its thread without first dropping into a terminal to run `/shepherd-review --patch`. The app fetches the patch from Nostr itself and loads it for review.
 
+### US-SRM-6: Open a patch from a link another agent sent me
+**As a** a reviewer coordinating with agents across tools, **I want to** click a link one of my agents sends me (in a chat, a PR description, or a notification) and have it open the referenced ngit patch directly in Shepherd, already loaded for review — **so that** I go from a mention of a patch to reviewing it in one click, without copying an event id into the app's Open Patch field by hand. The link uses the app's custom URL scheme and carries the patch reference; the app launches (or focuses) and loads the patch the same way the in-app Open Patch path does.
+
 All other shared user stories (`US-SR-1` through `US-SR-9`) apply to the macOS variant unchanged — the review experience itself is the same.
 
 ## Shared Requirements — Applicability on macOS
@@ -244,6 +247,36 @@ On a successfully fetched and validated patch event, the app loads a patch revie
 
 There is no agent-generated neutral/review context for an in-app-opened patch (no LLM runs in this path); per-file review context is simply absent, and the review-context panel hides for tabs that have none (graceful-missing, per `AC-crp-context-graceful-missing`). The patch metadata section and patch thread are the orientation the reviewer gets instead.
 
+### Deeplink entry
+
+These requirements add a third entry point to in-app patch review: a link another agent or tool sends the reviewer. The link uses the app's custom URL scheme and carries a NIP-34 patch reference. Opening the link launches the app (or focuses it if already running) and loads the referenced patch for review, reusing the in-app open-patch load path (`FR-srm-patch-open-fetch` and `FR-srm-patch-open-load`) so the loaded review surface is identical to one opened via the Open Patch dialog. Once loaded, the patch metadata section, the live patch-thread replies, and the bidirectional reply-publishing path all activate exactly as in a dialog-opened patch review.
+
+The deeplink carries only the patch reference; it does not carry relay hints beyond those embedded in a `nevent1` reference, and it does not carry reviewer-identity or review-context data. The reviewer's identity is handled by the existing in-app identity flow (`FR-srm-identity-load`); a deeplink does not introduce a new identity path.
+
+#### `FR-srm-deeplink-scheme` — The app answers its custom URL scheme
+The app is registered with the operating system as the handler for its custom URL scheme, so opening any link using that scheme brings the app to the foreground (launching it if it is not running). The scheme is fixed and reserved for Shepherd; a link using the scheme always routes to Shepherd and not to any other application. (The scheme is already registered in the app bundle; this requirement is the behavioral guarantee that opening a link using it reaches the app.)
+
+#### `FR-srm-deeplink-patch-format` — A patch deeplink carries a patch reference
+A patch deeplink carries a NIP-34 patch reference in one of the same two forms the Open Patch dialog accepts (`FR-srm-patch-open-input`): a 64-character hex Nostr event id, or a NIP-19 `nevent1…` reference (whose embedded relay hints are preferred when present). The reference is carried in the link's path. A link that uses the scheme but does not carry a patch reference (unknown action, or an empty/malformed reference) is rejected per `FR-srm-deeplink-malformed`.
+
+#### `FR-srm-deeplink-route` — A patch deeplink loads the patch through the in-app open-patch path
+When the app receives a patch deeplink, it extracts the reference and loads the patch for review through the same fetch-validate-load path as the Open Patch dialog (`FR-srm-patch-open-fetch` then `FR-srm-patch-open-load`): fetch by event id over the configured relays (preferring `nevent1` relay hints), validate kind `1617` and unified-diff format, split the diff into one tab per changed file, attach patch metadata, and enter the multi-file review layout with the patch metadata section, live patch-thread replies, and reply-publishing path active. The reviewer did not open the Open Patch dialog to start this flow, so the dialog is not presented; the load proceeds directly from the link.
+
+#### `FR-srm-deeplink-cold-launch` — Cold launch goes straight into loading the patch
+When the app is not running and a patch deeplink is opened, the app launches directly into loading the referenced patch. It does not first show the empty start screen and wait for the reviewer to act; the patch load begins as soon as the app is ready, and the review surface appears when the fetch completes. If the fetch fails (`FR-srm-deeplink-errors`), the app lands on the empty start screen with the error surfaced, so the reviewer is not left looking at a blank window with no explanation.
+
+#### `FR-srm-deeplink-warm-empty` — Warm launch with nothing loaded loads the patch
+When the app is already running and no files are loaded (the empty state) and a patch deeplink is opened, the app loads the referenced patch just as in the cold-launch case, replacing the empty state with the patch review surface.
+
+#### `FR-srm-deeplink-warm-in-progress` — Warm launch with a review in progress confirms before replacing
+When the app is already running and a review is in progress (files loaded, whether from a session launch, pasted content, or a previously opened patch) and a patch deeplink is opened, the app does not silently discard the in-progress review. It asks the reviewer to confirm replacing the current review with the deeplinked patch, naming what would be lost (any unsaved local comments that have not been published to the patch thread). Only on confirmation does it clear the current review and load the deeplinked patch. On cancellation the in-progress review is left untouched and the deeplink is dropped. A review with no local comments may be replaced without confirmation, since nothing is lost.
+
+#### `FR-srm-deeplink-malformed` — Malformed or unsupported deeplinks are rejected cleanly
+A link using the app's URL scheme that does not carry a valid patch reference (unknown action, an empty reference, or a reference that is neither a 64-character hex event id nor a `nevent1` reference) is rejected. The app surfaces a clear indication that the link could not be opened (naming the problem, e.g. an unrecognized link or an invalid patch reference) and does not start a fetch. If a review is already in progress, the rejection does not disrupt it.
+
+#### `FR-srm-deeplink-errors` — Fetch and validation failures surface to the reviewer
+Because the reviewer did not open a dialog to start the load, the dialog error states (`FR-srm-patch-open-fetch`: not found, wrong kind, malformed diff, no relays reachable) are surfaced through the app's general notice mechanism rather than inside a dialog. The same precise, per-cause messages apply (patch not found on the configured relays; event is not a NIP-34 patch; patch does not contain a valid unified diff; no relays reachable). On a cold launch that fails, the app lands on the empty start screen with the notice shown; on a warm launch that fails, the in-progress review (if any) is untouched and the notice is shown.
+
 ## macOS-Specific Non-Functional Requirements
 
 #### `NFR-srm-launch-budget` — Launch within the macOS app budget
@@ -251,6 +284,9 @@ The time from invoking `/shepherd-review` to the native window appearing with al
 
 #### `NFR-srm-no-server` — No local web server is started
 Launching `/shepherd-review` does not start or rely on any local web server. The native binary is self-contained.
+
+#### `NFR-srm-deeplink-latency` — Deeplink handling does not stall app launch
+Handling an incoming deeplink must not measurably delay app launch or window activation. Parsing the link and beginning the fetch is a near-zero-cost step; the relay fetch then proceeds asynchronously and the review surface appears when it completes, the same as a dialog-initiated open. A deeplink never blocks the app from becoming responsive.
 
 #### `NFR-srm-platform-restriction` — macOS-only
 The command is intended for macOS and depends on the prebuilt macOS application binary. On other operating systems the command is unavailable.
@@ -337,6 +373,32 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 
 - [ ] **In-app patch open activates the thread** `AC-srm-patch-open-activates-thread`: Given an in-app-opened patch review is loaded, when new patch-thread replies arrive over the live relay subscription, then they appear in the inspector Patch Thread section and inline at their anchors, and when the reviewer submits an inline comment with an identity loaded, then it publishes to the patch thread under that identity — identical to a CLI-launched patch review.
 
+### Deeplink entry
+
+- [ ] **Scheme routes to the app** `AC-srm-deeplink-scheme`: Given the app is installed, when the operating system opens a link using the app's custom URL scheme, then the app is brought to the foreground (launched if it was not running), and the link is handed to the app for handling.
+
+- [ ] **Patch deeplink loads the patch** `AC-srm-deeplink-patch-load`: Given the app is running with no files loaded, when a patch deeplink carrying a 64-character hex event id for a valid NIP-34 patch event (kind `1617`) is opened, then the app fetches the event in-process, splits the diff into one tab per changed file, attaches patch metadata, and enters the multi-file review layout with the patch metadata section, live patch-thread replies, and reply-publishing path active — without the Open Patch dialog being presented and without invoking `/shepherd-review` or any shell process.
+
+- [ ] **nevent deeplink prefers encoded relays** `AC-srm-deeplink-nevent`: Given a patch deeplink carries a `nevent1…` reference that encodes relay hints, when the app handles it, then it fetches from the relays encoded in the reference (preferred over the default relay list) and proceeds as in `AC-srm-deeplink-patch-load`.
+
+- [ ] **Cold launch loads the patch** `AC-srm-deeplink-cold-launch`: Given the app is not running, when a patch deeplink for a valid patch is opened, then the app launches directly into loading the patch and presents the review surface when the fetch completes, without first showing the empty start screen for the reviewer to act on.
+
+- [ ] **Warm launch with nothing loaded loads the patch** `AC-srm-deeplink-warm-empty`: Given the app is already running in its empty state, when a patch deeplink for a valid patch is opened, then the empty state is replaced by the patch review surface.
+
+- [ ] **Warm launch with a review in progress confirms before replacing** `AC-srm-deeplink-warm-in-progress`: Given the app is already running with a review in progress that has unsaved local comments, when a patch deeplink is opened, then the app asks the reviewer to confirm replacing the current review, naming that unsaved comments would be lost; on confirmation the current review is cleared and the deeplinked patch loads, and on cancellation the in-progress review is left untouched. Given the in-progress review has no local comments, when the deeplink is opened, then the patch loads without a confirmation prompt.
+
+- [ ] **Malformed deeplink rejected cleanly** `AC-srm-deeplink-malformed`: Given a link uses the app's URL scheme but carries an unknown action or a reference that is neither a 64-character hex event id nor a `nevent1` reference, when the app handles it, then it surfaces a clear notice that the link could not be opened, no fetch is attempted, and (if a review is in progress) the in-progress review is untouched.
+
+- [ ] **Deeplink fetch not found** `AC-srm-deeplink-not-found`: Given a patch deeplink carries an event id that no event on the configured relays matches, when the relay wait window elapses, then the app surfaces "Patch event <short-id> not found on the configured relays." and starts no review; on a cold launch it lands on the empty start screen with the notice shown.
+
+- [ ] **Deeplink wrong kind** `AC-srm-deeplink-wrong-kind`: Given a patch deeplink carries the id of a non-`1617` event (e.g. a kind:1 note or a kind:1621 issue) that exists on the relays, when the app fetches by id and validates the kind, then it surfaces "Event <short-id> is not a NIP-34 patch (kind <k>)." and starts no review.
+
+- [ ] **Deeplink malformed diff** `AC-srm-deeplink-bad-diff`: Given the fetched event's content is not a valid unified diff, when the app validates it, then it surfaces "Patch event <short-id> does not contain a valid unified diff." and starts no review.
+
+- [ ] **Deeplink no relays** `AC-srm-deeplink-no-relays`: Given no configured relay is reachable, when a patch deeplink is opened, then the app surfaces "No Nostr relays reachable — check your relay configuration." and starts no fetch.
+
+- [ ] **Deeplink load activates the thread** `AC-srm-deeplink-activates-thread`: Given a deeplink-opened patch review is loaded, when new patch-thread replies arrive over the live relay subscription, then they appear in the inspector Patch Thread section and inline at their anchors, and when the reviewer submits an inline comment with an identity loaded, then it publishes to the patch thread under that identity — identical to a dialog-opened patch review.
+
 ## Open Questions
 
 1. **Single binary or separate binary**: The proposed approach reuses the existing `/shepherd` binary with an extended `session.json` (multi-file `files[]`). An alternative would be a dedicated review-mode binary. Reusing the existing binary is the default; engineering may revisit if the multi-file path significantly diverges from single-file behavior.
@@ -351,9 +413,18 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 
 6. **Patch status events in-app**: v1 shows `open` unconditionally. Should the in-app path fetch the latest kind `1630`–`1633` status event for the patch (and mirror the same correction to the CLI path) so the metadata section shows the real merged/closed/draft status? Deferred to the roadmap (`roadmap/patch-watcher.md`); status-event fetch is a fast-follow for both the in-app and CLI paths.
 
+7. **Deeplink URL grammar**: This spec fixes the link contract at the product level only as far as: the link uses the app's custom URL scheme and carries a patch reference (hex event id or `nevent1`) in its path. The exact path shape (e.g. `shepherd://patch/<ref>` vs a query-parameter form) is an engineering decision captured in the macOS engineering spec. Whatever shape is chosen, it must be stable and documented so external tools (Buzz agents, ngit clients) can construct links without app updates.
+
+8. **Deeplinks for PRs (kind `1618`) and issues (kind `1621`)**: v1 deeplinks route patches (kind `1617`) only, because the in-app review surface only handles patches. PRs are addressable NIP-34 entities (an `naddr` / clone-URL + commit form, not an inline diff) and need their own in-app review surface before a deeplink can load them. PR and issue deeplinks are deferred to the roadmap and depend on in-app PR/issue review landing first.
+
+9. **Deeplinks on iOS**: iOS has its own in-app patch open (`FR-sri-patch-open-*`) but a different URL-scheme / universal-link model and no registered `shepherd://` scheme in its app bundle yet. iOS deeplinks are a roadmap fast-follow, not part of this macOS kickoff.
+
+10. **Multiple incoming deeplinks while one is loading**: If a second patch deeplink arrives while the first is still fetching, should the second queue, replace the in-flight fetch, or be ignored? v1 treats a fetch in progress as an in-progress review for the purposes of `FR-srm-deeplink-warm-in-progress` (confirm before replacing once the first lands); a second link arriving during the fetch window is a rare edge case left to engineering to handle sensibly without silent data loss.
+
 ## Dependencies
 
 - macOS variant of the Code Review Prompt Generator (`product/macos/code-review-prompt.md`) — provides the native multi-tab review UI and the session-handoff contract.
 - macOS slash-command launcher infrastructure (`product/macos/slash-command.md`) — provides the install pattern, prebuild step, and `~/.shepherd/sessions/<session-id>/` staging directory contract.
 - Shared `shepherd-review` requirements (`product/shepherd-review.md`) — provides the changeset detection, filtering, priority ordering, context generation, and feedback flow.
 - Shared session-scoping primitives (`FR-sc-session-id`, `FR-sc-session-scoped-output`, `FR-sc-session-cleanup`) from `product/slash-command.md`.
+- In-app patch open (`FR-srm-patch-open-entry` through `FR-srm-patch-open-load`) — the deeplink entry point reuses this fetch-validate-load path; the deeplink adds only link parsing, launch-state handling, and error surfacing, not a second load path.

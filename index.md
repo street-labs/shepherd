@@ -3018,6 +3018,131 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-patch-open-activates-thread`
 
+### `FR-srm-deeplink-scheme`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/ShepherdApp/Resources/Info.plist`, `engineering/apps/macos/ShepherdApp/ShepherdApp.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-scheme`
+
+### `FR-srm-deeplink-patch-format`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/ShepherdApp/ShepherdApp.swift`, `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-parse-unit`, `TC-srm-deeplink-nevent`
+
+### `FR-srm-deeplink-route`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift`, `engineering/apps/macos/Sources/Dependencies/PatchFetcher.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-patch-load`, `TC-srm-deeplink-fetcher-unit`
+
+### `FR-srm-deeplink-cold-launch`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/ShepherdApp/ShepherdApp.swift`, `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-cold-launch`
+
+### `FR-srm-deeplink-warm-empty`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-warm-empty`
+
+### `FR-srm-deeplink-warm-in-progress`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-warm-in-progress-replace`, `TC-srm-deeplink-warm-in-progress-cancel`, `TC-srm-deeplink-warm-no-comments`
+
+### `FR-srm-deeplink-malformed`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/ShepherdApp/ShepherdApp.swift`, `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-malformed`, `TC-srm-deeplink-parse-unit`
+
+### `FR-srm-deeplink-errors`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift`, `engineering/apps/macos/Sources/Dependencies/PatchFetcher.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-not-found`, `TC-srm-deeplink-wrong-kind`, `TC-srm-deeplink-bad-diff`, `TC-srm-deeplink-no-relays`
+
+### `NFR-srm-deeplink-latency`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-cold-launch`
+
+### `AC-srm-deeplink-scheme`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-scheme`
+
+### `AC-srm-deeplink-patch-load`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-patch-load`, `TC-srm-deeplink-fetcher-unit`
+
+### `AC-srm-deeplink-nevent`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-nevent`
+
+### `AC-srm-deeplink-cold-launch`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-cold-launch`
+
+### `AC-srm-deeplink-warm-empty`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-warm-empty`
+
+### `AC-srm-deeplink-warm-in-progress`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-warm-in-progress-replace`, `TC-srm-deeplink-warm-in-progress-cancel`, `TC-srm-deeplink-warm-no-comments`
+
+### `AC-srm-deeplink-malformed`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-malformed`, `TC-srm-deeplink-parse-unit`
+
+### `AC-srm-deeplink-not-found`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-not-found`
+
+### `AC-srm-deeplink-wrong-kind`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-wrong-kind`
+
+### `AC-srm-deeplink-bad-diff`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-bad-diff`
+
+### `AC-srm-deeplink-no-relays`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-no-relays`
+
+### `AC-srm-deeplink-activates-thread`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-activates-thread`
+
 ### `FR-mdr-detect-markdown`
 - **Defined in**: `product/markdown-render.md`
 - **Design**: `design/macos/markdown-render.md`
