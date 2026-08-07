@@ -3319,6 +3319,138 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Product**: `product/ios/shepherd-review.md`
 - **Design**: `design/ios/shepherd-review.md`
 - **Engineering**: `engineering/ios/shepherd-review.md`
+### `FR-sr-pr-source`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-happy-path`, `TC-sr-pr-event-not-found`
+
+### `FR-sr-pr-fetch`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-happy-path`, `TC-sr-pr-wrong-kind`, `TC-sr-pr-missing-tags`
+
+### `FR-sr-pr-diff-acquisition`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-fetch-fails`, `TC-sr-pr-missing-tags`
+
+### `FR-sr-pr-metadata-display`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-metadata-displayed`
+
+### `AC-sr-pr-happy-path`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-happy-path`
+
+### `AC-sr-pr-event-not-found`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-event-not-found`
+
+### `AC-sr-pr-wrong-kind`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-wrong-kind`
+
+### `AC-sr-pr-missing-tags`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-missing-tags`
+
+### `AC-sr-pr-fetch-fails`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-fetch-fails`
+
+### `AC-sr-pr-metadata-displayed`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-metadata-displayed`
+
+### `AC-sr-pr-conflicting-args`
+- **Defined in**: `product/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-conflicting-args`
+
+### `FR-srm-pr-open-fetch`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`, `TC-srm-pr-open-missing-tags`, `TC-srm-pr-open-wrong-kind`
+
+### `FR-srm-pr-open-diff`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-fetch-fails`, `TC-srm-pr-open-empty-diff`, `TC-srm-pr-open-no-git`
+
+### `FR-srm-pr-open-load`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`, `TC-srm-pr-open-metadata`, `TC-srm-pr-open-activates-thread`
+
+### `NFR-srm-pr-git-required`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-no-git`
+
+### `AC-srm-pr-open-happy`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`
+
+### `AC-srm-pr-open-missing-tags`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-missing-tags`
+
+### `AC-srm-pr-open-fetch-fails`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-fetch-fails`
+
+### `AC-srm-pr-open-empty-diff`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-empty-diff`
+
+### `AC-srm-pr-open-metadata`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-metadata`
+
+### `AC-srm-pr-open-activates-thread`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-activates-thread`
+
+### `AC-srm-pr-open-no-git`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-no-git`
+
 ### `FR-sr-patch-reply-publish`
 - **Defined in**: `product/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
@@ -4057,6 +4189,54 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/ios/shepherd-review.md`
 - **Engineering**: `engineering/ios/shepherd-review.md`
 - **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-thread-live`, `TC-sri-thread-inline-anchor`
+
+### `FR-sri-pr-open-patches`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-happy`, `TC-sri-pr-open-no-patches`, `TC-sri-pr-open-patch-not-found`, `TC-sri-pr-open-patch-wrong-kind`
+
+### `FR-sri-pr-open-load`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-happy`, `TC-sri-pr-open-metadata`, `TC-sri-pr-open-activates-thread`
+
+### `AC-sri-pr-open-happy`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-happy`
+
+### `AC-sri-pr-open-no-patches`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-no-patches`
+
+### `AC-sri-pr-open-patch-not-found`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-patch-not-found`
+
+### `AC-sri-pr-open-patch-wrong-kind`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-patch-wrong-kind`
+
+### `AC-sri-pr-open-metadata`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-metadata`
+
+### `AC-sri-pr-open-activates-thread`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-open-activates-thread`
 
 <!-- iOS identity platform entries -->
 

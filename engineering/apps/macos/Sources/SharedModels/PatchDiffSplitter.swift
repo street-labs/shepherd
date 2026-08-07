@@ -16,6 +16,9 @@ public enum PatchDiffSplitter {
     /// NIP-34 patch event kind.
     public static let patchKind = 1617
 
+    /// NIP-34 pull request event kind.
+    public static let prKind = 1618
+
     /// A single changed file's diff block.
     public struct DiffFile: Equatable, Sendable {
         public var filePath: String
@@ -151,5 +154,85 @@ public enum PatchDiffSplitter {
             return tag[1]
         }
         return nil
+    }
+
+    // MARK: - PR (kind 1618) helpers
+
+    /// All `clone` tag values (git clone URLs), in tag order. Implements the
+    /// clone-URL acquisition of `FR-srm-pr-open-fetch` / `FR-sr-pr-diff-acquisition`.
+    public static func cloneURLs(from tags: [[String]]) -> [String] {
+        tags.filter { $0.count >= 2 && $0[0] == "clone" }.map { $0[1] }
+    }
+
+    /// First `c` tag value (tip commit id of the PR branch). nil if absent.
+    public static func tipCommit(from tags: [[String]]) -> String? {
+        for tag in tags where tag.count >= 2 && tag[0] == "c" { return tag[1] }
+        return nil
+    }
+
+    /// First `merge-base` tag value (full hash). nil if absent.
+    public static func mergeBase(from tags: [[String]]) -> String? {
+        for tag in tags where tag.count >= 2 && tag[0] == "merge-base" { return tag[1] }
+        return nil
+    }
+
+    /// First `branch-name` tag value. nil if absent.
+    public static func branchName(from tags: [[String]]) -> String? {
+        for tag in tags where tag.count >= 2 && tag[0] == "branch-name" { return tag[1] }
+        return nil
+    }
+
+    /// First `subject` tag value, else the first non-empty line of `content`.
+    /// Truncated to 60 chars for display. Implements `FR-sr-pr-metadata-display`.
+    public static func subject(from event: NostrEvent) -> String {
+        let subject = event.tags.first(where: { $0.count >= 2 && $0[0] == "subject" }).map { $0[1] }
+        let resolved = subject ?? event.content
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first(where: { !$0.isEmpty }) ?? ""
+        return resolved.count > 60 ? String(resolved.prefix(60)) : resolved
+    }
+
+    /// Every `e` tag value (referenced event ids) on the PR event, as a superset.
+    /// iOS iterates these as referenced kind `1617` patches (`FR-sri-pr-open-patches`).
+    /// Reading every `e` tag is a harmless superset that tolerates a PR
+    /// referencing multiple patches.
+    // Implements: FR-sri-pr-open-patches
+    public static func referencedPatchIDs(from tags: [[String]]) -> [String] {
+        tags.filter { $0.count >= 2 && $0[0] == "e" }.map { $0[1] }
+    }
+
+    /// Build a `PatchMetadata` record from a kind `1618` PR event. The PR's
+    /// `merge-base` tag becomes `parentCommit` (short); `c` becomes `tipCommit`;
+    /// `branch-name` becomes `branchName`. Status is `open` in v1 (NIP-34 status
+    /// lives on separate kind `1630`–`1633` events, not a tag on the PR event).
+    // Implements: FR-sr-pr-metadata-display, FR-srm-pr-open-load, FR-sri-pr-open-load
+    public static func prMetadata(from event: NostrEvent) -> ReviewContext.PatchMetadata {
+        ReviewContext.PatchMetadata(
+            eventID: event.id,
+            shortEventID: shortID(event.id),
+            author: truncatedPubkey(event.pubkey),
+            commitMessage: subject(from: event),
+            parentCommit: mergeBase(from: event.tags).map { shortID($0) },
+            status: "open",
+            repoCoordinate: repoCoordinate(from: event.tags),
+            tipCommit: tipCommit(from: event.tags).map { shortID($0) },
+            branchName: branchName(from: event.tags),
+            replies: []
+        )
+    }
+
+    /// Split an arbitrary unified-diff string (e.g. the output of
+    /// `git diff <merge-base>..<tip>`, or the unioned content of referenced patch
+    /// events) into per-file `DiffFile` blocks. Returns nil if the string has no
+    /// `diff --git` header or no `@@` hunk (an empty/invalid diff). Implements the
+    /// split half of `FR-srm-pr-open-load` and `FR-sri-pr-open-load`.
+    // Implements: FR-srm-pr-open-load, FR-sri-pr-open-load
+    public static func splitUnifiedDiff(_ diff: String) -> [DiffFile]? {
+        guard let range = diff.range(of: "diff --git"), diff[range.lowerBound...].contains("@@") else {
+            return nil
+        }
+        let files = splitDiffBlocks(String(diff[range.lowerBound...]))
+        return files.isEmpty ? nil : files
     }
 }

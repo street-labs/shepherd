@@ -15,10 +15,10 @@ public struct OpenPatchView: View {
 
     public var body: some View {
         VStack(spacing: 16) {
-            Text("Open Patch")
+            Text("Open Patch or PR")
                 .font(.headline)
 
-            TextField("Paste a 64-char event id or nevent1…", text: $store.input)
+            TextField("Paste a 64-char event id or nevent1… (patch or PR)", text: $store.input)
                 .textFieldStyle(.roundedBorder)
                 .disableAutocorrection(true)
                 .disabled(isFetching)
@@ -62,15 +62,17 @@ public struct OpenPatchView: View {
         case .invalidInput:
             Text("Enter a 64-character hex event id or a nevent1 reference")
         case .fetching:
-            Text("Fetching patch from relays…")
+            Text("Fetching event from relays…")
         case let .notFound(id):
             Text("Patch event \(id) not found on the configured relays.")
         case let .wrongKind(id, kind):
-            Text("Event \(id) is not a NIP-34 patch (kind \(kind)).")
+            Text("Event \(id) is not a NIP-34 patch or PR (kind \(kind)).")
         case let .badDiff(id):
             Text("Patch event \(id) does not contain a valid unified diff.")
         case .noRelays:
             Text("No Nostr relays reachable — check your relay configuration.")
+        case let .prError(message):
+            Text(message)
         }
     }
 

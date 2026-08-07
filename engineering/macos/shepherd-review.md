@@ -1,6 +1,6 @@
 ---
-product-hash: 3be8b01ef980231ee907e94c5591e47414c5e047c1e0495541e48426acbca4ae
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 3690acf162292d9c87169800429f77532c40192326fcf3225ba44915e0f24463
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 
 # Shepherd Review — macOS Technical Spec
@@ -636,6 +636,43 @@ The in-app patch open does not touch identity. The existing `FR-srm-identity-loa
 
 ---
 
+## In-App PR Open
+
+A parallel CLI-free path into a **pull request** review. The reviewer enters a NIP-34 PR reference (kind `1618`) in the same Open Patch or PR dialog; the app fetches the event in-process, then — because a PR event does not contain its diff — acquires the diff by fetching the PR's referenced git objects with a `git` subprocess and computing `git diff <merge-base>..<c>`. The resulting diff is split and loaded exactly like an in-app patch. No `/shepherd-review` invocation and no local git repository are required, but the `git` binary must be on the PATH (`NFR-srm-pr-git-required`). Implements `FR-srm-pr-open-fetch`, `FR-srm-pr-open-diff`, `FR-srm-pr-open-load`.
+
+### Why a git subprocess is required for PRs (and not patches)
+
+A kind `1617` patch event's content *is* the diff; the in-app patch path parses it directly. A kind `1618` PR event's content is a markdown description and its tags point at the proposed changes by reference (`clone` url, `c` tip, `merge-base`). There is no diff in the event to parse, so the app must fetch the referenced git objects and compute the diff itself. On macOS, `git` is available on any developer machine (Xcode Command Line Tools), so shelling out to `git` in a temporary directory is the cheapest correct acquisition path. iOS has no git and no subprocess, so PRs are rejected on iOS in v1 (`product/ios/shepherd-review.md`).
+
+### Kind dispatch
+
+`OpenPatchFeature` fetches by `ids` only (no `kinds` filter), so the event is returned whatever its kind. After fetch it dispatches on `event.kind`: `1617` → existing patch validation + `.delegate(.patchLoaded)`; `1618` → PR tag validation (`FR-srm-pr-open-fetch`) + a `GitDiffClient` diff-acquisition effect that returns `.prDiffResult` → on success reuses `.delegate(.patchLoaded)` with PR metadata; any other kind → `.wrongKind`. This reuses the existing dialog states (fetching / not-found / wrong-kind / no-relays) and adds a single PR-specific `.prError(String)` status carrying the exact user-facing message for each PR failure (missing clone/c/merge-base tags, git fetch failure, empty diff, no git on PATH).
+
+### Diff acquisition (`FR-srm-pr-open-diff`)
+
+A new `GitDiffClient` dependency shells out to `git` in a temporary directory:
+
+1. Create a temp dir (`FileManager.default.temporaryDirectory` + UUID), `git init`.
+2. Try `clone` URLs in order. For the first reachable URL, fetch the tip and merge-base commits. Fetching by arbitrary SHA requires the server to enable `allowReachableSHA1InWant` (GitHub, GitLab, and ngit/grasp servers do). When a `branch-name` tag is present and SHA-fetch fails, fall back to `git fetch <clone> <branch-name>` (delivers the tip + ancestors including the merge-base), then resolve the tip from the `c` tag.
+3. `git diff <merge-base>..<c>` → unified diff string.
+4. Delete the temp dir.
+
+The effect is cancellable (the dialog's Cancel button tears it down, reusing the existing `CancelID.fetch`). Errors map to the `.prError(String)` status with the exact message: missing clone/c tag or missing `merge-base` tag → the missing-tag messages; unreachable clone / fetch failure → `Could not fetch commits from <clone-url>: <git error>`; empty diff → `PR <short-id> has no changes between its merge-base and tip.`; `git` not on PATH → `Opening a PR requires \`git\` on your PATH.`
+
+> ponytail: fetch-by-SHA first, branch-name fallback. A full `git clone` is never performed; only the needed commits are fetched, keeping the network transfer minimal. If a server rejects SHA-fetch and no `branch-name` is present, the PR cannot be reviewed in-app in v1 — the error names the cause and the user can fall back to the CLI `--pr` path against a local clone.
+
+### Load and metadata (`FR-srm-pr-open-load`)
+
+The acquired diff string is split with the new `PatchDiffSplitter.splitUnifiedDiff` (splits any unified diff on `diff --git` boundaries; returns nil for an empty/invalid diff). PR metadata is built by `PatchDiffSplitter.prMetadata(from:)` into the same `ReviewContext.PatchMetadata` shape used for patches: `commitMessage` ← `subject` tag (or first non-empty content line), `parentCommit` ← `merge-base` short hash, plus two new optional fields `tipCommit` (from `c`) and `branchName` (from `branch-name`) so the metadata section can render PR-specific labels. The metadata section view is extended to show tip / branch when present. The `.delegate(.patchLoaded)` handler in `AppFeature` is reused unchanged — it sets `reviewContextData.patchMetadata` and starts the live reply subscription, so setting `patchMetadata` activates the live reply subscription and the publish path with the PR event as thread root — no new subscription or publish code; the existing kind:1 root-`e`-tag reply format is reused for PRs (NIP-34 replies to 1618 follow NIP-22; aligning to NIP-22 `E`/`P` tagged comments is a future follow-up, shared with patches).
+
+### Identity
+
+Same as in-app patch open: the existing `FR-srm-identity-load` path applies unchanged; PR review introduces no new identity path.
+
+> Implements: `FR-srm-pr-open-fetch`, `FR-srm-pr-open-diff`, `FR-srm-pr-open-load`, `NFR-srm-pr-git-required`
+
+---
+
 ## Code Map
 
 Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs are covered by the prompt content in `.claude/commands/shepherd-review.md` and traced via the shared product spec `../../product/shepherd-review.md`; this spec does not duplicate them.
@@ -677,6 +714,14 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift | implemented |
 | `FR-srm-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
 | `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | implemented |
+| `FR-sr-pr-source` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-pr-fetch` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-pr-diff-acquisition` | .claude/commands/shepherd-review.md | implemented |
+| `FR-sr-pr-metadata-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | implemented |
+| `FR-srm-pr-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
+| `FR-srm-pr-open-diff` | engineering/apps/macos/Sources/Dependencies/GitDiffClient.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
+| `FR-srm-pr-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | implemented |
+| `NFR-srm-pr-git-required` | engineering/apps/macos/Sources/Dependencies/GitDiffClient.swift | implemented |
 
 Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
@@ -751,6 +796,17 @@ The `--context` flag adds a single file read in the launcher and a single substr
 | `AC-srm-patch-open-bad-diff` | In-App Patch Open; `PatchDiffSplitter` diff-format validation |
 | `AC-srm-patch-open-no-relays` | In-App Patch Open; `RelayClient` no-relay-reachable state |
 | `AC-srm-patch-open-activates-thread` | In-App Patch Open (once `patchMetadata` set, existing live-replies + publish paths activate unchanged) |
+| `FR-srm-pr-open-fetch` | In-App PR Open (kind dispatch + PR tag validation); Components / Files Touched (`OpenPatchFeature`) |
+| `FR-srm-pr-open-diff` | In-App PR Open (diff acquisition via `GitDiffClient` subprocess); Components / Files Touched (`GitDiffClient`, `OpenPatchFeature`) |
+| `FR-srm-pr-open-load` | In-App PR Open (split acquired diff + PR metadata); Components / Files Touched (`AppFeature`, `PatchDiffSplitter`) |
+| `NFR-srm-pr-git-required` | In-App PR Open (git subprocess requirement; no-git error state) |
+| `AC-srm-pr-open-happy` | In-App PR Open (fetch → git diff → split → load → activate thread) |
+| `AC-srm-pr-open-missing-tags` | In-App PR Open; `OpenPatchFeature` missing-tags states (clone/c/merge-base) |
+| `AC-srm-pr-open-fetch-fails` | In-App PR Open; `GitDiffClient` fetch-failure → dialog error |
+| `AC-srm-pr-open-empty-diff` | In-App PR Open; empty-diff state |
+| `AC-srm-pr-open-metadata` | In-App PR Open; `PatchMetadataSectionView` PR fields (tip / merge-base / branch) |
+| `AC-srm-pr-open-activates-thread` | In-App PR Open (PR event as thread root; existing live-replies + publish paths) |
+| `AC-srm-pr-open-no-git` | In-App PR Open; `GitDiffClient` no-git state |
 
 ### Shared (from `product/shepherd-review.md`) — applied as-is on macOS
 
@@ -759,6 +815,7 @@ These slugs are covered by the prompt content in the `/shepherd-review` command 
 | Slug | Coverage on macOS |
 |---|---|
 | `FR-sr-changeset-detection`, `FR-sr-file-filtering`, `FR-sr-priority-ordering`, `FR-sr-changeset-overview`, `FR-sr-per-file-context`, `FR-sr-file-list-display`, `FR-sr-iteration-loop`, `FR-sr-feedback-collection`, `FR-sr-completion-summary`, `FR-sr-scope-argument`, `FR-sr-git-required` | Implemented by the `.claude/commands/shepherd-review.md` prompt content; defined in `../../product/shepherd-review.md`. |
+| `FR-sr-pr-source`, `FR-sr-pr-fetch`, `FR-sr-pr-diff-acquisition` | Implemented by the `.claude/commands/shepherd-review.md` prompt content (`--pr` argument: fetch kind `1618`, fetch git objects from `clone` url, `git diff <merge-base>..<c>`); defined in `../../product/shepherd-review.md`. macOS shares this CLI path. |
 | `FR-sr-command-file` | Supplanted by `FR-srm-command-file`; the macOS variant uses a separate command file. |
 | `FR-sr-multi-file-launch` | Supplanted by `FR-srm-multi-file-launch`; the macOS variant launches via `session.json`. |
 | `FR-sr-context-handoff` | Supplanted by `FR-srm-context-handoff`; context is embedded in `session.json`. |

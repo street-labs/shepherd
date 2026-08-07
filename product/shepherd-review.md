@@ -6,7 +6,7 @@ A slash command (`/shepherd-review`) that orchestrates a multi-file code review 
 
 This addresses the workflow gap between "I have a branch with changes" and "I want to review my changed files in the CRPG." Today, the developer must manually run `git diff --name-only`, mentally filter out noise files, and invoke `/shepherd` repeatedly. `/shepherd-review` collapses that entire workflow into a single command that batch-opens every reviewable file in one CRPG session with full review context.
 
-For patch reviews (`--patch`), the loop is bidirectional: the reviewer reads other participants' patch-thread replies and publishes their own comments back to the Nostr thread from within the review tool, under their own Nostr identity. This turns the patch review into a shared conversation across every agent and human reviewing the same patch, rather than a private annotation that must be exported and handed around manually.
+For patch reviews (`--patch`) and pull request reviews (`--pr`), the loop is bidirectional: the reviewer reads other participants' thread replies and publishes their own comments back to the Nostr thread from within the review tool, under their own Nostr identity. This turns the review into a shared conversation across every agent and human reviewing the same patch or PR, rather than a private annotation that must be exported and handed around manually. A NIP-34 PR (kind `1618`) differs from a patch (kind `1617`) in that the PR event does not contain its diff — it points to a clone URL and a tip commit — so the command fetches the referenced git objects and computes the diff before review (see the Pull Request sources section).
 
 The CRPG already supports multi-file tabs, per-file comments, and multi-file prompt generation. `/shepherd-review` leverages this by passing all files and structured context data to a single launch, letting the user review files in any order with the agent's context and feedback visible alongside each diff. The user adds comments on whichever files they choose and clicks "Done" once to produce a unified multi-file prompt covering all reviewed files. The context is split into neutral (factual descriptions of what changed) and review feedback (the agent's opinions and suggestions), displayed as visually distinct sections so the reviewer always knows which is which.
 
@@ -44,6 +44,9 @@ The CRPG already supports multi-file tabs, per-file comments, and multi-file pro
 
 ### US-SR-11: Participate in the patch review thread from the review tool
 **As a** reviewer collaborating with multiple agents and humans on a NIP-34 patch, **I want to** publish my own comments back to the patch thread from within the review tool under my Nostr identity, **so that** my feedback is visible to every other participant in the shared review loop rather than trapped in a local export. I also want to respond directly to other participants' replies, **so that** I can hold focused sub-conversations within the broader thread.
+
+### US-SR-12: Review pull requests submitted via Nostr
+**As a** developer receiving code contributions via NIP-34 pull requests, **I want to** invoke `/shepherd-review --pr <event-id>` to review the PR in the CRPG, **so that** I can review Nostr-submitted PRs using the same workflow as local branch and patch reviews without manually cloning the PR's repository or switching tools. The PR's diff is fetched from the git clone URL the PR event references, not extracted from the event content.
 
 ## Requirements
 
@@ -138,6 +141,47 @@ The subscription delivers stored replies first (so the inspector populates immed
 The macOS app includes a Nostr relay client that subscribes to relays in-process (no external CLI or background process required) so the app can receive patch-thread events directly. This is the cross-platform transport that the live patch-thread reply loop (`FR-sr-patch-replies-live`) is built on.
 
 The client exposes a subscription that takes a NIP-01 filter (an `e` tag value and a kinds list) and yields matching events as an async stream, deduplicated by event id across all configured relays, keeping the subscription open so new events arrive live. Relay URLs are resolved with the same precedence as the `/shepherd-review` command prompt: the `NOSTR_RELAYS` environment variable, `~/.config/nostr/relays.txt`, then the default public relays. The stream stays open until the consumer cancels it (the app cancels on window close). If the transport is unavailable, the client yields nothing and the app renders the initial `session.json` snapshot only. The initial snapshot is still produced by the `/shepherd-review` command prompt at launch so the inspector has a baseline before the subscription delivers.
+
+### Pull Request sources (NIP-34 kind 1618)
+
+A NIP-34 **pull request** is kind `1618`. Unlike a patch (kind `1617`), a PR event does **not** contain its diff: its content is a markdown description, and its tags point at the proposed changes by reference — a `clone` URL (one or more git clone URLs where the commits live), a `c` tag (the tip commit of the PR branch), an optional `merge-base` tag (the most recent common ancestor with the target branch), an optional `branch-name` tag, and a `subject` tag. Reviewing a PR therefore requires fetching the referenced git objects and computing the diff between the tip and the merge-base. Once that diff is produced, it flows through the same filtering, context, and review pipeline as a patch; the patch-thread reply loop (`FR-sr-patch-replies-display` et al.) applies to PRs unchanged, since NIP-34 replies to a kind `1618` event follow the same threaded-reply convention the tool already uses for patches.
+
+#### `FR-sr-pr-source` -- Review NIP-34 PRs from Nostr
+When invoked with `--pr <event-id>`, the command fetches and reviews a NIP-34 pull request event (kind `1618`) instead of local git changes or a patch. The PR event does not carry its diff; it references the proposed changes by a `clone` URL and a tip commit (`c` tag). The command fetches the PR event from configured Nostr relays, acquires the diff by fetching the referenced git objects and computing `git diff <merge-base>..<c>` (see `FR-sr-pr-diff-acquisition`), applies it to a temporary review branch, and detects the changeset from the applied diff. The PR metadata (author, subject, tip commit, merge-base, branch name, status) is displayed in the CRPG UI alongside the review context. The workflow after the diff is acquired is identical to patch review: filter files, generate context, open in CRPG, with the live patch-thread replies and bidirectional reply publishing active. This enables code review of Nostr-submitted pull requests without leaving the Shepherd review workflow.
+
+#### `FR-sr-pr-fetch` -- Fetch NIP-34 PR event from Nostr relays
+When `--pr <event-id>` is specified, the command queries configured Nostr relays for the event with the given ID using the same relay resolution as `--patch` (`NOSTR_RELAYS`, `~/.config/nostr/relays.txt`, default public relays). NIP-34 PR events are kind `1618`. The event content is a markdown description (not a diff). The event tags include:
+- `a` tag: repository reference (`30617:<repo-owner-pubkey>:<repo-d-tag>`)
+- `c` tag: tip commit id of the PR branch (required)
+- `clone` tag: one or more git clone URLs where the commit can be fetched (at least one required)
+- `merge-base` tag: the most recent common ancestor commit with the target branch (optional but required to compute the diff in v1; see `FR-sr-pr-diff-acquisition`)
+- `branch-name` tag: recommended branch name for the PR (optional)
+- `subject` tag: PR title (optional; falls back to the first non-empty line of the content)
+- `p` tags: repository owner and optionally other users to notify
+
+The event ID is a 64-character hex string (Nostr event ID format); invalid event ID format is rejected with a clear error message. If the event is not found, the command reports an error with the relay URLs attempted and stops. If the fetched event is not kind `1618`, it is rejected with a wrong-kind error (the fetch uses an ids-only filter so the event is returned regardless of kind and rejected explicitly, mirroring the patch path).
+
+#### `FR-sr-pr-diff-acquisition` -- Acquire the PR diff from the referenced git repository
+Because a PR event does not contain its diff, the command acquires the diff by fetching the referenced git objects and computing the net change between the PR tip and its merge-base. The workflow:
+1. **Validate required tags.** The event must carry at least one `clone` URL and a `c` (tip) tag. If either is missing, the command reports "PR event <short-id> is missing a clone URL or tip commit (`c` tag)." and stops. A `merge-base` tag is required in v1 to compute the diff base; if it is absent, the command reports "PR event <short-id> has no `merge-base` tag; cannot determine the diff base." and stops. (PRs without a merge-base are a roadmap follow-up; see Open Questions.)
+2. **Fetch the git objects.** The command creates a temporary review repository (or reuses the local repository's object database), fetches the tip commit and the merge-base commit from the first reachable `clone` URL (`git fetch <clone-url> <c>` and `git fetch <clone-url> <merge-base>`, or a single fetch of the PR branch by `branch-name` when present and the server does not allow fetching by arbitrary SHA). If no `clone` URL is reachable or the commits cannot be fetched, the command reports the specific git error and stops.
+3. **Compute the diff.** The command computes `git diff <merge-base>..<c>` to produce the net unified diff of the PR. This diff is the changeset for review.
+4. **Apply to a review branch.** The diff is applied to a temporary review branch `review/pr-<short-event-id>` (first 8 chars of the event ID), exactly as a patch is applied (`FR-sr-patch-application`), so the review surface and post-patch file reconstruction match the CLI patch path. After the review session ends, the original branch is restored and any stashed changes are popped; the review branch remains for manual inspection.
+
+Fetch is best-effort across the listed `clone` URLs: the command tries them in order and uses the first that delivers the required commits. The command requires `git` on the PATH and network access to the clone URL.
+
+#### `FR-sr-pr-metadata-display` -- Display PR metadata in CRPG
+When reviewing a PR, the CRPG displays PR-specific metadata alongside the review context, in the same dedicated section used for patch metadata (`FR-sr-patch-metadata-display`):
+- **Author**: Nostr pubkey of the PR author (the event pubkey), resolved to a display name when one is known, otherwise a truncated pubkey.
+- **Subject**: PR title from the `subject` tag, or the first non-empty line of the event content when no `subject` tag is present (truncated for display).
+- **Tip commit**: Short hash (8 chars) from the `c` tag.
+- **Merge base**: Short hash (8 chars) from the `merge-base` tag, when present.
+- **Branch name**: From the `branch-name` tag, when present.
+- **PR status**: Shown as `open` unconditionally in v1. NIP-34 conveys status via separate kind `1630`-`1633` status events that reference the PR via an `e` tag, not a tag on the PR event; v1 does not fetch them, matching the patch path's status caveat. Status-event resolution is a shared roadmap fast-follow.
+- **Event ID**: Short form (first 8 characters) with a way to view or copy the full 64-char ID.
+- **Repo coordinate**: The `a` tag value, used as the `a` tag on published thread replies.
+
+This metadata is read-only display; the user cannot edit it within the CRPG. The patch-thread reply section and reply-publishing path activate for a PR exactly as for a patch, with the PR event as the thread root.
 
 #### `FR-sr-file-filtering` -- Filter out uninteresting files
 The command filters the changeset to exclude files that are not worth reviewing. The filtering rules are:
@@ -250,8 +294,9 @@ The command accepts an optional argument to control which changes are reviewed:
 - **`--staged`**: Review only staged changes (files in the git index). This is useful after `git add` when the user wants to review exactly what will be committed. Uses `git diff --name-status --cached` against the merge base.
 - **`--unstaged`**: Review only unstaged changes and untracked files. This is useful after staging some files to review what's left. Uses `git diff --name-status` (working tree vs HEAD) plus untracked files.
 - **`--patch <event-id>`**: Review a NIP-34 patch event from Nostr. Fetches the patch, applies it to a temporary review branch, and reviews the applied changes. See `FR-sr-patch-source` for full behavior. Cannot be combined with `--staged` or `--unstaged`.
+- **`--pr <event-id>`**: Review a NIP-34 pull request event (kind `1618`) from Nostr. Fetches the PR event, acquires its diff from the referenced git clone URL (see `FR-sr-pr-diff-acquisition`), applies it to a temporary review branch, and reviews the applied changes. See `FR-sr-pr-source` for full behavior. Cannot be combined with `--staged`, `--unstaged`, or `--patch`.
 
-If an unrecognized argument is provided, or if `--patch` is combined with `--staged`/`--unstaged`, the command displays a usage message and stops.
+If an unrecognized argument is provided, or if `--patch`/`--pr` is combined with `--staged`/`--unstaged` or with each other, the command displays a usage message and stops.
 
 #### `FR-sr-git-required` -- Requires a git repository
 The command must be invoked from within a git repository. If the current working directory is not inside a git repository, the command reports an error: "Not a git repository. /shepherd-review must be run from within a git repo." and stops.
@@ -368,6 +413,27 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 #### `AC-sr-bunker-signing` -- Replies are signed by a NIP-46 bunker when configured
 **Given** the reviewer has configured a NIP-46 bunker connection (and no local secret key), **when** the reviewer submits an inline comment to publish, **then** the tool sends a `sign_event` request to the bunker, receives the signed event back, and publishes it under the reviewer's public key — without the reviewer's secret key ever being present on the host. **Given** the bunker is unreachable or refuses to sign, **when** the reviewer submits a comment, **then** the tool retains the comment locally, informs the reviewer the reply could not be published, and does not silently drop it.
 
+#### `AC-sr-pr-happy-path` -- Review a NIP-34 PR successfully
+**Given** a valid NIP-34 PR event (kind `1618`) exists on configured Nostr relays with event ID `abc123...`, carrying at least one `clone` URL, a `c` tip commit, and a `merge-base` tag, **when** the user types `/shepherd-review --pr abc123...`, **then** the command fetches the PR event, validates it, fetches the referenced git objects from the clone URL, computes `git diff <merge-base>..<c>`, applies the resulting diff to a temporary branch `review/pr-abc123ab`, detects the changeset, filters and sorts files, generates context, displays PR metadata (author, subject, tip commit, merge-base, branch name, status `open`) in the CRPG, and opens all reviewable files for review with the live thread replies and reply-publishing path active. After the review session ends, the original branch is restored and any stashed changes are popped.
+
+#### `AC-sr-pr-event-not-found` -- Clear error when PR event doesn't exist
+**Given** no event with ID `xyz789...` exists on configured relays, **when** the user types `/shepherd-review --pr xyz789...`, **then** the command reports "PR event xyz789... not found on relays: [relay URLs]" and stops without creating a review branch.
+
+#### `AC-sr-pr-wrong-kind` -- Reject non-PR events
+**Given** the fetched event is not kind `1618` (e.g. a kind `1617` patch or a kind:1 note), **when** the command validates the kind, **then** it reports "Event <short-id> is not a NIP-34 pull request (kind <k>)." and stops.
+
+#### `AC-sr-pr-missing-tags` -- Reject a PR missing required clone or tip tags
+**Given** a fetched PR event has no `clone` tag or no `c` tag, **when** the command validates the required tags, **then** it reports "PR event <short-id> is missing a clone URL or tip commit (`c` tag)." and stops. **Given** the event has `clone` and `c` but no `merge-base` tag, **then** it reports "PR event <short-id> has no `merge-base` tag; cannot determine the diff base." and stops.
+
+#### `AC-sr-pr-fetch-fails` -- Handle git fetch failures
+**Given** a PR event's `clone` URLs are unreachable or the referenced commits cannot be fetched, **when** the command attempts to acquire the diff, **then** it reports the specific git error and stops without creating a review branch.
+
+#### `AC-sr-pr-metadata-displayed` -- PR metadata visible in CRPG
+**Given** a PR event with author pubkey `npub1abc...`, subject "Add new feature", tip commit `feedface`, merge-base `deadbeef`, and branch name `feat/x`, **when** the CRPG opens for review, **then** the metadata section displays the author (display name if known, otherwise short pubkey), subject, tip commit short hash, merge-base short hash, branch name, status `open`, repo coordinate, and short event id.
+
+#### `AC-sr-pr-conflicting-args` -- Reject conflicting scope arguments for PRs
+**Given** the user types `/shepherd-review --pr abc123... --staged` or `/shepherd-review --pr abc123... --patch def456...`, **when** the command parses arguments, **then** it reports "Cannot combine --pr with --staged, --unstaged, or --patch" and displays a usage message.
+
 ## Open Questions
 
 1. **Base branch detection**: The spec defaults to `main` as the base branch. Some repositories use `master`, `develop`, or other branch names. Should the command attempt to auto-detect the default branch (e.g., by reading `git symbolic-ref refs/remotes/origin/HEAD`), or should it accept an optional argument to override the base branch? The command assumes `main`; auto-detection or an override argument is a roadmap candidate.
@@ -379,6 +445,8 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 13. **Review branch cleanup**: After a patch review session ends, should the `review/patch-*` branch be auto-deleted, kept for inspection, or prompt the user? The command keeps the branch (user can delete manually). Auto-cleanup is a roadmap candidate.
 
 14. **Patch status update workflow**: After reviewing and merging a patch, the user may want to update its status to `merged` on Nostr. This is a separate action from the review itself — it would involve publishing a status update event. Should `/shepherd-review` offer to do this, or should it remain a separate command/script? Deferred; review is the only action, status updates are manual.
+
+15. **PRs without a `merge-base` tag**: v1 requires a `merge-base` tag to compute the PR diff (`FR-sr-pr-diff-acquisition`). Some PR events may omit it. Should the command fall back to a different base (e.g. fetch the base repo announcement's `HEAD` from the `a` tag, or diff the tip against its first parent) when `merge-base` is absent? Deferred to a roadmap follow-up; v1 rejects PRs without `merge-base` with a clear error.
 
 2. ~~**File ordering strategy**: Resolved — files are sorted by review priority (see `FR-sr-priority-ordering`). Priority ordering determines both the displayed list order and the CRPG tab order. Core source files appear first, tests last.~~
 
@@ -406,8 +474,9 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 - **CRPG patch metadata display**: The CRPG must support displaying NIP-34 patch metadata (see `FR-sr-patch-metadata-display`) in a dedicated UI section. This includes author (with pubkey-to-name resolution), commit message, parent commit, status, and event ID. This is new engineering work specific to patch review.
 - **CRPG multi-file prompt generation**: The CRPG already supports generating a unified multi-file prompt from comments across tabs and writing it to the session-scoped path (`~/.shepherd/sessions/<session-id>/prompt-output.md`). No new work needed here beyond session-scoping (see `FR-sc-session-scoped-output`). The agent uses an interactive prompt (`AskUserQuestion`) rather than a file-watcher or polling mechanism to determine when the user is done and which outcome to process. The prompt output file is still written by the CRPG; only the path is now session-scoped.
 - **Git**: The command requires git to be installed and the working directory to be inside a git repository. Git is used for changeset detection (`git diff`, `git merge-base`) and patch application (`git apply` or `git am`, `git checkout`, `git stash`).
-- **Nostr relay access**: For `--patch` mode, the command requires access to Nostr relays to fetch NIP-34 patch events. Relay URLs are read from user configuration (environment variable, config file, or default public relays). No authentication is required for read-only event fetching.
+- **Nostr relay access**: For `--patch` and `--pr` mode, the command requires access to Nostr relays to fetch NIP-34 patch/PR events. Relay URLs are read from user configuration (environment variable, config file, or default public relays). No authentication is required for read-only event fetching.
+- **Git network access (PR mode)**: For `--pr` mode, the command requires network access to the PR event's `clone` URL(s) to fetch the referenced git objects (tip commit and merge-base). This requires `git` on the PATH and the clone server to allow fetching the referenced commits (by SHA via `allowReachableSHA1InWant`, or by `branch-name`). Fetch failures are reported with the specific git error.
 - **Reviewer Nostr identity**: For publishing replies to a patch thread (`FR-sr-patch-reply-publish`), the review tool requires a reviewer-owned Nostr identity (a secret key the reviewer has configured). The identity is used to sign published replies so they are attributed to the reviewer. If no identity is configured, reply publishing is unavailable; read-only patch review and local comment export still work.
-- **NIP-34 protocol understanding**: The command must parse NIP-34 event structure (kind `1617`/`1621`, specific tags for commit metadata and status). This is implemented as part of the patch fetching logic, not a separate library dependency.
+- **NIP-34 protocol understanding**: The command must parse NIP-34 event structure (kind `1617` patch, `1618` pull request, `1621` issue), specific tags for commit metadata and status, and the PR-specific `clone`/`c`/`merge-base` tags. This is implemented as part of the patch and PR fetching logic, not a separate library dependency.
 - **Claude Code or opencode custom commands**: The command is implemented as a `.claude/commands/` markdown file and relies on Claude Code or opencode's custom command execution model. The command uses `AskUserQuestion` (a standard agent capability) to present the interactive prompt after launching the CRPG.
 - **`scripts/install-command.sh`**: The existing install script must be updated to also symlink the new command file for global availability.

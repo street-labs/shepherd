@@ -15,6 +15,9 @@ public struct OpenPatchFeature {
     public struct State: Equatable, Sendable {
         public var input: String = ""
         public var status: FetchStatus = .idle
+        /// The parsed reference for the in-flight fetch, retained so the PR paths
+        /// can re-resolve relays / event ids after the kind is known.
+        public var currentRef: PatchRef.Valid?
 
         @CasePathable
         public enum FetchStatus: Equatable, Sendable {
@@ -25,6 +28,12 @@ public struct OpenPatchFeature {
             case wrongKind(String, Int)
             case badDiff(String)
             case noRelays
+            /// A PR-specific failure (missing tags, git fetch failure, empty diff,
+            /// no git on PATH, or — on iOS — no reviewable referenced patches).
+            /// Carries the exact user-facing message. Implements the failure states
+            /// of `FR-srm-pr-open-fetch` / `FR-srm-pr-open-diff` / `NFR-srm-pr-git-required`
+            /// and `FR-sri-pr-open-patches`.
+            case prError(String)
         }
 
         public init() {}
@@ -38,10 +47,15 @@ public struct OpenPatchFeature {
         case noRelaysReached
         case eventFetched(NostrEvent)
         case fetchTimedOut(eventID: String)
+        /// macOS PR path: the git-subprocess diff acquisition finished.
+        case prDiffResult(GitDiffClient.Result, NostrEvent)
+        /// iOS PR path: the PR's referenced patch events have been fetched.
+        case prPatchesFetched([NostrEvent], NostrEvent)
         case delegate(Delegate)
         @CasePathable
         public enum Delegate: Equatable, Sendable {
-            /// A valid patch was fetched and parsed; host should load it for review.
+            /// A valid patch or PR was fetched and parsed; host should load it for
+                       /// review. For a PR, the metadata carries `tipCommit`/`branchName`.
             case patchLoaded([PatchDiffSplitter.DiffFile], ReviewContext.PatchMetadata)
             case cancelled
         }
@@ -49,6 +63,9 @@ public struct OpenPatchFeature {
 
     @Dependency(\.relayClient) var relayClient
     @Dependency(\.continuousClock) var clock
+    #if os(macOS)
+    @Dependency(\.gitDiffClient) var gitDiffClient
+    #endif
 
     public init() {}
 
@@ -73,6 +90,7 @@ public struct OpenPatchFeature {
                     return .none
                 }
                 state.status = .fetching
+                state.currentRef = ref
                 let eventID = ref.eventID
                 // nevent relay hints are preferred; otherwise standard resolution.
                 let candidates = ref.relays.isEmpty
@@ -88,7 +106,7 @@ public struct OpenPatchFeature {
                         return
                     }
                     // Implements: FR-srm-patch-open-fetch
-                    // ids-only filter, no kinds, so a non-1617 event is returned
+                    // ids-only filter, no kinds, so a non-1617/1618 event is returned
                     // and rejected as wrong-kind rather than filtered out upstream.
                     let filter = NostrFilter(ids: [eventID], relays: reachable)
                     let stream = relayClient.subscribe(filter)
@@ -105,19 +123,117 @@ public struct OpenPatchFeature {
                 state.status = .noRelays
                 return .none
 
-            // Implements: FR-srm-patch-open-fetch, FR-srm-patch-open-load, FR-sri-patch-open-load
-            // kind + diff validation, then parse into per-file diff blocks.
+            // Implements: FR-srm-patch-open-fetch, FR-srm-patch-open-load, FR-sri-patch-open-load, FR-srm-pr-open-fetch, FR-srm-pr-open-diff, FR-srm-pr-open-load, FR-sri-pr-open-patches, FR-sri-pr-open-load
+            // kind dispatch: 1617 -> patch validate; 1618 -> PR path (platform-specific);
+            // anything else -> wrong-kind.
             case let .eventFetched(event):
-                switch PatchDiffSplitter.validate(event) {
-                case let .wrongKind(kind):
-                    state.status = .wrongKind(shortHex(event.id), kind)
+                switch event.kind {
+                case PatchDiffSplitter.patchKind:
+                    switch PatchDiffSplitter.validate(event) {
+                    case let .wrongKind(kind):
+                        state.status = .wrongKind(shortHex(event.id), kind)
+                        return .none
+                    case .badDiff:
+                        state.status = .badDiff(shortHex(event.id))
+                        return .none
+                    case let .ok(files, metadata):
+                        return .send(.delegate(.patchLoaded(files, metadata)))
+                    }
+                case PatchDiffSplitter.prKind:
+                    state.status = .fetching
+                    let short = shortHex(event.id)
+                    #if os(macOS)
+                    // FR-srm-pr-open-fetch: validate required tags (clone, c, merge-base).
+                    let clones = PatchDiffSplitter.cloneURLs(from: event.tags)
+                    let tip = PatchDiffSplitter.tipCommit(from: event.tags)
+                    let mergeBase = PatchDiffSplitter.mergeBase(from: event.tags)
+                    if clones.isEmpty || tip == nil {
+                        state.status = .prError("PR event \(short) is missing a clone URL or tip commit (`c` tag).")
+                        return .none
+                    }
+                    guard let mergeBase else {
+                        state.status = .prError("PR event \(short) has no `merge-base` tag; cannot determine the diff base.")
+                        return .none
+                    }
+                    let spec = GitDiffClient.Spec(
+                        cloneURLs: clones,
+                        tipCommit: tip!,
+                        mergeBase: mergeBase,
+                        branchName: PatchDiffSplitter.branchName(from: event.tags)
+                    )
+                    return .run { [gitDiffClient] send in
+                        // Implements: FR-srm-pr-open-diff, NFR-srm-pr-git-required
+                        let result = await gitDiffClient.acquirePRDiff(spec)
+                        await send(.prDiffResult(result, event))
+                    }
+                    .cancellable(id: CancelID.fetch, cancelInFlight: true)
+                    #else
+                    // FR-sri-pr-open-patches: iterate the PR's `e`-tagged patch events.
+                    let ids = PatchDiffSplitter.referencedPatchIDs(from: event.tags)
+                    if ids.isEmpty {
+                        state.status = .prError("PR \(short) has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS.")
+                        return .none
+                    }
+                    let candidates = state.currentRef?.relays.isEmpty ?? true
+                        ? RelayClient.resolveRelays()
+                        : (state.currentRef?.relays ?? RelayClient.resolveRelays())
+                    return .run { [relayClient] send in
+                        let reachable = await relayClient.reachableRelays(candidates)
+                        let relays = reachable.isEmpty ? candidates : reachable
+                        let events = await Self.fetchReferencedPatches(ids: ids, relays: relays, relayClient: relayClient)
+                        await send(.prPatchesFetched(events, event))
+                    }
+                    .cancellable(id: CancelID.fetch, cancelInFlight: true)
+                    #endif
+                default:
+                    state.status = .wrongKind(shortHex(event.id), event.kind)
                     return .none
-                case .badDiff:
-                    state.status = .badDiff(shortHex(event.id))
-                    return .none
-                case let .ok(files, metadata):
-                    return .send(.delegate(.patchLoaded(files, metadata)))
                 }
+
+            // Implements: FR-srm-pr-open-load — split the git-acquired diff and
+            // attach PR metadata; reuse the patch load delegate.
+            case let .prDiffResult(result, event):
+                let short = shortHex(event.id)
+                switch result {
+                case .noGit:
+                    state.status = .prError("Opening a PR requires `git` on your PATH.")
+                    return .none
+                case let .fetchFailed(msg):
+                    state.status = .prError("Could not fetch commits from \(msg)")
+                    return .none
+                case .empty:
+                    state.status = .prError("PR \(short) has no changes between its merge-base and tip.")
+                    return .none
+                case let .diff(diff):
+                    guard let files = PatchDiffSplitter.splitUnifiedDiff(diff) else {
+                        state.status = .prError("PR \(short) has no changes between its merge-base and tip.")
+                        return .none
+                    }
+                    return .send(.delegate(.patchLoaded(files, PatchDiffSplitter.prMetadata(from: event))))
+                }
+
+            // Implements: FR-sri-pr-open-load — union the referenced patches'
+            // diffs by file path and attach PR metadata; reuse the patch load delegate.
+            case let .prPatchesFetched(events, prEvent):
+                var union: [String: [String]] = [:]
+                var order: [String] = []
+                for ev in events {
+                    // Skip non-1617 / malformed-diff referenced events (FR-sri-pr-open-patches).
+                    guard case let .ok(files, _) = PatchDiffSplitter.validate(ev) else { continue }
+                    for f in files {
+                        if union[f.filePath] == nil { order.append(f.filePath) }
+                        union[f.filePath, default: []].append(f.diffBlock)
+                    }
+                }
+                let short = shortHex(prEvent.id)
+                guard !union.isEmpty else {
+                    state.status = .prError("PR \(short) has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS.")
+                    return .none
+                }
+                let files = order.map { filePath in
+                    PatchDiffSplitter.DiffFile(filePath: filePath, diffBlock: union[filePath]!.joined(separator: "\n"))
+                }
+                return .send(.delegate(.patchLoaded(files, PatchDiffSplitter.prMetadata(from: prEvent))))
 
             case let .fetchTimedOut(eventID):
                 state.status = .notFound(shortHex(eventID))
@@ -154,6 +270,29 @@ public struct OpenPatchFeature {
             let first = await group.next() ?? nil
             group.cancelAll()
             return first
+        }
+    }
+
+    /// Fetch each referenced patch event by id in parallel, taking the first
+    /// event per id within the wait window. Used by the iOS PR path
+    /// (`FR-sri-pr-open-patches`) to gather the kind `1617` patches a PR
+    /// references. Events that don't arrive in time are nil and skipped by the
+    /// caller. Implements the fetch half of `FR-sri-pr-open-patches`.
+    static func fetchReferencedPatches(
+        ids: [String], relays: [String], relayClient: RelayClient
+    ) async -> [NostrEvent] {
+        await withTaskGroup(of: NostrEvent?.self) { group in
+            for id in ids {
+                group.addTask {
+                    let stream = relayClient.subscribe(NostrFilter(ids: [id], relays: relays))
+                    return await firstEventOrTimeout(stream, seconds: 8)
+                }
+            }
+            var out: [NostrEvent] = []
+            for await event in group {
+                if let event { out.append(event) }
+            }
+            return out
         }
     }
 }

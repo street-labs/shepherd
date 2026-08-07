@@ -1,6 +1,6 @@
 ---
-product-hash: 3be8b01ef980231ee907e94c5591e47414c5e047c1e0495541e48426acbca4ae
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 3690acf162292d9c87169800429f77532c40192326fcf3225ba44915e0f24463
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review — iOS Design Spec
 
@@ -19,19 +19,19 @@ These surfaces live within the Review State layout from `./code-review-prompt.md
 | Surface | Compact (iPhone) | Expanded (iPad) |
 |---|---|---|
 | **Open Patch Sheet** | Modal sheet centered on screen. | Modal sheet, centered or form-sheet. |
-| **Patch Metadata Section** | Inspector "Patch Info" detail screen. | Top of the inspector right column. |
+| **Patch/PR Metadata Section** | Inspector "Patch Info" detail screen. | Top of the inspector right column. |
 | **Patch Thread Section** | Inspector "Thread" detail screen. | Inspector right column, below metadata. |
 | **Reviewer Identity Indicator** | Top of the Thread detail screen. | Above the Patch Thread section in the inspector. |
 | **Inline Anchored Replies** | Inline in the CodeViewer at their anchor line. | Same. |
 
 ## Screen Definitions
 
-### Open Patch Sheet
+### Open Patch or PR Sheet
 
-The reviewer enters a NIP-34 patch reference to start a review.
+The reviewer enters a NIP-34 patch or PR reference to start a review. The same sheet serves both kinds: the app fetches the event by id and dispatches on its kind — kind `1617` loads as a patch, kind `1618` loads as a PR (`FR-sri-pr-open-patches`).
 
 - **Entry points**: `OpenPatchButton` in the Empty State (`./code-review-prompt.md`).
-- **Layout**: A modal sheet with a title (`Open Patch`), a single-line text field (`Paste a patch event id or nevent1…`), a primary `Open` button, and a `Cancel` button. An inline message area below the field shows validation/fetch errors.
+- **Layout**: A modal sheet with a title (`Open Patch or PR`), a single-line text field (`Paste a patch or PR event id or nevent1…`), a primary `Open` button, and a `Cancel` button. An inline message area below the field shows validation/fetch errors.
 - **Components**:
   - `PatchReferenceField` — text field; auto-detects paste; trims whitespace.
   - `OpenButton` — disabled until the field is non-empty; shows `Opening…` during fetch.
@@ -40,23 +40,24 @@ The reviewer enters a NIP-34 patch reference to start a review.
   - **fetching** — `Opening…`, field and button disabled.
   - **invalid-input** — `Enter a 64-character hex event id or a nevent1 reference` inline; sheet stays open.
   - **not-found** — `Patch event <short-id> not found on the configured relays.`
-  - **wrong-kind** — `Event <short-id> is not a NIP-34 patch (kind <k>).`
+  - **wrong-kind** — `Event <short-id> is not a NIP-34 patch or PR (kind <k>).`
   - **bad-diff** — `Patch event <short-id> does not contain a valid unified diff.`
   - **no-relays** — `No Nostr relays reachable — check your relay configuration.`
+  - **PR — no reviewable patches** — `PR <short-id> has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS.` (`FR-sri-pr-open-patches`)
   - **success** — sheet dismisses; app transitions into the Review State (the loaded review is the confirmation).
 - **Actions**: Enter reference → `Open`; on success dismiss + load; on error stay open with the message.
-- **Requirements satisfied**: `FR-sri-patch-open-entry`, `FR-sri-patch-open-input`, `FR-sri-patch-open-fetch`, `AC-sri-patch-open-happy`, `AC-sri-patch-open-nevent`, `AC-sri-patch-open-invalid-id`, `AC-sri-patch-open-not-found`, `AC-sri-patch-open-wrong-kind`, `AC-sri-patch-open-bad-diff`, `AC-sri-patch-open-no-relays`.
+- **Requirements satisfied**: `FR-sri-patch-open-entry`, `FR-sri-patch-open-input`, `FR-sri-patch-open-fetch`, `FR-sri-pr-open-patches`, `FR-sri-pr-open-load`, `AC-sri-patch-open-happy`, `AC-sri-patch-open-nevent`, `AC-sri-patch-open-invalid-id`, `AC-sri-patch-open-not-found`, `AC-sri-patch-open-wrong-kind`, `AC-sri-patch-open-bad-diff`, `AC-sri-patch-open-no-relays`.
 
-### Patch Metadata Section
+### Patch/PR Metadata Section
 
-Read-only patch orientation shown once a patch is loaded.
+Read-only patch/PR orientation shown once a patch or PR is loaded.
 
-- **Entry points**: loaded patch review.
-- **Layout**: A compact card. Rows: Author (display name or truncated npub), Commit message (first line), Parent (short hash, when present), Status badge (`open` in v1), Repo coordinate (the `a` tag, when present), Event id (short, tappable to copy full id).
+- **Entry points**: loaded patch or PR review.
+- **Layout**: A compact card. Rows: Author (display name or truncated npub), Commit message (first line — the PR `subject` for a PR), Parent (short hash, when present — the PR `merge-base` for a PR), Status badge (`open` in v1), Repo coordinate (the `a` tag, when present), Event id (short, tappable to copy full id).
 - **Components**: `StatusBadge` — `open` rendered neutral for v1.
-- **States**: populated (always, for a loaded patch); rows with no data (no parent tag) are omitted.
+- **States**: populated (always, for a loaded patch/PR); rows with no data (no parent/merge-base tag) are omitted.
 - **Actions**: Tap the event id to copy the full 64-char id.
-- **Requirements satisfied**: `FR-sr-patch-metadata-display`, `FR-sri-patch-open-load` (metadata attach), `AC-sri-patch-open-happy`.
+- **Requirements satisfied**: `FR-sr-patch-metadata-display`, `FR-sr-pr-metadata-display`, `FR-sri-patch-open-load`, `FR-sri-pr-open-load` (metadata attach), `AC-sri-patch-open-happy`.
 
 ### Reviewer Identity Indicator
 
@@ -99,7 +100,7 @@ Where the reviewer configures their Nostr relays in-app — the iOS counterpart 
 
 A reviewer away from their machine receives a patch event id and wants to review it.
 
-1. Reviewer opens the app → Empty State → taps **Open Patch**.
+1. Reviewer opens the app → Empty State → taps **Open Patch or PR**.
 2. Pastes a 64-char hex id (or `nevent1…`) → taps **Open** → sheet shows `Opening…`.
 3. The app fetches the event in-process, validates kind `1617` + diff; on success the sheet dismisses and the Review State appears with one tab per changed file, the Patch Metadata section, the identity indicator, and the live Patch Thread section.
 4. Reviewer taps a line, types a comment, taps **Publish** (identity loaded) → the reply is signed and sent; it appears immediately inline and in the Thread section with a `YOU` badge.
