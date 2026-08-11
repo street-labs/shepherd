@@ -3143,6 +3143,107 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-activates-thread`
 
+### `FR-srm-deeplink-pr-format`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/ShepherdApp/ShepherdApp.swift`, `engineering/apps/macos/Sources/Dependencies/RelayClient.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-pr-load`, `TC-srm-deeplink-parse-unit`
+
+### `FR-srm-pr-open-fetch`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/Dependencies/PatchFetcher.swift`, `engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`, `TC-srm-pr-open-no-clone`, `TC-srm-pr-open-no-commit`, `TC-srm-pr-open-fetcher-unit`
+
+### `FR-srm-pr-open-clone`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/Dependencies/GitClient.swift`, `engineering/apps/macos/Sources/Dependencies/PatchFetcher.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`, `TC-srm-pr-open-merge-base`, `TC-srm-pr-open-no-merge-base`, `TC-srm-pr-open-clone-failure`, `TC-srm-pr-open-commit-not-found`, `TC-srm-pr-open-fetcher-unit`
+
+### `FR-srm-pr-open-load`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/AppFeature/AppFeature.swift`, `engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift`, `engineering/apps/macos/Sources/SharedModels/ReviewContext.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`, `TC-srm-pr-open-activates-thread`
+
+### `NFR-srm-pr-open-git-required`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`; `engineering/apps/macos/Sources/Dependencies/GitClient.swift` (planned)
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-git-required`
+
+### `AC-srm-pr-open-happy`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`, `TC-srm-pr-open-fetcher-unit`
+
+### `AC-srm-pr-open-merge-base`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-merge-base`
+
+### `AC-srm-pr-open-no-merge-base`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-no-merge-base`
+
+### `AC-srm-pr-open-no-clone`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-no-clone`
+
+### `AC-srm-pr-open-no-commit`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-no-commit`
+
+### `AC-srm-pr-open-clone-failure`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-clone-failure`
+
+### `AC-srm-pr-open-commit-not-found`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-commit-not-found`
+
+### `AC-srm-pr-open-git-required`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-git-required`
+
+### `AC-srm-pr-open-activates-thread`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-activates-thread`
+
+### `AC-srm-deeplink-pr-load`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-pr-load`
+
+### `AC-srm-deeplink-pr-cold-launch`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-pr-cold-launch`
+
+### `AC-srm-deeplink-pr-clone-failure`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-deeplink-pr-clone-failure`
+
 ### `FR-mdr-detect-markdown`
 - **Defined in**: `product/markdown-render.md`
 - **Design**: `design/macos/markdown-render.md`

@@ -407,17 +407,70 @@ The reviewer has a patch event id (from a Nostr client, a Buzz message, or an ng
 
 - `FR-srm-patch-open-entry`: empty-state `Open Patch…` button + `Cmd+Shift+P` shortcut
 - `FR-srm-patch-open-input`: dialog field accepting hex id or `nevent1`; inline invalid-input state
-- `FR-srm-patch-open-fetch`: fetching state; in-process relay fetch; not-found / wrong-kind / bad-diff / no-relays failure states
+- `FR-srm-patch-open-fetch`: fetching state; in-process relay fetch; not-found / wrong-kind / bad-diff / no-relays failure states (now accepts kind `1618` and branches to the PR load path)
 - `FR-srm-patch-open-load`: per-file diff tabs; attached patch metadata; transition into review layout
 - `AC-srm-patch-open-happy`, `AC-srm-patch-open-nevent`, `AC-srm-patch-open-invalid-id`, `AC-srm-patch-open-not-found`, `AC-srm-patch-open-wrong-kind`, `AC-srm-patch-open-bad-diff`, `AC-srm-patch-open-no-relays`, `AC-srm-patch-open-activates-thread`
 
+## In-App Pull Request Open
+
+The Open Patch dialog also accepts pull request references. A NIP-34 pull request (kind `1618`) does not contain an inline diff — its content is a markdown description, and its tags carry a `clone` URL and a `c` (tip commit) tag. To review a PR, the app fetches the event, clones the git repository at the clone URL, checks out the tip commit, computes the unified diff, and loads it using the same diff-as-tabs surface as a patch. Implements `FR-srm-pr-open-fetch`, `FR-srm-pr-open-clone`, `FR-srm-pr-open-load`, `NFR-srm-pr-open-git-required`.
+
+### Entry point and dialog
+
+The entry point is the same `Open Patch…` button and `Cmd+Shift+P` shortcut. The dialog field accepts the same input forms (hex event id or `nevent1`). The app does not ask the reviewer to specify whether they are opening a patch or a PR — it fetches the event by id, inspects the kind, and branches: kind `1617` loads as a patch, kind `1618` loads as a PR. The button label and dialog title may be updated to reflect that both patches and PRs are accepted (e.g. "Open Patch or PR"); this is a design decision that does not change the flow. The placeholder text and field behavior are unchanged.
+
+### Loaded review surface
+
+Once the diff is computed, the review surface is identical to a patch review — no new components:
+- The **file browser** lists one row per changed file (from the computed diff), named by file path.
+- The **code viewer** shows each file's diff block as read-only plaintext content, same as a patch-open tab.
+- The **inspector** shows a **PR Metadata section** (the PR counterpart of the Patch Metadata section) with: author (resolved display name or truncated npub), subject (from the `subject` tag or the first line of the markdown content), tip commit (short hash from the `c` tag), clone URL, branch name (from `branch-name` tag if present), repo coordinate (the `a` tag), and event id (short form). PR status renders `open` unconditionally in v1, same as patches. The markdown description from the PR event's content is shown in the metadata section as the PR body, below the subject — this is the PR-specific addition to the metadata section (a patch's commit message occupies the same visual slot). The reviewer identity indicator and the live Patch Thread section are active, identical to a patch review.
+
+### Loading states
+
+A PR load has more steps than a patch load (fetch → clone → diff → split), so the dialog (or the dialog-less deeplink path) shows an extended loading state:
+- **Fetching event** — `Fetching PR from relays…` (same relay fetch as a patch)
+- **Cloning repository** — `Cloning <clone-url>…` (this is the new, PR-specific state; it may take several seconds for large repos)
+- **Computing diff** — `Computing diff…` (brief)
+
+The dialog (or the deeplink loading overlay) progresses through these labels so the reviewer sees that work is happening, not a frozen spinner. `Cancel` remains available throughout and aborts any in-progress clone.
+
+### Error states
+
+PR-specific errors extend the patch error set:
+- **No clone URL** — `Pull request <short-id> has no clone URL — cannot fetch changes.`
+- **No commit id** — `Pull request <short-id> has no commit id.`
+- **Git not installed** — `git is required to review pull requests but was not found on your system`
+- **Clone failure** — `Could not clone <clone-url>: <git error>.` (network error, repo not found, auth required)
+- **Commit not found** — `Commit <c> not found in <clone-url>.` (the `c` tag references a commit that doesn't exist in the cloned repo)
+
+These are surfaced in the same dialog error area (for a dialog-opened PR) or the notice surface (for a deeplink-opened PR), with the same stay-open-for-retry behavior as patch errors.
+
+### Temporary directory cleanup
+
+The cloned repository lives in a temporary directory (e.g. under `$TMPDIR/shepherd-pr-<short-id>/`). It is cleaned up when the review window closes or the session is cleared. The reviewer does not manage this directory; it is an implementation detail.
+
+### Accessibility
+
+- The multi-step loading labels are announced to VoiceOver as they progress.
+- The PR Metadata section exposes a VoiceOver label ("Pull request metadata") so screen-reader users can distinguish it from patch metadata.
+- Error states are announced as they appear.
+
+### Requirements Satisfied
+
+- `FR-srm-pr-open-fetch`: kind `1618` validation; `clone` and `c` tag presence checks
+- `FR-srm-pr-open-clone`: git clone + checkout + diff computation; merge-base vs tip-against-parent
+- `FR-srm-pr-open-load`: diff-as-tabs review surface; PR metadata; thread activation
+- `NFR-srm-pr-open-git-required`: git-on-PATH requirement for PR review
+- `AC-srm-pr-open-happy`, `AC-srm-pr-open-merge-base`, `AC-srm-pr-open-no-merge-base`, `AC-srm-pr-open-no-clone`, `AC-srm-pr-open-no-commit`, `AC-srm-pr-open-clone-failure`, `AC-srm-pr-open-commit-not-found`, `AC-srm-pr-open-git-required`, `AC-srm-pr-open-activates-thread`
+
 ## Deeplink Entry
 
-The app gains a way to begin a patch review that the reviewer did not initiate by hand: another agent or tool sends a link using the app's custom URL scheme, and opening it loads the referenced patch directly. Implements `FR-srm-deeplink-scheme`, `FR-srm-deeplink-patch-format`, `FR-srm-deeplink-route`, `FR-srm-deeplink-cold-launch`, `FR-srm-deeplink-warm-empty`, `FR-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-malformed`, `FR-srm-deeplink-errors`.
+The app gains a way to begin a review that the reviewer did not initiate by hand: another agent or tool sends a link using the app's custom URL scheme, and opening it loads the referenced patch or pull request directly. Implements `FR-srm-deeplink-scheme`, `FR-srm-deeplink-patch-format`, `FR-srm-deeplink-pr-format`, `FR-srm-deeplink-route`, `FR-srm-deeplink-cold-launch`, `FR-srm-deeplink-warm-empty`, `FR-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-malformed`, `FR-srm-deeplink-errors`.
 
 ### What the reviewer sees
 
-The deeplink itself is invisible — the reviewer clicks a link in another tool (a Buzz message, a notification, a PR description) and Shepherd comes to the foreground already loading the patch. There is no Open Patch dialog in this path (the reviewer did not request one); the link *is* the request. The loaded review surface is identical to a dialog-opened patch review: one tab per changed file, the Patch Metadata section, the live Patch Thread section, and the identity indicator all active.
+The deeplink itself is invisible — the reviewer clicks a link in another tool (a Buzz message, a notification) and Shepherd comes to the foreground already loading the referenced patch or PR. There is no Open Patch dialog in this path (the reviewer did not request one); the link *is* the request. The loaded review surface is identical to a dialog-opened review: one tab per changed file, the metadata section, the live Patch Thread section, and the identity indicator all active. The URL action (`patch` or `pr`) selects which kind of NIP-34 entity to load.
 
 ### Launch states
 
@@ -434,36 +487,43 @@ The deeplink itself is invisible — the reviewer clicks a link in another tool 
 
 Because there is no dialog to host the fetching state, the window itself reflects the load:
 
-- **Loading** — while the patch is being fetched from relays, the window (or the area that will hold the review) shows an indeterminate progress indicator with the text `Fetching patch from relays…`. This is the same loading affordance used by the Open Patch dialog's fetching state, repurposed for the dialog-less path.
+- **Loading (patch)** — while the patch is being fetched from relays, the window (or the area that will hold the review) shows an indeterminate progress indicator with the text `Fetching patch from relays…`. This is the same loading affordance used by the Open Patch dialog's fetching state, repurposed for the dialog-less path.
+- **Loading (PR)** — a PR deeplink shows the multi-step progression: `Fetching PR from relays…` → `Cloning <clone-url>…` → `Computing diff…`, same labels as the in-app PR open dialog states.
 - **Failure notices** use the app's standard transient notice surface (the same one used for other non-dialog errors), with the identical per-cause wording as the Open Patch dialog:
   - Not found: `Patch event <short-id> not found on the configured relays.`
-  - Wrong kind: `Event <short-id> is not a NIP-34 patch (kind <k>).`
+  - Wrong kind: `Event <short-id> is not a NIP-34 patch or pull request (kind <k>).`
   - Bad diff: `Patch event <short-id> does not contain a valid unified diff.`
   - No relays: `No Nostr relays reachable — check your relay configuration.`
-  - Malformed/unsupported link: `This link could not be opened. It isn't a recognized Shepherd patch link.` (the one notice that has no dialog counterpart, since the dialog validated its own input)
+  - No clone URL: `Pull request <short-id> has no clone URL — cannot fetch changes.`
+  - No commit id: `Pull request <short-id> has no commit id.`
+  - Git not installed: `git is required to review pull requests but was not found on your system`
+  - Clone failure: `Could not clone <clone-url>: <git error>.`
+  - Commit not found: `Commit <c> not found in <clone-url>.`
+  - Malformed/unsupported link: `This link could not be opened. It isn't a recognized Shepherd patch or PR link.` (the one notice that has no dialog counterpart, since the dialog validated its own input)
   On a cold-launch failure the notice is shown over the empty start screen; on a warm-launch failure the in-progress review (if any) is untouched and the notice is shown above it.
 
 ### No new identity or context path
 
-The deeplink carries only the patch reference. Identity handling, the live reply subscription, and reply publishing all reuse the existing in-app patch-review surfaces unchanged — no new components are introduced for the deeplink path beyond the launch-state handling and the dialog-less loading/error surfaces above.
+The deeplink carries only the patch or PR reference. Identity handling, the live reply subscription, and reply publishing all reuse the existing in-app review surfaces unchanged — no new components are introduced for the deeplink path beyond the launch-state handling and the dialog-less loading/error surfaces above.
 
 ### Accessibility
 
-- The loading state's progress indicator and text are announced to VoiceOver ("Fetching patch from relays"), so a reviewer who activated a link does not wonder whether anything is happening.
+- The loading state's progress indicator and text are announced to VoiceOver ("Fetching patch from relays" / "Fetching PR from relays" / "Cloning" / "Computing diff"), so a reviewer who activated a link does not wonder whether anything is happening.
 - The replace-confirmation alert is a standard modal alert and inherits the app's existing alert accessibility (title, message, and button labels announced; `Cancel` is the safe default).
 - Failure notices are announced as they appear.
 
 ### Requirements Satisfied
 
 - `FR-srm-deeplink-scheme`: the registered URL scheme routes links to the app (foreground/launch)
-- `FR-srm-deeplink-patch-format`: link carries a hex id or `nevent1` reference in its path
-- `FR-srm-deeplink-route`: load reuses the in-app open-patch fetch-validate-load path; no dialog presented
+- `FR-srm-deeplink-patch-format`: `shepherd://patch/<ref>` carries a hex id or `nevent1` reference
+- `FR-srm-deeplink-pr-format`: `shepherd://pr/<ref>` carries a hex id or `nevent1` reference
+- `FR-srm-deeplink-route`: load reuses the in-app open path (patch or PR); no dialog presented
 - `FR-srm-deeplink-cold-launch`: cold launch goes straight to loading; failure lands on empty state with notice
-- `FR-srm-deeplink-warm-empty`: warm launch with empty state loads the patch
+- `FR-srm-deeplink-warm-empty`: warm launch with empty state loads the referenced event
 - `FR-srm-deeplink-warm-in-progress`: warm launch with a review in progress confirms before replacing; no-comments case skips confirm
 - `FR-srm-deeplink-malformed`: unknown action / invalid reference rejected with a notice; in-progress review untouched
-- `FR-srm-deeplink-errors`: fetch/validation failures surface via the notice surface with the same wording as the dialog
-- `AC-srm-deeplink-scheme`, `AC-srm-deeplink-patch-load`, `AC-srm-deeplink-nevent`, `AC-srm-deeplink-cold-launch`, `AC-srm-deeplink-warm-empty`, `AC-srm-deeplink-warm-in-progress`, `AC-srm-deeplink-malformed`, `AC-srm-deeplink-not-found`, `AC-srm-deeplink-wrong-kind`, `AC-srm-deeplink-bad-diff`, `AC-srm-deeplink-no-relays`, `AC-srm-deeplink-activates-thread`
+- `FR-srm-deeplink-errors`: fetch/validation/clone failures surface via the notice surface with the same wording as the dialog
+- `AC-srm-deeplink-scheme`, `AC-srm-deeplink-patch-load`, `AC-srm-deeplink-nevent`, `AC-srm-deeplink-cold-launch`, `AC-srm-deeplink-warm-empty`, `AC-srm-deeplink-warm-in-progress`, `AC-srm-deeplink-malformed`, `AC-srm-deeplink-not-found`, `AC-srm-deeplink-wrong-kind`, `AC-srm-deeplink-bad-diff`, `AC-srm-deeplink-no-relays`, `AC-srm-deeplink-activates-thread`, `AC-srm-deeplink-pr-load`, `AC-srm-deeplink-pr-cold-launch`, `AC-srm-deeplink-pr-clone-failure`
 
 ## Concurrency
 
@@ -568,3 +628,10 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `FR-srm-deeplink-malformed` | Deeplink Entry (unknown action / invalid reference rejected with a notice) |
 | `FR-srm-deeplink-errors` | Deeplink Entry (fetch/validation failures surface via notice surface) |
 | `AC-srm-deeplink-scheme`, `AC-srm-deeplink-patch-load`, `AC-srm-deeplink-nevent`, `AC-srm-deeplink-cold-launch`, `AC-srm-deeplink-warm-empty`, `AC-srm-deeplink-warm-in-progress`, `AC-srm-deeplink-malformed`, `AC-srm-deeplink-not-found`, `AC-srm-deeplink-wrong-kind`, `AC-srm-deeplink-bad-diff`, `AC-srm-deeplink-no-relays`, `AC-srm-deeplink-activates-thread` | Deeplink Entry |
+| `FR-srm-pr-open-fetch` | In-App Pull Request Open (kind 1618 validation; `clone`/`c` tag checks) |
+| `FR-srm-pr-open-clone` | In-App Pull Request Open (git clone + checkout + diff; merge-base vs tip-against-parent) |
+| `FR-srm-pr-open-load` | In-App Pull Request Open (diff-as-tabs reuse; PR metadata section; thread activation) |
+| `NFR-srm-pr-open-git-required` | In-App Pull Request Open (git-on-PATH requirement) |
+| `AC-srm-pr-open-happy`, `AC-srm-pr-open-merge-base`, `AC-srm-pr-open-no-merge-base`, `AC-srm-pr-open-no-clone`, `AC-srm-pr-open-no-commit`, `AC-srm-pr-open-clone-failure`, `AC-srm-pr-open-commit-not-found`, `AC-srm-pr-open-git-required`, `AC-srm-pr-open-activates-thread` | In-App Pull Request Open |
+| `FR-srm-deeplink-pr-format` | Deeplink Entry (`shepherd://pr/<ref>` action) |
+| `AC-srm-deeplink-pr-load`, `AC-srm-deeplink-pr-cold-launch`, `AC-srm-deeplink-pr-clone-failure` | Deeplink Entry (PR deeplink cases) |
