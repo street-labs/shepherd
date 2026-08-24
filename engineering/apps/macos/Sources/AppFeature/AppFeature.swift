@@ -99,6 +99,11 @@ public struct AppFeature {
         /// Implements: FR-srm-patch-open-entry, FR-sri-patch-open-entry.
         @Presents public var openPatch: OpenPatchFeature.State?
 
+        /// A deeplink reference (`shepherd://patch|pr/<ref>`) held while the
+        /// replace-in-progress confirmation alert is up. Implements
+        /// FR-srm-deeplink-warm-in-progress.
+        public var pendingDeeplinkInput: String?
+
         // Derived
         public var isMultiFile: Bool { files.count >= 2 }
         public var hasComments: Bool { !allComments.isEmpty }
@@ -194,6 +199,12 @@ public struct AppFeature {
         // MARK: - In-app patch open (FR-srm-patch-open-entry/input/fetch/load)
         case openPatchRequested
         case openPatch(PresentationAction<OpenPatchFeature.Action>)
+
+        // Deeplink entry (shepherd://patch|pr/<ref>). Implements FR-srm-deeplink-scheme,
+        // FR-srm-deeplink-patch-format, FR-srm-deeplink-pr-format, FR-srm-deeplink-route,
+        // FR-srm-deeplink-cold-launch, FR-srm-deeplink-warm-empty,
+        // FR-srm-deeplink-warm-in-progress, FR-srm-deeplink-malformed, FR-srm-deeplink-errors.
+        case deeplinkReceived(URL)
 
         // Patch-thread reply live subscription (FR-sr-patch-replies-live via
         // FR-sr-relay-client). The app subscribes to Nostr relays in-process and
@@ -431,12 +442,19 @@ public struct AppFeature {
             // MARK: - Alert Actions
 
             case .alert(.presented(.clearConfirmed)):
-                return performClearSession(state: &state)
+                let effect = performClearSession(state: &state)
+                // Resume a deeplink held behind the replace confirmation.
+                if let pending = state.pendingDeeplinkInput {
+                    state.pendingDeeplinkInput = nil
+                    return .merge(effect, presentOpenPatch(pending, state: &state))
+                }
+                return effect
 
             case let .alert(.presented(.removeFileConfirmed(fileID))):
                 return removeFile(id: fileID, state: &state)
 
             case .alert(.dismiss):
+                state.pendingDeeplinkInput = nil
                 return .none
 
             // MARK: - Prompt Lifecycle
@@ -565,6 +583,45 @@ public struct AppFeature {
             case .openPatchRequested:
                 state.openPatch = OpenPatchFeature.State()
                 return .none
+
+            // MARK: - Deeplink entry (shepherd://patch|pr/<ref>)
+
+            // ponytail: routes the deeplink through the existing Open Patch dialog
+            // (prefilled input + auto-fetch) instead of extracting PatchFetcher and
+            // a dialog-less progress overlay; the dialog already surfaces every
+            // fetch/validation state. Extract when dialog-less loading is required.
+            case let .deeplinkReceived(url):
+                guard let ref = Self.parseDeeplinkRef(url) else {
+                    state.alert = AlertState {
+                        TextState("Invalid Link")
+                    } message: {
+                        TextState("Links must be shepherd://patch/<ref> or shepherd://pr/<ref>.")
+                    }
+                    return .none
+                }
+                if !state.files.isEmpty {
+                    guard state.hasComments else {
+                        _ = performClearSession(state: &state)
+                        return presentOpenPatch(ref, state: &state)
+                    }
+                    // Warm with unsaved feedback: confirm replacement first.
+                    // clearConfirmed resumes the pending deeplink.
+                    state.pendingDeeplinkInput = ref
+                    state.alert = AlertState {
+                        TextState("Open Link")
+                    } actions: {
+                        ButtonState(role: .destructive, action: .clearConfirmed) {
+                            TextState("Replace")
+                        }
+                        ButtonState(role: .cancel) {
+                            TextState("Cancel")
+                        }
+                    } message: {
+                        TextState("Opening this link replaces the current files and comments.")
+                    }
+                    return .none
+                }
+                return presentOpenPatch(ref, state: &state)
 
             case .openPatch(.presented(.delegate(.cancelled))):
                 state.openPatch = nil
@@ -837,6 +894,32 @@ public struct AppFeature {
     /// overall comment, and every child feature's state. Shared by the confirmed-clear
     /// alert path and the no-confirmation-when-empty short-circuit.
     /// Implements: FR-crp-clear-session
+    /// Present the Open Patch dialog with a prefilled reference and start the
+    /// fetch immediately. Implements FR-srm-deeplink-route.
+    private func presentOpenPatch(_ input: String, state: inout State) -> Effect<Action> {
+        state.openPatch = OpenPatchFeature.State(input: input)
+        return .send(.openPatch(.presented(.fetchButtonTapped)))
+    }
+
+    /// Parse `shepherd://patch/<ref>` or `shepherd://pr/<ref>`. The host selects
+    /// the action; the (percent-decoded) path must be a reference
+    /// `PatchRef.parse` accepts. Returns the raw reference string for the Open
+    /// Patch input, or nil for any other host / empty / malformed reference.
+    /// Implements FR-srm-deeplink-patch-format, FR-srm-deeplink-pr-format,
+    /// FR-srm-deeplink-malformed.
+    static func parseDeeplinkRef(_ url: URL) -> String? {
+        guard url.scheme?.lowercased() == "shepherd",
+              let host = url.host?.lowercased(),
+              host == "patch" || host == "pr"
+        else { return nil }
+        let raw = url.path.drop { $0 == "/" }
+        guard !raw.isEmpty,
+              let decoded = raw.removingPercentEncoding,
+              PatchRef.parse(decoded) != nil
+        else { return nil }
+        return decoded
+    }
+
     private func performClearSession(state: inout State) -> Effect<Action> {
         state.files = []
         state.allComments = []
