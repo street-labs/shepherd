@@ -7,8 +7,9 @@ Status: proposed v1. Companion to `ngit-ci-cutover.md` (borg repo), cutover step
 ## Event
 
 Custom kind in the NIP-34 family (1617 patch, 1618 PR, 1619 PR-update, 1621 issue,
-1630-1633 status; 1620 is currently unassigned upstream — we propose it upstream
-if it sticks).
+1630-1633 status; 1620 is currently unassigned upstream — we will propose it upstream via a NIP PR
+now, not "if it sticks" (unassigned kinds get claimed; a collision later costs a
+migration).
 
 ```json
 {
@@ -34,8 +35,10 @@ Published to the repo announcement's `relays`.
 2. `e` tag references the currently-open PR/patch event.
 3. `c` tag equals the PR's current tip commit (`c` tag of the newest 1618/1619).
    Stale-commit approvals do not count — a re-push forces re-review.
-4. Verdict is the newest 1620 (by `created_at`) per (pubkey, PR); newest overall
-   wins if reviewers disagree (v1: single approver keeps the gate simple).
+4. Verdict resolution: each reviewer's verdict is their newest 1620 per (pubkey, PR);
+   ordering by first-seen time at the merge service, not `created_at` (reviewer-
+   controlled; on ambiguity, resolve conservatively to rejection). The gate passes
+   only when at least one current approval exists AND zero current rejections.
 5. A later `rejection` from the same reviewer invalidates their earlier approval.
 
 ## Why not kind 1631
