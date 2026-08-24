@@ -22,6 +22,6 @@ Cross-cutting specs every builder MUST respect, regardless of feature.
 - **Cardinal rule:** markdown first, code second. Change the spec, then the code — never the reverse.
 - **Decisions:** append to `decisions-pending.md`; the pre-commit hook merges into `decisions.md` at commit time.
 - **Traceability:** update `index.md` when you create or reference a requirement slug.
-- **Audits:** `./scripts/audit-traceability.sh` (and lane/structure/temporal/coverage audits). The pre-commit hook runs the blocking ones.
+- **Audits:** `./scripts/audit-traceability.sh` (and lane/structure/temporal/coverage audits). The pre-commit hook runs the blocking ones — but hooks do **not** fire during `git rebase --continue`, so after resolving any rebase/merge conflict, run the audit yourself before pushing (a bad conflict resolution is exactly what the hook exists to catch).
 - **Project commands:** `/shepherd <file>` (open one file in the CRPG), `/shepherd-review` (guided multi-file review of the current changeset), `/land` (land changes on main, push, rebase), `/readme` (regenerate README with fresh demo screenshots).
 - **Update pdeq:** `/pdeq-update` advances the pinned `.pdeq` submodule, reconciles symlinks, and chains into `/pdeq-migrate` for any pending migrations.
