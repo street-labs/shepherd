@@ -463,6 +463,11 @@ Shared vocabulary for this project. All agents should use these terms consistent
 **Also known as**: macOS Gatekeeper
 **Not to be confused with**: macOS sandboxing (a separate security mechanism for App Store apps)
 
+## Deeplink
+**Definition**: A link using the Shepherd app's custom URL scheme (`shepherd://`) that another tool (a Buzz agent, an ngit client, a notification) sends a reviewer, and that opens a NIP-34 patch directly in Shepherd for review when clicked. v1 carries a patch reference (a 64-character hex event id or a `nevent1…` reference) in the link's path (`shepherd://patch/<ref>`); the app launches (or focuses) and loads the patch through the in-app open-patch load path (`FR-srm-patch-open-load`), reusing the same fetch-validate-load sequence as the Open Patch dialog but without presenting the dialog. Launch-state handling covers cold launch, warm launch into the empty state, and warm launch with a review in progress (confirm before replacing). PRs (kind `1618`) and issues (kind `1621`) are not carried by v1 deeplinks (roadmap).
+**Also known as**: URL-scheme link, shepherd:// link
+**Not to be confused with**: Universal links / http URLs (Shepherd uses a custom scheme, not universal links); the Open Patch dialog (a manual in-app entry point — a deeplink is the link-initiated counterpart that reuses the dialog's load path without showing it)
+
 <!--
 Entry template:
 

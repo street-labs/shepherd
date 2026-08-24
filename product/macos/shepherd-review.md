@@ -27,6 +27,12 @@ The macOS variant adds one platform-choice user story on top of the shared spec'
 ### US-SRM-5: Open a patch directly in the app, without the CLI
 **As a** reviewer who has a NIP-34 patch event id (an ngit patch), **I want to** open that patch directly in the Shepherd app from its empty start screen — alongside opening files or pasting content — **so that** I can review the patch and participate in its thread without first dropping into a terminal to run `/shepherd-review --patch`. The app fetches the patch from Nostr itself and loads it for review.
 
+### US-SRM-6: Open a patch or PR from a link another agent sent me
+**As a** a reviewer coordinating with agents across tools, **I want to** click a link one of my agents sends me (in a chat, a notification, or a message) and have it open the referenced ngit patch or pull request directly in Shepherd, already loaded for review — **so that** I go from a mention of a patch or PR to reviewing it in one click, without copying an event id into the app's Open Patch field by hand. The link uses the app's custom URL scheme and carries the patch or PR reference; the app launches (or focuses) and loads it the same way the in-app open path does.
+
+### US-SRM-7: Open a pull request directly in the app, without the CLI
+**As a** reviewer who has a NIP-34 pull request event id (an ngit PR, kind `1618`), **I want to** open that PR directly in the Shepherd app from its empty start screen — alongside opening patches, files, or pasting content — **so that** I can review the PR's changes and participate in its thread without first dropping into a terminal. The app fetches the PR event from Nostr, clones the referenced git repository, computes the diff, and loads it for review.
+
 All other shared user stories (`US-SR-1` through `US-SR-9`) apply to the macOS variant unchanged — the review experience itself is the same.
 
 ## Shared Requirements — Applicability on macOS
@@ -219,7 +225,7 @@ The Open Patch dialog accepts a patch reference in either of two forms:
 1. A 64-character hex Nostr event id.
 2. A NIP-19 `nevent1…` bech32 entity that encodes a patch event (the app decodes it to its referenced event id and relays).
 
-A `naddr1…` reference is **not** accepted: NIP-19 `naddr` encodes an addressable coordinate (pubkey + kind + `d` tag), not an event id, and NIP-34 patch events are kind `1617` (non-parameterized, non-replaceable) with no `naddr` form. Supporting `naddr` would require a different fetch (a coordinate filter, not an `ids` filter) for no realistic copy source — patches are shared by event id or `nevent` from ngit clients and Buzz. (PRs, kind `1618`, are addressable but are out of scope for v1 in-app review; see roadmap.)
+A `naddr1…` reference is **not** accepted: NIP-19 `naddr` encodes an addressable coordinate (pubkey + kind + `d` tag), not an event id, and NIP-34 patch events are kind `1617` and pull request events are kind `1618` — both are non-parameterized, non-replaceable events referenced by event id, with no `naddr` form. Supporting `naddr` would require a different fetch (a coordinate filter, not an `ids` filter) for no realistic copy source — patches and PRs are shared by event id or `nevent` from ngit clients and Buzz.
 
 Leading/trailing whitespace is trimmed. An input that matches neither form is rejected inline with a clear message ("Enter a 64-character hex event id or a nevent1 reference") and the dialog stays open; no fetch is attempted. Pasted text that contains extra surrounding prose is not parsed — the whole (trimmed) field must be one valid reference.
 
@@ -228,8 +234,8 @@ When the reviewer submits a valid reference, the app fetches the patch event in-
 
 The first matching event delivered is taken as the fetched event and the subscription is cancelled immediately (one event, not a stream). The app then validates it (the diff-format semantics of `FR-sr-patch-validation`, performed in Swift rather than shell, with the in-app kind contract below):
 
-- **Event kind**: must be `1617` (NIP-34 patch). Any other kind is rejected with "Event <short-id> is not a NIP-34 patch (kind <k>)." In particular a kind:1 note, a kind:1621 issue, or a kind:1618 pull request all produce this error. (The shared `FR-sr-patch-validation` currently labels kind 1621 a "patch"; per NIP-34 kind 1621 is an *issue*. The in-app path reviews kind 1617 patches only — issues and PRs are out of scope for v1 — so it does not inherit the shared spec's kind set. See Open Questions.)
-- **Diff format**: the event content must be a valid unified diff beginning with `diff --git` and containing `+++`/`---` headers and `@@` hunks. (A NIP-34 patch event's content is the output of `git format-patch`, whose body is a unified diff; the subject line before the diff is the commit message, extracted in `FR-srm-patch-open-load`.) A malformed diff is rejected with "Patch event <short-id> does not contain a valid unified diff."
+- **Event kind**: must be `1617` (NIP-34 patch) or `1618` (NIP-34 pull request). A kind `1617` event is loaded as a patch (see `FR-srm-patch-open-load`); a kind `1618` event is loaded as a pull request (see `FR-srm-pr-open-fetch` through `FR-srm-pr-open-load`). Any other kind is rejected with "Event <short-id> is not a NIP-34 patch or pull request (kind <k>)." In particular a kind:1 note or a kind:1621 issue produces this error. (The shared `FR-sr-patch-validation` currently labels kind 1621 a "patch"; per NIP-34 kind 1621 is an *issue*. The in-app path reviews kind 1617 patches and kind 1618 pull requests — issues are out of scope — so it does not inherit the shared spec's kind set. See Open Questions.)
+- **Diff format (kind 1617 only)**: for a patch event (kind `1617`), the event content must be a valid unified diff beginning with `diff --git` and containing `+++`/`---` headers and `@@` hunks. (A NIP-34 patch event's content is the output of `git format-patch`, whose body is a unified diff; the subject line before the diff is the commit message, extracted in `FR-srm-patch-open-load`.) A malformed diff is rejected with "Patch event <short-id> does not contain a valid unified diff." For a pull request event (kind `1618`), the content is a markdown description (not a diff); the diff is obtained from the git repository at the clone URL (see `FR-srm-pr-open-clone`), so no content-format validation is performed on a PR event's content.
 
 A fetch that returns no event within the relay wait window is rejected with "Patch event <short-id> not found on the configured relays." If no relay is reachable, the dialog reports "No Nostr relays reachable — check your relay configuration." and no review is started.
 
@@ -244,6 +250,65 @@ On a successfully fetched and validated patch event, the app loads a patch revie
 
 There is no agent-generated neutral/review context for an in-app-opened patch (no LLM runs in this path); per-file review context is simply absent, and the review-context panel hides for tabs that have none (graceful-missing, per `AC-crp-context-graceful-missing`). The patch metadata section and patch thread are the orientation the reviewer gets instead.
 
+### In-app pull request open
+
+These requirements add pull request (kind `1618`) support to the in-app open path. A NIP-34 pull request event does not contain an inline diff — its content is a markdown description, and its tags carry a `clone` URL and a `c` (tip commit) tag pointing to the proposed changes in a git repository. To review a PR, the app fetches the event from Nostr, then clones (or fetches from) the git repository at the clone URL, checks out the tip commit, computes the unified diff, and loads it for review using the same diff-as-tabs surface as a patch. Once the diff is loaded, the review surface — file tabs, metadata section, live patch-thread replies, and bidirectional reply publishing — is identical to a patch review.
+
+The reviewer's identity is handled by the existing in-app identity flow (`FR-srm-identity-load`); the in-app PR open does not introduce a new identity path. If no identity is loaded when a PR is opened, review and local commenting work and the identity indicator surfaces that replies will not publish, identical to a patch review.
+
+The Open Patch dialog (`FR-srm-patch-open-entry`) is the entry point for in-app PR open as well: the reviewer enters a PR event reference (same input forms as a patch — hex id or `nevent1`), the app fetches the event, determines it is kind `1618`, and branches into the PR load path. The design spec addresses whether the button or dialog label is updated to reflect that both patches and PRs are accepted.
+
+#### `FR-srm-pr-open-fetch` — Fetch and validate the NIP-34 PR event in-process
+When the fetched event is kind `1618` (NIP-34 pull request), the app validates it as a PR: the event must carry at least one `clone` tag (a git clone URL where the PR's changes can be fetched) and a `c` tag (the tip commit id of the PR branch). A PR event without a `clone` tag is rejected with "Pull request <short-id> has no clone URL — cannot fetch changes." A PR event without a `c` tag is rejected with "Pull request <short-id> has no commit id." The event content (markdown) is the PR description, not a diff; it is displayed in the metadata section (see `FR-srm-pr-open-load`) and is not validated as a diff.
+
+#### `FR-srm-pr-open-clone` — Obtain the unified diff from the git repository
+The app obtains the PR's changes from the git repository identified by the `clone` tag. It clones (or fetches from) the repository at the clone URL into a temporary directory, checks out the commit specified by the `c` tag, and computes the unified diff. If a `merge-base` tag is present, the diff is computed between the merge-base commit and the tip commit — the full net diff of the PR. If no `merge-base` tag is present, the diff of the tip commit against its own parent is used (`git show <c>`), showing at least the tip commit's changes; the full multi-commit diff without a `merge-base` is a fast-follow. This step requires git to be installed on the system (see `NFR-srm-pr-open-git-required`).
+
+The clone is a shallow or partial fetch where possible to minimize download size and time. The temporary directory is cleaned up when the review window closes or the session is cleared.
+
+#### `FR-srm-pr-open-load` — Load the PR diff for review
+The computed unified diff is split into one tab per changed file and loaded for review using the same diff-as-tabs surface as a patch (`FR-srm-patch-open-load`): each changed file becomes a tab named by its file path, with the diff block as the tab's content. PR metadata is attached instead of patch metadata — author (event pubkey, resolved to a display name via the roster when available), subject (from the `subject` tag, or the first line of the markdown content if no `subject` tag), tip commit (from the `c` tag), clone URL (from the `clone` tag), branch name (from the `branch-name` tag, if present), merge-base (from the `merge-base` tag, if present), and repo coordinate (the `a` tag). This activates the metadata section, the live patch-thread reply subscription (`FR-sr-patch-replies-live`), and the reply-publishing path (`FR-srm-comment-publish-on-submit`) — identical to a patch review. PR status is shown as `open` unconditionally in v1, the same v1 caveat as patches (see `roadmap/patch-watcher.md`).
+
+There is no agent-generated neutral/review context for an in-app-opened PR (no LLM runs in this path), identical to an in-app-opened patch.
+
+#### `NFR-srm-pr-open-git-required` — PR review requires git on the system
+Unlike patch review (which fetches an inline diff from a Nostr event and needs no local git repository), pull request review requires git to be installed on the system because the changes must be fetched from a remote git repository at a clone URL. If git is not found on the system PATH, the PR cannot be loaded and the reviewer is informed with a clear message ("git is required to review pull requests but was not found on your system"). Patch review is unaffected — it does not require git.
+
+### Deeplink entry
+
+These requirements add a third entry point to in-app patch review: a link another agent or tool sends the reviewer. The link uses the app's custom URL scheme and carries a NIP-34 patch reference. Opening the link launches the app (or focuses it if already running) and loads the referenced patch for review, reusing the in-app open-patch load path (`FR-srm-patch-open-fetch` and `FR-srm-patch-open-load`) so the loaded review surface is identical to one opened via the Open Patch dialog. Once loaded, the patch metadata section, the live patch-thread replies, and the bidirectional reply-publishing path all activate exactly as in a dialog-opened patch review.
+
+The deeplink carries only the patch reference; it does not carry relay hints beyond those embedded in a `nevent1` reference, and it does not carry reviewer-identity or review-context data. The reviewer's identity is handled by the existing in-app identity flow (`FR-srm-identity-load`); a deeplink does not introduce a new identity path.
+
+#### `FR-srm-deeplink-scheme` — The app answers its custom URL scheme
+The app is registered with the operating system as the handler for its custom URL scheme, so opening any link using that scheme brings the app to the foreground (launching it if it is not running). The scheme is fixed and reserved for Shepherd; a link using the scheme always routes to Shepherd and not to any other application. (The scheme is already registered in the app bundle; this requirement is the behavioral guarantee that opening a link using it reaches the app.)
+
+#### `FR-srm-deeplink-patch-format` — A patch deeplink carries a patch reference
+A patch deeplink uses the `patch` action (`shepherd://patch/<ref>`) and carries a NIP-34 patch reference in one of the same two forms the Open Patch dialog accepts (`FR-srm-patch-open-input`): a 64-character hex Nostr event id, or a NIP-19 `nevent1…` reference (whose embedded relay hints are preferred when present). The reference is carried in the link's path. A link that uses the scheme but does not carry a valid reference (unknown action, or an empty/malformed reference) is rejected per `FR-srm-deeplink-malformed`.
+
+#### `FR-srm-deeplink-pr-format` — A PR deeplink carries a PR reference
+A PR deeplink uses the `pr` action (`shepherd://pr/<ref>`) and carries a NIP-34 pull request reference in the same two forms as a patch deeplink: a 64-character hex Nostr event id, or a NIP-19 `nevent1…` reference (whose embedded relay hints are preferred when present). The reference is carried in the link's path. The same malformed-link rejection (`FR-srm-deeplink-malformed`) applies.
+
+#### `FR-srm-deeplink-route` — A deeplink loads the referenced event through the in-app open path
+When the app receives a patch deeplink (`shepherd://patch/<ref>`), it extracts the reference and loads the patch for review through the same fetch-validate-load path as the Open Patch dialog (`FR-srm-patch-open-fetch` then `FR-srm-patch-open-load`): fetch by event id over the configured relays (preferring `nevent1` relay hints), validate kind `1617` and unified-diff format, split the diff into one tab per changed file, attach patch metadata, and enter the multi-file review layout with the patch metadata section, live patch-thread replies, and reply-publishing path active. The reviewer did not open the Open Patch dialog to start this flow, so the dialog is not presented; the load proceeds directly from the link.
+
+When the app receives a PR deeplink (`shepherd://pr/<ref>`), it loads the pull request through the same fetch-clone-diff-load path as the in-app PR open (`FR-srm-pr-open-fetch` then `FR-srm-pr-open-clone` then `FR-srm-pr-open-load`), without presenting the dialog. The same launch-state handling and error surfacing apply to both patch and PR deeplinks.
+
+#### `FR-srm-deeplink-cold-launch` — Cold launch goes straight into loading
+When the app is not running and a deeplink (patch or PR) is opened, the app launches directly into loading the referenced event. It does not first show the empty start screen and wait for the reviewer to act; the load begins as soon as the app is ready, and the review surface appears when the fetch (and, for a PR, the clone and diff) completes. If the load fails (`FR-srm-deeplink-errors`), the app lands on the empty start screen with the error surfaced, so the reviewer is not left looking at a blank window with no explanation.
+
+#### `FR-srm-deeplink-warm-empty` — Warm launch with nothing loaded loads the event
+When the app is already running and no files are loaded (the empty state) and a deeplink (patch or PR) is opened, the app loads the referenced event just as in the cold-launch case, replacing the empty state with the review surface.
+
+#### `FR-srm-deeplink-warm-in-progress` — Warm launch with a review in progress confirms before replacing
+When the app is already running and a review is in progress (files loaded, whether from a session launch, pasted content, or a previously opened patch or PR) and a deeplink (patch or PR) is opened, the app does not silently discard the in-progress review. It asks the reviewer to confirm replacing the current review with the deeplinked event, naming what would be lost (any unsaved local comments that have not been published to the patch thread). Only on confirmation does it clear the current review and load the deeplinked event. On cancellation the in-progress review is left untouched and the deeplink is dropped. A review with no local comments may be replaced without confirmation, since nothing is lost.
+
+#### `FR-srm-deeplink-malformed` — Malformed or unsupported deeplinks are rejected cleanly
+A link using the app's URL scheme that does not carry a valid reference (unknown action — neither `patch` nor `pr`, an empty reference, or a reference that is neither a 64-character hex event id nor a `nevent1` reference) is rejected. The app surfaces a clear indication that the link could not be opened (naming the problem, e.g. an unrecognized link or an invalid reference) and does not start a fetch. If a review is already in progress, the rejection does not disrupt it.
+
+#### `FR-srm-deeplink-errors` — Fetch and validation failures surface to the reviewer
+Because the reviewer did not open a dialog to start the load, the dialog error states are surfaced through the app's general notice mechanism rather than inside a dialog. For both patch and PR deeplinks, the same precise, per-cause messages apply: event not found on the configured relays; event is not a NIP-34 patch or pull request; no relays reachable. For a patch deeplink, a malformed diff is also surfaced. For a PR deeplink, the PR-specific errors are surfaced: no clone URL, no commit id, git not installed, clone failure (network error, repository not found, authentication required), and commit not found after clone. On a cold launch that fails, the app lands on the empty start screen with the notice shown; on a warm launch that fails, the in-progress review (if any) is untouched and the notice is shown.
+
 ## macOS-Specific Non-Functional Requirements
 
 #### `NFR-srm-launch-budget` — Launch within the macOS app budget
@@ -251,6 +316,9 @@ The time from invoking `/shepherd-review` to the native window appearing with al
 
 #### `NFR-srm-no-server` — No local web server is started
 Launching `/shepherd-review` does not start or rely on any local web server. The native binary is self-contained.
+
+#### `NFR-srm-deeplink-latency` — Deeplink handling does not stall app launch
+Handling an incoming deeplink must not measurably delay app launch or window activation. Parsing the link and beginning the fetch is a near-zero-cost step; the relay fetch then proceeds asynchronously and the review surface appears when it completes, the same as a dialog-initiated open. A deeplink never blocks the app from becoming responsive.
 
 #### `NFR-srm-platform-restriction` — macOS-only
 The command is intended for macOS and depends on the prebuilt macOS application binary. On other operating systems the command is unavailable.
@@ -337,6 +405,60 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 
 - [ ] **In-app patch open activates the thread** `AC-srm-patch-open-activates-thread`: Given an in-app-opened patch review is loaded, when new patch-thread replies arrive over the live relay subscription, then they appear in the inspector Patch Thread section and inline at their anchors, and when the reviewer submits an inline comment with an identity loaded, then it publishes to the patch thread under that identity — identical to a CLI-launched patch review.
 
+### Deeplink entry
+
+- [ ] **Scheme routes to the app** `AC-srm-deeplink-scheme`: Given the app is installed, when the operating system opens a link using the app's custom URL scheme, then the app is brought to the foreground (launched if it was not running), and the link is handed to the app for handling.
+
+- [ ] **Patch deeplink loads the patch** `AC-srm-deeplink-patch-load`: Given the app is running with no files loaded, when a patch deeplink carrying a 64-character hex event id for a valid NIP-34 patch event (kind `1617`) is opened, then the app fetches the event in-process, splits the diff into one tab per changed file, attaches patch metadata, and enters the multi-file review layout with the patch metadata section, live patch-thread replies, and reply-publishing path active — without the Open Patch dialog being presented and without invoking `/shepherd-review` or any shell process.
+
+- [ ] **nevent deeplink prefers encoded relays** `AC-srm-deeplink-nevent`: Given a patch deeplink carries a `nevent1…` reference that encodes relay hints, when the app handles it, then it fetches from the relays encoded in the reference (preferred over the default relay list) and proceeds as in `AC-srm-deeplink-patch-load`.
+
+- [ ] **Cold launch loads the patch** `AC-srm-deeplink-cold-launch`: Given the app is not running, when a patch deeplink for a valid patch is opened, then the app launches directly into loading the patch and presents the review surface when the fetch completes, without first showing the empty start screen for the reviewer to act on.
+
+- [ ] **Warm launch with nothing loaded loads the patch** `AC-srm-deeplink-warm-empty`: Given the app is already running in its empty state, when a patch deeplink for a valid patch is opened, then the empty state is replaced by the patch review surface.
+
+- [ ] **Warm launch with a review in progress confirms before replacing** `AC-srm-deeplink-warm-in-progress`: Given the app is already running with a review in progress that has unsaved local comments, when a patch deeplink is opened, then the app asks the reviewer to confirm replacing the current review, naming that unsaved comments would be lost; on confirmation the current review is cleared and the deeplinked patch loads, and on cancellation the in-progress review is left untouched. Given the in-progress review has no local comments, when the deeplink is opened, then the patch loads without a confirmation prompt.
+
+- [ ] **Malformed deeplink rejected cleanly** `AC-srm-deeplink-malformed`: Given a link uses the app's URL scheme but carries an unknown action or a reference that is neither a 64-character hex event id nor a `nevent1` reference, when the app handles it, then it surfaces a clear notice that the link could not be opened, no fetch is attempted, and (if a review is in progress) the in-progress review is untouched.
+
+- [ ] **Deeplink fetch not found** `AC-srm-deeplink-not-found`: Given a patch deeplink carries an event id that no event on the configured relays matches, when the relay wait window elapses, then the app surfaces "Patch event <short-id> not found on the configured relays." and starts no review; on a cold launch it lands on the empty start screen with the notice shown.
+
+- [ ] **Deeplink wrong kind** `AC-srm-deeplink-wrong-kind`: Given a patch deeplink carries the id of a non-`1617` event (e.g. a kind:1 note or a kind:1621 issue) that exists on the relays, when the app fetches by id and validates the kind, then it surfaces "Event <short-id> is not a NIP-34 patch (kind <k>)." and starts no review.
+
+- [ ] **Deeplink malformed diff** `AC-srm-deeplink-bad-diff`: Given the fetched event's content is not a valid unified diff, when the app validates it, then it surfaces "Patch event <short-id> does not contain a valid unified diff." and starts no review.
+
+- [ ] **Deeplink no relays** `AC-srm-deeplink-no-relays`: Given no configured relay is reachable, when a patch deeplink is opened, then the app surfaces "No Nostr relays reachable — check your relay configuration." and starts no fetch.
+
+- [ ] **Deeplink load activates the thread** `AC-srm-deeplink-activates-thread`: Given a deeplink-opened patch review is loaded, when new patch-thread replies arrive over the live relay subscription, then they appear in the inspector Patch Thread section and inline at their anchors, and when the reviewer submits an inline comment with an identity loaded, then it publishes to the patch thread under that identity — identical to a dialog-opened patch review.
+
+### In-app pull request open
+
+- [ ] **Open PR from empty state** `AC-srm-pr-open-happy`: Given the native app is in its empty state, when the reviewer opens the Open Patch affordance, pastes a 64-character hex event id for a valid NIP-34 pull request event (kind `1618`) with a `clone` tag and a `c` tag, and submits, then the app fetches the event in-process, clones the git repository at the clone URL, checks out the tip commit, computes the unified diff (using `merge-base` if present, otherwise the tip commit against its parent), splits the diff into one tab per changed file, attaches PR metadata (author, subject, tip commit, clone URL, branch, repo coordinate), and enters the multi-file review layout with the metadata section, live patch-thread replies, and reply-publishing path all active — without invoking any slash command and without requiring a local git repository (git is required on the system PATH but the PR's repository is cloned to a temp directory).
+
+- [ ] **PR with merge-base shows full diff** `AC-srm-pr-open-merge-base`: Given a PR event has a `merge-base` tag, when the app loads it, then the diff is computed between the merge-base and the tip commit, showing the full net diff of all commits in the PR.
+
+- [ ] **PR without merge-base shows tip commit diff** `AC-srm-pr-open-no-merge-base`: Given a PR event has no `merge-base` tag, when the app loads it, then the diff of the tip commit against its parent is shown.
+
+- [ ] **PR missing clone URL rejected** `AC-srm-pr-open-no-clone`: Given a kind `1618` event has no `clone` tag, when the app validates it, then it reports "Pull request <short-id> has no clone URL — cannot fetch changes." and no review is started.
+
+- [ ] **PR missing commit id rejected** `AC-srm-pr-open-no-commit`: Given a kind `1618` event has no `c` tag, when the app validates it, then it reports "Pull request <short-id> has no commit id." and no review is started.
+
+- [ ] **PR clone failure** `AC-srm-pr-open-clone-failure`: Given the clone URL in the PR event is unreachable, the repository does not exist, or authentication is required, when the app attempts to clone, then it surfaces a clear error naming the clone failure and no review is started.
+
+- [ ] **PR commit not found after clone** `AC-srm-pr-open-commit-not-found`: Given the commit id in the `c` tag does not exist in the cloned repository, when the app attempts to check it out, then it surfaces a clear error and no review is started.
+
+- [ ] **PR review requires git** `AC-srm-pr-open-git-required`: Given git is not installed on the system PATH, when the reviewer attempts to open a PR, then the app reports "git is required to review pull requests but was not found on your system" and no review is started. Patch review is unaffected.
+
+- [ ] **PR open activates the thread** `AC-srm-pr-open-activates-thread`: Given an in-app-opened PR review is loaded, when new patch-thread replies arrive over the live relay subscription, then they appear in the inspector Patch Thread section and inline at their anchors, and when the reviewer submits an inline comment with an identity loaded, then it publishes to the patch thread under that identity — identical to a patch review.
+
+### PR deeplink entry
+
+- [ ] **PR deeplink loads the PR** `AC-srm-deeplink-pr-load`: Given the app is running with no files loaded, when a PR deeplink (`shepherd://pr/<ref>`) carrying a hex event id for a valid kind `1618` PR event is opened, then the app fetches the event, clones the repository, computes the diff, and enters the review layout — without the Open Patch dialog being presented and without invoking any shell process or slash command.
+
+- [ ] **PR deeplink cold launch** `AC-srm-deeplink-pr-cold-launch`: Given the app is not running, when a PR deeplink for a valid PR is opened, then the app launches directly into loading the PR (fetch + clone + diff) and presents the review surface when complete, without first showing the empty start screen.
+
+- [ ] **PR deeplink clone failure** `AC-srm-deeplink-pr-clone-failure`: Given a PR deeplink references a PR whose clone URL is unreachable, when the app attempts to clone, then it surfaces the clone failure error and starts no review; on a cold launch it lands on the empty start screen with the notice shown.
+
 ## Open Questions
 
 1. **Single binary or separate binary**: The proposed approach reuses the existing `/shepherd` binary with an extended `session.json` (multi-file `files[]`). An alternative would be a dedicated review-mode binary. Reusing the existing binary is the default; engineering may revisit if the multi-file path significantly diverges from single-file behavior.
@@ -351,9 +473,23 @@ The command is intended for macOS and depends on the prebuilt macOS application 
 
 6. **Patch status events in-app**: v1 shows `open` unconditionally. Should the in-app path fetch the latest kind `1630`–`1633` status event for the patch (and mirror the same correction to the CLI path) so the metadata section shows the real merged/closed/draft status? Deferred to the roadmap (`roadmap/patch-watcher.md`); status-event fetch is a fast-follow for both the in-app and CLI paths.
 
+7. **Deeplink URL grammar**: This spec fixes the link contract at the product level only as far as: the link uses the app's custom URL scheme and carries a patch or PR reference (hex event id or `nevent1`) in its path, with the action (`patch` or `pr`) selecting which kind of NIP-34 entity to load. The exact path shape (e.g. `shepherd://patch/<ref>` vs a query-parameter form) is an engineering decision captured in the macOS engineering spec. Whatever shape is chosen, it must be stable and documented so external tools (Buzz agents, ngit clients) can construct links without app updates.
+
+8. **PR clone strategy**: A PR's changes live in a git repository at a `clone` URL, not in the event itself. The clone strategy (full clone vs shallow clone vs partial clone / blobless fetch) is an engineering decision. The product requirement is that the diff is obtained and the review loads; the mechanism that minimizes download size and time without failing on repos that don't support shallow/partial clones is engineering's call.
+
+9. **PR clone URL selection**: A PR event may carry multiple `clone` tags. v1 uses the first `clone` tag. Should the app try the next clone URL if the first fails? Deferred to engineering — the product requirement is that at least one clone URL is tried and a failure surfaces a clear error.
+
+10. **Deeplinks for issues (kind `1621`)**: Issues are markdown conversational threads, not code changes. They have no diff to review and no clone URL. An issue deeplink would open a conversational thread view, not a code review surface — a fundamentally different surface that is out of scope for this kickoff. Issue deeplinks are deferred to the roadmap.
+
+11. **Deeplinks on iOS**: iOS has its own in-app patch open (`FR-sri-patch-open-*`) but a different URL-scheme / universal-link model and no registered `shepherd://` scheme in its app bundle yet. iOS deeplinks (patches and PRs) are a roadmap fast-follow, not part of this macOS kickoff.
+
+12. **Multiple incoming deeplinks while one is loading**: If a second deeplink arrives while the first is still loading (fetching or cloning), should the second queue, replace the in-flight load, or be ignored? v1 treats a load in progress as an in-progress review for the purposes of `FR-srm-deeplink-warm-in-progress` (confirm before replacing once the first lands); a second link arriving during the load window is a rare edge case left to engineering to handle sensibly without silent data loss.
+
 ## Dependencies
 
 - macOS variant of the Code Review Prompt Generator (`product/macos/code-review-prompt.md`) — provides the native multi-tab review UI and the session-handoff contract.
 - macOS slash-command launcher infrastructure (`product/macos/slash-command.md`) — provides the install pattern, prebuild step, and `~/.shepherd/sessions/<session-id>/` staging directory contract.
 - Shared `shepherd-review` requirements (`product/shepherd-review.md`) — provides the changeset detection, filtering, priority ordering, context generation, and feedback flow.
 - Shared session-scoping primitives (`FR-sc-session-id`, `FR-sc-session-scoped-output`, `FR-sc-session-cleanup`) from `product/slash-command.md`.
+- In-app patch open (`FR-srm-patch-open-entry` through `FR-srm-patch-open-load`) — the patch deeplink entry point reuses this fetch-validate-load path; the deeplink adds only link parsing, launch-state handling, and error surfacing, not a second load path.
+- In-app PR open (`FR-srm-pr-open-fetch` through `FR-srm-pr-open-load`) — the PR deeplink reuses this fetch-clone-diff-load path. PR review requires git on the system PATH (`NFR-srm-pr-open-git-required`) because the changes are fetched from a remote git repository at a clone URL, not from an inline diff. Patch review does not require git.
