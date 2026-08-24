@@ -33,13 +33,13 @@ struct FileDropZoneView: View {
                 }
                 .keyboardShortcut("v", modifiers: .command)
 
-                Button("Open Patch…") {
+                Button("Open Patch or PR…") {
                     store.send(.openPatchRequested)
                 }
                 // Implements: FR-srm-patch-open-entry
                 .keyboardShortcut("p", modifiers: [.command, .shift])
-                .help("Open a NIP-34 patch by event id (⌘⇧P)")
-                .accessibilityLabel("Open a NIP-34 patch by event id")
+                .help("Open a NIP-34 patch or PR by event id (⌘⇧P)")
+                .accessibilityLabel("Open a NIP-34 patch or PR by event id")
             }
             .padding(.top, 8)
         }

@@ -65,7 +65,7 @@ public struct PatchMetadataSectionView: View {
                     .textSelection(.enabled)
             }
 
-            // Parent Commit
+            // Parent Commit / Merge Base (PR uses the merge-base tag as parent)
             HStack(alignment: .top, spacing: 8) {
                 Text("Parent")
                     .font(.system(size: 11))
@@ -80,6 +80,36 @@ public struct PatchMetadataSectionView: View {
                     Text("(none)")
                         .font(.system(size: 13))
                         .foregroundStyle(.tertiary)
+                }
+            }
+
+            // Tip Commit (PR only) — Implements: FR-sr-pr-metadata-display
+            // Implements: FR-sr-pr-metadata-display
+            if let tip = metadata.tipCommit {
+                HStack(alignment: .top, spacing: 8) {
+                    Text("Tip")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 100, alignment: .leading)
+
+                    Text(tip)
+                        .font(.system(size: 11, design: .monospaced))
+                        .textSelection(.enabled)
+                }
+            }
+
+            // Branch Name (PR only, when present) — Implements: FR-sr-pr-metadata-display
+            // Implements: FR-sr-pr-metadata-display
+            if let branch = metadata.branchName {
+                HStack(alignment: .top, spacing: 8) {
+                    Text("Branch")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 100, alignment: .leading)
+
+                    Text(branch)
+                        .font(.system(size: 13, design: .monospaced))
+                        .textSelection(.enabled)
                 }
             }
 

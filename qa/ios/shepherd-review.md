@@ -1,6 +1,6 @@
 ---
-product-hash: 3be8b01ef980231ee907e94c5591e47414c5e047c1e0495541e48426acbca4ae
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-hash: 3690acf162292d9c87169800429f77532c40192326fcf3225ba44915e0f24463
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review — iOS Test Plan
 
@@ -47,6 +47,17 @@ The iOS in-app patch open and the bidirectional patch-thread review loop: openin
 | `AC-sri-publish-relay-failure` | `TC-sri-publish-relay-failure` | Not started |
 | `AC-sri-patch-open-activates-thread` | `TC-sri-thread-live`, `TC-sri-thread-inline-anchor` | Not started |
 
+### In-app PR open (iterate patches)
+
+| Requirement | Test Cases | Status |
+|---|---|---|
+| `AC-sri-pr-open-happy` | `TC-sri-pr-open-happy` | Not started |
+| `AC-sri-pr-open-no-patches` | `TC-sri-pr-open-no-patches` | Not started |
+| `AC-sri-pr-open-patch-not-found` | `TC-sri-pr-open-patch-not-found` | Not started |
+| `AC-sri-pr-open-patch-wrong-kind` | `TC-sri-pr-open-patch-wrong-kind` | Not started |
+| `AC-sri-pr-open-metadata` | `TC-sri-pr-open-metadata` | Not started |
+| `AC-sri-pr-open-activates-thread` | `TC-sri-pr-open-activates-thread` | Not started |
+
 ## Test Cases
 
 ### In-app patch open
@@ -71,9 +82,9 @@ The iOS in-app patch open and the bidirectional patch-thread review loop: openin
 1. Submit a valid 64-char id no relay has.
 - **Expected**: After the wait window, "Patch event <short-id> not found on the configured relays."; no review starts. (`AC-sri-patch-open-not-found`)
 
-#### `TC-sri-patch-open-wrong-kind` — Non-patch event rejected (Automated + Manual)
+#### `TC-sri-patch-open-wrong-kind` — Non-patch/PR event rejected (Automated + Manual)
 1. Submit the id of a kind:1 note (and separately a kind:1621 issue) that exists on the relays.
-- **Expected**: "Event <short-id> is not a NIP-34 patch (kind <k>)."; no review starts. (ids-only filter returns the event so it can be rejected here.) (`AC-sri-patch-open-wrong-kind`)
+- **Expected**: "Event <short-id> is not a NIP-34 patch or PR (kind <k>)."; no review starts. A kind `1618` event routes to the PR path (`TC-sri-pr-open-happy`), not this rejection. (ids-only filter returns the event so it can be rejected here.) (`AC-sri-patch-open-wrong-kind`)
 
 #### `TC-sri-patch-open-bad-diff` — Malformed diff rejected (Automated + Manual)
 1. Submit a kind `1617` event whose content lacks `diff --git` / `@@` hunks.
@@ -82,6 +93,32 @@ The iOS in-app patch open and the bidirectional patch-thread review loop: openin
 #### `TC-sri-patch-open-no-relays` — No relays reachable (Manual)
 1. With all configured relays unreachable, submit a valid reference.
 - **Expected**: "No Nostr relays reachable — check your relay configuration."; no fetch attempted. (`AC-sri-patch-open-no-relays`)
+
+### In-app PR open (iterate patches)
+
+#### `TC-sri-pr-open-happy` — Open a PR that references patches (Automated reducer + Manual)
+1. Submit a valid kind `1618` PR event id whose `e` tags reference one or more kind `1617` patch events on the configured relays.
+- **Expected**: The app fetches the PR event, fetches each referenced patch in-process, splits and unions their inline diffs into one tab per distinct changed file, attaches PR metadata (author, subject, merge-base if present, status `open`, repo coordinate, short event id), and enters the review layout with the metadata section, live thread replies, and publish path active — PR event as thread root, no shell process, no git. (`AC-sri-pr-open-happy`, `FR-sri-pr-open-patches`, `FR-sri-pr-open-load`)
+
+#### `TC-sri-pr-open-no-patches` — Git-only PR rejected (Automated + Manual)
+1. Submit a kind `1618` PR event whose changes exist only on its `clone` URL (no `e` tags referencing kind `1617` patches).
+- **Expected**: "PR <short-id> has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS."; no review starts. (`AC-sri-pr-open-no-patches`)
+
+#### `TC-sri-pr-open-patch-not-found` — Missing referenced patch skipped (Automated + Manual)
+1. Submit a PR referencing two kind `1617` patches, one absent from the configured relays.
+- **Expected**: The missing patch is skipped with a not-found warning; the PR still loads from the remaining valid patch (one tab per changed file in it). (`AC-sri-pr-open-patch-not-found`)
+
+#### `TC-sri-pr-open-patch-wrong-kind` — Referenced event of wrong kind skipped (Automated + Manual)
+1. Submit a PR whose `e` tags include a kind `1621` issue (not a kind `1617` patch).
+- **Expected**: The wrong-kind referenced event is skipped with a warning; the PR loads from any remaining valid referenced patches. (`AC-sri-pr-open-patch-wrong-kind`)
+
+#### `TC-sri-pr-open-metadata` — PR metadata displayed (Manual)
+1. Open a PR per `TC-sri-pr-open-happy` whose event has `subject` and `merge-base` tags.
+- **Expected**: The metadata section shows author (display name if known, else short pubkey), subject, merge-base short hash if present, status `open`, repo coordinate, and short event id. (`AC-sri-pr-open-metadata`, `FR-sr-pr-metadata-display`)
+
+#### `TC-sri-pr-open-activates-thread` — In-app PR activates the live thread (Manual)
+1. Open a PR per `TC-sri-pr-open-happy`; have a second participant publish a new kind:1 root reply to the PR event while the window is open.
+- **Expected**: The new reply appears in the Thread section and inline at its anchor without relaunching; submitting a response publishes with the PR event as thread root. (`AC-sri-pr-open-activates-thread`)
 
 ### Patch-thread reply publishing
 

@@ -1,12 +1,12 @@
 Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 
-<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument -->
+<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-pr-source, FR-sr-pr-fetch, FR-sr-pr-diff-acquisition, FR-sr-pr-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument -->
 
 Allowed tools: Bash, Read, Write
 
 Arguments: $ARGUMENTS
 
-Suggested arguments: [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | --patch <event-id> | <ref>]
+Suggested arguments: [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | --patch <event-id> | --pr <event-id> | <ref>]
 
 ## Instructions
 
@@ -59,7 +59,7 @@ SHEPHERD_ROOT="$(cat ~/.shepherd/repo-path 2>/dev/null)"
 
 If `$SHEPHERD_ROOT/scripts/shepherd-launch.sh` still doesn't exist, output: "Could not find shepherd-launch.sh. Run `./scripts/install-command.sh` from the Shepherd repo to set it up." and stop.
 
-Parse the argument: `$ARGUMENTS`. There are three families of scope: **working-tree** scopes (review what's on disk; include untracked files), **commit** scopes (review committed history; never include untracked files), and **patch** scope (review a NIP-34 Nostr patch). Match in this precedence order (first match wins):
+Parse the argument: `$ARGUMENTS`. There are three families of scope: **working-tree** scopes (review what's on disk; include untracked files), **commit** scopes (review committed history; never include untracked files), and **patch/PR** scope (review a NIP-34 Nostr patch or pull request). Match in this precedence order (first match wins):
 
 - If empty or blank → SCOPE = `working` (default: all uncommitted changes vs HEAD).
 - If `--staged` → SCOPE = `staged`.
@@ -71,7 +71,8 @@ Parse the argument: `$ARGUMENTS`. There are three families of scope: **working-t
   If it does NOT resolve → output the usage message below and stop.
 - If the first token is `--commit` → SCOPE = `commit`. The optional second token is the ref; `REF` = that token or `HEAD` if omitted. Verify the ref resolves with `git -C "$REPO_ROOT" rev-parse --verify "$REF"`. If it does NOT resolve → usage message, stop. Then determine the parent base: if `git -C "$REPO_ROOT" rev-parse --verify "$REF^"` succeeds, set `COMMIT_BASE="$REF^"`; otherwise (root commit, no parent) set `COMMIT_BASE=4b825dc642cb6eb9a060e54bf8d69288fbee4904` (git's canonical empty-tree object).
 - If the first token is `--range` → SCOPE = `range`. The second token is `RANGE` and MUST contain `..` (two-dot `A..B` or three-dot `A...B`). Split it on `..`/`...` and verify each endpoint with `git -C "$REPO_ROOT" rev-parse --verify`. If `RANGE` has no `..`, or either endpoint fails to resolve → usage message, stop.
-- If the first token is `--patch` → SCOPE = `patch`. The second token is `EVENT_ID` (required — a 64-character lowercase hex string). Validate EVENT_ID format: must be exactly 64 characters of `[0-9a-f]`. If format is invalid → output "Invalid event ID format. Expected 64-character hex string." and stop. If `--patch` is combined with any other scope flag (`--staged`, `--unstaged`, `--branch`, `--commit`, `--range`) → output "Cannot combine --patch with --staged, --unstaged, --branch, --commit, or --range" and show usage message, then stop.
+- If the first token is `--patch` → SCOPE = `patch`. The second token is `EVENT_ID` (required — a 64-character lowercase hex string). Validate EVENT_ID format: must be exactly 64 characters of `[0-9a-f]`. If format is invalid → output "Invalid event ID format. Expected 64-character hex string." and stop. If `--patch` is combined with any other scope flag (`--staged`, `--unstaged`, `--branch`, `--commit`, `--range`, `--pr`) → output "Cannot combine --patch with --staged, --unstaged, --branch, --commit, --range, or --pr" and show usage message, then stop.
+- If the first token is `--pr` → SCOPE = `pr`. The second token is `EVENT_ID` (required — a 64-character lowercase hex string). Validate EVENT_ID format: must be exactly 64 characters of `[0-9a-f]`. If format is invalid → output "Invalid event ID format. Expected 64-character hex string." and stop. If `--pr` is combined with any other scope flag (`--staged`, `--unstaged`, `--branch`, `--commit`, `--range`, `--patch`) → output "Cannot combine --pr with --staged, --unstaged, --branch, --commit, --range, or --patch" and show usage message, then stop. Implements `FR-sr-pr-source`.
 - Otherwise → treat the whole argument as a git ref (commit, branch, tag). Verify it resolves:
   ```bash
   git -C "$REPO_ROOT" rev-parse --verify "$ARGUMENTS" 2>/dev/null
@@ -80,7 +81,7 @@ Parse the argument: `$ARGUMENTS`. There are three families of scope: **working-t
   If it does NOT resolve → output the usage message below and stop.
 
 ```
-Usage: /shepherd-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | --patch <event-id> | <ref>]
+Usage: /shepherd-review [--staged | --unstaged | --branch [base] | --commit [ref] | --range <range> | --patch <event-id> | --pr <event-id> | <ref>]
 
 Review changes in the macOS CRPG.
 
@@ -92,6 +93,7 @@ Scopes:
   --commit [ref]     A single commit vs its parent (default: HEAD — your last commit)
   --range <range>    A commit range, e.g. main..HEAD or v1.0..v1.1
   --patch <event-id> Review a NIP-34 patch from Nostr (64-char hex event ID)
+  --pr <event-id>    Review a NIP-34 pull request from Nostr (64-char hex event ID)
   <ref>              Working tree vs a commit, branch, or tag
 ```
 
@@ -149,6 +151,10 @@ git -C "$REPO_ROOT" diff --name-status "$RANGE"
 
 This workflow is detailed below (Step 2-patch). Fetch the patch event from Nostr relays, validate it, apply to a temporary review branch, then detect the changeset vs the parent commit. The output is the same `--name-status` format as other scopes.
 
+**SCOPE = `pr`** (NIP-34 pull request from Nostr — **no untracked**):
+
+This workflow is detailed below (Step 2-pr). Fetch the PR event (kind `1618`) from Nostr relays, validate its tags, acquire the diff by fetching the referenced git objects and computing `git diff <merge-base>..<c>`, apply it to a temporary review branch, then detect the changeset. The output is the same `--name-status` format as other scopes. Implements `FR-sr-pr-source`, `FR-sr-pr-fetch`, `FR-sr-pr-diff-acquisition`.
+
 Merge and deduplicate all output by path. Untracked files (from `ls-files`, working-tree scopes only) get change type `added`.
 
 **Parse statuses:**
@@ -169,6 +175,7 @@ For untracked files, add as `added` unless already present.
 | `commit` | `Commit <ref> has no changes to review.` |
 | `range` | `No changes in range <range>. Nothing to review.` |
 | `patch` | `Patch <short-event-id> has no reviewable changes.` |
+| `pr` | `PR <short-event-id> has no reviewable changes.` |
 
 ---
 
@@ -317,6 +324,97 @@ The review branch `$REVIEW_BRANCH` is kept (not auto-deleted).
 
 ---
 
+### Step 2-pr: NIP-34 Pull Request Workflow (when SCOPE = `pr`)
+
+**This section only runs when SCOPE = `pr`. Skip it for all other scopes.** Implements `FR-sr-pr-source`, `FR-sr-pr-fetch`, `FR-sr-pr-diff-acquisition`, `FR-sr-pr-metadata-display`.
+
+A NIP-34 **pull request** is kind `1618`. Unlike a patch, a PR event does **not** contain its diff: its content is a markdown description, and its tags point at the proposed changes by reference. The command fetches the PR event, validates its tags, acquires the diff by fetching the referenced git objects and computing `git diff <merge-base>..<c>`, applies it to a temporary review branch, and detects the changeset. The relay configuration + fetch path reuses the patch workflow's Nostr relay resolution (`NOSTR_RELAYS` / `~/.config/nostr/relays.txt` / defaults) and `nak`/WebSocket fallback.
+
+#### Fetch NIP-34 PR event
+
+Fetch the event by id using an **ids-only** filter (no `kinds`), so a non-1618 event is returned and rejected as wrong-kind rather than filtered out upstream. Use `nak` if available:
+```bash
+if command -v nak >/dev/null 2>&1; then
+  RELAY_LIST=$(echo "$RELAYS" | tr ',' ' ')
+  EVENT_JSON=$(nak req -i "$EVENT_ID" $RELAY_LIST 2>/dev/null | head -1)
+fi
+```
+If `nak` is not available or returns empty, fall back to `curl` + WebSocket (`REQ` filter `{"ids":["$EVENT_ID"]}`). If no event is found on any relay, output:
+```
+PR event ${EVENT_ID:0:8}... not found on relays: $RELAYS
+```
+Then stop.
+
+#### Validate PR event and tags
+
+Parse `EVENT_JSON` to extract `.kind`, `.content`, `.pubkey`, and `.tags[]`.
+
+1. **Event kind**: Must be `1618`. If not → output "Event ${EVENT_ID:0:8} is not a NIP-34 pull request (kind <k>)" and stop. (`FR-sr-pr-fetch`.)
+2. **Required tags** (`FR-sr-pr-diff-acquisition`):
+   - At least one `clone` tag (git clone URL). If none → output "Pull request ${EVENT_ID:0:8} has no clone URL — cannot fetch changes." and stop.
+   - A `c` tag (tip commit id). If absent → output "Pull request ${EVENT_ID:0:8} has no commit id." and stop.
+3. **Optional tags**: `branch-name` (branch fallback when SHA-fetch is rejected), `subject` (PR title), `a` (repo coordinate), `p` (notify).
+
+Extract metadata:
+- `PR_AUTHOR`: `.pubkey`
+- `PR_SUBJECT`: `subject` tag, or first non-empty line of `.content` (truncated to 60 chars)
+- `PR_TIP`: `c` tag value
+- `PR_MERGE_BASE`: `merge-base` tag value (empty when absent — the diff falls back to the tip commit against its parent)
+- `PR_BRANCH`: `branch-name` tag value (or null)
+- `PR_REPO_COORD`: `a` tag value (or null)
+- `SHORT_EVENT_ID`: First 8 characters of `EVENT_ID`
+
+#### Acquire the PR diff
+
+Create a temporary review repository, fetch the referenced commits from the first reachable `clone` URL, and compute the net diff (`FR-sr-pr-diff-acquisition`). The command requires `git` on the PATH and network access to the clone URL.
+
+```bash
+TMP_REPO=$(mktemp -d -t shepherd-pr-$SHORT_EVENT_ID.XXXXXX)
+git -C "$TMP_REPO" init --quiet
+PR_DIFF=""
+FETCHED=0
+FETCH_ARGS=("$PR_TIP")
+if [[ -n "$PR_MERGE_BASE" ]]; then FETCH_ARGS+=("$PR_MERGE_BASE"); else FETCH_ARGS=(--depth 2 "$PR_TIP"); fi
+for URL in "${PR_CLONE_URLS[@]}"; do
+  if git -C "$TMP_REPO" fetch --quiet "$URL" "${FETCH_ARGS[@]}" 2>/dev/null; then
+    FETCHED=1; break
+  fi
+  # Fall back to fetching the branch when the server rejects fetch-by-SHA.
+  if [[ -n "$PR_BRANCH" ]] && git -C "$TMP_REPO" fetch --quiet "$URL" "$PR_BRANCH" 2>/dev/null; then
+    FETCHED=1; break
+  fi
+done
+if [[ $FETCHED -eq 0 ]]; then
+  FIRST_URL="${PR_CLONE_URLS[0]}"
+  echo "Could not fetch commits from $FIRST_URL: unreachable" >&2
+  rm -rf "$TMP_REPO"; stop
+fi
+if [[ -n "$PR_MERGE_BASE" ]]; then
+  PR_DIFF=$(git -C "$TMP_REPO" diff --no-color "$PR_MERGE_BASE..$PR_TIP")
+else
+  PR_DIFF=$(git -C "$TMP_REPO" show --no-color "$PR_TIP")
+fi
+rm -rf "$TMP_REPO"
+if [[ -z "$(echo "$PR_DIFF" | tr -d '[:space:]')" ]]; then
+  echo "Pull request $SHORT_EVENT_ID has no changes." >&2
+  stop
+fi
+```
+
+#### Apply PR diff to a review branch
+
+Write `$PR_DIFF` to a temp file, stash uncommitted changes, create `review/pr-$SHORT_EVENT_ID` on the merge-base, and `git apply --index` the diff — the same application flow as `--patch` (`FR-sr-patch-application`). On apply failure, report `Patch application failed:\n<git error>`, restore the original branch, pop the stash, and stop. After the review session ends, restore the original branch and pop the stash; the review branch is kept.
+
+#### Detect changeset
+
+```bash
+git -C "$REPO_ROOT" diff --name-status "$PR_MERGE_BASE" HEAD
+```
+
+This output replaces the changeset for Step 3 (filtering). The patch-thread reply fetch (`scripts/shepherd-patch-poll.sh --once "$EVENT_ID"`) runs the same as for `--patch`, since NIP-34 replies to a kind `1618` PR follow the same threaded-reply convention; embed the replies in `patchMetadata.replies`.
+
+---
+
 ### Step 3: Filter files
 
 A file is excluded if it matches **any** exclusion rule. **Exclusion rules take precedence over inclusion rules.**
@@ -352,6 +450,7 @@ For files that have diffs, run **one** command with all paths, using the same di
 | `branch` | `git -C "$REPO_ROOT" diff "$BASE"...HEAD -- <path1> <path2> ...` |
 | `commit` | `git -C "$REPO_ROOT" diff "$COMMIT_BASE" "$REF" -- <path1> <path2> ...` |
 | `range` | `git -C "$REPO_ROOT" diff "$RANGE" -- <path1> <path2> ...` |
+| `pr` | `git -C "$REPO_ROOT" diff "$PR_MERGE_BASE" HEAD -- <path1> <path2> ...` |
 
 For new/untracked files (working-tree scopes only), read their contents using the Read tool (they have no diff to compare against — note them as entirely new). Commit scopes (`branch`, `commit`, `range`) have no untracked files.
 
@@ -440,11 +539,32 @@ Build a JSON object with the following structure and write it to `$CTX` using th
 
 Set `replies` to `[]` when there are no thread replies. `lineAnchor` is `null` for replies without a line-range anchor.
 
+**When SCOPE = `pr`, the `patchMetadata` object carries PR-specific fields** (`FR-sr-pr-metadata-display`) in addition to the shared fields above. Use the same object shape, with these mappings:
+
+```json
+{
+  "patchMetadata": {
+    "eventID": "<full 64-char EVENT_ID>",
+    "shortEventID": "<SHORT_EVENT_ID>",
+    "author": "<resolved author name or truncated npub from PR_AUTHOR>",
+    "commitMessage": "<PR_SUBJECT (truncated to 60 chars)>",
+    "parentCommit": "<short 8-char hash from PR_MERGE_BASE, or null if absent>",
+    "tipCommit": "<short 8-char hash from PR_TIP (the c tag)>",
+    "branchName": "<PR_BRANCH (the branch-name tag), or null>",
+    "status": "open",
+    "repoCoordinate": "<PR_REPO_COORD (the a-tag coordinate, or null)>",
+    "replies": [ ... ]
+  }
+}
+```
+
+`tipCommit` and `branchName` are omitted (or null) for the `patch` scope; they are present only for the `pr` scope.
+
 For author resolution, try:
 1. Check `~/.config/nostr/roster.json` for a display name for `PATCH_AUTHOR` pubkey
 2. Otherwise, convert pubkey to npub (bech32) and truncate to 12 chars: `npub1...`
 
-For patch mode only, the `patchMetadata` field must be present. For all other scopes, omit it entirely.
+For patch mode and PR mode, the `patchMetadata` field must be present. For all other scopes, omit it entirely.
 
 The `neutral` fields should be purely factual — what changed, which functions/sections were modified, structural changes. No opinions.
 
@@ -476,6 +596,7 @@ Where `<scope-label>` is derived from SCOPE:
 | `commit` | `commit <short-sha> — <subject>` (from `git show -s --format='%h — %s' "$REF"`) |
 | `range` | `commit range <range>` |
 | `patch` | `NIP-34 patch <short-event-id>` |
+| `pr` | `NIP-34 pull request <short-event-id>` |
 
 The "excluded" line is omitted if zero files were filtered. **Do not use `AskUserQuestion` here — proceed directly to Step 5.**
 

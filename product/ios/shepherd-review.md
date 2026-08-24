@@ -16,6 +16,7 @@ The following shared requirements describe platform-neutral behavior that the iO
 - `FR-sr-bunker-signing` — realized by `FR-sri-bunker-connect` + the bunker half of `FR-sri-event-sign`
 - `FR-sr-patch-reply-respond` — realized by `FR-sri-reply-to-reply`
 - `FR-sr-patch-source` — realized by `FR-sri-patch-open-entry` through `FR-sri-patch-open-load`
+- `FR-sr-pr-source` — realized by `FR-sri-patch-open-entry` / `FR-sri-patch-open-input` / `FR-sri-patch-open-fetch` (shared fetch path dispatches on kind) plus `FR-sri-pr-open-patches` / `FR-sri-pr-open-load`. The iOS PR path does not use the shared git-fetch acquisition (`FR-sr-pr-diff-acquisition`); see "In-app PR open (iterate patches)" below.
 
 ### Apply as-is
 
@@ -27,8 +28,10 @@ The following shared requirements describe platform-neutral behavior that the iO
 ### Modified on iOS
 
 - **`FR-sr-patch-fetch`** — Does not apply in its shared (shell `nak`) form. The iOS app fetches the patch event in-process by event id over the relay client. See `FR-sri-patch-open-fetch`.
-- **`FR-sr-patch-validation`** — Modified to the NIP-34-correct kind set: the iOS path reviews kind `1617` (patch) only. Kind `1621` is an issue, not a patch, and is rejected. See `FR-sri-patch-open-fetch`. (This matches the macOS in-app path's correction; see `../macos/shepherd-review.md` Open Question 5.)
+- **`FR-sr-patch-validation`** — Modified to the NIP-34-correct kind set: the iOS path reviews kind `1617` (patch) and kind `1618` (pull request). Kind `1621` is an issue, not a patch, and is rejected. A kind `1618` event is routed to the PR load path (`FR-sri-pr-open-patches`) rather than diff-validated as a patch. See `FR-sri-patch-open-fetch`. (This matches the macOS in-app path's correction; see `../macos/shepherd-review.md` Open Question 5.)
 - **`FR-sr-patch-application`** — Does not apply. No local git repository and no temporary review branch; the patch is loaded from the event contents alone. See `FR-sri-patch-open-load`.
+- **`FR-sr-pr-diff-acquisition`** — Does not apply in its shared (git-fetch) form. iOS has no git binary and invokes no shell process (`NFR-sri-no-git`), so it cannot fetch the PR's `clone` URL and run `git diff`. Instead the iOS PR path acquires the diff by fetching the kind `1617` patch events the PR references via `e` tags and unioning their inline diffs. See `FR-sri-pr-open-patches`.
+- **`FR-sr-pr-fetch`** — Does not apply in its shared (CLI) form. The iOS app fetches the PR event in-process by event id over the relay client, reusing the same fetch path as patches (`FR-sri-patch-open-fetch`), then dispatches on kind. See `FR-sri-patch-open-fetch`.
 - **`FR-sr-patch-metadata-display`** (status) — Patch status is shown as `open` unconditionally in v1. NIP-34 conveys status via separate kind `1630`–`1633` status events, not a tag on the patch event; fetching them is a shared roadmap fast-follow (`../../roadmap/patch-watcher.md`).
 
 ### Do not apply on iOS
@@ -45,21 +48,21 @@ None of the CLI/agent-orchestration requirements apply — there is no slash com
 
 These requirements are the iOS port of the macOS in-app patch open (`../macos/shepherd-review.md`, In-app patch open). The reviewer is in the app's empty state and initiates the patch review themselves; the app fetches the NIP-34 patch event in-process and loads it using only what the event contains. No local git repository is required and no shell process is invoked.
 
-#### `FR-sri-patch-open-entry` — Empty state exposes an "Open Patch" affordance
-The app's empty state exposes an "Open Patch" affordance as the primary entry point. Activating it opens a lightweight entry sheet in which the reviewer enters or pastes a NIP-34 patch reference. This affordance is present only in the empty state; it is not shown once a patch is loaded. It does not invoke any slash command or shell process.
+#### `FR-sri-patch-open-entry` — Empty state exposes an "Open Patch or PR" affordance
+The app's empty state exposes an "Open Patch or PR" affordance as the primary entry point. Activating it opens a lightweight entry sheet in which the reviewer enters or pastes a NIP-34 patch or PR reference. The same entry serves both kinds: the app fetches the event by id and dispatches on its kind — kind `1617` loads as a patch (`FR-sri-patch-open-load`), kind `1618` loads as a PR (`FR-sri-pr-open-patches`). This affordance is present only in the empty state; it is not shown once a review is loaded. It does not invoke any slash command or shell process.
 
-#### `FR-sri-patch-open-input` — Accept a patch event reference and validate its format
-The Open Patch entry accepts a patch reference in either of two forms:
+#### `FR-sri-patch-open-input` — Accept a patch or PR event reference and validate its format
+The Open Patch or PR entry accepts a reference in either of two forms:
 1. A 64-character hex Nostr event id.
-2. A NIP-19 `nevent1…` bech32 entity that encodes a patch event (decoded to its referenced event id and relays).
+2. A NIP-19 `nevent1…` bech32 entity that encodes a patch or PR event (decoded to its referenced event id and relays).
 
-A `naddr1…` reference is not accepted (NIP-34 patches are kind `1617`, non-parameterized, with no `naddr` form). Leading/trailing whitespace is trimmed. An input matching neither form is rejected inline with a clear message and the entry stays open; no fetch is attempted.
+A `naddr1…` reference is not accepted (NIP-34 patches and PRs are kind `1617`/`1618`, non-parameterized, with no `naddr` form). Leading/trailing whitespace is trimmed. An input matching neither form is rejected inline with a clear message and the entry stays open; no fetch is attempted.
 
 #### `FR-sri-patch-open-fetch` — Fetch and validate the NIP-34 patch event in-process
 When the reviewer submits a valid reference, the app fetches the patch event in-process using the relay client (`FR-sr-relay-client`): a NIP-01 subscription whose filter is the event id only (`{"ids": ["<id>"]}`), with no `kinds` filter, across the configured relays. Fetching by `ids` alone lets the app receive the event whatever its kind, then reject non-patch kinds explicitly with a precise error. When the decoded `nevent1` carries relay hints, those relays are preferred. The first matching event is taken and the subscription is cancelled immediately. The app then validates:
 
-- **Event kind**: must be `1617` (NIP-34 patch). Any other kind is rejected with "Event <short-id> is not a NIP-34 patch (kind <k>)."
-- **Diff format**: the content must be a valid unified diff beginning with `diff --git` and containing `+++`/`---` headers and `@@` hunks. A malformed diff is rejected with "Patch event <short-id> does not contain a valid unified diff."
+- **Event kind**: must be `1617` (NIP-34 patch) or `1618` (NIP-34 pull request). Any other kind is rejected with "Event <short-id> is not a NIP-34 patch or PR (kind <k>)." In particular a kind:1 note or a kind:1621 issue produces this error. A kind `1617` event is validated and routed to the patch load path (`FR-sri-patch-open-load`); a kind `1618` event is routed to the PR load path (`FR-sri-pr-open-patches`) and is not diff-validated here (its content is markdown, not a diff). This dispatch is the iOS counterpart of the macOS in-app kind dispatch; iOS realizes the shared `FR-sr-pr-source` this way rather than via the git-fetch acquisition (`FR-sr-pr-diff-acquisition`), because iOS has no git and invokes no subprocess (`NFR-sri-no-git`).
+- **Diff format** (patch path only): the content of a kind `1617` event must be a valid unified diff beginning with `diff --git` and containing `+++`/`---` headers and `@@` hunks. A malformed diff is rejected with "Patch event <short-id> does not contain a valid unified diff."
 
 A fetch that returns no event within the relay wait window is rejected with "Patch event <short-id> not found on the configured relays." If no relay is reachable, the entry reports "No Nostr relays reachable — check your relay configuration." and no review is started.
 
@@ -71,6 +74,32 @@ On a successfully fetched and validated patch event, the app loads a patch revie
 3. **Enter the review.** The empty state is replaced by the standard multi-file review layout (one tab per changed file), adapted to the form factor per `FR-crp-ios-adaptive-layout`. The reviewer adds inline comments on the diff and publishes them to the patch thread under their identity exactly as in a CLI-launched patch review.
 
 There is no agent-generated neutral/review context for an in-app-opened patch (no LLM runs in this path); per-file review context is absent and the review-context panel hides for tabs that have none.
+
+### In-app PR open (iterate patches)
+
+These requirements add an in-app way to start a PR review on iOS. Unlike macOS, which acquires a PR's diff by shelling out to `git` to fetch the PR's `clone` URL and compute `git diff <merge-base>..<c>` (`FR-sr-pr-diff-acquisition`), iOS has no git binary and invokes no shell process (`NFR-sri-no-git`). Instead the iOS PR path acquires the diff from the kind `1617` patch events the PR references via `e` tags: NIP-34 documents an `e` tag referencing a patch this PR revises, and the app reads all `e` tags as a superset (in practice most PRs carry 0 or 1 such tag; reading every `e` tag is a harmless superset that also tolerates a PR referencing multiple patches). Each referenced patch event's content is an inline unified diff — exactly what iOS already reviews with zero git. The app fetches the PR event, fetches each referenced patch event over the same relay client, splits and unions their diffs into one changeset, and attaches PR metadata with the PR event as the thread root.
+
+The reviewer enters the PR reference in the same Open Patch or PR dialog (`FR-sri-patch-open-entry` / `FR-sri-patch-open-input`); the shared fetch path (`FR-sri-patch-open-fetch`) fetches by id and dispatches on kind. This adds no new entry surface and no new identity path; once loaded, the review surface and bidirectional thread loop are the ones already specified for patches.
+
+#### `FR-sri-pr-open-patches` — Acquire the PR diff by iterating its referenced patch events
+When the fetched event is kind `1618`, the app reads the PR event's `e` tags that point at kind `1617` patch events and fetches each referenced patch event in-process over the relay client (`FR-sr-relay-client`), reusing the same fetch-by-id path as a standalone patch open. For each referenced patch event:
+
+1. **Fetch.** The app opens a NIP-01 subscription whose filter is the referenced event id only (`{"ids": ["<id>"]}`), with no `kinds` filter, across the configured relays (and the `nevent` relay hints when the reference came in that form). The first matching event is taken and the subscription is cancelled immediately.
+2. **Validate.** The fetched event must be kind `1617` and its content a valid unified diff (the same validation as `FR-sri-patch-open-fetch` patch path). A referenced event that is not kind `1617`, or whose diff is malformed, is skipped with a warning recorded against the PR review (the PR still loads from any remaining valid referenced patches); a referenced event that cannot be fetched within the relay wait window is skipped with a not-found warning.
+3. **Split.** The valid patch's diff is split on each `diff --git a/<path> b/<path>` boundary into one block per changed file (the existing splitter).
+
+The per-file diff blocks from every successfully fetched referenced patch are unioned into one changeset. When the same file path appears in more than one referenced patch, the blocks are concatenated in the order their patch events were fetched (tab content is the concatenated diff text); the reviewer sees one tab per distinct file path. This concatenation is safe for the v1 display-only diff-as-tabs surface, but a multi-patch tab stitches hunks computed against different base versions, so inline comment line anchors on such a tab may misalign against any single base, and full-file reconstruction on a concatenated tab will fail (the general full-file-reconstruction caveat in `FR-sri-patch-open-load` covers this; the multi-patch case is the specific instance QA should expect). If **no** `e` tags referencing kind `1617` patches are present on the PR event, or none of the referenced patches could be fetched or validated, the app does not start a review and reports "PR <short-id> has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS." This is the graceful-degradation case for git-only PRs (see Open Questions).
+
+> ponytail: no git, no subprocess, no new dependency. The PR's diff is reconstructed from events that already contain it inline. A PR whose changes exist only on the clone server and were never published as patch events cannot be reviewed on iOS in v1; that is the documented ceiling, not a bug.
+
+#### `FR-sri-pr-open-load` — Load the PR for review from the unioned patch diffs
+On a successfully unioned changeset (at least one referenced patch produced diff blocks), the app loads a PR review session:
+
+1. **Tabs per changed file.** Each distinct file path from the unioned changeset becomes a tab in the file browser, named by the file path, with the unioned diff text for that file as the tab's content. (Same v1 diff-as-tabs surface and full-file-reconstruction caveat as in-app patches.)
+2. **Attach PR metadata.** The app builds a patch metadata record from the PR event — full and short event id, author (event pubkey, resolved to a display name via the roster when available), commit message (the PR `subject` tag, or the first non-empty line of the content), parent commit short hash (from the PR event's `merge-base` tag if present, else left nil), repo coordinate (the `a` tag, when present), and status `open` (v1, same status-event caveat as patches) — and sets it on the session. This activates the metadata section, the live patch-thread reply subscription (`FR-sr-patch-replies-live`), and the reply-publishing path (`FR-sri-comment-publish-on-submit`), with the PR event as the thread root.
+3. **Enter the review.** The empty state is replaced by the standard multi-file review layout (one tab per changed file), adapted to the form factor per `FR-crp-ios-adaptive-layout`. The reviewer adds inline comments on the diff and publishes them to the PR thread under their identity exactly as in a patch review.
+
+There is no agent-generated neutral/review context for an in-app-opened PR (no LLM runs in this path); per-file review context is absent and the review-context panel hides for tabs that have none.
 
 ### Patch-thread reply publishing (bidirectional)
 
@@ -115,8 +144,8 @@ The app surfaces the active reviewer identity so the reviewer knows, before publ
 #### `NFR-sri-no-server` — No local server is started
 The app does not start or rely on any local server. It is self-contained.
 
-#### `NFR-sri-no-git` — No local git repository required
-In-app patch review requires no local git repository and no git tooling. The patch is loaded from the event contents alone.
+#### `NFR-sri-no-git` — No local git repository or git tooling required
+In-app patch review requires no local git repository, no git tooling, and no shell subprocess. The patch is loaded from the event contents alone, fetched over the relay client in-process. Because the app invokes no shell process, it cannot run `git` to fetch objects or compute a diff — so NIP-34 pull requests (kind `1618`) are reviewed on iOS via the inline diffs of the kind `1617` patch events the PR references (`FR-sri-pr-open-patches`), not via the git-fetch acquisition macOS uses (`FR-sr-pr-diff-acquisition`). A git-only PR whose changes were never published as patch events cannot be reviewed on iOS in v1; that graceful-degradation case is the documented ceiling (see Open Questions).
 
 #### `NFR-sri-platform-restriction` — iOS only
 The app targets iOS and runs on iPhone and iPad. It is not available on other operating systems.
@@ -129,7 +158,7 @@ The app targets iOS and runs on iPhone and iPad. It is not available on other op
 - [ ] **nevent reference accepted** `AC-sri-patch-open-nevent`: Given the reviewer pastes a `nevent1…` reference encoding a patch event id, when the app decodes it, then it fetches from the relays encoded in the reference (preferred) and proceeds as in `AC-sri-patch-open-happy`.
 - [ ] **Invalid reference rejected inline** `AC-sri-patch-open-invalid-id`: Given text that is neither a 64-char hex id nor a `nevent1`, when submitted, then the entry shows a clear message, no fetch is attempted, and the entry stays open.
 - [ ] **Patch event not found** `AC-sri-patch-open-not-found`: Given no event with the id exists on the configured relays, when the wait window elapses with no match, then the entry reports "Patch event <short-id> not found on the configured relays." and no review starts.
-- [ ] **Non-patch event rejected** `AC-sri-patch-open-wrong-kind`: Given the id of a kind:1 note (or kind:1621 issue, or any non-`1617` event) that exists, when fetched and validated, then the entry reports "Event <short-id> is not a NIP-34 patch (kind <k>)." and no review starts.
+- [ ] **Non-patch/PR event rejected** `AC-sri-patch-open-wrong-kind`: Given the id of a kind:1 note (or kind:1621 issue, or any event that is not kind `1617` or `1618`) that exists, when fetched and validated, then the entry reports "Event <short-id> is not a NIP-34 patch or PR (kind <k>)." and no review starts. A kind `1618` event is routed to the PR load path (`AC-sri-pr-open-happy`), not rejected here.
 - [ ] **Malformed diff rejected** `AC-sri-patch-open-bad-diff`: Given the fetched content does not begin with `diff --git` or lacks valid `@@` hunks, then the entry reports "Patch event <short-id> does not contain a valid unified diff." and no review starts.
 - [ ] **No relays reachable** `AC-sri-patch-open-no-relays`: Given no configured relay is reachable, when the reviewer submits, then the entry reports "No Nostr relays reachable — check your relay configuration." and no fetch is attempted.
 
@@ -145,6 +174,20 @@ The app targets iOS and runs on iPhone and iPad. It is not available on other op
 - [ ] **Publish tolerates relay failure** `AC-sri-publish-relay-failure`: Given some relays are unreachable, when the app publishes, then as long as one relay accepts the event the publish succeeds without a hard error; if none accept, the reviewer is informed and the local copy is retained.
 - [ ] **In-app patch open activates the thread** `AC-sri-patch-open-activates-thread`: Given an in-app-opened patch review, when new replies arrive over the live subscription, then they appear in the patch-thread section and inline at their anchors, and submitting a comment with an identity publishes to the thread — identical to a CLI-launched patch review.
 
+### In-app PR open (iterate patches)
+
+- [ ] **Open PR from empty state (happy path)** `AC-sri-pr-open-happy`: Given the app is in its empty state, when the reviewer opens the "Open Patch or PR" affordance, pastes a 64-character hex event id for a valid NIP-34 PR (kind `1618`) that references one or more kind `1617` patch events via `e` tags, and submits, then the app fetches the PR event in-process, fetches each referenced patch event in-process over the relay client, splits and unions their inline diffs into one tab per distinct changed file, attaches PR metadata (author, subject, parent/merge-base if present, status `open`, repo coordinate, short event id), and enters the review layout with the metadata section, live thread replies, and reply-publishing path active — with the PR event as thread root, no shell process invoked, and no local git repository required.
+
+- [ ] **PR with no patch references rejected** `AC-sri-pr-open-no-patches`: Given a kind `1618` PR event whose changes exist only on its `clone` URL (no `e` tags referencing kind `1617` patches), when the reviewer submits its id, then the entry reports "PR <short-id> has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS." and no review is started.
+
+- [ ] **Referenced patch not found is skipped** `AC-sri-pr-open-patch-not-found`: Given a PR references two kind `1617` patch events but one does not exist on the configured relays, when the app fetches the referenced patches, then the missing patch is skipped with a not-found warning and the PR still loads from the remaining valid patch (one tab per changed file in that patch).
+
+- [ ] **Referenced event of wrong kind is skipped** `AC-sri-pr-open-patch-wrong-kind`: Given a PR references an event that, when fetched, is kind `1621` (an issue) rather than kind `1617`, when the app validates the referenced event, then it is skipped with a warning and the PR still loads from any remaining valid referenced patches.
+
+- [ ] **PR metadata displayed** `AC-sri-pr-open-metadata`: Given a PR event with a `subject` tag and a `merge-base` tag, when the review opens, then the metadata section displays the author (display name if known, else short pubkey), subject, merge-base short hash if present, status `open`, repo coordinate, and short event id.
+
+- [ ] **In-app opened PR activates the thread** `AC-sri-pr-open-activates-thread`: Given an in-app-opened PR review, when new replies arrive over the live subscription, then they appear in the patch-thread section and inline at their anchors, and submitting a comment with an identity publishes to the PR thread (root `e` tag on the PR event) under that identity — with the PR event as thread root, identical to a patch review.
+
 ## Open Questions
 
 1. **Relay configuration UI**: macOS resolves relays from env vars / `~/.config/nostr/relays.txt`. iOS has neither. Where does the reviewer configure relays? Default decision: in-app settings with a default public relay fallback, mirroring the identity configuration path. Exact UI is a design decision.
@@ -154,6 +197,8 @@ The app targets iOS and runs on iPhone and iPad. It is not available on other op
 3. **Roster / display-name resolution on iOS**: The macOS app resolves author display names via a roster file. iOS has no dotfiles. Does the iOS app ship a bundled roster, fetch NIP-05, or show truncated npubs only for v1? Deferred — truncated npub is the safe fallback; richer resolution is a follow-up.
 
 4. **Same NIP-34 spec corrections as macOS**: The shared `product/shepherd-review.md` kind set and status-tag claims are pre-existing errors (see `../macos/shepherd-review.md` Open Question 5). The iOS path is written NIP-34-correctly and does not inherit them. Correcting the shared spec is a separate follow-up, shared with the macOS path.
+
+5. **Git-only PRs on iOS**: iOS reviews a kind `1618` PR via the inline diffs of the kind `1617` patch events the PR references (`FR-sri-pr-open-patches`), reusing the existing patch infrastructure with no git and no subprocess. A PR whose changes exist only on its `clone` server and were never published as patch events (no valid `e`-tagged kind `1617` references) cannot be reviewed on iOS in v1 and is rejected with a message pointing the reviewer to macOS. Covering those PRs without a local git client would require a remote diff endpoint (e.g. a grasp server or HTTP `diff <base>..<tip>` service); deferred to a roadmap follow-up.
 
 ## Dependencies
 
