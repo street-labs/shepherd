@@ -36,7 +36,9 @@ public struct OpenPatchFeature {
             case prError(String)
         }
 
-        public init() {}
+        public init(input: String = "") {
+            self.input = input
+        }
     }
 
     @CasePathable

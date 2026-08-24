@@ -33,6 +33,12 @@ struct ShepherdApp: App {
         // Implements: FR-crp-macos-window-management
         WindowGroup {
             AppView(store: store)
+                // Implements: FR-srm-deeplink-scheme — receive inbound shepherd:// links
+                // in the existing window (the scheme registration + .handlesExternalEvents
+                // above dedupe to this window on warm launch).
+                .onOpenURL { url in
+                    store.send(.deeplinkReceived(url))
+                }
         }
         // Set the initial window size explicitly. Without this, SwiftUI sizes a new
         // window to its content's ideal height — and the code viewer's ScrollView reports
