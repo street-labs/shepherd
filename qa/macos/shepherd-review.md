@@ -79,11 +79,7 @@ Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both c
 | `AC-srm-deeplink-pr-load` | `TC-srm-deeplink-pr-load` | Not started |
 | `AC-srm-deeplink-pr-cold-launch` | `TC-srm-deeplink-pr-cold-launch` | Not started |
 | `AC-srm-deeplink-pr-clone-failure` | `TC-srm-deeplink-pr-clone-failure` | Not started |
-| `AC-srm-pr-open-missing-tags` | `TC-srm-pr-open-missing-tags` | Not started |
-| `AC-srm-pr-open-fetch-fails` | `TC-srm-pr-open-fetch-fails` | Not started |
 | `AC-srm-pr-open-empty-diff` | `TC-srm-pr-open-empty-diff` | Not started |
-| `AC-srm-pr-open-metadata` | `TC-srm-pr-open-metadata` | Not started |
-| `AC-srm-pr-open-no-git` | `TC-srm-pr-open-no-git` | Not started |
 | `AC-sr-pr-happy-path` | `TC-sr-pr-happy-path` | Not started |
 | `AC-sr-pr-event-not-found` | `TC-sr-pr-event-not-found` | Not started |
 | `AC-sr-pr-wrong-kind` | `TC-sr-pr-wrong-kind` | Not started |
@@ -815,9 +811,10 @@ These cases verify the CLI `--pr <event-id>` path that fetches a kind `1618` PR,
 - **Type**: Manual
 - **Covers**: `AC-sr-pr-missing-tags`, `FR-sr-pr-diff-acquisition`
 - **Steps**:
-  1. `/shepherd-review --pr <id-with-no-clone-or-c>` → reports "PR event <short-id> is missing a clone URL or tip commit (`c` tag)."
-  2. `/shepherd-review --pr <id-with-no-merge-base>` → reports "PR event <short-id> has no `merge-base` tag; cannot determine the diff base."
-- **Expected**: Missing `clone`/`c`/`merge-base` each produce the precise error and stop.
+  1. `/shepherd-review --pr <id-with-no-clone-tag>` → reports "Pull request <short-id> has no clone URL — cannot fetch changes."
+  2. `/shepherd-review --pr <id-with-no-c-tag>` → reports "Pull request <short-id> has no commit id."
+  3. `/shepherd-review --pr <id-with-no-merge-base>` → the review proceeds with the tip commit's diff against its parent.
+- **Expected**: Missing `clone`/`c` each produce the precise error and stop; a missing `merge-base` falls back to the tip-vs-parent diff.
 
 #### PR git fetch failure `TC-sr-pr-fetch-fails`
 - **Type**: Manual
@@ -1135,42 +1132,6 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
   4. Confirm the existing window comes to the foreground (no second window spawns).
 - **Expected**: The OS routes `shepherd:` links to Shepherd — launching it when cold, focusing the existing window when warm.
 
-#### PR missing required tags `TC-srm-pr-open-missing-tags`
-- **Type**: Automated (unit) + Manual
-- **Covers**: `AC-srm-pr-open-missing-tags`, `FR-srm-pr-open-fetch`
-- **Steps**:
-  1. Submit a kind `1618` event with no `clone` tag (or no `c` tag); confirm the sheet reports ``PR event <short-id> is missing a clone URL or tip commit (`c` tag).`` and no review starts.
-  2. Submit a kind `1618` event with `clone` and `c` but no `merge-base`; confirm the sheet reports ``PR event <short-id> has no `merge-base` tag; cannot determine the diff base.`` and no review starts.
-  3. (Unit) assert the PR tag validator rejects each missing-tag case with the matching message.
-- **Expected**: PRs missing `clone`, `c`, or `merge-base` are rejected with a precise message before any git fetch.
-
-#### PR git fetch failure `TC-srm-pr-open-fetch-fails`
-- **Type**: Manual (with an unreachable clone URL fixture)
-- **Covers**: `AC-srm-pr-open-fetch-fails`, `FR-srm-pr-open-diff`
-- **Preconditions**: A kind `1618` event whose `clone` URLs are unreachable, or whose referenced commits cannot be fetched by the server.
-- **Steps**:
-  1. Submit the PR event id.
-  2. Confirm the sheet reports the specific git error (e.g. `Could not fetch commits from <clone-url>: <git error>`) and no review starts.
-  3. Confirm the temporary repository created for the fetch is cleaned up after the failure.
-- **Expected**: Clone/fetch failures surface a clear error and leave no temp-dir litter.
-
-#### PR with empty diff `TC-srm-pr-open-empty-diff`
-- **Type**: Manual (with a fixture PR whose tip equals its merge-base)
-- **Covers**: `AC-srm-pr-open-empty-diff`, `FR-srm-pr-open-diff`
-- **Steps**:
-  1. Submit a kind `1618` event whose `c` and `merge-base` resolve to the same tree (no net changes).
-  2. Confirm the sheet reports `PR <short-id> has no changes between its merge-base and tip.` and no review starts.
-- **Expected**: A no-op PR is rejected with a clear message rather than opening an empty review window.
-
-#### PR metadata displayed `TC-srm-pr-open-metadata`
-- **Type**: Manual
-- **Covers**: `AC-srm-pr-open-metadata`, `FR-sr-pr-metadata-display`
-- **Preconditions**: A PR review is loaded in the app (via the in-app Open Patch or PR dialog).
-- **Steps**:
-  1. Open a PR review; inspect the inspector's metadata section.
-  2. Confirm the rows show the PR author, subject, merge-base (as Parent), tip commit, branch name (when present), status `open`, and the short event id with a copy affordance for the full id.
-- **Expected**: PR metadata is displayed read-only alongside the review context, with PR-specific rows (tip, branch) rendered.
-
 #### Patch deeplink loads the patch `TC-srm-deeplink-patch-load`
 - **Type**: Manual
 - **Covers**: `AC-srm-deeplink-patch-load`, `FR-srm-deeplink-route`, `FR-srm-deeplink-warm-empty`
@@ -1389,6 +1350,14 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
   2. Confirm the error names the missing commit and the clone URL, and no review starts.
 - **Expected**: A commit-not-found error surfaces clearly.
 
+#### PR with no changes rejected `TC-srm-pr-open-empty-diff`
+- **Type**: Manual (with a fixture PR whose tip equals its merge-base)
+- **Covers**: `AC-srm-pr-open-empty-diff`, `FR-srm-pr-open-clone`
+- **Steps**:
+  1. Submit a kind `1618` event whose `c` and `merge-base` resolve to the same tree (no net changes).
+  2. Confirm the sheet reports `Pull request <short-id> has no changes.` and no review starts.
+- **Expected**: A no-op PR is rejected with a clear message rather than opening an empty review window.
+
 #### PR review requires git `TC-srm-pr-open-git-required`
 - **Type**: Manual
 - **Covers**: `AC-srm-pr-open-git-required`, `NFR-srm-pr-open-git-required`
@@ -1411,17 +1380,15 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
   4. Submit an inline comment with an identity loaded; confirm it publishes to the thread under that identity.
 - **Expected**: A PR review is indistinguishable from a patch review for live replies and publishing.
 
-#### PatchFetcher PR branch unit `TC-srm-pr-open-fetcher-unit`
+#### PR open unit: dispatch, tag validation, and acquisition outcomes `TC-srm-pr-open-fetcher-unit`
 - **Type**: Automated (unit)
 - **Covers**: `FR-srm-pr-open-fetch`, `FR-srm-pr-open-clone`, `FR-srm-pr-open-load`
 - **Steps**:
-  1. With mock `RelayClient` returning a kind-1618 event (with `clone` + `c` tags) and mock `GitClient` returning a canned 3-file diff, assert `PatchFetcher.fetch(ref)` returns `.pr(files, metadata)` with 3 files and the correct PR metadata (subject, tip commit, clone URL).
-  2. With a mock 1618 event lacking a `clone` tag, assert `.noClone(short-id)`.
-  3. With a mock 1618 event lacking a `c` tag, assert `.noCommit(short-id)`.
-  4. With mock `GitClient.isAvailable()` returning false, assert `.gitNotInstalled`.
-  5. With mock `GitClient.clone` throwing, assert `.cloneFailed(short-id, error)`.
-  6. With mock `GitClient.diff` throwing (commit not found), assert `.commitNotFound(short-id, commit)`.
-- **Expected**: The shared fetch helper produces correct per-cause outcomes for the PR path.
+  1. (`OpenPatchTests`) With a fetched kind-1618 event, assert the feature dispatches to the PR path (no `.wrongKind`), and with a missing `clone` tag asserts the no-clone message; with a missing `c` tag asserts the no-commit-id message.
+  2. (`OpenPatchTests`) With `GitDiffClient` returning `.noGit` / `.empty` / `.fetchFailed`, assert each maps to the exact `.prError` message.
+  3. (`OpenPatchTests`) With `GitDiffClient` returning `.diff`, assert `.delegate(.patchLoaded)` emits with the PR metadata (subject, merge-base as Parent, tip commit, branch name).
+  4. (`GitDiffClientTests`, live) Against a local bare repo, assert the merge-base..tip diff, the tip-vs-parent diff without a merge-base, the `.empty` case, and the `.fetchFailed` case for an unreachable clone URL.
+- **Expected**: The PR open path produces correct per-cause outcomes for dispatch, tag validation, and acquisition.
 
 ### PR Deeplink Entry
 

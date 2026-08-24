@@ -4,11 +4,11 @@ import ComposableArchitecture
 @testable import ShepherdDependencies
 
 /// End-to-end test of `GitDiffClient.liveValue` against a real local bare git
-/// repository. Validates `FR-srm-pr-open-diff`: fetch-by-SHA from a clone URL
+/// repository. Validates `FR-srm-pr-open-clone`: fetch-by-SHA from a clone URL
 /// and `git diff <merge-base>..<tip>` produce the net unified diff.
 /// macOS-only — the live value shells out to `git` (`Process`).
 #if os(macOS)
-@Suite("GitDiffClient live (FR-srm-pr-open-diff)")
+@Suite("GitDiffClient live (FR-srm-pr-open-clone)")
 struct GitDiffClientTests {
     /// Build a two-commit repo, bare-clone it, and return (barePath, tipSHA, baseSHA).
     private func makeBareRepo() throws -> (bare: URL, tip: String, base: String) {
@@ -40,6 +40,19 @@ struct GitDiffClientTests {
         let (bare, tip, base) = try makeBareRepo()
         defer { try? FileManager.default.removeItem(at: bare) }
         let spec = GitDiffClient.Spec(cloneURLs: [bare.path], tipCommit: tip, mergeBase: base)
+        let result = await GitDiffClient.liveValue.acquirePRDiff(spec)
+        guard case let .diff(diff) = result else {
+            Issue.record("expected .diff, got \(result)"); return
+        }
+        #expect(diff.contains("diff --git"))
+        #expect(diff.contains("+v2"))
+    }
+
+    @Test("acquirePRDiff without merge-base diffs the tip against its parent")
+    func acquireNoMergeBase() async throws {
+        let (bare, tip, _) = try makeBareRepo()
+        defer { try? FileManager.default.removeItem(at: bare) }
+        let spec = GitDiffClient.Spec(cloneURLs: [bare.path], tipCommit: tip, mergeBase: nil)
         let result = await GitDiffClient.liveValue.acquirePRDiff(spec)
         guard case let .diff(diff) = result else {
             Issue.record("expected .diff, got \(result)"); return

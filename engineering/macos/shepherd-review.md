@@ -590,14 +590,14 @@ Add NIP-46 bunker as a second identity form so the reviewer need not place a raw
 
 Wire inbound `shepherd://patch/<ref>` and `shepherd://pr/<ref>` links to the in-app open path, with launch-state handling and dialog-less error surfacing. The scheme is already registered (`Info.plist`) and `.handlesExternalEvents` already dedupes to the existing window; this step adds URL reception, parsing, a shared fetch helper, and the warm/cold/malformed handling. Both `patch` and `pr` actions route into the same `PatchFetcher.fetch(ref)` call — the fetcher branches on the fetched event's kind, not the URL action.
 
-1. `PatchFetcher` (`Sources/Dependencies/PatchFetcher.swift`, new): extract the probe → `RelayClient.subscribe(NostrFilter(ids:relays:))` → `firstEventOrTimeout` → kind-branching validate/clone/diff sequence out of `OpenPatchFeature.fetchButtonTapped` into a shared `DependencyKey` exposing `fetch(_ ref: PatchRef.Valid) async -> FetchResult`. `FetchResult` covers both patch and PR outcomes: `.patch([DiffFile], PatchMetadata) | .pr([DiffFile], PRMetadata) | .notFound(String) | .wrongKind(String, Int) | .badDiff(String) | .noRelays | .gitNotInstalled | .noClone(String) | .noCommit(String) | .cloneFailed(String, String) | .commitNotFound(String, String)`. No new transport; wraps `relayClient` + `gitClient` + `clock`.
+1. `PatchFetcher` (`Sources/Dependencies/PatchFetcher.swift`, new): extract the probe → `RelayClient.subscribe(NostrFilter(ids:relays:))` → `firstEventOrTimeout` → kind-branching sequence (kind `1617`: patch validation; kind `1618`: PR tag validation + `GitDiffClient` acquisition) out of `OpenPatchFeature.fetchButtonTapped` into a shared `DependencyKey` exposing `fetch(_ ref: PatchRef.Valid) async -> FetchResult`. `FetchResult` covers both patch and PR outcomes (patch/PR success, not-found, wrong-kind, bad-diff, no-relays, and the PR failure messages `OpenPatchFeature` reports today via `.prError`). No new transport; wraps `relayClient` + `gitDiffClient` + `clock`.
 2. `OpenPatchFeature.fetchButtonTapped`: rewrite to call `PatchFetcher.fetch(ref)` and map `FetchResult` onto the existing `FetchStatus` states plus the new PR/git failure states. No dialog behavior change for the patch path.
 3. `ShepherdApp.swift`: add `.onOpenURL { url in store.send(.deeplinkReceived(url)) }` to the `WindowGroup`. (Scheme registration and `.handlesExternalEvents` already present.)
 4. URL parsing: `url.host` must be `"patch"` or `"pr"`; reference = percent-decoded `url.path` with leading `/` stripped; `PatchRef.parse(ref)`. Any other host, empty reference, or a `nil` parse → `.deeplinkFailed(.malformed)`. Both actions route into the same `PatchFetcher.fetch(ref)` call.
 5. `AppFeature`: add `deeplinkLoading`, `@Presents deeplinkConfirm`, `pendingDeeplinkRef`, `tempDir`, and the `deeplinkReceived` / `deeplinkFetchStarted` / `deeplinkFetchResult` / `deeplinkFailed` / `deeplinkConfirm` actions per the "AppFeature wiring" section above. On `.patch(files, metadata)` reuse the existing `patchLoaded` load path verbatim. On `.pr(files, metadata)` set `prMetadata` and track `tempDir` for cleanup. On failure, surface via `AlertState` with the per-cause wording; clear `deeplinkLoading`.
 6. Launch-state handling: `files.isEmpty` → fetch immediately (covers cold launch + warm-empty); `files` non-empty and `!hasComments` → `performClearSession` then fetch; `files` non-empty and `hasComments` → present `deeplinkConfirm`, stash ref, clear+fetch on `.replaceConfirmed`. A second deeplink while `deeplinkLoading` → `.deeplinkFailed(.alreadyLoading)` notice, no queue.
 7. `AppView`: render a progress overlay when `deeplinkLoading` (with patch or PR loading labels); present `deeplinkConfirm` via `.alert`; failure notices ride the existing alert surface.
-8. Tests: `PatchFetcherTests` against in-process mock `RelayClient` + mock `GitClient` (patch, PR with merge-base, PR without merge-base, wrong-kind, bad-diff, not-found, no-relays, git-not-installed, no-clone, no-commit, clone-failed, commit-not-found cases) shared by both callers; `DeeplinkParsingTests` for the URL grammar (`shepherd://patch/<hex>`, `shepherd://patch/<nevent1>`, `shepherd://pr/<hex>`, `shepherd://pr/<nevent1>`, unknown host, empty ref, malformed ref); `AppFeatureDeeplinkTests` for cold-launch patch load, cold-launch PR load, warm-empty load, warm-in-progress confirm + replace, warm-in-progress cancel (review untouched), no-comments skip-confirm, malformed, and each fetch/clone-failure notice.
+8. Tests: `PatchFetcherTests` against in-process mock `RelayClient` + mock `GitDiffClient` (patch, PR with merge-base, PR without merge-base, wrong-kind, bad-diff, not-found, no-relays, git-not-installed, no-clone, no-commit, clone-failed, commit-not-found cases) shared by both callers; `DeeplinkParsingTests` for the URL grammar (`shepherd://patch/<hex>`, `shepherd://patch/<nevent1>`, `shepherd://pr/<hex>`, `shepherd://pr/<nevent1>`, unknown host, empty ref, malformed ref); `AppFeatureDeeplinkTests` for cold-launch patch load, cold-launch PR load, warm-empty load, warm-in-progress confirm + replace, warm-in-progress cancel (review untouched), no-comments skip-confirm, malformed, and each fetch/clone-failure notice.
 
 **Slug coverage**: `FR-srm-deeplink-scheme`, `FR-srm-deeplink-patch-format`, `FR-srm-deeplink-pr-format`, `FR-srm-deeplink-route`, `FR-srm-deeplink-cold-launch`, `FR-srm-deeplink-warm-empty`, `FR-srm-deeplink-warm-in-progress`, `FR-srm-deeplink-malformed`, `FR-srm-deeplink-errors`, `NFR-srm-deeplink-latency`, `FR-srm-pr-open-fetch`, `FR-srm-pr-open-clone`, `FR-srm-pr-open-load`, `NFR-srm-pr-open-git-required`
 
@@ -648,100 +648,6 @@ Once `reviewContextData.patchMetadata` is set and files are loaded, every existi
 The in-app patch open does not touch identity. The existing `FR-srm-identity-load` path runs at window appear regardless of how the session started. If no identity is configured, the identity indicator shows the no-identity state and comments publish locally only — identical to a CLI-launched patch review with no identity. The reviewer can open the identity screen from the indicator as usual.
 
 > Implements: `FR-srm-patch-open-entry`, `FR-srm-patch-open-input`, `FR-srm-patch-open-fetch`, `FR-srm-patch-open-load`
-
-## In-App Pull Request Open
-
-Pull request (kind `1618`) review in the native app. A PR event's content is a markdown description, not a diff; the changes live in a git repository identified by the `clone` and `c` (tip commit) tags. The app fetches the event over the relay client, shells out to `git` to clone the repo and compute the diff, then feeds the diff through the same `PatchDiffSplitter` → diff-as-tabs path as a patch. Implements `FR-srm-pr-open-fetch`, `FR-srm-pr-open-clone`, `FR-srm-pr-open-load`, `NFR-srm-pr-open-git-required`.
-
-### Why PRs need a git clone (and patches don't)
-
-A patch (kind `1617`) carries its diff inline in the event content — `PatchDiffSplitter` splits it directly, no git needed. A PR (kind `1618`) carries only a markdown description and tags pointing to a remote repo (`clone` URL, `c` tip commit, optional `merge-base`). There is no way to review a PR without fetching the actual changes from the repo. The cheapest correct approach is to shell out to `/usr/bin/git` (already a system dependency for the CLI path) to clone and diff, rather than pulling in a Swift git library. The in-app patch path's no-git guarantee is preserved — only the PR path requires git.
-
-### GitClient dependency
-
-A new `GitClient` dependency (`Sources/Dependencies/GitClient.swift`, a `DependencyKey` wrapping `Process`):
-
-```swift
-public struct GitClient: DependencyKey {
-    public func clone(_ url: String, to dir: URL) async throws
-    public func diff(repo: URL, base: String?, tip: String) async throws -> String
-    public func isAvailable() -> Bool
-}
-```
-
-- `clone` runs `git clone --depth 1 <url> <dir>` (shallow clone; falls back to full clone if the server doesn't support shallow).
-- `diff` runs `git -C <repo> diff <base>..<tip>` when `base` is present (the full PR diff via `merge-base`), or `git -C <repo> show <tip>` when `base` is nil (the tip commit against its parent). Returns the unified diff string.
-- `isAvailable` checks whether `git` is on the PATH (launch `git --version` via `Process`). Returns `Bool`.
-- `testValue` is an injectable mock that returns canned diffs, so `PatchFetcher`'s PR branch and the unit tests never touch a real git repo.
-
-### PatchFetcher extended for PRs
-
-`PatchFetcher.fetch(_ ref:)` is extended to branch on the fetched event's kind:
-- **Kind 1617** (patch): existing path — `PatchDiffSplitter.validate(event)` → `.patch(files, metadata)`.
-- **Kind 1618** (PR): new path — validate `clone` and `c` tags are present → `GitClient.isAvailable()` check → `GitClient.clone(cloneURL, to: tempDir)` → `GitClient.diff(repo: tempDir, base: mergeBase, tip: commitC)` → feed the diff string through `PatchDiffSplitter.split(diffString)` (a new entry point that takes a raw diff string instead of an event) → build `PRMetadata` from the event tags → `.pr(files, metadata)`.
-- **Any other kind**: `.wrongKind(short-id, kind)` (same as before, but the message now says "not a NIP-34 patch or pull request").
-
-`PatchDiffSplitter` gains a `split(_ diff: String)` entry point that takes a raw unified diff string (the PR path) alongside its existing `validate(event:)` that takes a Nostr event (the patch path). The split logic is shared — both paths parse `diff --git a/<path> b/<path>` boundaries into `(filePath, diffBlock)` pairs. The patch path extracts metadata from the event tags; the PR path extracts metadata from the kind-1618 event's tags (`subject`, `c`, `clone`, `branch-name`, `merge-base`, `a`).
-
-`FetchResult` gains a `.pr([DiffFile], PRMetadata)` case and PR-specific error cases (`.gitNotInstalled`, `.noClone`, `.noCommit`, `.cloneFailed(String)`, `.commitNotFound(String)`). `PRMetadata` is a new model (in `SharedModels`) mirroring `PatchMetadata` but with PR-specific fields:
-
-```swift
-public struct PRMetadata: Equatable, Sendable {
-    public var eventID: String         // full 64-char hex
-    public var authorPubkey: String
-    public var subject: String         // from `subject` tag or first line of content
-    public var description: String     // the markdown content
-    public var tipCommit: String       // from `c` tag
-    public var cloneURL: String        // from first `clone` tag
-    public var branchName: String?     // from `branch-name` tag
-    public var mergeBase: String?      // from `merge-base` tag
-    public var repoCoordinate: String? // the `a` tag
-    public var replies: [PatchReply]   // same reply model as patches
-}
-```
-
-The `ReviewContext` model gains a `prMetadata: PRMetadata?` field alongside its existing `patchMetadata`. The metadata section view checks which is present and renders the appropriate fields. The live reply subscription and publish path key off the event id regardless of whether it's a patch or PR — the thread mechanism is identical (kind:1 NIP-22 replies tagged to the event as root).
-
-### Temp directory lifecycle
-
-The cloned repo lives at `$TMPDIR/shepherd-pr-<short-id>/`. `AppFeature` creates it on PR load and deletes it in `.windowClosed` and `performClearSession` (alongside cancelling the relay subscription and closing the bunker). A `tempDir: URL?` field on `AppFeature.State` tracks it. If deletion fails (rare), the directory is orphaned but does not block the app; `$TMPDIR` is cleaned by the OS on reboot.
-
-### Data flow
-
-```
-OpenPatchFeature (or deeplink handler)
-  └─ PatchFetcher.fetch(ref)
-       ├─ RelayClient.subscribe(ids:[id]) → event
-       ├─ if kind == 1617: PatchDiffSplitter.validate(event) → .patch(files, patchMeta)   [existing]
-       ├─ if kind == 1618:
-       │    ├─ validate clone + c tags present
-       │    ├─ GitClient.isAvailable() → if false: .gitNotInstalled
-       │    ├─ GitClient.clone(cloneURL, to: tempDir)
-       │    ├─ GitClient.diff(repo: tempDir, base: mergeBase, tip: c) → diffString
-       │    ├─ PatchDiffSplitter.split(diffString) → [(filePath, diffBlock)]
-       │    └─ build PRMetadata from tags → .pr(files, prMeta)
-       └─ else: .wrongKind(short-id, kind)
-
-AppFeature (on .patch or .pr):
-  ├─ files = diff blocks → FileNode(language: .plaintext, filePath: <diff path>)  [same as patch]
-  ├─ reviewContextData.patchMetadata = patchMeta   OR   reviewContextData.prMetadata = prMeta
-  ├─ .filesLoaded(loaded)
-  └─ .startPatchReplySubscription  [same — keys off event id regardless of kind]
-```
-
-### OpenPatchFeature changes
-
-The dialog's fetch path (`OpenPatchFeature.fetchButtonTapped`) already calls `PatchFetcher.fetch(ref)`. It maps the extended `FetchResult`:
-- `.patch(...)` → existing `.delegate(.patchLoaded(...))`
-- `.pr(...)` → new `.delegate(.prLoaded(files, prMetadata))`
-- `.gitNotInstalled` → new failure state `FetchStatus.gitNotInstalled`
-- `.noClone` / `.noCommit` / `.cloneFailed` / `.commitNotFound` → new failure states
-
-`AppFeature.openPatch(.presented(.delegate(.prLoaded(...))))` mirrors the `.patchLoaded` handler: set `reviewContextData.prMetadata`, `.filesLoaded`, `.startPatchReplySubscription`, and track `tempDir` for cleanup.
-
-> Implements: `FR-srm-pr-open-fetch`, `FR-srm-pr-open-clone`, `FR-srm-pr-open-load`, `NFR-srm-pr-open-git-required`
-
----
 
 ## Deeplink Entry
 
@@ -837,7 +743,7 @@ The deeplink carries only the patch reference. Identity loading (`FR-srm-identit
 
 ## In-App PR Open
 
-A parallel CLI-free path into a **pull request** review. The reviewer enters a NIP-34 PR reference (kind `1618`) in the same Open Patch or PR dialog; the app fetches the event in-process, then — because a PR event does not contain its diff — acquires the diff by fetching the PR's referenced git objects with a `git` subprocess and computing `git diff <merge-base>..<c>`. The resulting diff is split and loaded exactly like an in-app patch. No `/shepherd-review` invocation and no local git repository are required, but the `git` binary must be on the PATH (`NFR-srm-pr-git-required`). Implements `FR-srm-pr-open-fetch`, `FR-srm-pr-open-diff`, `FR-srm-pr-open-load`.
+A parallel CLI-free path into a **pull request** review. The reviewer enters a NIP-34 PR reference (kind `1618`) in the same Open Patch or PR dialog; the app fetches the event in-process, then — because a PR event does not contain its diff — acquires the diff by fetching the PR's referenced git objects with a `git` subprocess and computing the unified diff — `git diff <merge-base>..<c>` when a `merge-base` tag is present (the full net diff), or the tip commit against its parent when it is not. The resulting diff is split and loaded exactly like an in-app patch. No `/shepherd-review` invocation and no local git repository are required, but the `git` binary must be on the PATH (`NFR-srm-pr-open-git-required`). Implements `FR-srm-pr-open-fetch`, `FR-srm-pr-open-clone`, `FR-srm-pr-open-load`.
 
 ### Why a git subprocess is required for PRs (and not patches)
 
@@ -845,18 +751,18 @@ A kind `1617` patch event's content *is* the diff; the in-app patch path parses 
 
 ### Kind dispatch
 
-`OpenPatchFeature` fetches by `ids` only (no `kinds` filter), so the event is returned whatever its kind. After fetch it dispatches on `event.kind`: `1617` → existing patch validation + `.delegate(.patchLoaded)`; `1618` → PR tag validation (`FR-srm-pr-open-fetch`) + a `GitDiffClient` diff-acquisition effect that returns `.prDiffResult` → on success reuses `.delegate(.patchLoaded)` with PR metadata; any other kind → `.wrongKind`. This reuses the existing dialog states (fetching / not-found / wrong-kind / no-relays) and adds a single PR-specific `.prError(String)` status carrying the exact user-facing message for each PR failure (missing clone/c/merge-base tags, git fetch failure, empty diff, no git on PATH).
+`OpenPatchFeature` fetches by `ids` only (no `kinds` filter), so the event is returned whatever its kind. After fetch it dispatches on `event.kind`: `1617` → existing patch validation + `.delegate(.patchLoaded)`; `1618` → PR tag validation (`FR-srm-pr-open-fetch`) + a `GitDiffClient` diff-acquisition effect that returns `.prDiffResult` → on success reuses `.delegate(.patchLoaded)` with PR metadata; any other kind → `.wrongKind`. This reuses the existing dialog states (fetching / not-found / wrong-kind / no-relays) and adds a single PR-specific `.prError(String)` status carrying the exact user-facing message for each PR failure (missing clone/c tags, git fetch failure, empty diff, no git on PATH).
 
-### Diff acquisition (`FR-srm-pr-open-diff`)
+### Diff acquisition (`FR-srm-pr-open-clone`)
 
 A new `GitDiffClient` dependency shells out to `git` in a temporary directory:
 
 1. Create a temp dir (`FileManager.default.temporaryDirectory` + UUID), `git init`.
-2. Try `clone` URLs in order. For the first reachable URL, fetch the tip and merge-base commits. Fetching by arbitrary SHA requires the server to enable `allowReachableSHA1InWant` (GitHub, GitLab, and ngit/grasp servers do). When a `branch-name` tag is present and SHA-fetch fails, fall back to `git fetch <clone> <branch-name>` (delivers the tip + ancestors including the merge-base), then resolve the tip from the `c` tag.
-3. `git diff <merge-base>..<c>` → unified diff string.
+2. Try `clone` URLs in order. For the first reachable URL, fetch the needed commits. Fetching by arbitrary SHA requires the server to enable `allowReachableSHA1InWant` (GitHub, GitLab, and ngit/grasp servers do). When a `branch-name` tag is present and SHA-fetch fails, fall back to `git fetch <clone> <branch-name>` (delivers the tip + ancestors), then resolve the tip from the `c` tag.
+3. Compute the diff: `git diff <merge-base>..<c>` when a merge-base was fetched (the full net diff of the PR), else fetch the tip with `--depth 2` and use `git show <c>` (the tip against its parent).
 4. Delete the temp dir.
 
-The effect is cancellable (the dialog's Cancel button tears it down, reusing the existing `CancelID.fetch`). Errors map to the `.prError(String)` status with the exact message: missing clone/c tag or missing `merge-base` tag → the missing-tag messages; unreachable clone / fetch failure → `Could not fetch commits from <clone-url>: <git error>`; empty diff → `PR <short-id> has no changes between its merge-base and tip.`; `git` not on PATH → `Opening a PR requires \`git\` on your PATH.`
+The effect is cancellable (the dialog's Cancel button tears it down, reusing the existing `CancelID.fetch`). Errors map to the `.prError(String)` status with the exact message: missing `clone` tag → `Pull request <short-id> has no clone URL — cannot fetch changes.`; missing `c` tag → `Pull request <short-id> has no commit id.`; unreachable clone / fetch failure → `Could not fetch commits from <clone-url>: <git error>`; empty diff → `Pull request <short-id> has no changes.`; `git` not on PATH → `git is required to review pull requests but was not found on your system`
 
 > ponytail: fetch-by-SHA first, branch-name fallback. A full `git clone` is never performed; only the needed commits are fetched, keeping the network transfer minimal. If a server rejects SHA-fetch and no `branch-name` is present, the PR cannot be reviewed in-app in v1 — the error names the cause and the user can fall back to the CLI `--pr` path against a local clone.
 
@@ -868,7 +774,7 @@ The acquired diff string is split with the new `PatchDiffSplitter.splitUnifiedDi
 
 Same as in-app patch open: the existing `FR-srm-identity-load` path applies unchanged; PR review introduces no new identity path.
 
-> Implements: `FR-srm-pr-open-fetch`, `FR-srm-pr-open-diff`, `FR-srm-pr-open-load`, `NFR-srm-pr-git-required`
+> Implements: `FR-srm-pr-open-fetch`, `FR-srm-pr-open-clone`, `FR-srm-pr-open-load`, `NFR-srm-pr-open-git-required`
 
 ---
 
@@ -928,9 +834,9 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-sr-pr-diff-acquisition` | .claude/commands/shepherd-review.md | implemented |
 | `FR-sr-pr-metadata-display` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | implemented |
 | `FR-srm-pr-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
-| `FR-srm-pr-open-diff` | engineering/apps/macos/Sources/Dependencies/GitDiffClient.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
+| `FR-srm-pr-open-clone` | engineering/apps/macos/Sources/Dependencies/GitDiffClient.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
 | `FR-srm-pr-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | implemented |
-| `NFR-srm-pr-git-required` | engineering/apps/macos/Sources/Dependencies/GitDiffClient.swift | implemented |
+| `NFR-srm-pr-open-git-required` | engineering/apps/macos/Sources/Dependencies/GitDiffClient.swift | implemented |
 
 Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The deeplink and PR-open rows above are `planned` (new work from this kickoff). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
@@ -1006,10 +912,10 @@ The `--context` flag adds a single file read in the launcher and a single substr
 | `FR-srm-deeplink-malformed` | Deeplink Entry (URL parse rejection; `.malformed` notice) |
 | `FR-srm-deeplink-errors` | Deeplink Entry (fetch/validation failures via `AlertState`; per-cause wording) |
 | `NFR-srm-deeplink-latency` | Deeplink Entry (async fetch; no launch blocking) |
-| `FR-srm-pr-open-fetch` | In-App Pull Request Open (kind 1618 validation; `clone`/`c` tag checks) |
-| `FR-srm-pr-open-clone` | In-App Pull Request Open (GitClient clone + diff; merge-base vs tip-against-parent) |
-| `FR-srm-pr-open-load` | In-App Pull Request Open (PatchDiffSplitter.split; PRMetadata; ReviewContext.prMetadata) |
-| `NFR-srm-pr-open-git-required` | In-App Pull Request Open (GitClient.isAvailable; PR-specific git requirement) |
+| `FR-srm-pr-open-fetch` | In-App PR Open (kind 1618 validation; `clone`/`c` tag checks) |
+| `FR-srm-pr-open-clone` | In-App PR Open (GitDiffClient fetch-by-SHA + diff; merge-base vs tip-against-parent) |
+| `FR-srm-pr-open-load` | In-App PR Open (PatchDiffSplitter.splitUnifiedDiff; PR metadata via `PatchMetadata.tipCommit`/`branchName`) |
+| `NFR-srm-pr-open-git-required` | In-App PR Open (GitDiffClient PATH probe; PR-specific git requirement) |
 | `FR-srm-deeplink-pr-format` | Deeplink Entry (`shepherd://pr/<ref>` action; reuses PatchRef.parse) |
 | `AC-srm-patch-open-happy` | In-App Patch Open (data flow: fetch → split → load → activate thread) |
 | `AC-srm-patch-open-nevent` | In-App Patch Open; `NIP19Decode` (nevent → id + relays) |
@@ -1020,16 +926,16 @@ The `--context` flag adds a single file read in the launcher and a single substr
 | `AC-srm-patch-open-no-relays` | In-App Patch Open; `RelayClient` no-relay-reachable state |
 | `AC-srm-patch-open-activates-thread` | In-App Patch Open (once `patchMetadata` set, existing live-replies + publish paths activate unchanged) |
 | `FR-srm-pr-open-fetch` | In-App PR Open (kind dispatch + PR tag validation); Components / Files Touched (`OpenPatchFeature`) |
-| `FR-srm-pr-open-diff` | In-App PR Open (diff acquisition via `GitDiffClient` subprocess); Components / Files Touched (`GitDiffClient`, `OpenPatchFeature`) |
+| `FR-srm-pr-open-clone` | In-App PR Open (diff acquisition via `GitDiffClient` subprocess); Components / Files Touched (`GitDiffClient`, `OpenPatchFeature`) |
 | `FR-srm-pr-open-load` | In-App PR Open (split acquired diff + PR metadata); Components / Files Touched (`AppFeature`, `PatchDiffSplitter`) |
-| `NFR-srm-pr-git-required` | In-App PR Open (git subprocess requirement; no-git error state) |
+| `NFR-srm-pr-open-git-required` | In-App PR Open (git subprocess requirement; no-git error state) |
 | `AC-srm-pr-open-happy` | In-App PR Open (fetch → git diff → split → load → activate thread) |
-| `AC-srm-pr-open-missing-tags` | In-App PR Open; `OpenPatchFeature` missing-tags states (clone/c/merge-base) |
-| `AC-srm-pr-open-fetch-fails` | In-App PR Open; `GitDiffClient` fetch-failure → dialog error |
+| `AC-srm-pr-open-no-clone` / `AC-srm-pr-open-no-commit` | In-App PR Open; `OpenPatchFeature` missing-tag states |
+| `AC-srm-pr-open-clone-failure` | In-App PR Open; `GitDiffClient` fetch-failure → dialog error |
 | `AC-srm-pr-open-empty-diff` | In-App PR Open; empty-diff state |
-| `AC-srm-pr-open-metadata` | In-App PR Open; `PatchMetadataSectionView` PR fields (tip / merge-base / branch) |
 | `AC-srm-pr-open-activates-thread` | In-App PR Open (PR event as thread root; existing live-replies + publish paths) |
-| `AC-srm-pr-open-no-git` | In-App PR Open; `GitDiffClient` no-git state |
+| `AC-srm-pr-open-git-required` | In-App PR Open; `GitDiffClient` no-git state |
+| `AC-srm-pr-open-merge-base` / `AC-srm-pr-open-no-merge-base` | In-App PR Open; `GitDiffClient` merge-base diff vs tip-vs-parent diff |
 
 ### Shared (from `product/shepherd-review.md`) — applied as-is on macOS
 

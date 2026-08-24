@@ -4,19 +4,20 @@ import ComposableArchitecture
 /// Acquires a NIP-34 PR (kind `1618`) diff by shelling out to `git` in a
 /// temporary repository. macOS-only at the live layer; the iOS in-app PR path
 /// does not use this client (it iterates referenced patch events instead — see
-/// `FR-sri-pr-open-patches`). Implements `FR-srm-pr-open-diff`,
-/// `NFR-srm-pr-git-required`.
+/// `FR-sri-pr-open-patches`). Implements `FR-srm-pr-open-clone`,
+/// `NFR-srm-pr-open-git-required`.
 public struct GitDiffClient: Sendable {
     /// The PR references needed to fetch + diff: clone URLs (tried in order),
-    /// the tip commit (`c` tag), the merge-base, and an optional branch name
+    /// the tip commit (`c` tag), the merge-base (optional — when absent the
+    /// diff is the tip commit against its parent), and an optional branch name
     /// fallback when the server rejects fetching by arbitrary SHA.
     public struct Spec: Equatable, Sendable {
         public var cloneURLs: [String]
         public var tipCommit: String
-        public var mergeBase: String
+        public var mergeBase: String?
         public var branchName: String?
 
-        public init(cloneURLs: [String], tipCommit: String, mergeBase: String, branchName: String? = nil) {
+        public init(cloneURLs: [String], tipCommit: String, mergeBase: String? = nil, branchName: String? = nil) {
             self.cloneURLs = cloneURLs
             self.tipCommit = tipCommit
             self.mergeBase = mergeBase
@@ -30,7 +31,7 @@ public struct GitDiffClient: Sendable {
         case diff(String)
         /// The merge-base..tip range produced no changes.
         case empty
-        /// `git` is not on the PATH. (`NFR-srm-pr-git-required`.)
+        /// `git` is not on the PATH. (`NFR-srm-pr-open-git-required`.)
         case noGit
         /// No clone URL was reachable, or the commits could not be fetched.
         /// Carries the offending clone URL + the git error message.
@@ -47,7 +48,7 @@ public struct GitDiffClient: Sendable {
 extension GitDiffClient: DependencyKey {
     public static let liveValue: GitDiffClient = {
         #if os(macOS)
-        // Implements: FR-srm-pr-open-diff, NFR-srm-pr-git-required
+        // Implements: FR-srm-pr-open-clone, NFR-srm-pr-open-git-required
         return GitDiffClient { spec in await acquireLive(spec) }
         #else
         // iOS has no subprocess; the iOS PR path never uses this client (it
@@ -67,9 +68,9 @@ extension DependencyValues {
 }
 
 #if os(macOS)
-// Implements: FR-srm-pr-open-diff
+// Implements: FR-srm-pr-open-clone
 private func acquireLive(_ spec: GitDiffClient.Spec) async -> GitDiffClient.Result {
-    // NFR-srm-pr-git-required: no git on PATH -> precise noGit state.
+    // NFR-srm-pr-open-git-required: no git on PATH -> precise noGit state.
     guard shellExit("/usr/bin/env", ["git", "--version"]) == 0 else { return .noGit }
 
     let tempDir = FileManager.default.temporaryDirectory
@@ -86,26 +87,30 @@ private func acquireLive(_ spec: GitDiffClient.Spec) async -> GitDiffClient.Resu
         return .fetchFailed("(could not init temp repo)")
     }
 
-    // Fetch the tip + merge-base from the first reachable clone URL. Try
+    // Fetch the needed commits from the first reachable clone URL. Try
     // fetch-by-SHA first; if the server rejects it and a branch-name is present,
-    // fall back to fetching the branch (delivers the tip + ancestors including
-    // the merge-base). ponytail: never full-clone; only the needed commits.
+    // fall back to fetching the branch (delivers the tip + ancestors). With no
+    // merge-base, fetch the tip with depth 2 so its parent is present for the
+    // tip-vs-parent diff. ponytail: never full-clone; only the needed commits.
     var lastError = ""
     var fetched = false
     for url in spec.cloneURLs {
-        if runGit(tempDir, ["fetch", "--quiet", url, spec.tipCommit, spec.mergeBase]) == 0 {
+        let fetchArgs: [String] = spec.mergeBase.map { mb in
+            ["fetch", "--quiet", url, spec.tipCommit, mb]
+        } ?? ["fetch", "--quiet", "--depth", "2", url, spec.tipCommit]
+        if runGit(tempDir, fetchArgs) == 0 {
             fetched = true
             break
         }
         // Capture stderr for the failure message.
-        lastError = runGitErr(tempDir, ["fetch", "--quiet", url, spec.tipCommit, spec.mergeBase])
+        lastError = runGitErr(tempDir, fetchArgs)
         if let branch = spec.branchName,
            runGit(tempDir, ["fetch", "--quiet", url, branch]) == 0 {
             fetched = true
             break
         }
         lastError = lastError.isEmpty
-            ? runGitErr(tempDir, ["fetch", "--quiet", url, spec.tipCommit])
+            ? runGitErr(tempDir, fetchArgs)
             : lastError
     }
     guard fetched else {
@@ -114,8 +119,14 @@ private func acquireLive(_ spec: GitDiffClient.Spec) async -> GitDiffClient.Resu
         return .fetchFailed("\(firstURL): \(detail.isEmpty ? "unreachable" : detail)")
     }
 
-    // Compute the net diff. `--no-color` + unified format. An empty diff -> .empty.
-    let diff = runGitOut(tempDir, ["diff", "--no-color", "\(spec.mergeBase)..\(spec.tipCommit)"])
+    // Compute the diff: merge-base..tip (the full PR diff) when a merge-base
+    // is present, else the tip commit against its parent (`git show`).
+    // `--no-color` + unified format. Empty output -> .empty. ponytail: a
+    // failed `git show` (missing parent) surfaces as .empty — depth-2 fetch
+    // makes this unreachable in practice.
+    let diff = spec.mergeBase.map { mb in
+        runGitOut(tempDir, ["diff", "--no-color", "\(mb)..\(spec.tipCommit)"])
+    } ?? runGitOut(tempDir, ["show", "--no-color", spec.tipCommit])
     let trimmed = diff.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return .empty }
     return .diff(diff)

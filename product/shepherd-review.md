@@ -154,7 +154,7 @@ When `--pr <event-id>` is specified, the command queries configured Nostr relays
 - `a` tag: repository reference (`30617:<repo-owner-pubkey>:<repo-d-tag>`)
 - `c` tag: tip commit id of the PR branch (required)
 - `clone` tag: one or more git clone URLs where the commit can be fetched (at least one required)
-- `merge-base` tag: the most recent common ancestor commit with the target branch (optional but required to compute the diff in v1; see `FR-sr-pr-diff-acquisition`)
+- `merge-base` tag: the most recent common ancestor commit with the target branch (optional; without it the diff is the tip commit against its parent — see `FR-sr-pr-diff-acquisition`)
 - `branch-name` tag: recommended branch name for the PR (optional)
 - `subject` tag: PR title (optional; falls back to the first non-empty line of the content)
 - `p` tags: repository owner and optionally other users to notify
@@ -163,9 +163,9 @@ The event ID is a 64-character hex string (Nostr event ID format); invalid event
 
 #### `FR-sr-pr-diff-acquisition` -- Acquire the PR diff from the referenced git repository
 Because a PR event does not contain its diff, the command acquires the diff by fetching the referenced git objects and computing the net change between the PR tip and its merge-base. The workflow:
-1. **Validate required tags.** The event must carry at least one `clone` URL and a `c` (tip) tag. If either is missing, the command reports "PR event <short-id> is missing a clone URL or tip commit (`c` tag)." and stops. A `merge-base` tag is required in v1 to compute the diff base; if it is absent, the command reports "PR event <short-id> has no `merge-base` tag; cannot determine the diff base." and stops. (PRs without a merge-base are a roadmap follow-up; see Open Questions.)
-2. **Fetch the git objects.** The command creates a temporary review repository (or reuses the local repository's object database), fetches the tip commit and the merge-base commit from the first reachable `clone` URL (`git fetch <clone-url> <c>` and `git fetch <clone-url> <merge-base>`, or a single fetch of the PR branch by `branch-name` when present and the server does not allow fetching by arbitrary SHA). If no `clone` URL is reachable or the commits cannot be fetched, the command reports the specific git error and stops.
-3. **Compute the diff.** The command computes `git diff <merge-base>..<c>` to produce the net unified diff of the PR. This diff is the changeset for review.
+1. **Validate required tags.** The event must carry at least one `clone` URL and a `c` (tip) tag. A missing `clone` tag reports "Pull request <short-id> has no clone URL — cannot fetch changes." and stops; a missing `c` tag reports "Pull request <short-id> has no commit id." and stops. A `merge-base` tag is optional: with it the diff is `git diff <merge-base>..<c>` (the full net diff of the PR); without it the diff is the tip commit against its parent (`git show <c>`), matching the in-app PR open behavior (`FR-srm-pr-open-clone`).
+2. **Fetch the git objects.** The command creates a temporary review repository, fetches the tip commit and the merge-base commit from the first reachable `clone` URL (`git fetch <clone-url> <c> <merge-base>`; without a merge-base, `git fetch --depth 2 <clone-url> <c>` so the tip's parent is present; or a single fetch of the PR branch by `branch-name` when present and the server does not allow fetching by arbitrary SHA). If no `clone` URL is reachable or the commits cannot be fetched, the command reports the specific git error and stops.
+3. **Compute the diff.** With a merge-base the command computes `git diff <merge-base>..<c>` (the full net diff of the PR); without one, `git show <c>` (the tip against its parent). This diff is the changeset for review.
 4. **Apply to a review branch.** The diff is applied to a temporary review branch `review/pr-<short-event-id>` (first 8 chars of the event ID), exactly as a patch is applied (`FR-sr-patch-application`), so the review surface and post-patch file reconstruction match the CLI patch path. After the review session ends, the original branch is restored and any stashed changes are popped; the review branch remains for manual inspection.
 
 Fetch is best-effort across the listed `clone` URLs: the command tries them in order and uses the first that delivers the required commits. The command requires `git` on the PATH and network access to the clone URL.
@@ -423,7 +423,7 @@ The git commands used by the command must work on macOS, Linux, and Windows (Git
 **Given** the fetched event is not kind `1618` (e.g. a kind `1617` patch or a kind:1 note), **when** the command validates the kind, **then** it reports "Event <short-id> is not a NIP-34 pull request (kind <k>)." and stops.
 
 #### `AC-sr-pr-missing-tags` -- Reject a PR missing required clone or tip tags
-**Given** a fetched PR event has no `clone` tag or no `c` tag, **when** the command validates the required tags, **then** it reports "PR event <short-id> is missing a clone URL or tip commit (`c` tag)." and stops. **Given** the event has `clone` and `c` but no `merge-base` tag, **then** it reports "PR event <short-id> has no `merge-base` tag; cannot determine the diff base." and stops.
+**Given** a fetched PR event has no `clone` tag, **when** the command validates the required tags, **then** it reports "Pull request <short-id> has no clone URL — cannot fetch changes." and stops. **Given** the event has a `clone` URL but no `c` tag, **then** it reports "Pull request <short-id> has no commit id." and stops. **Given** the event has `clone` and `c` but no `merge-base` tag, **then** the diff is the tip commit against its parent, same as the in-app path.
 
 #### `AC-sr-pr-fetch-fails` -- Handle git fetch failures
 **Given** a PR event's `clone` URLs are unreachable or the referenced commits cannot be fetched, **when** the command attempts to acquire the diff, **then** it reports the specific git error and stops without creating a review branch.

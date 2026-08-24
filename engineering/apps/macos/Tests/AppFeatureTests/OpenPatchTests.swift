@@ -201,7 +201,7 @@ struct OpenPatchFeatureTests {
     }
 
     // MARK: - PR (kind 1618) dispatch — Implements: FR-srm-pr-open-fetch,
-    // FR-srm-pr-open-diff, FR-srm-pr-open-load, FR-sri-pr-open-patches,
+    // FR-srm-pr-open-clone, FR-srm-pr-open-load, FR-sri-pr-open-patches,
     // FR-sri-pr-open-load
 
     private let prID = String(repeating: "c", count: 64)
@@ -215,8 +215,8 @@ struct OpenPatchFeatureTests {
         NostrEvent(id: id, pubkey: prAuthor, kind: 1617, content: content, tags: [], createdAt: 1)
     }
 
-    @Test("A 1618 PR with missing clone/c sets prError")
-    func prMissingCloneOrTip() async {
+    @Test("A 1618 PR with no clone URL sets prError")
+    func prMissingClone() async {
         let store = TestStore(initialState: OpenPatchFeature.State()) {
             OpenPatchFeature()
         } withDependencies: {
@@ -225,24 +225,41 @@ struct OpenPatchFeatureTests {
         store.exhaustivity = .off
         let event = prEvent(tags: [["merge-base", String(repeating: "1", count: 64)]])
         await store.send(.eventFetched(event)) {
-            $0.status = .prError("PR event cccccccc is missing a clone URL or tip commit (`c` tag).")
+            $0.status = .prError("Pull request cccccccc has no clone URL — cannot fetch changes.")
         }
     }
 
-    @Test("A 1618 PR with no merge-base sets prError")
-    func prMissingMergeBase() async {
+    @Test("A 1618 PR with no c tag sets prError")
+    func prMissingTip() async {
         let store = TestStore(initialState: OpenPatchFeature.State()) {
             OpenPatchFeature()
         } withDependencies: {
             $0.relayClient.reachableRelays = { _ in [] }
         }
         store.exhaustivity = .off
+        let event = prEvent(tags: [["clone", "https://git.example/x"]])
+        await store.send(.eventFetched(event)) {
+            $0.status = .prError("Pull request cccccccc has no commit id.")
+        }
+    }
+
+    @Test("A 1618 PR without merge-base proceeds to the tip-vs-parent diff")
+    func prWithoutMergeBase() async {
+        let store = TestStore(initialState: OpenPatchFeature.State()) {
+            OpenPatchFeature()
+        } withDependencies: {
+            $0.relayClient.reachableRelays = { _ in [] }
+        }
+        store.exhaustivity = .off
+        // merge-base absent: no immediate prError; the git effect runs (testValue
+        // returns .empty) and the empty-diff error surfaces instead.
         let event = prEvent(tags: [
             ["clone", "https://git.example/x"],
             ["c", String(repeating: "2", count: 64)],
         ])
-        await store.send(.eventFetched(event)) {
-            $0.status = .prError("PR event cccccccc has no `merge-base` tag; cannot determine the diff base.")
+        await store.send(.eventFetched(event))
+        await store.receive(\.prDiffResult) {
+            $0.status = .prError("Pull request cccccccc has no changes.")
         }
     }
 
@@ -278,10 +295,10 @@ struct OpenPatchFeatureTests {
         store.exhaustivity = .off
         let event = prEvent(tags: [])
         await store.send(.prDiffResult(.noGit, event)) {
-            $0.status = .prError("Opening a PR requires `git` on your PATH.")
+            $0.status = .prError("git is required to review pull requests but was not found on your system")
         }
         await store.send(.prDiffResult(.empty, event)) {
-            $0.status = .prError("PR cccccccc has no changes between its merge-base and tip.")
+            $0.status = .prError("Pull request cccccccc has no changes.")
         }
         await store.send(.prDiffResult(.fetchFailed("https://git.example/x: unreachable"), event)) {
             $0.status = .prError("Could not fetch commits from https://git.example/x: unreachable")

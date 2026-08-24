@@ -31,7 +31,7 @@ public struct OpenPatchFeature {
             /// A PR-specific failure (missing tags, git fetch failure, empty diff,
             /// no git on PATH, or — on iOS — no reviewable referenced patches).
             /// Carries the exact user-facing message. Implements the failure states
-            /// of `FR-srm-pr-open-fetch` / `FR-srm-pr-open-diff` / `NFR-srm-pr-git-required`
+            /// of `FR-srm-pr-open-fetch` / `FR-srm-pr-open-clone` / `NFR-srm-pr-open-git-required`
             /// and `FR-sri-pr-open-patches`.
             case prError(String)
         }
@@ -123,7 +123,7 @@ public struct OpenPatchFeature {
                 state.status = .noRelays
                 return .none
 
-            // Implements: FR-srm-patch-open-fetch, FR-srm-patch-open-load, FR-sri-patch-open-load, FR-srm-pr-open-fetch, FR-srm-pr-open-diff, FR-srm-pr-open-load, FR-sri-pr-open-patches, FR-sri-pr-open-load
+            // Implements: FR-srm-patch-open-fetch, FR-srm-patch-open-load, FR-sri-patch-open-load, FR-srm-pr-open-fetch, FR-srm-pr-open-clone, FR-srm-pr-open-load, FR-sri-pr-open-patches, FR-sri-pr-open-load
             // kind dispatch: 1617 -> patch validate; 1618 -> PR path (platform-specific);
             // anything else -> wrong-kind.
             case let .eventFetched(event):
@@ -143,26 +143,27 @@ public struct OpenPatchFeature {
                     state.status = .fetching
                     let short = shortHex(event.id)
                     #if os(macOS)
-                    // FR-srm-pr-open-fetch: validate required tags (clone, c, merge-base).
+                    // FR-srm-pr-open-fetch: validate required tags (clone, c).
+                    // merge-base is optional — without it the diff is the tip
+                    // commit against its parent.
                     let clones = PatchDiffSplitter.cloneURLs(from: event.tags)
                     let tip = PatchDiffSplitter.tipCommit(from: event.tags)
-                    let mergeBase = PatchDiffSplitter.mergeBase(from: event.tags)
-                    if clones.isEmpty || tip == nil {
-                        state.status = .prError("PR event \(short) is missing a clone URL or tip commit (`c` tag).")
+                    if clones.isEmpty {
+                        state.status = .prError("Pull request \(short) has no clone URL — cannot fetch changes.")
                         return .none
                     }
-                    guard let mergeBase else {
-                        state.status = .prError("PR event \(short) has no `merge-base` tag; cannot determine the diff base.")
+                    guard let tip else {
+                        state.status = .prError("Pull request \(short) has no commit id.")
                         return .none
                     }
                     let spec = GitDiffClient.Spec(
                         cloneURLs: clones,
-                        tipCommit: tip!,
-                        mergeBase: mergeBase,
+                        tipCommit: tip,
+                        mergeBase: PatchDiffSplitter.mergeBase(from: event.tags),
                         branchName: PatchDiffSplitter.branchName(from: event.tags)
                     )
                     return .run { [gitDiffClient] send in
-                        // Implements: FR-srm-pr-open-diff, NFR-srm-pr-git-required
+                        // Implements: FR-srm-pr-open-clone, NFR-srm-pr-open-git-required
                         let result = await gitDiffClient.acquirePRDiff(spec)
                         await send(.prDiffResult(result, event))
                     }
@@ -196,17 +197,17 @@ public struct OpenPatchFeature {
                 let short = shortHex(event.id)
                 switch result {
                 case .noGit:
-                    state.status = .prError("Opening a PR requires `git` on your PATH.")
+                    state.status = .prError("git is required to review pull requests but was not found on your system")
                     return .none
                 case let .fetchFailed(msg):
                     state.status = .prError("Could not fetch commits from \(msg)")
                     return .none
                 case .empty:
-                    state.status = .prError("PR \(short) has no changes between its merge-base and tip.")
+                    state.status = .prError("Pull request \(short) has no changes.")
                     return .none
                 case let .diff(diff):
                     guard let files = PatchDiffSplitter.splitUnifiedDiff(diff) else {
-                        state.status = .prError("PR \(short) has no changes between its merge-base and tip.")
+                        state.status = .prError("Pull request \(short) has no changes.")
                         return .none
                     }
                     return .send(.delegate(.patchLoaded(files, PatchDiffSplitter.prMetadata(from: event))))

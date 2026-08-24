@@ -351,16 +351,15 @@ Parse `EVENT_JSON` to extract `.kind`, `.content`, `.pubkey`, and `.tags[]`.
 
 1. **Event kind**: Must be `1618`. If not → output "Event ${EVENT_ID:0:8} is not a NIP-34 pull request (kind <k>)" and stop. (`FR-sr-pr-fetch`.)
 2. **Required tags** (`FR-sr-pr-diff-acquisition`):
-   - At least one `clone` tag (git clone URL). If none → output "PR event ${EVENT_ID:0:8} is missing a clone URL or tip commit (`c` tag)." and stop.
-   - A `c` tag (tip commit id). If absent → output the same missing-clone-or-tip message and stop.
-   - A `merge-base` tag. If absent → output "PR event ${EVENT_ID:0:8} has no `merge-base` tag; cannot determine the diff base." and stop. (PRs without a merge-base are a roadmap follow-up; v1 rejects them.)
+   - At least one `clone` tag (git clone URL). If none → output "Pull request ${EVENT_ID:0:8} has no clone URL — cannot fetch changes." and stop.
+   - A `c` tag (tip commit id). If absent → output "Pull request ${EVENT_ID:0:8} has no commit id." and stop.
 3. **Optional tags**: `branch-name` (branch fallback when SHA-fetch is rejected), `subject` (PR title), `a` (repo coordinate), `p` (notify).
 
 Extract metadata:
 - `PR_AUTHOR`: `.pubkey`
 - `PR_SUBJECT`: `subject` tag, or first non-empty line of `.content` (truncated to 60 chars)
 - `PR_TIP`: `c` tag value
-- `PR_MERGE_BASE`: `merge-base` tag value
+- `PR_MERGE_BASE`: `merge-base` tag value (empty when absent — the diff falls back to the tip commit against its parent)
 - `PR_BRANCH`: `branch-name` tag value (or null)
 - `PR_REPO_COORD`: `a` tag value (or null)
 - `SHORT_EVENT_ID`: First 8 characters of `EVENT_ID`
@@ -374,8 +373,10 @@ TMP_REPO=$(mktemp -d -t shepherd-pr-$SHORT_EVENT_ID.XXXXXX)
 git -C "$TMP_REPO" init --quiet
 PR_DIFF=""
 FETCHED=0
+FETCH_ARGS=("$PR_TIP")
+if [[ -n "$PR_MERGE_BASE" ]]; then FETCH_ARGS+=("$PR_MERGE_BASE"); else FETCH_ARGS=(--depth 2 "$PR_TIP"); fi
 for URL in "${PR_CLONE_URLS[@]}"; do
-  if git -C "$TMP_REPO" fetch --quiet "$URL" "$PR_TIP" "$PR_MERGE_BASE" 2>/dev/null; then
+  if git -C "$TMP_REPO" fetch --quiet "$URL" "${FETCH_ARGS[@]}" 2>/dev/null; then
     FETCHED=1; break
   fi
   # Fall back to fetching the branch when the server rejects fetch-by-SHA.
@@ -388,10 +389,14 @@ if [[ $FETCHED -eq 0 ]]; then
   echo "Could not fetch commits from $FIRST_URL: unreachable" >&2
   rm -rf "$TMP_REPO"; stop
 fi
-PR_DIFF=$(git -C "$TMP_REPO" diff --no-color "$PR_MERGE_BASE..$PR_TIP")
+if [[ -n "$PR_MERGE_BASE" ]]; then
+  PR_DIFF=$(git -C "$TMP_REPO" diff --no-color "$PR_MERGE_BASE..$PR_TIP")
+else
+  PR_DIFF=$(git -C "$TMP_REPO" show --no-color "$PR_TIP")
+fi
 rm -rf "$TMP_REPO"
 if [[ -z "$(echo "$PR_DIFF" | tr -d '[:space:]')" ]]; then
-  echo "PR $SHORT_EVENT_ID has no changes between its merge-base and tip." >&2
+  echo "Pull request $SHORT_EVENT_ID has no changes." >&2
   stop
 fi
 ```

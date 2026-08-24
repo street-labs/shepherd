@@ -3214,6 +3214,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-commit-not-found`
 
+### `AC-srm-pr-open-empty-diff`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-empty-diff`
+
 ### `AC-srm-pr-open-git-required`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
@@ -3610,72 +3616,6 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-sr-pr-conflicting-args`
-
-### `FR-srm-pr-open-fetch`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`, `TC-srm-pr-open-missing-tags`, `TC-srm-pr-open-wrong-kind`
-
-### `FR-srm-pr-open-diff`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-fetch-fails`, `TC-srm-pr-open-empty-diff`, `TC-srm-pr-open-no-git`
-
-### `FR-srm-pr-open-load`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`, `TC-srm-pr-open-metadata`, `TC-srm-pr-open-activates-thread`
-
-### `NFR-srm-pr-git-required`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-no-git`
-
-### `AC-srm-pr-open-happy`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-happy`
-
-### `AC-srm-pr-open-missing-tags`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-missing-tags`
-
-### `AC-srm-pr-open-fetch-fails`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-fetch-fails`
-
-### `AC-srm-pr-open-empty-diff`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-empty-diff`
-
-### `AC-srm-pr-open-metadata`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-metadata`
-
-### `AC-srm-pr-open-activates-thread`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-activates-thread`
-
-### `AC-srm-pr-open-no-git`
-- **Defined in**: `product/macos/shepherd-review.md`
-- **Design**: `design/macos/shepherd-review.md`
-- **Engineering**: `engineering/macos/shepherd-review.md`
-- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-open-no-git`
 
 ### `FR-sr-patch-reply-publish`
 - **Defined in**: `product/shepherd-review.md`
