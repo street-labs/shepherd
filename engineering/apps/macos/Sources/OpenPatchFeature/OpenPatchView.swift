@@ -15,18 +15,44 @@ public struct OpenPatchView: View {
 
     public var body: some View {
         VStack(spacing: 16) {
-            Text("Open Patch or PR")
-                .font(.headline)
+            VStack(spacing: 8) {
+                Image(systemName: "arrow.down.doc")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.tint)
+                    .symbolRenderingMode(.hierarchical)
 
-            TextField("Paste a 64-char event id or nevent1… (patch or PR)", text: $store.input)
+                Text("Open Patch or PR")
+                    .font(.title2)
+                    .fontWeight(.medium)
+
+                Text("Fetch a NIP-34 patch or pull request from a Nostr relay")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.top, 4)
+
+            VStack(alignment: .leading, spacing: 6) {
+                TextField(
+                    "Paste a 64-char event id or nevent1… (patch or PR)",
+                    text: $store.input
+                )
                 .textFieldStyle(.roundedBorder)
+                .font(.system(.body, design: .monospaced))
                 .disableAutocorrection(true)
                 .disabled(isFetching)
                 .onSubmit { store.send(.fetchButtonTapped) }
 
+                Text("Tip: paste a nevent1 address from your Nostr client, or the raw event id in hex.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+
             statusLine
                 .font(.callout)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(statusPadding)
+                .background(statusBackground)
                 .foregroundStyle(statusColor)
 
             HStack {
@@ -43,7 +69,7 @@ public struct OpenPatchView: View {
             }
         }
         .padding(20)
-        .frame(minWidth: 420)
+        .frame(minWidth: 440)
     }
 
     private var isFetching: Bool {
@@ -58,28 +84,46 @@ public struct OpenPatchView: View {
     private var statusLine: some View {
         switch store.status {
         case .idle:
-            Text(" ").foregroundStyle(.clear)
+            EmptyView()
         case .invalidInput:
-            Text("Enter a 64-character hex event id or a nevent1 reference")
+            Label("Enter a 64-character hex event id or a nevent1 reference", systemImage: "exclamationmark.triangle")
         case .fetching:
-            Text("Fetching event from relays…")
+            Label("Fetching event from relays…", systemImage: "antenna.radiowaves.left.and.right")
         case let .notFound(id):
-            Text("Patch event \(id) not found on the configured relays.")
+            Label("Patch event \(shortId(id)) not found on the configured relays.", systemImage: "magnifyingglass")
         case let .wrongKind(id, kind):
-            Text("Event \(id) is not a NIP-34 patch or PR (kind \(kind)).")
+            Label("Event \(shortId(id)) is not a NIP-34 patch or PR (kind \(kind)).", systemImage: "xmark.octagon")
         case let .badDiff(id):
-            Text("Patch event \(id) does not contain a valid unified diff.")
+            Label("Patch event \(shortId(id)) does not contain a valid unified diff.", systemImage: "xmark.octagon")
         case .noRelays:
-            Text("No Nostr relays reachable — check your relay configuration.")
+            Label("No Nostr relays reachable — check your relay configuration.", systemImage: "wifi.exclamationmark")
         case let .prError(message):
-            Text(message)
+            Label(message, systemImage: "exclamationmark.triangle")
+        }
+    }
+
+    private var statusPadding: EdgeInsets {
+        store.status == .idle ? .init() : .init(top: 8, leading: 10, bottom: 8, trailing: 10)
+    }
+
+    private var statusBackground: Color? {
+        switch store.status {
+        case .idle: nil
+        case .fetching: .blue.opacity(0.08)
+        default: .red.opacity(0.08)
         }
     }
 
     private var statusColor: Color {
         switch store.status {
-        case .fetching, .idle: .secondary
+        case .idle: .secondary
+        case .fetching: .blue
         default: .red
         }
+    }
+
+    /// Long hex ids blow out the sheet width; show a short prefix in status messages.
+    private func shortId(_ id: String) -> String {
+        id.count > 12 ? "\(id.prefix(6))…\(id.suffix(4))" : id
     }
 }
