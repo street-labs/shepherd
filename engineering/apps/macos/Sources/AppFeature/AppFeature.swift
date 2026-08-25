@@ -895,10 +895,6 @@ public struct AppFeature {
 
     // MARK: - Helpers
 
-    /// Reset the session to the initial empty state: drop all files, comments, the
-    /// overall comment, and every child feature's state. Shared by the confirmed-clear
-    /// alert path and the no-confirmation-when-empty short-circuit.
-    /// Implements: FR-crp-clear-session
     /// Open a patch/PR reference, replacing any in-progress review. Shared by the
     /// deeplink entry (FR-srm-deeplink-route) and PR Browse (FR-pb-open-pr):
     /// a cold or comment-free session is cleared and replaced immediately; a warm
@@ -956,6 +952,10 @@ public struct AppFeature {
         return decoded
     }
 
+    /// Reset the session to the initial empty state: drop all files, comments, the
+    /// overall comment, and every child feature's state. Shared by the confirmed-clear
+    /// alert path and the no-confirmation-when-empty short-circuit.
+    /// Implements: FR-crp-clear-session
     private func performClearSession(state: inout State) -> Effect<Action> {
         state.files = []
         state.allComments = []

@@ -1,5 +1,6 @@
 import SwiftUI
 import ComposableArchitecture
+import ShepherdDependencies
 
 /// The Browse PRs sheet. Implements the surface in `design/macos/pr-browse.md`
 /// (FR-pb-watchlist-manage, FR-pb-repo-list, FR-pb-npub-list, FR-pb-open-pr):
@@ -7,6 +8,7 @@ import ComposableArchitecture
 /// empty state; selecting a PR dismisses and routes through the Open Patch flow.
 public struct PRBrowseView: View {
     @Bindable public var store: StoreOf<PRBrowseFeature>
+    @State private var selectedPRID: String?
 
     public init(store: StoreOf<PRBrowseFeature>) {
         self.store = store
@@ -21,6 +23,13 @@ public struct PRBrowseView: View {
         .frame(minWidth: 620, minHeight: 420)
         .padding(20)
         .onAppear { store.send(.onAppear) }
+    }
+
+    /// Keyboard open: the List selection binding sets `selectedPRID` via arrow
+    /// keys; Enter (`.onSubmit`) opens it. Implements the "Enter on keyboard
+    /// selection" half of design/macos/pr-browse.md → PR rows.
+    private func openSelected() {
+        if let id = selectedPRID { store.send(.prTapped(id)) }
     }
 
     // MARK: - Watchlist (left)
@@ -122,12 +131,19 @@ public struct PRBrowseView: View {
                         .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List(store.prs) { pr in
-                        PRRow(pr: pr)
-                            .contentShape(Rectangle())
-                            .onTapGesture(count: 2) { store.send(.prTapped(pr.id)) }
+                    List(selection: $selectedPRID) {
+                        ForEach(store.prs) { pr in
+                            PRRow(pr: pr)
+                                .tag(pr.id)
+                                .contentShape(Rectangle())
+                                .onTapGesture(count: 2) { store.send(.prTapped(pr.id)) }
+                        }
                     }
                     .listStyle(.plain)
+                    .onChange(of: selectedPRID) { _, id in
+                        if let id { store.send(.prTapped(id)) }
+                    }
+                    .onSubmit { openSelected() }
                 }
             }
 
@@ -175,7 +191,7 @@ private struct PRRow: View {
                 Text(pr.subject)
                     .font(.body.weight(.medium))
                     .lineLimit(1)
-                Text(pr.author.prefix(10) + "…")
+                Text(shortNPub(pr.author))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .monospaced()
@@ -191,9 +207,30 @@ private struct PRRow: View {
     private func age(_ createdAt: Int64) -> String {
         let seconds = max(0, Date().timeIntervalSince1970 - Double(createdAt))
         switch seconds {
+        case ..<60: return "now"
         case ..<3600: return "\(Int(seconds / 60))m"
         case ..<86_400: return "\(Int(seconds / 3600))h"
         default: return "\(Int(seconds / 86_400))d"
         }
+    }
+
+    /// Bech32-encode a hex pubkey to its `npub1…` short form (first 10 chars),
+    /// per design/macos/pr-browse.md → PR rows.
+    private func shortNPub(_ hex: String) -> String {
+        guard hex.count == 64, hex.allSatisfy({ $0.isHexDigit }),
+              let data = hexToBytes(hex) else { return hex }
+        return Bech32.encode(data, prefix: "npub").prefix(10) + "…"
+    }
+
+    private func hexToBytes(_ hex: String) -> Data? {
+        var bytes = [UInt8](); bytes.reserveCapacity(hex.count / 2)
+        var idx = hex.startIndex
+        while idx < hex.endIndex {
+            let next = hex.index(idx, offsetBy: 2)
+            guard let b = UInt8(hex[idx..<next], radix: 16) else { return nil }
+            bytes.append(b)
+            idx = next
+        }
+        return Data(bytes)
     }
 }

@@ -10,7 +10,7 @@ The Browse PRs sheet: watchlist management and persistence, repo PR listing, npu
 
 | Requirement | Test Cases |
 |---|---|
-| `FR-pb-watchlist-manage` | `TC-pb-watchlist-add`, `TC-pb-watchlist-invalid`, `TC-pb-watchlist-remove`, `TC-pb-watchlist-persist` |
+| `FR-pb-watchlist-manage` | `TC-pb-watchlist-add`, `TC-pb-watchlist-invalid`, `TC-pb-watchlist-remove`, `TC-pb-watchlist-duplicate`, `TC-pb-watchlist-persist` |
 | `FR-pb-repo-list` | `TC-pb-repo-list`, `TC-pb-repo-list-timeout` |
 | `FR-pb-npub-list` | `TC-pb-npub-list`, `TC-pb-npub-invalid` |
 | `FR-pb-open-pr` | `TC-pb-open-pr` |
@@ -29,7 +29,7 @@ When the user enters `not-a-coordinate` (or a coordinate with a non-hex pubkey, 
 #### `TC-pb-watchlist-remove` — Remove drops the entry
 Given a watched repo, when its ✕ is clicked, then the entry disappears and stays gone after relaunch.
 
-#### `TC-pb-watchlist-persist` — Duplicate rejected
+#### `TC-pb-watchlist-duplicate` — Duplicate rejected
 Given a coordinate already watched, when it is entered again, then an error is shown and no duplicate is created.
 
 #### `TC-pb-watchlist-persist` — Persistence round-trip

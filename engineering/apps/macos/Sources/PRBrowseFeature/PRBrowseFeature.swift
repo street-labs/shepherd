@@ -207,10 +207,12 @@ public struct PRBrowseFeature {
                 await send(.noRelaysReached)
                 return
             }
-            let events = await Self.collectEvents(
-                relayClient.subscribe(NostrFilter(aTag: filter.aTag, pTag: filter.pTag, kinds: filter.kinds, relays: reachable)),
-                seconds: 8
-            )
+        var f = filter
+        f.relays = reachable
+        let events = await Self.collectEvents(
+            relayClient.subscribe(f),
+            seconds: 8
+        )
             await send(.lookupFinished(events))
         }
         .cancellable(id: CancelID.lookup, cancelInFlight: true)

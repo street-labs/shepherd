@@ -4433,7 +4433,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/pr-browse.md`
 - **Design**: `design/macos/pr-browse.md`
 - **Engineering**: `engineering/macos/pr-browse.md`
-- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-watchlist-add`, `TC-pb-watchlist-invalid`, `TC-pb-watchlist-remove`, `TC-pb-watchlist-persist`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-watchlist-add`, `TC-pb-watchlist-invalid`, `TC-pb-watchlist-remove`, `TC-pb-watchlist-duplicate`, `TC-pb-watchlist-persist`
 
 ### `FR-pb-repo-list`
 - **Defined in**: `product/pr-browse.md`
