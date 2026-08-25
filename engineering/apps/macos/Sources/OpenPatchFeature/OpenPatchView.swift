@@ -37,9 +37,9 @@ public struct OpenPatchView: View {
                     "Paste an event id, nevent1…, or link (patch or PR)",
                     text: $store.input
                 )
-                .textFieldStyle(.roundedBorder)
+                .iOSInputField()
+                .autocorrectionDisabled()
                 .font(.system(.body, design: .monospaced))
-                .disableAutocorrection(true)
                 .disabled(isFetching)
                 .onSubmit { store.send(.fetchButtonTapped) }
 
@@ -69,7 +69,11 @@ public struct OpenPatchView: View {
             }
         }
         .padding(20)
+        // Sheet sized to the screen on iOS (design/ios/shepherd-review.md);
+        // the fixed floor is the macOS sheet spec.
+        #if os(macOS)
         .frame(minWidth: 440)
+        #endif
     }
 
     private var isFetching: Bool {
@@ -125,5 +129,24 @@ public struct OpenPatchView: View {
     /// Long hex ids blow out the sheet width; show a short prefix in status messages.
     private func shortId(_ id: String) -> String {
         id.count > 12 ? "\(id.prefix(6))…\(id.suffix(4))" : id
+    }
+}
+
+/// Text input traits for shared macOS/iOS fields: rounded border on macOS;
+/// on iOS a system-filled field with URL keyboard, no autocapitalization or
+/// autocorrect (design/ios/shepherd-review.md → Open Patch sheet).
+private extension View {
+    @ViewBuilder
+    func iOSInputField() -> some View {
+        #if os(iOS)
+        self.textFieldStyle(.plain)
+            .padding(10)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .keyboardType(.URL)
+        #else
+        self.textFieldStyle(.roundedBorder)
+        #endif
     }
 }
