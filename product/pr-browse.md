@@ -44,7 +44,7 @@ The user can enter a Nostr pubkey (`npub1…` or 64-char hex) and fetch kind `16
 When no files are loaded, the app's main window shows the PR Browse surface (watchlist + PR list, per `design/macos/pr-browse.md`) inline as the default state — not as a sheet the user must summon. The empty state's existing entry points ("Open Files…", "Paste from Clipboard", and the "Open Patch or PR…" affordance of `FR-srm-patch-open-entry`) remain available as actions from within this state, and dragging files onto the window still loads them. Once files are loaded the browse surface is replaced by the review layout. This default state is the base for future browse views (e.g. "my open PRs", per-repo, "needs review"); those views are not in v1.
 
 #### `FR-pb-open-pr` — Open a browsed PR for review
-Selecting a PR from either list opens it for review by its event id through the existing in-app patch/PR open load path (fetch by id, kind dispatch, PR diff acquisition, metadata, review surface). The browse surface dismisses when the PR begins loading. A PR that fails to load surfaces the same errors the in-app open path already produces.
+Selecting a PR from either list opens it for review by its event id through the existing in-app patch/PR open load path (fetch by id, kind dispatch, PR diff acquisition, metadata, review surface). The browse surface is replaced by the review layout when the PR begins loading, and restored when the review session is cleared. A PR that fails to load surfaces the same errors the in-app open path already produces.
 
 ### Non-Functional Requirements
 

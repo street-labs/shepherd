@@ -34,6 +34,10 @@ struct FileDropZoneView: View {
                 .accessibilityLabel("Open a NIP-34 patch or PR by event id")
             }
 
+            Text("or drop files anywhere")
+                .font(.body)
+                .foregroundStyle(.secondary)
+
             // Implements: FR-pb-default-state — browse is the default empty state.
             PRBrowseView(
                 store: store.scope(state: \.prBrowse, action: \.prBrowse)

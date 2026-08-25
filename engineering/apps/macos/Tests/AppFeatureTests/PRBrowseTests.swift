@@ -266,6 +266,6 @@ struct PRBrowseDefaultStateTests {
         // existing invalid-input state — same surface as pasting by hand.
         await store.send(.prBrowse(.delegate(.openPR("not-a-valid-ref"))))
         #expect(store.state.openPatch?.input == "not-a-valid-ref")
-                #expect(store.state.prBrowse == PRBrowseFeature.State())
+        #expect(store.state.prBrowse == PRBrowseFeature.State())
     }
 }

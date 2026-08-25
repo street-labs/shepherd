@@ -16,13 +16,22 @@ The browse surface is the empty state itself (`FR-pb-default-state`). Launching 
 │ [Watchlist sidebar]      │ [PR list]               │
 ```
 
-Once any file is loaded the surface is replaced by the review layout; there is no browse entry point while reviewing (v1).
+Once any file is loaded the surface is replaced by the review layout; there is no browse entry point while reviewing (v1). A one-line hint under the button row — "or drop files anywhere" — keeps the drag-and-drop affordance discoverable (it works on the whole window).
 
 ## Layout (inline in the main window)
 
 ```
 ┌ Browse Pull Requests ──────────────────────────────┐
 │ [Watchlist sidebar]      │ [PR list]               │
+│ ┌────────────────────┐  │  Search by npub: [    ] │
+│ │ repo coordinate ✕  │  │  [Find]                 │
+│ │ 30617:abc…:shepherd│  │ ─────────────────────  │
+│ └────────────────────┘  │  Subject            age │
+│ [+ add field   Add]      │  Author (short npub)     │
+│                          │  …                       │
+│                          │  [Refresh]               │
+└────────────────────────────────────────────────────┘
+```
 
 - **Left column — watchlist.** List of added coordinates, each row showing the repo's human tail (the `d` identifier) with the full coordinate as its help tooltip; a trailing ✕ removes it. Below the list, a text field + "Add" button. Invalid input shows an inline red message under the field; nothing is added.
 - **Right column — PR list.** The npub field and "Find" button run an npub-tagged lookup (`FR-pb-npub-list`); its results replace the list and the header shows "PRs tagged <npub>" with a clear button. Selecting a watchlist row runs the repo lookup (`FR-pb-repo-list`); the header shows the coordinate's tail.
