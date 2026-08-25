@@ -44,7 +44,7 @@ public struct iOSAppView: View {
                             activeFileID: store.activeFileID
                         )
                         .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 500)
-                        .navigationTitle("Shepherd")
+                        .navigationTitle(store.activeFile?.filePath ?? "Shepherd")
                         .navigationBarTitleDisplayMode(.inline)
                         .settingsToolbar(store: store)
                     },
