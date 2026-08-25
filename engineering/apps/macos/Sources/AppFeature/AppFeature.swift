@@ -11,6 +11,7 @@ import ReviewContextFeature
 import IdentityFeature
 import MarkdownRenderFeature
 import OpenPatchFeature
+import PRBrowseFeature
 import IdentifiedCollections
 import Foundation
 
@@ -98,6 +99,10 @@ public struct AppFeature {
         /// Presented Open Patch dialog (in-app NIP-34 patch open).
         /// Implements: FR-srm-patch-open-entry, FR-sri-patch-open-entry.
         @Presents public var openPatch: OpenPatchFeature.State?
+
+        /// Presented Browse PRs sheet (watched repos + npub-tagged PR lists).
+        /// Implements: FR-pb-watchlist-manage through FR-pb-open-pr.
+        @Presents public var prBrowse: PRBrowseFeature.State?
 
         /// A deeplink reference (`shepherd://patch|pr/<ref>`) held while the
         /// replace-in-progress confirmation alert is up. Implements
@@ -199,6 +204,10 @@ public struct AppFeature {
         // MARK: - In-app patch open (FR-srm-patch-open-entry/input/fetch/load)
         case openPatchRequested
         case openPatch(PresentationAction<OpenPatchFeature.Action>)
+
+        // MARK: - PR Browse (FR-pb-watchlist-manage, FR-pb-repo-list, FR-pb-npub-list, FR-pb-open-pr)
+        case browsePRsRequested
+        case prBrowse(PresentationAction<PRBrowseFeature.Action>)
 
         // Deeplink entry (shepherd://patch|pr/<ref>). Implements FR-srm-deeplink-scheme,
         // FR-srm-deeplink-patch-format, FR-srm-deeplink-pr-format, FR-srm-deeplink-route,
@@ -584,6 +593,11 @@ public struct AppFeature {
                 state.openPatch = OpenPatchFeature.State()
                 return .none
 
+            // Implements: FR-pb-watchlist-manage (entry) — present the Browse PRs sheet.
+            case .browsePRsRequested:
+                state.prBrowse = PRBrowseFeature.State()
+                return .none
+
             // MARK: - Deeplink entry (shepherd://patch|pr/<ref>)
 
             // ponytail: routes the deeplink through the existing Open Patch dialog
@@ -599,29 +613,17 @@ public struct AppFeature {
                     }
                     return .none
                 }
-                if !state.files.isEmpty {
-                    guard state.hasComments else {
-                        _ = performClearSession(state: &state)
-                        return presentOpenPatch(ref, state: &state)
-                    }
-                    // Warm with unsaved feedback: confirm replacement first.
-                    // clearConfirmed resumes the pending deeplink.
-                    state.pendingDeeplinkInput = ref
-                    state.alert = AlertState {
-                        TextState("Open Link")
-                    } actions: {
-                        ButtonState(role: .destructive, action: .clearConfirmed) {
-                            TextState("Replace")
-                        }
-                        ButtonState(role: .cancel) {
-                            TextState("Cancel")
-                        }
-                    } message: {
-                        TextState("Opening this link replaces the current files and comments.")
-                    }
-                    return .none
-                }
-                return presentOpenPatch(ref, state: &state)
+                return openRefSafely(ref, state: &state)
+
+            // Implements: FR-pb-open-pr — a PR picked in the browse sheet routes
+            // through the same replace-session guard as a deeplink, then the
+            // existing Open Patch load path.
+            case let .prBrowse(.presented(.delegate(.openPR(id)))):
+                state.prBrowse = nil
+                return openRefSafely(id, state: &state)
+
+            case .prBrowse:
+                return .none
 
             case .openPatch(.presented(.delegate(.cancelled))):
                 state.openPatch = nil
@@ -885,15 +887,45 @@ public struct AppFeature {
         .ifLet(\.$openPatch, action: \.openPatch) {
             OpenPatchFeature()
         }
+        .ifLet(\.$prBrowse, action: \.prBrowse) {
+            PRBrowseFeature()
+        }
         .ifLet(\.$alert, action: \.alert)
     }
 
     // MARK: - Helpers
 
-    /// Reset the session to the initial empty state: drop all files, comments, the
-    /// overall comment, and every child feature's state. Shared by the confirmed-clear
-    /// alert path and the no-confirmation-when-empty short-circuit.
-    /// Implements: FR-crp-clear-session
+    /// Open a patch/PR reference, replacing any in-progress review. Shared by the
+    /// deeplink entry (FR-srm-deeplink-route) and PR Browse (FR-pb-open-pr):
+    /// a cold or comment-free session is cleared and replaced immediately; a warm
+    /// session (unsaved comments) confirms first via `clearConfirmed`, which
+    /// resumes the pending reference.
+    private func openRefSafely(_ ref: String, state: inout State) -> Effect<Action> {
+        if !state.files.isEmpty {
+            guard state.hasComments else {
+                _ = performClearSession(state: &state)
+                return presentOpenPatch(ref, state: &state)
+            }
+            // Warm with unsaved feedback: confirm replacement first.
+            // clearConfirmed resumes the pending reference.
+            state.pendingDeeplinkInput = ref
+            state.alert = AlertState {
+                TextState("Open Link")
+            } actions: {
+                ButtonState(role: .destructive, action: .clearConfirmed) {
+                    TextState("Replace")
+                }
+                ButtonState(role: .cancel) {
+                    TextState("Cancel")
+                }
+            } message: {
+                TextState("Opening this link replaces the current files and comments.")
+            }
+            return .none
+        }
+        return presentOpenPatch(ref, state: &state)
+    }
+
     /// Present the Open Patch dialog with a prefilled reference and start the
     /// fetch immediately. Implements FR-srm-deeplink-route.
     private func presentOpenPatch(_ input: String, state: inout State) -> Effect<Action> {
@@ -920,6 +952,10 @@ public struct AppFeature {
         return decoded
     }
 
+    /// Reset the session to the initial empty state: drop all files, comments, the
+    /// overall comment, and every child feature's state. Shared by the confirmed-clear
+    /// alert path and the no-confirmation-when-empty short-circuit.
+    /// Implements: FR-crp-clear-session
     private func performClearSession(state: inout State) -> Effect<Action> {
         state.files = []
         state.allComments = []

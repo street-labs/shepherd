@@ -40,6 +40,14 @@ struct FileDropZoneView: View {
                 .keyboardShortcut("p", modifiers: [.command, .shift])
                 .help("Open a NIP-34 patch or PR by event id (⌘⇧P)")
                 .accessibilityLabel("Open a NIP-34 patch or PR by event id")
+
+                Button("Browse PRs…") {
+                    store.send(.browsePRsRequested)
+                }
+                // Implements: FR-pb-watchlist-manage (entry)
+                .keyboardShortcut("b", modifiers: [.command, .shift])
+                .help("Browse NIP-34 pull requests for a watched repo or a tagged npub (⌘⇧B)")
+                .accessibilityLabel("Browse NIP-34 pull requests")
             }
             .padding(.top, 8)
         }

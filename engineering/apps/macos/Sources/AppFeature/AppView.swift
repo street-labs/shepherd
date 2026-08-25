@@ -10,6 +10,7 @@ import PromptFeature
 import ReviewContextFeature
 import IdentityFeature
 import OpenPatchFeature
+import PRBrowseFeature
 
 /// Root view. Implements the layout described in the design spec.
 /// Conditional layout: empty -> FileDropZone, 1 file -> HSplitView, 2+ -> NavigationSplitView
@@ -83,6 +84,9 @@ public struct AppView: View {
         }
         .sheet(item: $store.scope(state: \.openPatch, action: \.openPatch)) { openPatchStore in
             OpenPatchView(store: openPatchStore)
+        }
+        .sheet(item: $store.scope(state: \.prBrowse, action: \.prBrowse)) { prBrowseStore in
+            PRBrowseView(store: prBrowseStore)
         }
         .onAppear {
             store.send(.windowAppeared)
