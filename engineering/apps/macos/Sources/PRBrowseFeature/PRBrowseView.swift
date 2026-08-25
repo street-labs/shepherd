@@ -140,9 +140,6 @@ public struct PRBrowseView: View {
                         }
                     }
                     .listStyle(.plain)
-                    .onChange(of: selectedPRID) { _, id in
-                        if let id { store.send(.prTapped(id)) }
-                    }
                     .onSubmit { openSelected() }
                 }
             }
