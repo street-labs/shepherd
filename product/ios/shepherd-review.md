@@ -101,6 +101,13 @@ On a successfully unioned changeset (at least one referenced patch produced diff
 
 There is no agent-generated neutral/review context for an in-app-opened PR (no LLM runs in this path); per-file review context is absent and the review-context panel hides for tabs that have none.
 
+### Relay configuration
+
+#### `FR-sri-relay-settings` — Configure Nostr relays in-app
+The reviewer configures the Nostr relays the app subscribes and publishes to from a Settings surface inside the app — the iOS counterpart to macOS's `NOSTR_RELAYS` env var and `~/.config/nostr/relays.txt` (`FR-sr-relay-client`), since iOS exposes neither to the user. The reviewer can add and remove relay URLs and toggle a "use defaults" mode that resets to the default public relay set (the same defaults the macOS client falls back to). A saved custom list is persisted across launches and takes effect for every subsequent subscription and publish (relay hints encoded in a `nevent1` reference still take preference for that fetch, per `FR-sri-patch-open-fetch`). A relay URL that is not a valid `wss://`/`ws://` URL is rejected with an inline validation message and is not saved. When no custom list is saved, the default public relay set is used.
+
+Identity is configured in the Identity sheet (`./identity.md`), not in Settings; Settings links out to it. On macOS the same Settings surface is offered for parity (`FR-srm-relay-settings`), reachable from the app menu (⌘,); the out-of-band env/file sources continue to apply when no in-app list is saved.
+
 ### Patch-thread reply publishing (bidirectional)
 
 These are the iOS implementation of the shared `FR-sr-patch-reply-publish`, `FR-sr-reviewer-identity`, and `FR-sr-patch-reply-respond`, ported from the macOS variants (`../macos/shepherd-review.md`). They apply only to patch reviews; there is no non-patch review on iOS.
@@ -162,6 +169,13 @@ The app targets iOS and runs on iPhone and iPad. It is not available on other op
 - [ ] **Malformed diff rejected** `AC-sri-patch-open-bad-diff`: Given the fetched content does not begin with `diff --git` or lacks valid `@@` hunks, then the entry reports "Patch event <short-id> does not contain a valid unified diff." and no review starts.
 - [ ] **No relays reachable** `AC-sri-patch-open-no-relays`: Given no configured relay is reachable, when the reviewer submits, then the entry reports "No Nostr relays reachable — check your relay configuration." and no fetch is attempted.
 
+### Relay configuration
+
+- [ ] **Defaults active** `AC-sri-relay-defaults`: Given the reviewer has never saved a custom relay list, when Settings is opened, then it shows the "use defaults" mode active with the default public relay set displayed, and subscriptions/publishes use exactly that set.
+- [ ] **Custom relays saved and used** `AC-sri-relay-custom`: Given the reviewer enters one or more valid `wss://`/`ws://` URLs and saves, then the list persists, subsequent subscriptions and publishes contact exactly the saved relays, and reopening Settings shows the saved list.
+- [ ] **Invalid relay URL rejected inline** `AC-sri-relay-invalid`: Given the reviewer enters text that is not a valid `wss://`/`ws://` URL, when adding it, then Settings shows an inline validation message, the URL is not added, and the saved list is unchanged.
+- [ ] **Defaults restored** `AC-sri-relay-persist`: Given a custom list is saved, when the reviewer re-enables "use defaults", then the default public relay set is used again (the custom list is cleared) and the change persists across launches.
+
 ### Patch-thread reply publishing
 
 - [ ] **Identity configured in-app** `AC-sri-identity-load`: Given the reviewer has configured a Nostr identity in-app (local key or bunker URI), when a patch review is open, then the app loads the identity, resolves the reviewer's public key, and surfaces it per `FR-sri-identity-indicator`. Given no identity configured, then read-only review and local commenting work, the indicator shows replies will not publish, and no publish action is offered.
@@ -190,7 +204,7 @@ The app targets iOS and runs on iPhone and iPad. It is not available on other op
 
 ## Open Questions
 
-1. **Relay configuration UI**: macOS resolves relays from env vars / `~/.config/nostr/relays.txt`. iOS has neither. Where does the reviewer configure relays? Default decision: in-app settings with a default public relay fallback, mirroring the identity configuration path. Exact UI is a design decision.
+1. **Relay configuration UI**: Resolved by `FR-sri-relay-settings` — in-app Settings with add/remove relay URLs, a "use defaults" toggle, and the default public relay set as fallback, mirroring the identity configuration path. Design: `../../design/ios/shepherd-review.md` (Settings (Relays)).
 
 2. **Identity persistence**: Resolved by `./identity.md` — the identity persists across launches via the iOS Keychain (`FR-id-ios-keychain-storage`), not in-memory only. See `./identity.md` for the full login/create/persist/logout flow.
 

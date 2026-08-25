@@ -100,6 +100,10 @@ public struct AppFeature {
         /// Implements: FR-srm-patch-open-entry, FR-sri-patch-open-entry.
         @Presents public var openPatch: OpenPatchFeature.State?
 
+        /// Presented Settings (Relays) sheet — iOS-surfaced relay configuration.
+        /// Implements: FR-sri-relay-settings.
+        @Presents public var settings: SettingsFeature.State?
+
         /// Presented Browse PRs sheet (watched repos + npub-tagged PR lists).
         /// Implements: FR-pb-watchlist-manage through FR-pb-open-pr.
         @Presents public var prBrowse: PRBrowseFeature.State?
@@ -204,6 +208,10 @@ public struct AppFeature {
         // MARK: - In-app patch open (FR-srm-patch-open-entry/input/fetch/load)
         case openPatchRequested
         case openPatch(PresentationAction<OpenPatchFeature.Action>)
+
+        // MARK: - Settings (relays) (FR-sri-relay-settings)
+        case settingsRequested
+        case settings(PresentationAction<SettingsFeature.Action>)
 
         // MARK: - PR Browse (FR-pb-watchlist-manage, FR-pb-repo-list, FR-pb-npub-list, FR-pb-open-pr)
         case browsePRsRequested
@@ -335,551 +343,7 @@ public struct AppFeature {
         }
 
         Reduce { state, action in
-            switch action {
-            case .binding(\.overallComment):
-                return .send(.regeneratePrompt)
-
-            case .binding:
-                return .none
-
-            // MARK: - File Loading
-
-            case let .filesDropped(urls):
-                return .run { [fileClient] send in
-                    let results = try await fileClient.readFiles(urls)
-                    await send(.filesReadCompleted(results))
-                } catch: { _, send in
-                    // Unexpected batch-level failure (per-file errors are reported
-                    // as .failed results above, not thrown). Surface a generic error.
-                    await send(.filesReadCompleted([.failed(name: "", reason: .readFailed)]))
-                }
-
-            // Implements: FR-crp-macos-sandboxed-file-access, AC-crp-binary-file-rejected, AC-crp-macos-file-permission-error
-            case let .filesReadCompleted(results):
-                let loaded = results.compactMap { result -> LoadedFile? in
-                    guard case let .loaded(content, name, url) = result else { return nil }
-                    return LoadedFile(content: content, name: name, url: url)
-                }
-                if let alert = fileErrorAlert(for: results) {
-                    state.alert = alert
-                }
-                return loaded.isEmpty ? .none : .send(.filesLoaded(loaded))
-
-            case .fileOpenPanelRequested:
-                // The view handles the NSOpenPanel; results come back as filesDropped
-                return .none
-
-            case let .filesLoaded(loaded):
-                for item in loaded {
-                    let language = item.language ?? SyntaxLanguage.detect(from: item.name)
-                    let fileNode = FileNode(
-                        id: uuid(),
-                        name: item.name,
-                        filePath: item.filePath ?? item.url?.path,
-                        language: language,
-                        content: item.content
-                    )
-                    state.files.append(fileNode)
-                    // Select the first loaded file if none is active
-                    if state.activeFileID == nil {
-                        state.activeFileID = fileNode.id
-                    }
-                }
-                return .merge(
-                    .send(.rebuildFileTree),
-                    .send(.regeneratePrompt),
-                    activeFileContextEffect(state: state),
-                    highlightActiveFile(state: state)
-                )
-
-            case .pasteFileFromClipboard:
-                return .run { [clipboardClient] send in
-                    guard let text = await clipboardClient.readText(),
-                          !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-                    await send(.filesLoaded([LoadedFile(content: text, name: "Untitled", url: nil)]))
-                }
-
-            // MARK: - Session Management
-
-            // Implements: FR-crp-clear-session
-            case .clearSessionRequested:
-                guard !state.files.isEmpty else { return .none }
-                // No comments to lose -> clear immediately, no confirmation dialog.
-                // Implements: AC-crp-clear-no-confirm-empty
-                guard state.hasComments else {
-                    return performClearSession(state: &state)
-                }
-                state.alert = AlertState {
-                    TextState("Clear Session")
-                } actions: {
-                    ButtonState(role: .destructive, action: .clearConfirmed) {
-                        TextState("Clear")
-                    }
-                    ButtonState(role: .cancel) {
-                        TextState("Cancel")
-                    }
-                } message: {
-                    TextState("Remove all files and comments? This cannot be undone.")
-                }
-                return .none
-
-            // Implements: FR-crp-multi-file-remove
-            case let .removeFileRequested(fileID):
-                let hasComments = state.allComments.contains(where: { $0.fileID == fileID })
-                if hasComments {
-                    state.alert = AlertState {
-                        TextState("Remove File")
-                    } actions: {
-                        ButtonState(role: .destructive, action: .removeFileConfirmed(fileID)) {
-                            TextState("Remove")
-                        }
-                        ButtonState(role: .cancel) {
-                            TextState("Cancel")
-                        }
-                    } message: {
-                        TextState("This file has comments. Remove it and its comments?")
-                    }
-                } else {
-                    return removeFile(id: fileID, state: &state)
-                }
-                return .none
-
-            case .toggleLineWrap:
-                state.lineWrapEnabled.toggle()
-                return .none
-
-            // MARK: - Alert Actions
-
-            case .alert(.presented(.clearConfirmed)):
-                let effect = performClearSession(state: &state)
-                // Resume a deeplink held behind the replace confirmation.
-                if let pending = state.pendingDeeplinkInput {
-                    state.pendingDeeplinkInput = nil
-                    return .merge(effect, presentOpenPatch(pending, state: &state))
-                }
-                return effect
-
-            case let .alert(.presented(.removeFileConfirmed(fileID))):
-                return removeFile(id: fileID, state: &state)
-
-            case .alert(.dismiss):
-                state.pendingDeeplinkInput = nil
-                return .none
-
-            // MARK: - Prompt Lifecycle
-
-            case .copyPrompt:
-                guard let prompt = state.prompt.generatedPrompt else { return .none }
-                return .run { [clipboardClient] send in
-                    await clipboardClient.copyText(prompt)
-                    await send(.promptCopied)
-                }
-
-            // Implements: FR-crp-prompt-copy
-            case .promptCopied:
-                state.showCopyConfirmation = true
-                return .run { [clock] send in
-                    try await clock.sleep(for: .seconds(2))
-                    await send(.dismissCopyConfirmation)
-                }
-                .cancellable(id: CancelID.copyConfirmation, cancelInFlight: true)
-
-            case .dismissCopyConfirmation:
-                state.showCopyConfirmation = false
-                return .none
-
-            case .doneRequested:
-                guard let prompt = state.prompt.generatedPrompt,
-                      let sessionID = state.session.sessionID else { return .none }
-                state.session.doneState = .sending
-                return .run { [clipboardClient, sessionClient] send in
-                    // Always copy to clipboard first as fallback
-                    await clipboardClient.copyText(prompt)
-                    do {
-                        try await sessionClient.writePromptOutput(sessionID, prompt)
-                        await send(.promptHandoffSucceeded)
-                    } catch {
-                        await send(.promptHandoffFailed(error.localizedDescription))
-                    }
-                }
-
-            case .promptHandoffSucceeded:
-                state.session.doneState = .sent
-                return .run { [windowClient] _ in
-                    await windowClient.closeWindow()
-                }
-
-            case .promptHandoffFailed:
-                state.session.doneState = .idle
-                // Prompt was already copied to clipboard as fallback
-                return .none
-
-            case .regeneratePrompt:
-                return .run { [files = state.files, comments = state.allComments, overall = state.overallComment] send in
-                    await send(.prompt(.regenerateRequested(
-                        files: files,
-                        comments: comments,
-                        overallComment: overall
-                    )))
-                }
-                .cancellable(id: CancelID.promptRegeneration, cancelInFlight: true)
-
-            case .rebuildFileTree:
-                let tree = FileTreeBuilder.buildFileTree(files: state.files)
-                return .send(.fileBrowser(.fileTreeRebuilt(tree)))
-
-            // MARK: - Window Lifecycle
-
-            // Implements: FR-id-screen-when-no-identity (launch gate)
-            case .windowAppeared:
-                return .merge(
-                    .run { [windowClient, sessionID = state.session.sessionID] _ in
-                        await windowClient.configureAutosave(sessionID)
-                    },
-                    .send(.loadIdentityAtLaunch)
-                )
-
-            // Implements: FR-id-screen-when-no-identity
-            case .loadIdentityAtLaunch:
-                let identity = identityClient.loadIdentity()
-                state.reviewerIdentity = identity
-                // Only gate when no identity is available from any source.
-                if identity == nil {
-                    state.identity = IdentityFeature.State()
-                }
-                return .none
-
-            // Implements: FR-id-optional-reentry
-            case .openIdentityScreen:
-                state.identity = IdentityFeature.State(activeIdentity: state.reviewerIdentity)
-                return .none
-
-            // MARK: - In-app identity delegates
-
-            case let .identity(.presented(.identityAdopted(identity))):
-                state.reviewerIdentity = identity
-                state.identity = nil
-                // If the adopted identity is a bunker in .connecting state, start
-                // the handshake (reuses the existing patch-review connect path).
-                if identity.source == .bunker, identity.bunkerState == .connecting {
-                    return .run { [identityClient] send in
-                        let pubkey = await identityClient.connectBunker()
-                        await send(.bunkerConnectCompleted(pubkey))
-                    }
-                    .cancellable(id: CancelID.bunkerConnect, cancelInFlight: true)
-                }
-                return .none
-
-            case .identity(.presented(.identitySkipped)):
-                state.identity = nil
-                return .none
-
-            case .identity(.presented(.identityLoggedOut)):
-                state.reviewerIdentity = nil
-                state.identity = IdentityFeature.State()
-                return .none
-
-            case .identity(.dismiss):
-                return .none
-
-            case .identity:
-                return .none
-
-            // MARK: - In-app patch open (FR-srm-patch-open-entry/input/fetch/load)
-
-            // Implements: FR-srm-patch-open-entry
-            // Present the Open Patch dialog from the empty state.
-            case .openPatchRequested:
-                state.openPatch = OpenPatchFeature.State()
-                return .none
-
-            // Implements: FR-pb-watchlist-manage (entry) — present the Browse PRs sheet.
-            case .browsePRsRequested:
-                state.prBrowse = PRBrowseFeature.State()
-                return .none
-
-            // MARK: - Deeplink entry (shepherd://patch|pr/<ref>)
-
-            // ponytail: routes the deeplink through the existing Open Patch dialog
-            // (prefilled input + auto-fetch) instead of extracting PatchFetcher and
-            // a dialog-less progress overlay; the dialog already surfaces every
-            // fetch/validation state. Extract when dialog-less loading is required.
-            case let .deeplinkReceived(url):
-                guard let ref = Self.parseDeeplinkRef(url) else {
-                    state.alert = AlertState {
-                        TextState("Invalid Link")
-                    } message: {
-                        TextState("Links must be shepherd://patch/<ref> or shepherd://pr/<ref>.")
-                    }
-                    return .none
-                }
-                return openRefSafely(ref, state: &state)
-
-            // Implements: FR-pb-open-pr — a PR picked in the browse sheet routes
-            // through the same replace-session guard as a deeplink, then the
-            // existing Open Patch load path.
-            case let .prBrowse(.presented(.delegate(.openPR(id)))):
-                state.prBrowse = nil
-                return openRefSafely(id, state: &state)
-
-            case .prBrowse:
-                return .none
-
-            case .openPatch(.presented(.delegate(.cancelled))):
-                state.openPatch = nil
-                return .none
-
-            // Implements: FR-srm-patch-open-load, FR-sri-patch-open-load, FR-srm-pr-open-load, FR-sri-pr-open-load
-            // Load the fetched patch for review: diff blocks -> file tabs + metadata.
-            case let .openPatch(.presented(.delegate(.patchLoaded(files, metadata)))):
-                state.openPatch = nil
-                // Diff blocks -> FileNodes (one tab per changed file, named by path).
-                let loaded = files.map { file in
-                    LoadedFile(
-                        content: file.diffBlock,
-                        name: file.filePath,
-                        url: nil,
-                        language: .plaintext,
-                        filePath: file.filePath
-                    )
-                }
-                // Attach patch metadata first so the live-replies subscription and
-                // publish path activate the moment files are loaded, identical to a
-                // CLI-launched patch review (FR-srm-patch-open-load).
-                if state.reviewContextData == nil {
-                    state.reviewContextData = ReviewContext()
-                }
-                state.reviewContextData?.patchMetadata = metadata
-                return .merge(
-                    .send(.filesLoaded(loaded)),
-                    .send(.startPatchReplySubscription)
-                )
-
-            case .openPatch:
-                return .none
-
-            case .windowClosed:
-                // Stop the relay subscription and close the bunker control channel
-                // when the window goes away. Implements: FR-srm-bunker-connect (lifecycle).
-                return .merge(
-                    .cancel(id: CancelID.patchReplySubscription),
-                    .cancel(id: CancelID.bunkerConnect),
-                    .run { [identityClient] _ in
-                        identityClient.closeBunker()
-                    }
-                )
-
-            // MARK: - Patch-thread reply live subscription (FR-sr-patch-replies-live)
-
-            case .startPatchReplySubscription:
-                guard state.reviewContextData?.patchMetadata != nil,
-                      let patchID = state.reviewContextData?.patchMetadata?.eventID else {
-                    return .none
-                }
-                return .run { [relayClient] send in
-                    // Subscribe to kind:1 events whose root e tag is the patch id.
-                    // The relay delivers stored replies first, then new ones live.
-                    let filter = NostrFilter(eTag: patchID, kinds: [1])
-                    let stream = relayClient.subscribe(filter)
-                    for await event in stream {
-                        if let reply = PatchReplyMapper.mapOne(event, patchEventID: patchID) {
-                            await send(.patchRepliesRefreshedAppend(reply))
-                        }
-                    }
-                }
-                .cancellable(id: CancelID.patchReplySubscription, cancelInFlight: true)
-
-            case let .patchRepliesRefreshedAppend(reply):
-                // Incremental live append: merge a single incoming reply into the
-                // existing ordered list, skipping dupes by id. Implements:
-                // AC-srm-publish-no-dup -- the reviewer's own published reply is
-                // appended locally on submit, so the relay-delivered copy is skipped.
-                guard var meta = state.reviewContextData?.patchMetadata else { return .none }
-                if meta.replies.contains(where: { $0.id == reply.id }) { return .none }
-                meta.replies.append(reply)
-                meta.replies.sort { $0.timestamp < $1.timestamp }
-                state.reviewContextData?.patchMetadata = meta
-                return .none
-
-            // MARK: - Patch-thread reply publishing (bidirectional)
-
-            case let .reviewerIdentityLoaded(identity):
-                state.reviewerIdentity = identity
-                // If the identity is a bunker in .connecting state, start the
-                // NIP-46 connect handshake. Implements: FR-srm-bunker-connect, FR-sri-bunker-connect.
-                if identity?.source == .bunker, identity?.bunkerState == .connecting {
-                    return .run { [identityClient] send in
-                        let pubkey = await identityClient.connectBunker()
-                        await send(.bunkerConnectCompleted(pubkey))
-                    }
-                    .cancellable(id: CancelID.bunkerConnect, cancelInFlight: true)
-                }
-                return .none
-
-            case .bunkerConnectCompleted:
-                // Reload the identity — connectBunker updated it with the pubkey
-                // and connection state (connected or failed).
-                state.reviewerIdentity = identityClient.loadIdentity()
-                return .none
-
-            case let .replyToPatchReply(reply):
-                // Switch to the reply's anchor file before opening the editor, so
-                // the editor opens on the right file and the published `range` tag
-                // names the correct path. Implements: FR-srm-reply-to-reply, FR-sri-reply-to-reply.
-                // Without this, a Reply from the inspector (where the active file
-                // may differ from the reply's anchored file) would anchor the
-                // editor to the wrong file.
-                if let anchorPath = reply.lineAnchor?.filePath,
-                   let file = state.files.first(where: { $0.filePath == anchorPath }) {
-                    state.activeFileID = file.id
-                }
-                // Open the editor at the reply's anchor (or line 1 when unanchored).
-                let start = reply.lineAnchor?.startLine ?? 1
-                let end = reply.lineAnchor?.endLine ?? start
-                state.comment.editorState = .creating(anchorLine: start, endLine: end)
-                state.comment.editorText = ""
-                state.comment.replyTarget = reply
-                state.comment.publishState = .idle
-                return activeFileContextEffect(state: state)
-
-            case let .patchReplyPublishResult(commentID, result, signedEvent):
-                return handlePublishResult(
-                    state: &state, commentID: commentID, result: result, signedEvent: signedEvent
-                )
-
-            case .dismissPublishConfirmation:
-                state.showPublishConfirmation = false
-                return .none
-
-            // MARK: - Child Feature Forwarding
-
-            case let .fileBrowser(.fileSelected(fileID)):
-                state.activeFileID = fileID
-                // Update per-file review context for the newly-active file.
-                return activeFileContextEffect(state: state)
-
-            case let .fileBrowser(.toggleFileReviewed(fileID)):
-                state.files[id: fileID]?.isReviewed.toggle()
-                return .send(.rebuildFileTree)
-
-            case let .fileBrowser(.removeFileRequested(fileID)):
-                return .send(.removeFileRequested(fileID))
-
-            case .fileBrowser:
-                return .none
-
-            case let .codeViewer(.openCommentEditor(anchorLine, endLine)):
-                return .send(.comment(.openEditor(.creating(anchorLine: anchorLine, endLine: endLine))))
-
-            case let .codeViewer(.scrolledToLine(line)):
-                if let activeID = state.activeFileID {
-                    state.files[id: activeID]?.scrollOffset = line
-                }
-                return .none
-
-            case .codeViewer:
-                return .none
-
-            case let .comment(.editComment(commentID)):
-                if let comment = state.allComments[id: commentID] {
-                    state.comment.editorState = .editing(commentID: commentID)
-                    state.comment.editorText = comment.text
-                }
-                return .none
-
-            case let .comment(.deleteComment(commentID)):
-                state.allComments.remove(id: commentID)
-                return .merge(
-                    .send(.regeneratePrompt),
-                    .send(.rebuildFileTree)
-                )
-
-            case let .comment(.navigateComment(direction)):
-                guard let activeFileID = state.activeFileID else { return .none }
-                let fileComments = state.allComments
-                    .filter { $0.fileID == activeFileID }
-                    .sorted { $0.startLine < $1.startLine }
-                guard !fileComments.isEmpty else { return .none }
-
-                let currentID = state.comment.focusedCommentID
-                let nextComment: Comment?
-                switch direction {
-                case .next:
-                    if let current = currentID,
-                       let idx = fileComments.firstIndex(where: { $0.id == current }),
-                       idx + 1 < fileComments.count {
-                        nextComment = fileComments[idx + 1]
-                    } else {
-                        nextComment = fileComments.first
-                    }
-                case .previous:
-                    if let current = currentID,
-                       let idx = fileComments.firstIndex(where: { $0.id == current }),
-                       idx > 0 {
-                        nextComment = fileComments[idx - 1]
-                    } else {
-                        nextComment = fileComments.last
-                    }
-                }
-                if let next = nextComment {
-                    state.comment.focusedCommentID = next.id
-                    // Drive the viewer to scroll to and highlight the target line.
-                    // Implements: FR-crp-comment-navigation
-                    state.codeViewer.focusedLine = next.startLine
-                }
-                return .none
-
-            case .comment:
-                return .none
-
-            case let .inspector(.commentSummaryCommentTapped(commentID)):
-                // Navigate to the file containing this comment, then scroll to and
-                // highlight its line. Implements: FR-crp-comment-navigation
-                if let comment = state.allComments[id: commentID] {
-                    state.activeFileID = comment.fileID
-                    state.comment.focusedCommentID = commentID
-                    state.codeViewer.focusedLine = comment.startLine
-                }
-                return .none
-
-            case .inspector:
-                return .none
-
-            case .prompt:
-                return .none
-
-            case let .session(.sessionDataLoaded(data)):
-                // Load files from session
-                var loadedFiles: [LoadedFile] = []
-                for sessionFile in data.files {
-                    let name = (sessionFile.path as NSString).lastPathComponent
-                    loadedFiles.append(LoadedFile(content: sessionFile.content, name: name, url: URL(fileURLWithPath: sessionFile.path)))
-                }
-                // Store review context
-                state.reviewContextData = data.reviewContext
-                let isPatchReview = data.reviewContext?.patchMetadata != nil
-                var effects: [Effect<Action>] = []
-                if !loadedFiles.isEmpty {
-                    effects.append(.send(.filesLoaded(loadedFiles)))
-                }
-                // Begin live relay subscription for patch reviews.
-                // Implements: FR-sr-patch-replies-live (in-app RelayClient).
-                if isPatchReview {
-                    effects.append(.send(.startPatchReplySubscription))
-                    // Load the reviewer's Nostr identity for publishing replies.
-                    // Implements: FR-srm-identity-load.
-                    effects.append(.run { [identityClient] send in
-                        await send(.reviewerIdentityLoaded(identityClient.loadIdentity()))
-                    })
-                }
-                return .merge(effects)
-
-            case .session:
-                return .none
-
-            case .reviewContext:
-                return .none
-            }
+            self.core(&state, action)
         }
         .ifLet(\.$identity, action: \.identity) {
             IdentityFeature()
@@ -890,7 +354,503 @@ public struct AppFeature {
         .ifLet(\.$prBrowse, action: \.prBrowse) {
             PRBrowseFeature()
         }
+        .ifLet(\.$settings, action: \.settings) {
+            SettingsFeature()
+        }
         .ifLet(\.$alert, action: \.alert)
+
+    }
+
+    /// Whole main switch, moved out of `Reduce` so the closure stays cheap to type-check.
+    private func core(_ state: inout State, _ action: Action) -> Effect<Action> {
+                switch action {
+                case .binding(\.overallComment):
+                    return .send(.regeneratePrompt)
+
+                case .binding:
+                    return .none
+
+                // MARK: - File Loading
+
+                case let .filesDropped(urls):
+                    return .run { [fileClient] send in
+                        let results = try await fileClient.readFiles(urls)
+                        await send(.filesReadCompleted(results))
+                    } catch: { _, send in
+                        // Unexpected batch-level failure (per-file errors are reported
+                        // as .failed results above, not thrown). Surface a generic error.
+                        await send(.filesReadCompleted([.failed(name: "", reason: .readFailed)]))
+                    }
+
+                // Implements: FR-crp-macos-sandboxed-file-access, AC-crp-binary-file-rejected, AC-crp-macos-file-permission-error
+                case let .filesReadCompleted(results):
+                    let loaded = results.compactMap { result -> LoadedFile? in
+                        guard case let .loaded(content, name, url) = result else { return nil }
+                        return LoadedFile(content: content, name: name, url: url)
+                    }
+                    if let alert = fileErrorAlert(for: results) {
+                        state.alert = alert
+                    }
+                    return loaded.isEmpty ? .none : .send(.filesLoaded(loaded))
+
+                case .fileOpenPanelRequested:
+                    // The view handles the NSOpenPanel; results come back as filesDropped
+                    return .none
+
+                case let .filesLoaded(loaded):
+                    return filesLoaded(loaded, state: &state)
+
+                case .pasteFileFromClipboard:
+                    return .run { [clipboardClient] send in
+                        guard let text = await clipboardClient.readText(),
+                              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                        await send(.filesLoaded([LoadedFile(content: text, name: "Untitled", url: nil)]))
+                    }
+
+                // MARK: - Session Management
+
+                // Implements: FR-crp-clear-session
+                case .clearSessionRequested:
+                    guard !state.files.isEmpty else { return .none }
+                    // No comments to lose -> clear immediately, no confirmation dialog.
+                    // Implements: AC-crp-clear-no-confirm-empty
+                    guard state.hasComments else {
+                        return performClearSession(state: &state)
+                    }
+                    state.alert = AlertState {
+                        TextState("Clear Session")
+                    } actions: {
+                        ButtonState(role: .destructive, action: .clearConfirmed) {
+                            TextState("Clear")
+                        }
+                        ButtonState(role: .cancel) {
+                            TextState("Cancel")
+                        }
+                    } message: {
+                        TextState("Remove all files and comments? This cannot be undone.")
+                    }
+                    return .none
+
+                // Implements: FR-crp-multi-file-remove
+                case let .removeFileRequested(fileID):
+                    return removeFileRequested(fileID, state: &state)
+
+                case .toggleLineWrap:
+                    state.lineWrapEnabled.toggle()
+                    return .none
+
+                // MARK: - Alert Actions
+
+                case .alert(.presented(.clearConfirmed)):
+                    let effect = performClearSession(state: &state)
+                    // Resume a deeplink held behind the replace confirmation.
+                    if let pending = state.pendingDeeplinkInput {
+                        state.pendingDeeplinkInput = nil
+                        return .merge(effect, presentOpenPatch(pending, state: &state))
+                    }
+                    return effect
+
+                case let .alert(.presented(.removeFileConfirmed(fileID))):
+                    return removeFile(id: fileID, state: &state)
+
+                case .alert(.dismiss):
+                    state.pendingDeeplinkInput = nil
+                    return .none
+
+                // MARK: - Prompt Lifecycle
+
+                case .copyPrompt:
+                    guard let prompt = state.prompt.generatedPrompt else { return .none }
+                    return .run { [clipboardClient] send in
+                        await clipboardClient.copyText(prompt)
+                        await send(.promptCopied)
+                    }
+
+                // Implements: FR-crp-prompt-copy
+                case .promptCopied:
+                    state.showCopyConfirmation = true
+                    return .run { [clock] send in
+                        try await clock.sleep(for: .seconds(2))
+                        await send(.dismissCopyConfirmation)
+                    }
+                    .cancellable(id: CancelID.copyConfirmation, cancelInFlight: true)
+
+                case .dismissCopyConfirmation:
+                    state.showCopyConfirmation = false
+                    return .none
+
+                case .doneRequested:
+                    guard let prompt = state.prompt.generatedPrompt,
+                          let sessionID = state.session.sessionID else { return .none }
+                    state.session.doneState = .sending
+                    return .run { [clipboardClient, sessionClient] send in
+                        // Always copy to clipboard first as fallback
+                        await clipboardClient.copyText(prompt)
+                        do {
+                            try await sessionClient.writePromptOutput(sessionID, prompt)
+                            await send(.promptHandoffSucceeded)
+                        } catch {
+                            await send(.promptHandoffFailed(error.localizedDescription))
+                        }
+                    }
+
+                case .promptHandoffSucceeded:
+                    state.session.doneState = .sent
+                    return .run { [windowClient] _ in
+                        await windowClient.closeWindow()
+                    }
+
+                case .promptHandoffFailed:
+                    state.session.doneState = .idle
+                    // Prompt was already copied to clipboard as fallback
+                    return .none
+
+                case .regeneratePrompt:
+                    return regeneratePromptEffect(state: state)
+
+                case .rebuildFileTree:
+                    let tree = FileTreeBuilder.buildFileTree(files: state.files)
+                    let action = FileBrowserFeature.Action.fileTreeRebuilt(tree)
+                    return .send(.fileBrowser(action))
+
+                // MARK: - Window Lifecycle
+
+                // Implements: FR-id-screen-when-no-identity (launch gate)
+                case .windowAppeared:
+                    return .merge(
+                        .run { [windowClient, sessionID = state.session.sessionID] _ in
+                            await windowClient.configureAutosave(sessionID)
+                        },
+                        .send(.loadIdentityAtLaunch)
+                    )
+
+                // Implements: FR-id-screen-when-no-identity
+                case .loadIdentityAtLaunch:
+                    let identity = identityClient.loadIdentity()
+                    state.reviewerIdentity = identity
+                    // Only gate when no identity is available from any source.
+                    if identity == nil {
+                        state.identity = IdentityFeature.State()
+                    }
+                    return .none
+
+                // Implements: FR-id-optional-reentry
+                case .openIdentityScreen:
+                    state.identity = IdentityFeature.State(activeIdentity: state.reviewerIdentity)
+                    return .none
+
+                case let .identity(action):
+                    return handleIdentity(action, state: &state)
+
+                // MARK: - In-app patch open (FR-srm-patch-open-entry/input/fetch/load)
+
+                // Implements: FR-srm-patch-open-entry
+                // Present the Open Patch dialog from the empty state.
+                case .openPatchRequested:
+                    state.openPatch = OpenPatchFeature.State()
+                    return .none
+
+                // Implements: FR-pb-watchlist-manage (entry) — present the Browse PRs sheet.
+                case .browsePRsRequested:
+                    state.prBrowse = PRBrowseFeature.State()
+                    return .none
+
+                // Implements: FR-sri-relay-settings — present the Settings sheet.
+                case .settingsRequested:
+                    state.settings = SettingsFeature.State()
+                    return .none
+
+                // Save dismisses the sheet; the saved list takes effect for the next
+                // subscription/publish (RelayClient.resolveRelays reads it).
+                case .settings(.presented(.settingsSaved)):
+                    state.settings = nil
+                    return .none
+
+                case .settings:
+                    return .none
+
+                // MARK: - Deeplink entry (shepherd://patch|pr/<ref>)
+
+                // ponytail: routes the deeplink through the existing Open Patch dialog
+                // (prefilled input + auto-fetch) instead of extracting PatchFetcher and
+                // a dialog-less progress overlay; the dialog already surfaces every
+                // fetch/validation state. Extract when dialog-less loading is required.
+                case let .deeplinkReceived(url):
+                    guard let ref = Self.parseDeeplinkRef(url) else {
+                        state.alert = AlertState {
+                            TextState("Invalid Link")
+                        } message: {
+                            TextState("Links must be shepherd://patch/<ref> or shepherd://pr/<ref>.")
+                        }
+                        return .none
+                    }
+                    return openRefSafely(ref, state: &state)
+
+                // Implements: FR-pb-open-pr — a PR picked in the browse sheet routes
+                // through the same replace-session guard as a deeplink, then the
+                // existing Open Patch load path.
+                case let .prBrowse(.presented(.delegate(.openPR(id)))):
+                    state.prBrowse = nil
+                    return openRefSafely(id, state: &state)
+
+                case .prBrowse:
+                    return .none
+
+                case .openPatch(.presented(.delegate(.cancelled))):
+                    state.openPatch = nil
+                    return .none
+
+                // Implements: FR-srm-patch-open-load, FR-sri-patch-open-load, FR-srm-pr-open-load, FR-sri-pr-open-load
+                // Load the fetched patch for review: diff blocks -> file tabs + metadata.
+                case let .openPatch(.presented(.delegate(.patchLoaded(files, metadata)))):
+                    state.openPatch = nil
+                    // Diff blocks -> FileNodes (one tab per changed file, named by path).
+                    let loaded = files.map { file in
+                        LoadedFile(
+                            content: file.diffBlock,
+                            name: file.filePath,
+                            url: nil,
+                            language: .plaintext,
+                            filePath: file.filePath
+                        )
+                    }
+                    // Attach patch metadata first so the live-replies subscription and
+                    // publish path activate the moment files are loaded, identical to a
+                    // CLI-launched patch review (FR-srm-patch-open-load).
+                    if state.reviewContextData == nil {
+                        state.reviewContextData = ReviewContext()
+                    }
+                    state.reviewContextData?.patchMetadata = metadata
+                    return .merge(
+                        .send(.filesLoaded(loaded)),
+                        .send(.startPatchReplySubscription)
+                    )
+
+                case .openPatch:
+                    return .none
+
+                case .windowClosed:
+                    // Stop the relay subscription and close the bunker control channel
+                    // when the window goes away. Implements: FR-srm-bunker-connect (lifecycle).
+                    return .merge(
+                        .cancel(id: CancelID.patchReplySubscription),
+                        .cancel(id: CancelID.bunkerConnect),
+                        .run { [identityClient] _ in
+                            identityClient.closeBunker()
+                        }
+                    )
+
+                // MARK: - Patch-thread reply live subscription (FR-sr-patch-replies-live)
+
+                case .startPatchReplySubscription:
+                    guard state.reviewContextData?.patchMetadata != nil,
+                          let patchID = state.reviewContextData?.patchMetadata?.eventID else {
+                        return .none
+                    }
+                    return .run { [relayClient] send in
+                        // Subscribe to kind:1 events whose root e tag is the patch id.
+                        // The relay delivers stored replies first, then new ones live.
+                        let filter = NostrFilter(eTag: patchID, kinds: [1])
+                        let stream = relayClient.subscribe(filter)
+                        for await event in stream {
+                            if let reply = PatchReplyMapper.mapOne(event, patchEventID: patchID) {
+                                await send(.patchRepliesRefreshedAppend(reply))
+                            }
+                        }
+                    }
+                    .cancellable(id: CancelID.patchReplySubscription, cancelInFlight: true)
+
+                case let .patchRepliesRefreshedAppend(reply):
+                    // Incremental live append: merge a single incoming reply into the
+                    // existing ordered list, skipping dupes by id. Implements:
+                    // AC-srm-publish-no-dup -- the reviewer's own published reply is
+                    // appended locally on submit, so the relay-delivered copy is skipped.
+                    guard var meta = state.reviewContextData?.patchMetadata else { return .none }
+                    if meta.replies.contains(where: { $0.id == reply.id }) { return .none }
+                    meta.replies.append(reply)
+                    meta.replies.sort { $0.timestamp < $1.timestamp }
+                    state.reviewContextData?.patchMetadata = meta
+                    return .none
+
+                // MARK: - Patch-thread reply publishing (bidirectional)
+
+                case let .reviewerIdentityLoaded(identity):
+                    state.reviewerIdentity = identity
+                    // If the identity is a bunker in .connecting state, start the
+                    // NIP-46 connect handshake. Implements: FR-srm-bunker-connect, FR-sri-bunker-connect.
+                    if identity?.source == .bunker, identity?.bunkerState == .connecting {
+                        return .run { [identityClient] send in
+                            let pubkey = await identityClient.connectBunker()
+                            await send(.bunkerConnectCompleted(pubkey))
+                        }
+                        .cancellable(id: CancelID.bunkerConnect, cancelInFlight: true)
+                    }
+                    return .none
+
+                case .bunkerConnectCompleted:
+                    // Reload the identity — connectBunker updated it with the pubkey
+                    // and connection state (connected or failed).
+                    state.reviewerIdentity = identityClient.loadIdentity()
+                    return .none
+
+                case let .replyToPatchReply(reply):
+                    // Switch to the reply's anchor file before opening the editor, so
+                    // the editor opens on the right file and the published `range` tag
+                    // names the correct path. Implements: FR-srm-reply-to-reply, FR-sri-reply-to-reply.
+                    // Without this, a Reply from the inspector (where the active file
+                    // may differ from the reply's anchored file) would anchor the
+                    // editor to the wrong file.
+                    if let anchorPath = reply.lineAnchor?.filePath,
+                       let file = state.files.first(where: { $0.filePath == anchorPath }) {
+                        state.activeFileID = file.id
+                    }
+                    // Open the editor at the reply's anchor (or line 1 when unanchored).
+                    let start = reply.lineAnchor?.startLine ?? 1
+                    let end = reply.lineAnchor?.endLine ?? start
+                    state.comment.editorState = .creating(anchorLine: start, endLine: end)
+                    state.comment.editorText = ""
+                    state.comment.replyTarget = reply
+                    state.comment.publishState = .idle
+                    return activeFileContextEffect(state: state)
+
+                case let .patchReplyPublishResult(commentID, result, signedEvent):
+                    return handlePublishResult(
+                        state: &state, commentID: commentID, result: result, signedEvent: signedEvent
+                    )
+
+                case .dismissPublishConfirmation:
+                    state.showPublishConfirmation = false
+                    return .none
+
+                // MARK: - Child Feature Forwarding
+
+                case let .fileBrowser(.fileSelected(fileID)):
+                    state.activeFileID = fileID
+                    // Update per-file review context for the newly-active file.
+                    return activeFileContextEffect(state: state)
+
+                case let .fileBrowser(.toggleFileReviewed(fileID)):
+                    state.files[id: fileID]?.isReviewed.toggle()
+                    return .send(.rebuildFileTree)
+
+                case let .fileBrowser(.removeFileRequested(fileID)):
+                    return .send(.removeFileRequested(fileID))
+
+                case .fileBrowser:
+                    return .none
+
+                case let .codeViewer(.openCommentEditor(anchorLine, endLine)):
+                    return .send(.comment(.openEditor(.creating(anchorLine: anchorLine, endLine: endLine))))
+
+                case let .codeViewer(.scrolledToLine(line)):
+                    if let activeID = state.activeFileID {
+                        state.files[id: activeID]?.scrollOffset = line
+                    }
+                    return .none
+
+                case .codeViewer:
+                    return .none
+
+                case let .comment(.editComment(commentID)):
+                    if let comment = state.allComments[id: commentID] {
+                        state.comment.editorState = .editing(commentID: commentID)
+                        state.comment.editorText = comment.text
+                    }
+                    return .none
+
+                case let .comment(.deleteComment(commentID)):
+                    state.allComments.remove(id: commentID)
+                    return .merge(
+                        .send(.regeneratePrompt),
+                        .send(.rebuildFileTree)
+                    )
+
+                case let .comment(.navigateComment(direction)):
+                    guard let activeFileID = state.activeFileID else { return .none }
+                    let fileComments = state.allComments
+                        .filter { $0.fileID == activeFileID }
+                        .sorted { $0.startLine < $1.startLine }
+                    guard !fileComments.isEmpty else { return .none }
+
+                    let currentID = state.comment.focusedCommentID
+                    let nextComment: Comment?
+                    switch direction {
+                    case .next:
+                        if let current = currentID,
+                           let idx = fileComments.firstIndex(where: { $0.id == current }),
+                           idx + 1 < fileComments.count {
+                            nextComment = fileComments[idx + 1]
+                        } else {
+                            nextComment = fileComments.first
+                        }
+                    case .previous:
+                        if let current = currentID,
+                           let idx = fileComments.firstIndex(where: { $0.id == current }),
+                           idx > 0 {
+                            nextComment = fileComments[idx - 1]
+                        } else {
+                            nextComment = fileComments.last
+                        }
+                    }
+                    if let next = nextComment {
+                        state.comment.focusedCommentID = next.id
+                        // Drive the viewer to scroll to and highlight the target line.
+                        // Implements: FR-crp-comment-navigation
+                        state.codeViewer.focusedLine = next.startLine
+                    }
+                    return .none
+
+                case .comment:
+                    return .none
+
+                case let .inspector(.commentSummaryCommentTapped(commentID)):
+                    // Navigate to the file containing this comment, then scroll to and
+                    // highlight its line. Implements: FR-crp-comment-navigation
+                    if let comment = state.allComments[id: commentID] {
+                        state.activeFileID = comment.fileID
+                        state.comment.focusedCommentID = commentID
+                        state.codeViewer.focusedLine = comment.startLine
+                    }
+                    return .none
+
+                case .inspector:
+                    return .none
+
+                case .prompt:
+                    return .none
+
+                case let .session(.sessionDataLoaded(data)):
+                    // Load files from session
+                    var loadedFiles: [LoadedFile] = []
+                    for sessionFile in data.files {
+                        let name = (sessionFile.path as NSString).lastPathComponent
+                        loadedFiles.append(LoadedFile(content: sessionFile.content, name: name, url: URL(fileURLWithPath: sessionFile.path)))
+                    }
+                    // Store review context
+                    state.reviewContextData = data.reviewContext
+                    let isPatchReview = data.reviewContext?.patchMetadata != nil
+                    var effects: [Effect<Action>] = []
+                    if !loadedFiles.isEmpty {
+                        effects.append(.send(.filesLoaded(loadedFiles)))
+                    }
+                    // Begin live relay subscription for patch reviews.
+                    // Implements: FR-sr-patch-replies-live (in-app RelayClient).
+                    if isPatchReview {
+                        effects.append(.send(.startPatchReplySubscription))
+                        // Load the reviewer's Nostr identity for publishing replies.
+                        // Implements: FR-srm-identity-load.
+                        effects.append(.run { [identityClient] send in
+                            await send(.reviewerIdentityLoaded(identityClient.loadIdentity()))
+                        })
+                    }
+                    return .merge(effects)
+
+                case .session:
+                    return .none
+
+                case .reviewContext:
+                    return .none
+                }
     }
 
     // MARK: - Helpers
@@ -900,6 +860,101 @@ public struct AppFeature {
     /// a cold or comment-free session is cleared and replaced immediately; a warm
     /// session (unsaved comments) confirms first via `clearConfirmed`, which
     /// resumes the pending reference.
+    // MARK: - In-app identity delegates (FR-srm-identity-load, FR-id-*)
+
+    /// Split out of the main `Reduce` body to keep it type-checkable.
+    private func filesLoaded(_ loaded: [LoadedFile], state: inout State) -> Effect<Action> {
+        for item in loaded {
+            let language = item.language ?? SyntaxLanguage.detect(from: item.name)
+            let fileNode = FileNode(
+                id: uuid(),
+                name: item.name,
+                filePath: item.filePath ?? item.url?.path,
+                language: language,
+                content: item.content
+            )
+            state.files.append(fileNode)
+            // Select the first loaded file if none is active
+            if state.activeFileID == nil {
+                state.activeFileID = fileNode.id
+            }
+        }
+        return .merge(
+            .send(.rebuildFileTree),
+            .send(.regeneratePrompt),
+            activeFileContextEffect(state: state),
+            highlightActiveFile(state: state)
+        )
+    }
+
+    /// Split out of the main `Reduce` body to keep it type-checkable.
+    private func removeFileRequested(_ fileID: FileNode.ID, state: inout State) -> Effect<Action> {
+        let hasComments = state.allComments.contains(where: { $0.fileID == fileID })
+        if hasComments {
+            state.alert = AlertState {
+                TextState("Remove File")
+            } actions: {
+                ButtonState(role: .destructive, action: .removeFileConfirmed(fileID)) {
+                    TextState("Remove")
+                }
+                ButtonState(role: .cancel) {
+                    TextState("Cancel")
+                }
+            } message: {
+                TextState("This file has comments. Remove it and its comments?")
+            }
+            return .none
+        }
+        return removeFile(id: fileID, state: &state)
+    }
+
+    /// Split out of the main `Reduce` body to keep it type-checkable.
+    private func regeneratePromptEffect(state: State) -> Effect<Action> {
+        .run { [files = state.files, comments = state.allComments, overall = state.overallComment] send in
+            await send(.prompt(.regenerateRequested(
+                files: files,
+                comments: comments,
+                overallComment: overall
+            )))
+        }
+        .cancellable(id: CancelID.promptRegeneration, cancelInFlight: true)
+    }
+
+    /// Identity presentation handling, split out of the main switch to keep the
+    /// reducer's main `Reduce` body type-checkable in reasonable time.
+    private func handleIdentity(
+        _ action: PresentationAction<IdentityFeature.Action>,
+        state: inout State
+    ) -> Effect<Action> {
+        switch action {
+        case let .presented(.identityAdopted(identity)):
+            state.reviewerIdentity = identity
+            state.identity = nil
+            // If the adopted identity is a bunker in .connecting state, start
+            // the handshake (reuses the existing patch-review connect path).
+            if identity.source == .bunker, identity.bunkerState == .connecting {
+                return .run { [identityClient] send in
+                    let pubkey = await identityClient.connectBunker()
+                    await send(.bunkerConnectCompleted(pubkey))
+                }
+                .cancellable(id: CancelID.bunkerConnect, cancelInFlight: true)
+            }
+            return .none
+
+        case .presented(.identitySkipped):
+            state.identity = nil
+            return .none
+
+        case .presented(.identityLoggedOut):
+            state.reviewerIdentity = nil
+            state.identity = IdentityFeature.State()
+            return .none
+
+        case .dismiss, .presented:
+            return .none
+        }
+    }
+
     private func openRefSafely(_ ref: String, state: inout State) -> Effect<Action> {
         if !state.files.isEmpty {
             guard state.hasComments else {

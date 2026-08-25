@@ -51,12 +51,28 @@ public struct iOSAppView: View {
         }
         .navigationTitle(store.activeFile?.filePath ?? "Shepherd")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Implements: FR-sri-relay-settings — Settings entry point.
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    store.send(.settingsRequested)
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("Settings")
+            }
+        }
         .alert($store.scope(state: \.alert, action: \.alert))
         .sheet(item: $store.scope(state: \.identity, action: \.identity)) { identityStore in
             IdentityView(store: identityStore)
         }
         .sheet(item: $store.scope(state: \.openPatch, action: \.openPatch)) { openPatchStore in
             OpenPatchView(store: openPatchStore)
+        }
+        .sheet(item: $store.scope(state: \.settings, action: \.settings)) { settingsStore in
+            SettingsView(store: settingsStore) {
+                store.send(.openIdentityScreen)
+            }
         }
         .onAppear {
             // Triggers loadIdentityAtLaunch (presents the Identity sheet when no

@@ -2856,6 +2856,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`, `TC-srm-bunker-uri-malformed`
 
+### `FR-srm-relay-settings`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-relay-settings`
+
 ### `FR-srm-event-sign`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
@@ -2891,6 +2897,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`
+
+### `AC-srm-relay-settings`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-relay-settings`
 
 ### `AC-srm-comment-publish`
 - **Defined in**: `product/macos/shepherd-review.md`
@@ -4224,6 +4236,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/ios/shepherd-review.md`
 - **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-comment-publish`, `TC-sri-publish-relay-failure`
 
+### `FR-sri-relay-settings`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-relay-defaults`, `TC-sri-relay-custom`, `TC-sri-relay-invalid`, `TC-sri-relay-persist`
+
 ### `FR-sri-comment-publish-on-submit`
 - **Defined in**: `product/ios/shepherd-review.md`
 - **Design**: `design/ios/shepherd-review.md`
@@ -4259,6 +4277,30 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/ios/shepherd-review.md`
 - **Engineering**: `engineering/ios/shepherd-review.md`
 - **QA**: `qa/ios/shepherd-review.md`
+
+### `AC-sri-relay-defaults`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-relay-defaults`
+
+### `AC-sri-relay-custom`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-relay-custom`
+
+### `AC-sri-relay-invalid`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-relay-invalid`
+
+### `AC-sri-relay-persist`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-relay-persist`
 
 ### `AC-sri-patch-open-happy`
 - **Defined in**: `product/ios/shepherd-review.md`
