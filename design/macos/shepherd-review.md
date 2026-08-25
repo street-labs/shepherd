@@ -382,7 +382,7 @@ The `FileDropZone` (owned by `./code-review-prompt.md`) shows its existing row o
 Activating the button (or the shortcut) opens a centered modal sheet over the empty window.
 
 - **Title**: `Open Patch or PR`
-- **Body**: a single `TextField` with a placeholder `Paste a 64-char event id or nevent1… (patch or PR)`, an inline error line beneath the field, and a footer with a `Cancel` button and a primary `Fetch` button (default, submits on Return). The field accepts paste and supports drag-in of a text selection. The same dialog serves both kinds: the app fetches the event by id and dispatches on its kind — kind `1617` loads as a patch, kind `1618` loads as a PR (`FR-srm-pr-open-fetch`). (`naddr1…` is not accepted — NIP-34 patches and PRs are kind `1617`/`1618` with no `naddr` form; see `FR-srm-patch-open-input`.)
+- **Body**: a single `TextField` with a placeholder `Paste an event id, nevent1…, or link (patch or PR)`, an inline error line beneath the field, and a footer with a `Cancel` button and a primary `Fetch` button (default, submits on Return). The field accepts paste and supports drag-in of a text selection. The same dialog serves both kinds: the app fetches the event by id and dispatches on its kind — kind `1617` loads as a patch, kind `1618` loads as a PR (`FR-srm-pr-open-fetch`). The field is flexible about input form: a bare hex id, a `nevent1…`, or any URL whose last path component is one of those (a pasted `shepherd://patch|pr/<ref>` deeplink, an `https://gitworkshop.dev/...` share link, any Nostr web viewer link) — the reference is extracted from the URL and parsed. (`naddr1…` is not accepted — NIP-34 patches and PRs are kind `1617`/`1618` with no `naddr` form; see `FR-srm-patch-open-input`.)
 - **States**:
   - **Idle** — field empty; `Fetch` disabled.
   - **Invalid input** — non-empty but not a valid reference; inline error `Enter a 64-character hex event id or a nevent1 reference`; field stays focused. (Implements `AC-srm-patch-open-invalid-id`.) _Implementation note: `Fetch` stays enabled for non-empty input and validation runs on submit — simpler than live-format-checking, and the inline error still appears without a relay round-trip._
@@ -419,7 +419,7 @@ The reviewer has a patch event id (from a Nostr client, a Buzz message, or an ng
 ### Requirements Satisfied
 
 - `FR-srm-patch-open-entry`: empty-state `Open Patch or PR…` button + `Cmd+Shift+P` shortcut
-- `FR-srm-patch-open-input`: dialog field accepting hex id or `nevent1`; inline invalid-input state
+- `FR-srm-patch-open-input`: dialog field accepting hex id, `nevent1`, or any URL whose last path component is one of those (deeplink or web-viewer link; the ref is extracted and parsed); inline invalid-input state
 - `FR-srm-patch-open-fetch`: fetching state; in-process relay fetch; not-found / wrong-kind / bad-diff / no-relays failure states (now accepts kind `1618` and branches to the PR load path)
 - `FR-srm-patch-open-load`: per-file diff tabs; attached patch metadata; transition into review layout
 - `FR-srm-pr-open-fetch` / `FR-srm-pr-open-clone` / `FR-srm-pr-open-load` / `NFR-srm-pr-open-git-required`: kind `1618` dispatch, git-subprocess diff acquisition (merge-base..tip, or tip-vs-parent without a merge-base), PR metadata attach, and the no-git failure state
@@ -626,7 +626,7 @@ The orchestration surface (agent conversation) inherits accessibility from the h
 | `AC-sr-patch-invalid-event-id` | Conversation Surface (inherited validation) |
 | `AC-sr-patch-conflicting-args` | Command Syntax (usage message for conflicting args) |
 | `FR-srm-patch-open-entry` | In-App Patch Open (empty-state `Open Patch…` button + `Cmd+Shift+P`) |
-| `FR-srm-patch-open-input` | In-App Patch Open (dialog field; hex id / `nevent1`; inline invalid state) |
+| `FR-srm-patch-open-input` | In-App Patch Open (dialog field; hex id / `nevent1` / URL forms; inline invalid state) |
 | `FR-srm-patch-open-fetch` | In-App Patch Open (fetching state; relay fetch; not-found / wrong-kind / bad-diff / no-relays) |
 | `FR-srm-patch-open-load` | In-App Patch Open (per-file diff tabs; patch metadata; review layout) |
 | `AC-srm-patch-open-happy`, `AC-srm-patch-open-nevent`, `AC-srm-patch-open-invalid-id`, `AC-srm-patch-open-not-found`, `AC-srm-patch-open-wrong-kind`, `AC-srm-patch-open-bad-diff`, `AC-srm-patch-open-no-relays`, `AC-srm-patch-open-activates-thread` | In-App Patch Open |

@@ -34,8 +34,10 @@ public struct RelayClient: Sendable {
 }
 
 /// Input validation for the Open Patch dialog. Implements: FR-srm-patch-open-input, FR-sri-patch-open-input.
-/// A reference is either a 64-character hex event id or a `nevent1…` entity;
-/// `naddr1` is rejected (NIP-34 patches are kind 1617 with no `naddr` form).
+/// A reference is a 64-character hex event id, a `nevent1…` entity, or any URL
+/// whose last path component is one of those (deeplink, gitworkshop.dev share
+/// link, other Nostr viewers); `naddr1` is rejected (NIP-34 patches are kind 1617
+/// with no `naddr` form).
 public enum PatchRef {
     /// A normalized, valid patch reference ready to fetch.
     public enum Valid: Equatable, Sendable {
@@ -59,15 +61,33 @@ public enum PatchRef {
         }
     }
 
-    /// Trim and classify `input`. Returns nil when the text is neither a 64-char
-    /// hex id nor a `nevent1…` entity. The whole trimmed field must be one valid
-    /// reference — surrounding prose is not parsed.
+    /// Trim and classify `input`. Returns nil when the text is none of the accepted
+    /// forms. The whole trimmed field must be one valid reference — surrounding
+    /// prose is not parsed.
+    ///
+    /// Beyond a bare hex id / `nevent1…`, any URL whose last path component is a
+    /// valid reference is accepted (a `shepherd://patch|pr/<ref>` deeplink pasted
+    /// as text, an `https://gitworkshop.dev/.../e/<nevent>` share link, any other
+    /// Nostr web viewer) — the reference is extracted and re-parsed. Implements
+    /// FR-srm-patch-open-input.
     public static func parse(_ input: String) -> Valid? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         if isHexID(trimmed) { return .hexID(trimmed.lowercased()) }
         if trimmed.hasPrefix("nevent1"), let ev = NIP19Decode.decodeNEvent(trimmed) {
             return .nevent(trimmed, ev)
+        }
+        // ponytail: URL forms are handled by extracting the last path component
+        // (a hex id or nevent) and re-parsing; no per-site link grammar. Add
+        // per-site handling (e.g. relay hints from the URL's host) only if a real
+        // site needs more than the embedded ref.
+        guard trimmed.contains("://"), let url = URL(string: trimmed) else { return nil }
+        for component in url.path.split(separator: "/").reversed() {
+            let segment = component.removingPercentEncoding ?? String(component)
+            if isHexID(segment) { return .hexID(segment.lowercased()) }
+            if segment.hasPrefix("nevent1"), let ev = NIP19Decode.decodeNEvent(segment) {
+                return .nevent(segment, ev)
+            }
         }
         return nil
     }

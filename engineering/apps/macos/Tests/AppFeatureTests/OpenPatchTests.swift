@@ -108,6 +108,37 @@ struct PatchRefTests {
         }
         #expect(parsed == id)
     }
+
+    @Test("shepherd deeplink pasted as text extracts the ref")
+    func deeplinkURL() {
+        let id = String(repeating: "a", count: 64)
+        for url in ["shepherd://patch/\(id)", "shepherd://pr/\(id)"] {
+            guard case let .hexID(parsed) = PatchRef.parse(url) else {
+                Issue.record("expected .hexID from \(url)"); return
+            }
+            #expect(parsed == id)
+        }
+    }
+
+    @Test("https viewer links extract the ref")
+    func httpsViewerURL() {
+        let id = String(repeating: "b", count: 64)
+        guard case let .hexID(parsed) = PatchRef.parse("https://gitworkshop.dev/e/\(id)") else {
+            Issue.record("expected .hexID"); return
+        }
+        #expect(parsed == id)
+        let nevent = Bech32.encode(Data([0x00, 0x20] + Array(repeating: 0x01, count: 32)), prefix: "nevent")
+        guard case .nevent = PatchRef.parse("https://gitworkshop.dev/patch/\(nevent)?utm=buzz") else {
+            Issue.record("expected .nevent"); return
+        }
+    }
+
+    @Test("URLs with no embedded ref rejected")
+    func urlWithoutRefRejected() {
+        #expect(PatchRef.parse("https://gitworkshop.dev/") == nil)
+        #expect(PatchRef.parse("https://example.com/e/not-a-ref") == nil)
+        #expect(PatchRef.parse("shepherd://foo/bar") == nil)
+    }
 }
 
 @Suite("OpenPatchFeature")

@@ -34,7 +34,7 @@ public struct OpenPatchView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 TextField(
-                    "Paste a 64-char event id or nevent1… (patch or PR)",
+                    "Paste an event id, nevent1…, or link (patch or PR)",
                     text: $store.input
                 )
                 .textFieldStyle(.roundedBorder)
