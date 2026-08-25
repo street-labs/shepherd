@@ -34,7 +34,7 @@ public struct OpenPatchView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 TextField(
-                    "Paste a 64-char event id or nevent1… (patch or PR)",
+                    "Paste an event id, nevent1…, or link (patch or PR)",
                     text: $store.input
                 )
                 .textFieldStyle(.roundedBorder)
@@ -43,7 +43,7 @@ public struct OpenPatchView: View {
                 .disabled(isFetching)
                 .onSubmit { store.send(.fetchButtonTapped) }
 
-                Text("Tip: paste a nevent1 address from your Nostr client, or the raw event id in hex.")
+                Text("Tip: paste a nevent1 address, the raw event id in hex, or a link containing either.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -86,7 +86,7 @@ public struct OpenPatchView: View {
         case .idle:
             EmptyView()
         case .invalidInput:
-            Label("Enter a 64-character hex event id or a nevent1 reference", systemImage: "exclamationmark.triangle")
+            Label("Enter an event id, nevent1 address, or a link containing one", systemImage: "exclamationmark.triangle")
         case .fetching:
             Label("Fetching event from relays…", systemImage: "antenna.radiowaves.left.and.right")
         case let .notFound(id):

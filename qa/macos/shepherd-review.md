@@ -1061,7 +1061,7 @@ These cases verify the reviewer can publish under a NIP-46 bunker connection ins
 - **Preconditions**: App in empty state.
 - **Steps**:
   1. Open the sheet; type `not-a-valid-ref` and submit.
-  2. Confirm an inline error `Enter a 64-character hex event id or a nevent1 reference` appears, `Fetch` is disabled, no network call is made, and the sheet stays open.
+  2. Confirm an inline error `Enter an event id, nevent1 address, or a link containing one` appears, `Fetch` is disabled, no network call is made, and the sheet stays open.
   3. (Unit) assert `OpenPatchFeature` produces its invalid-input state for non-hex, wrong-length, non-`nevent1` inputs (including `naddr1…` inputs, which are rejected as invalid for this path).
 - **Expected**: Only a hex id or a `nevent1` reference triggers a fetch; everything else (including `naddr1`) is rejected inline.
 
