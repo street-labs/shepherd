@@ -193,9 +193,12 @@ extension RelayClient: DependencyKey {
         publish: { _ in .failed }
     )
 
-    /// Resolve relay URLs: NOSTR_RELAYS env, then ~/.config/nostr/relays.txt,
-    /// then the defaults. Same precedence as the command prompt + poller script.
+    /// Resolve relay URLs: in-app Settings list (UserDefaults, `FR-sri-relay-settings`),
+    /// then NOSTR_RELAYS env, then ~/.config/nostr/relays.txt, then the defaults.
+    /// In-app list takes highest precedence, mirroring Identity's Keychain-first
+    /// precedence: the reviewer's most recent explicit in-app choice wins.
     public static func resolveRelays() -> [String] {
+        if let saved = configuredRelays(), !saved.isEmpty { return saved }
         if let env = ProcessInfo.processInfo.environment["NOSTR_RELAYS"], !env.isEmpty {
             return env.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
         }
@@ -207,7 +210,29 @@ extension RelayClient: DependencyKey {
                 .filter { !$0.isEmpty && !$0.hasPrefix("#") }
             if !lines.isEmpty { return lines }
         }
-        return ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.nostr.band"]
+        return Self.defaultRelays
+    }
+
+    /// Default public relay set, shared by macOS fallback and the iOS "use defaults"
+    /// toggle (`FR-sri-relay-settings`).
+    public static let defaultRelays = ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.nostr.band"]
+
+    /// UserDefaults key for the in-app configured relay list (`FR-sri-relay-settings`).
+    /// Relay URLs are preferences, not secrets, so UserDefaults (not Keychain).
+    public static let relaysDefaultsKey = "shepherd.relays"
+
+    /// The in-app saved relay list, or nil when "use defaults" is active.
+    public static func configuredRelays() -> [String]? {
+        UserDefaults.standard.stringArray(forKey: relaysDefaultsKey)
+    }
+
+    /// Persist (nil clears to defaults) the in-app relay list.
+    public static func saveConfiguredRelays(_ relays: [String]?) {
+        if let relays, !relays.isEmpty {
+            UserDefaults.standard.set(relays, forKey: relaysDefaultsKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: relaysDefaultsKey)
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 ---
 product-hash: 3690acf162292d9c87169800429f77532c40192326fcf3225ba44915e0f24463
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, FR-sri-relay-settings, AC-sri-relay-defaults, AC-sri-relay-custom, AC-sri-relay-invalid, AC-sri-relay-persist, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review — iOS Test Plan
 
@@ -25,6 +25,10 @@ The iOS in-app patch open and the bidirectional patch-thread review loop: openin
 
 | Requirement | Test Cases | Status |
 |---|---|---|
+| `AC-sri-relay-defaults` | `TC-sri-relay-defaults` | Automated |
+| `AC-sri-relay-custom` | `TC-sri-relay-custom` | Automated + Manual |
+| `AC-sri-relay-invalid` | `TC-sri-relay-invalid` | Automated |
+| `AC-sri-relay-persist` | `TC-sri-relay-persist` | Automated |
 | `AC-sri-patch-open-happy` | `TC-sri-patch-open-happy`, `TC-sri-patch-parser-unit` | Not started |
 | `AC-sri-patch-open-nevent` | `TC-sri-patch-open-nevent` | Not started |
 | `AC-sri-patch-open-invalid-id` | `TC-sri-patch-open-invalid-id` | Not started |
@@ -119,6 +123,24 @@ The iOS in-app patch open and the bidirectional patch-thread review loop: openin
 #### `TC-sri-pr-open-activates-thread` — In-app PR activates the live thread (Manual)
 1. Open a PR per `TC-sri-pr-open-happy`; have a second participant publish a new kind:1 root reply to the PR event while the window is open.
 - **Expected**: The new reply appears in the Thread section and inline at its anchor without relaunching; submitting a response publishes with the PR event as thread root. (`AC-sri-pr-open-activates-thread`)
+
+### Relay configuration
+
+#### `TC-sri-relay-defaults` — Defaults active (Automated)
+1. With no saved relay list, open Settings and check `RelayClient.resolveRelays()`.
+- **Expected**: Settings shows "use defaults" active with the default public set; resolution returns exactly the default set. (`AC-sri-relay-defaults`)
+
+#### `TC-sri-relay-custom` — Custom relays saved and used (Automated + Manual)
+1. Enter a valid `wss://` URL, save; open a patch fetched from that relay only.
+- **Expected**: The list persists and is displayed on reopen; the fetch contacts exactly the saved relay. (`AC-sri-relay-custom`)
+
+#### `TC-sri-relay-invalid` — Invalid relay URL rejected inline (Automated)
+1. Enter `not-a-url` (and separately `https://example.com`); attempt to add.
+- **Expected**: Inline validation message; nothing is added or saved. (`AC-sri-relay-invalid`)
+
+#### `TC-sri-relay-persist` — Defaults restored and persisted (Automated)
+1. With a custom list saved, re-enable "use defaults"; re-open Settings.
+- **Expected**: The default set is used, the custom list is cleared, and the state persists across a relaunch. (`AC-sri-relay-persist`)
 
 ### Patch-thread reply publishing
 
