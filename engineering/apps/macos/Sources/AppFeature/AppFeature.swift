@@ -354,6 +354,9 @@ public struct AppFeature {
         .ifLet(\.$prBrowse, action: \.prBrowse) {
             PRBrowseFeature()
         }
+        .ifLet(\.$settings, action: \.settings) {
+            SettingsFeature()
+        }
         .ifLet(\.$alert, action: \.alert)
 
     }

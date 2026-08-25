@@ -9,7 +9,7 @@ import Foundation
 /// AC-sri-relay-invalid, AC-sri-relay-persist.
 /// RelayClient persists in UserDefaults.standard (process-global); each test
 /// clears the `shepherd.relays` key before and after.
-@Suite("SettingsFeature")
+@Suite("SettingsFeature", .serialized)
 @MainActor
 struct SettingsFeatureTests {
 
@@ -90,5 +90,32 @@ struct SettingsFeatureTests {
         await store.receive(.settingsSaved)
         #expect(RelayClient.configuredRelays() == nil)
         clearKey()
+    }
+
+    @Test("AppFeature wiring: save dismisses the sheet (locks in .ifLet)")
+    @MainActor
+    func appFeatureWiring() async {
+        clearKey()
+        defer { clearKey() }
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.exhaustivity = .off
+
+        await store.send(.settingsRequested) {
+            $0.settings = SettingsFeature.State()
+        }
+        // Child save path: saveTapped persists and bubbles settingsSaved up to
+        // AppFeature, which dismisses (locks in the .ifLet wiring).
+        await store.send(.settings(.presented(.binding(.set(\.useDefaults, false))))) {
+            $0.settings?.useDefaults = false
+        }
+        await store.send(.settings(.presented(.addRelayTapped))) {
+            $0.settings?.relays = []
+        }
+        await store.send(.settings(.presented(.saveTapped)))
+        await store.receive(.settings(.presented(.settingsSaved))) {
+            $0.settings = nil
+        }
     }
 }
