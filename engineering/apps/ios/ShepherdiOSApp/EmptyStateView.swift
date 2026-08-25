@@ -1,12 +1,14 @@
 import SwiftUI
 import ComposableArchitecture
 import AppFeature
+import PRBrowseFeature
 
 /// Empty state for the iOS app. Leads with "Open Patch" — local file loading is not
 /// offered on iOS (content arrives via an in-app opened NIP-34 patch).
 // Implements: FR-crp-ios-patch-only-entry, FR-sri-patch-open-entry, AC-crp-empty-state
 struct EmptyStateView: View {
     let store: StoreOf<AppFeature>
+    @State private var isBrowsePresented = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -33,9 +35,32 @@ struct EmptyStateView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .accessibilityLabel("Open Patch")
+
+            // Implements: FR-pb-default-state (iOS entry point) — Browse PRs
+            // presents the shared PR Browse surface as a sheet; selecting a PR
+            // routes through the same Open Patch flow (FR-pb-open-pr).
+            Button {
+                isBrowsePresented = true
+            } label: {
+                Label("Browse PRs", systemImage: "list.bullet")
+                    .frame(maxWidth: 220)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .accessibilityLabel("Browse PRs")
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
+        // Implements: FR-pb-open-pr (iOS presentation half) — a successful
+        // load replaces this empty state (and the sheet with it); on a failed
+        // load the sheet remains with its lookup reset via onDismiss.
+        .sheet(isPresented: $isBrowsePresented, onDismiss: {
+            // Clear any stale lookup so the next presentation starts fresh
+            // (watchlist persists).
+            store.send(.prBrowse(.dismissed))
+        }) {
+            PRBrowseView(store: store.scope(state: \.prBrowse, action: \.prBrowse))
+        }
     }
 }

@@ -820,16 +820,16 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-patch-open-input` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/NIP19Decode.swift | implemented |
 | `FR-srm-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
 | `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | implemented |
-| `FR-srm-deeplink-scheme` | engineering/apps/macos/ShepherdApp/Resources/Info.plist; engineering/apps/macos/ShepherdApp/ShepherdApp.swift | planned |
-| `FR-srm-deeplink-patch-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift (`PatchRef.parse`) | planned |
-| `FR-srm-deeplink-route` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/PatchFetcher.swift (new) | planned |
-| `FR-srm-deeplink-cold-launch` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
-| `FR-srm-deeplink-warm-empty` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
-| `FR-srm-deeplink-warm-in-progress` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
-| `FR-srm-deeplink-malformed` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
-| `FR-srm-deeplink-errors` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/PatchFetcher.swift (new) | planned |
-| `FR-srm-deeplink-pr-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift (`PatchRef.parse`) | planned |
-| `NFR-srm-deeplink-latency` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
+| `FR-srm-deeplink-scheme` | engineering/apps/macos/ShepherdApp/Resources/Info.plist; engineering/apps/macos/ShepherdApp/ShepherdApp.swift | implemented |
+| `FR-srm-deeplink-patch-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-srm-deeplink-route` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/ShepherdApp/ShepherdApp.swift | implemented |
+| `FR-srm-deeplink-cold-launch` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-srm-deeplink-warm-empty` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-srm-deeplink-warm-in-progress` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-srm-deeplink-malformed` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-srm-deeplink-errors` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/ShepherdApp/ShepherdApp.swift | implemented |
+| `FR-srm-deeplink-pr-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `NFR-srm-deeplink-latency` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-sr-pr-source` | .claude/commands/shepherd-review.md | implemented |
 | `FR-sr-pr-fetch` | .claude/commands/shepherd-review.md | implemented |
 | `FR-sr-pr-diff-acquisition` | .claude/commands/shepherd-review.md | implemented |
@@ -839,7 +839,7 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-pr-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | implemented |
 | `NFR-srm-pr-open-git-required` | engineering/apps/macos/Sources/Dependencies/GitDiffClient.swift | implemented |
 
-Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The deeplink and PR-open rows above are `planned` (new work from this kickoff). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
+Existing rows (scope modes, launcher infrastructure, NIP-34 patch fetch/application/metadata/live-replies) are `implemented`. The bidirectional-publishing rows above are now `implemented` (Steps 7-9 landed; Step 10 is the manual patch-review publish smoke test). The deeplink and PR-open rows above are `implemented` (landed via AppFeature/ShepherdApp/OpenPatchFeature, no separate PatchFetcher was needed). The command prompt implements fetch/validation/application logic via bash + generic Nostr protocol; the native macOS app displays patch metadata via the `PatchMetadataSectionView` component in the inspector pane.
 
 ---
 

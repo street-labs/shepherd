@@ -33,9 +33,10 @@ struct ShepherdApp: App {
         // Implements: FR-crp-macos-window-management
         WindowGroup {
             AppView(store: store)
-                // Implements: FR-srm-deeplink-scheme — receive inbound shepherd:// links
-                // in the existing window (the scheme registration + .handlesExternalEvents
-                // above dedupe to this window on warm launch).
+                // Receive inbound shepherd:// links in the existing window (the
+                // scheme registration + .handlesExternalEvents above dedupe to
+                // this window on warm launch).
+                // Implements: FR-srm-deeplink-scheme, FR-srm-deeplink-cold-launch, FR-srm-deeplink-malformed
                 .onOpenURL { url in
                     store.send(.deeplinkReceived(url))
                 }

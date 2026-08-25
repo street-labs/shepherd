@@ -70,6 +70,8 @@ public struct PRBrowseFeature {
         case repoSelected(String)
         case npubLookupTapped
         case refreshTapped
+        case backTapped
+        case dismissed
         case prTapped(String)
         case lookupFinished([NostrEvent])
         case noRelaysReached
@@ -102,7 +104,7 @@ public struct PRBrowseFeature {
             case .binding:
                 return .none
 
-            // Implements: FR-pb-watchlist-manage (load half)
+            // Implements: FR-pb-watchlist-manage
             case .onAppear:
                 state.watchlist = watchlistClient.load()
                 return .none
@@ -136,7 +138,7 @@ public struct PRBrowseFeature {
             case let .repoSelected(raw):
                 return lookup(state: &state, mode: .repo(raw))
 
-            // Implements: FR-pb-npub-list (input half)
+            // Implements: FR-pb-npub-list
             case .npubLookupTapped:
                 let trimmed = state.npubInput.trimmingCharacters(in: .whitespacesAndNewlines)
                 let pubkey: String?
@@ -158,6 +160,26 @@ public struct PRBrowseFeature {
                 if let mode = state.mode {
                     return lookup(state: &state, mode: mode)
                 }
+                return .none
+
+            // Implements: FR-pb-repo-list — compact back affordance clears the
+            // active lookup and returns to the watchlist screen.
+            case .backTapped:
+                state.mode = nil
+                state.prs = []
+                state.loading = false
+                state.noRelays = false
+                return .none
+
+            // iOS sheet dismissal: clear any stale lookup so the next
+            // presentation starts fresh (watchlist itself persists).
+            case .dismissed:
+                state.mode = nil
+                state.prs = []
+                state.loading = false
+                state.noRelays = false
+                state.npubInput = ""
+                state.npubError = nil
                 return .none
 
             // Implements: FR-pb-open-pr
@@ -190,6 +212,7 @@ public struct PRBrowseFeature {
     /// mode's tag filter, collect every event within the 8s window
     /// (`NFR-pb-fetch-window`).
     private func lookup(state: inout State, mode: State.Mode) -> Effect<Action> {
+        // Implements: NFR-pb-fetch-window
         state.mode = mode
         state.loading = true
         state.noRelays = false

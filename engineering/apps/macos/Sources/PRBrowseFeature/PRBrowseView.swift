@@ -10,20 +10,101 @@ import ShepherdDependencies
 public struct PRBrowseView: View {
     @Bindable public var store: StoreOf<PRBrowseFeature>
     @State private var selectedPRID: String?
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     public init(store: StoreOf<PRBrowseFeature>) {
         self.store = store
     }
 
+    /// Adaptive layout (design/ios/pr-browse.md): compact (iPhone) is a single
+    /// column — watchlist screen with a back-pushed PR list; expanded (iPad /
+    /// macOS) keeps the two-column layout. Single tap opens a PR on compact;
+    /// double-tap/Enter stays for pointer/keyboard.
     public var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            watchlistPane
-            Divider()
-            listPane
+        Group {
+            if sizeClass == .compact {
+                compactBody
+            } else {
+                HStack(alignment: .top, spacing: 0) {
+                    watchlistPane
+                    Divider()
+                    listPane
+                }
+                // The 620×420 floor applies only on iOS expanded (iPad form
+                // sheet). On macOS, browse renders inline as the default empty
+                // state (FR-pb-default-state), so a min width here would force
+                // the whole main window to 640pt.
+                #if os(iOS)
+                .frame(minWidth: 620, minHeight: 420)
+                #endif
+            }
         }
-        .frame(minWidth: 620, minHeight: 420)
         .padding(20)
         .onAppear { store.send(.onAppear) }
+    }
+
+    // MARK: - Compact (iPhone)
+
+    private var compactBody: some View {
+        NavigationStack {
+            if store.mode == nil {
+                compactWatchlist
+            } else {
+                compactPRList
+            }
+        }
+    }
+
+    /// Compact watchlist screen: npub lookup on top, watched-repos list with
+    /// swipe-to-delete (tap selects), add field at the bottom.
+    private var compactWatchlist: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            npubField
+            Text("Watched Repos")
+                .font(.headline)
+            List {
+                ForEach(store.watchlist, id: \.self) { raw in
+                    watchlistRow(raw)
+                }
+                .onDelete { indices in
+                    for index in indices where index < store.watchlist.count {
+                        store.send(.removeTapped(store.watchlist[index]))
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .overlay {
+                if store.watchlist.isEmpty {
+                    Text("No watched repos yet")
+                        .font(.callout)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            addField
+        }
+        .navigationTitle("Browse PRs")
+    }
+
+    /// Compact PR list: replaces the watchlist while a lookup is active; the
+    /// toolbar back affordance clears the mode and returns to the watchlist.
+    private var compactPRList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            header
+                .font(.headline)
+            Divider()
+            prListGroup
+            refreshRow
+        }
+        .navigationTitle("Browse PRs")
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    store.send(.backTapped)
+                } label: {
+                    Label("Watchlist", systemImage: "chevron.backward")
+                }
+            }
+        }
     }
 
     /// Keyboard open: the List selection binding sets `selectedPRID` via arrow
@@ -42,27 +123,12 @@ public struct PRBrowseView: View {
 
             List {
                 ForEach(store.watchlist, id: \.self) { raw in
-                    HStack {
-                        Text(tail(raw))
-                            .lineLimit(1)
-                            .help(raw)
-                        Spacer()
-                        Button {
-                            store.send(.removeTapped(raw))
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.tertiary)
-                        .help("Stop watching \(raw)")
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { store.send(.repoSelected(raw)) }
-                    .listRowBackground(
-                        store.mode == .repo(raw)
-                            ? Color.accentColor.opacity(0.15)
-                            : Color.clear
-                    )
+                    watchlistRow(raw)
+                        .listRowBackground(
+                            store.mode == .repo(raw)
+                                ? Color.accentColor.opacity(0.15)
+                                : Color.clear
+                        )
                 }
             }
             .listStyle(.sidebar)
@@ -74,6 +140,37 @@ public struct PRBrowseView: View {
                 }
             }
 
+            addField
+        }
+        .frame(width: 240)
+    }
+
+    /// One watched-repo row: the coordinate's `d` tail; trailing ✕ on expanded
+    /// layouts, swipe-to-delete on compact.
+    private func watchlistRow(_ raw: String) -> some View {
+        HStack {
+            Text(tail(raw))
+                .lineLimit(1)
+                .help(raw)
+            Spacer()
+            if sizeClass != .compact {
+                Button {
+                    store.send(.removeTapped(raw))
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tertiary)
+                .help("Stop watching \(raw)")
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { store.send(.repoSelected(raw)) }
+    }
+
+    /// Add-a-repo input row, shared by both layouts.
+    private var addField: some View {
+        VStack(alignment: .leading, spacing: 4) {
             HStack {
                 TextField("30617:<pubkey>:<d>", text: $store.addInput)
                     .textFieldStyle(.roundedBorder)
@@ -87,13 +184,29 @@ public struct PRBrowseView: View {
                     .foregroundStyle(.red)
             }
         }
-        .frame(width: 240)
     }
 
     // MARK: - PR list (right)
 
     private var listPane: some View {
         VStack(alignment: .leading, spacing: 10) {
+            npubField
+
+            header
+                .font(.headline)
+
+            Divider()
+
+            prListGroup
+
+            refreshRow
+        }
+        .padding(.leading, 16)
+    }
+
+    /// npub lookup input row, shared by both layouts.
+    private var npubField: some View {
+        VStack(alignment: .leading, spacing: 4) {
             HStack {
                 TextField("npub1… or hex pubkey", text: $store.npubInput)
                     .textFieldStyle(.roundedBorder)
@@ -106,52 +219,54 @@ public struct PRBrowseView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+        }
+    }
 
-            header
-                .font(.headline)
-
-            Divider()
-
-            Group {
-                if store.loading {
-                    VStack(spacing: 8) {
-                        ProgressView()
-                        Text("Fetching pull requests…")
-                            .font(.callout)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if store.noRelays {
-                    Text("No relays reachable.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if store.prs.isEmpty {
-                    Text(emptyMessage)
+    /// The PR list body (loading / no-relays / empty / populated), shared by
+    /// both layouts. Single tap opens on compact; double-tap elsewhere.
+    private var prListGroup: some View {
+        Group {
+            if store.loading {
+                VStack(spacing: 8) {
+                    ProgressView()
+                    Text("Fetching pull requests…")
                         .font(.callout)
                         .foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(selection: $selectedPRID) {
-                        ForEach(store.prs) { pr in
-                            PRRow(pr: pr)
-                                .tag(pr.id)
-                                .contentShape(Rectangle())
-                                .onTapGesture(count: 2) { store.send(.prTapped(pr.id)) }
-                        }
-                    }
-                    .listStyle(.plain)
-                    .onSubmit { openSelected() }
                 }
-            }
-
-            HStack {
-                Spacer()
-                Button("Refresh") { store.send(.refreshTapped) }
-                    .disabled(store.mode == nil || store.loading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if store.noRelays {
+                Text("No relays reachable.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if store.prs.isEmpty {
+                Text(emptyMessage)
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(selection: $selectedPRID) {
+                    ForEach(store.prs) { pr in
+                        PRRow(pr: pr)
+                            .tag(pr.id)
+                            .contentShape(Rectangle())
+                            .onTapGesture(count: sizeClass == .compact ? 1 : 2) {
+                                store.send(.prTapped(pr.id))
+                            }
+                    }
+                }
+                .listStyle(.plain)
+                .onSubmit { openSelected() }
             }
         }
-        .padding(.leading, 16)
+    }
+
+    private var refreshRow: some View {
+        HStack {
+            Spacer()
+            Button("Refresh") { store.send(.refreshTapped) }
+                .disabled(store.mode == nil || store.loading)
+        }
     }
 
     private var header: Text {
