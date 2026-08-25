@@ -78,7 +78,7 @@ The iOS presentation of the Browse PRs sheet: entry from the empty state, adapti
 - **Covers**: `AC-pb-open-pr`, `FR-pb-open-pr`
 - **Steps**:
   1. From either list, tap a PR row (single tap on compact).
-- **Expected Result**: The browse sheet dismisses and the existing Open Patch/PR review flow loads the PR — same surface, metadata, and diff presentation as opening the id by hand.
+- **Expected Result**: The existing Open Patch/PR review flow loads the PR — same surface, metadata, and diff presentation as opening the id by hand. On a successful load the review layout replaces the empty state and the sheet with it; on a failed load the sheet remains with its lookup reset on dismissal, so reopening Browse PRs starts fresh.
 
 ## Edge Cases & Error Scenarios
 

@@ -52,10 +52,14 @@ struct EmptyStateView: View {
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
-        // Implements: FR-pb-open-pr (iOS presentation half) — PRBrowseView
-        // dismisses itself when a PR opens because the loaded review replaces
-        // this empty state (and the sheet with it).
-        .sheet(isPresented: $isBrowsePresented) {
+        // Implements: FR-pb-open-pr (iOS presentation half) — a successful
+        // load replaces this empty state (and the sheet with it); on a failed
+        // load the sheet remains with its lookup reset via onDismiss.
+        .sheet(isPresented: $isBrowsePresented, onDismiss: {
+            // Clear any stale lookup so the next presentation starts fresh
+            // (watchlist persists).
+            store.send(.prBrowse(.dismissed))
+        }) {
             PRBrowseView(store: store.scope(state: \.prBrowse, action: \.prBrowse))
         }
     }

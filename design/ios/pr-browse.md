@@ -52,7 +52,7 @@ A reviewer wants to triage incoming PRs without copying event ids.
 
 1. User taps "Browse PRs" on the empty state → the Browse PRs sheet presents.
 2. User taps a watched repo → the sheet shows the repo's PR list, fetching for the 8s window (`NFR-pb-fetch-window`).
-3. User taps a PR row → the sheet dismisses and the Open Patch flow begins with the PR's event id — identical surface, loading, and errors to pasting the id by hand (`FR-pb-open-pr`).
+3. User taps a PR row → the Open Patch flow begins with the PR's event id — identical surface, loading, and errors to pasting the id by hand (`FR-pb-open-pr`). On a successful load the review layout replaces the empty state and the sheet with it; if the load fails the sheet remains open and its lookup resets on dismissal (via `onDismiss`), so the next Browse PRs tap starts fresh.
 
 ## Responsive Behavior
 

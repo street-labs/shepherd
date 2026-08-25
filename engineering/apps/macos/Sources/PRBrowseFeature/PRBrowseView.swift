@@ -30,7 +30,13 @@ public struct PRBrowseView: View {
                     Divider()
                     listPane
                 }
+                // The 620×420 floor applies only on iOS expanded (iPad form
+                // sheet). On macOS, browse renders inline as the default empty
+                // state (FR-pb-default-state), so a min width here would force
+                // the whole main window to 640pt.
+                #if os(iOS)
                 .frame(minWidth: 620, minHeight: 420)
+                #endif
             }
         }
         .padding(20)

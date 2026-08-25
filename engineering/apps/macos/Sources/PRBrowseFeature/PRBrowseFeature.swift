@@ -71,6 +71,7 @@ public struct PRBrowseFeature {
         case npubLookupTapped
         case refreshTapped
         case backTapped
+        case dismissed
         case prTapped(String)
         case lookupFinished([NostrEvent])
         case noRelaysReached
@@ -168,6 +169,17 @@ public struct PRBrowseFeature {
                 state.prs = []
                 state.loading = false
                 state.noRelays = false
+                return .none
+
+            // iOS sheet dismissal: clear any stale lookup so the next
+            // presentation starts fresh (watchlist itself persists).
+            case .dismissed:
+                state.mode = nil
+                state.prs = []
+                state.loading = false
+                state.noRelays = false
+                state.npubInput = ""
+                state.npubError = nil
                 return .none
 
             // Implements: FR-pb-open-pr
