@@ -58,4 +58,13 @@ public enum NIP19Decode {
         guard let eventID else { return nil }
         return NEvent(eventID: eventID, relays: relays)
     }
+
+    /// Decode an `npub1…` string to its 32-byte pubkey (64-char lowercase hex).
+    /// Implements the input half of `FR-pb-npub-list`.
+    public static func decodeNPub(_ s: String) -> String? {
+        guard let (prefix, data) = Bech32.decode(s), prefix == "npub", data.count == 32 else {
+            return nil
+        }
+        return [UInt8](data).map { String(format: "%02x", $0) }.joined()
+    }
 }

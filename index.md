@@ -4429,3 +4429,50 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/ios/identity.md`
 - **Engineering**: `engineering/ios/identity.md`
 - **QA**: `qa/ios/identity.md` -> `TC-id-ios-screen-only-path`
+### `FR-pb-watchlist-manage`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md`
+- **Engineering**: `engineering/macos/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-watchlist-add`, `TC-pb-watchlist-invalid`, `TC-pb-watchlist-remove`, `TC-pb-watchlist-persist`
+
+### `FR-pb-repo-list`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md`
+- **Engineering**: `engineering/macos/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-repo-list`, `TC-pb-repo-list-timeout`
+
+### `FR-pb-npub-list`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md`
+- **Engineering**: `engineering/macos/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-npub-list`, `TC-pb-npub-invalid`
+
+### `FR-pb-open-pr`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md`
+- **Engineering**: `engineering/macos/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-open-pr`
+
+### `NFR-pb-fetch-window`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md`
+- **Engineering**: `engineering/macos/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-repo-list-timeout`
+
+### `AC-pb-watchlist-persists`, `AC-pb-watchlist-invalid`, `AC-pb-repo-list`, `AC-pb-npub-list`, `AC-pb-open-pr`
+- **Defined in**: `product/pr-browse.md`
+### `AC-pb-watchlist-persists`
+- **Defined in**: `product/pr-browse.md`
+
+### `AC-pb-watchlist-invalid`
+- **Defined in**: `product/pr-browse.md`
+
+### `AC-pb-repo-list`
+- **Defined in**: `product/pr-browse.md`
+
+### `AC-pb-npub-list`
+- **Defined in**: `product/pr-browse.md`
+
+### `AC-pb-open-pr`
+- **Defined in**: `product/pr-browse.md`
+

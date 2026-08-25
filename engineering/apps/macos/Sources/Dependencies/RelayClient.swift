@@ -111,11 +111,18 @@ public enum PublishResult: Sendable, Equatable {
     case failed
 }
 
-/// A NIP-01 subscription filter. The subset the relay client needs: an `e` tag
-/// value, the kinds list, an `ids` list (for fetch-by-id), and an optional relay
-/// URL hint (preferred relays decoded from a `nevent1` reference).
+/// A NIP-01 subscription filter. The subset the relay client needs: single tag
+/// values (`e` / `a` / `p`), the kinds list, an `ids` list (for fetch-by-id), and
+/// an optional relay URL hint (preferred relays decoded from a `nevent1`
+/// reference). Implements the `#a`/`#p` lookups of `FR-pb-repo-list` and
+/// `FR-pb-npub-list`.
 public struct NostrFilter: Sendable, Equatable {
     public var eTag: String?
+    /// A repository coordinate (`30617:<pubkey>:<d>`) matched against events'
+    /// `a` tags (`#a` REQ key).
+    public var aTag: String?
+    /// A pubkey matched against events' `p` tags (`#p` REQ key).
+    public var pTag: String?
     public var kinds: [Int]
     public var ids: [String]
     /// Preferred relays for this subscription. When nil, the client uses its
@@ -123,8 +130,10 @@ public struct NostrFilter: Sendable, Equatable {
     /// only those relays are contacted (e.g. the relays encoded in a `nevent1`).
     public var relays: [String]?
 
-    public init(eTag: String? = nil, kinds: [Int] = [], ids: [String] = [], relays: [String]? = nil) {
+    public init(eTag: String? = nil, aTag: String? = nil, pTag: String? = nil, kinds: [Int] = [], ids: [String] = [], relays: [String]? = nil) {
         self.eTag = eTag
+        self.aTag = aTag
+        self.pTag = pTag
         self.kinds = kinds
         self.ids = ids
         self.relays = relays
@@ -134,6 +143,8 @@ public struct NostrFilter: Sendable, Equatable {
     public var jsonObject: [String: Any] {
         var f: [String: Any] = [:]
         if let eTag { f["#e"] = [eTag] }
+        if let aTag { f["#a"] = [aTag] }
+        if let pTag { f["#p"] = [pTag] }
         if !kinds.isEmpty { f["kinds"] = kinds }
         if !ids.isEmpty { f["ids"] = ids }
         return f

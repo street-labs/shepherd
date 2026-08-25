@@ -30,6 +30,7 @@ let package = Package(
         .library(name: "ReviewContextFeature", targets: ["ReviewContextFeature"]),
         .library(name: "IdentityFeature", targets: ["IdentityFeature"]),
         .library(name: "OpenPatchFeature", targets: ["OpenPatchFeature"]),
+        .library(name: "PRBrowseFeature", targets: ["PRBrowseFeature"]),
         .library(name: "MarkdownRenderFeature", targets: ["MarkdownRenderFeature"]),
         .library(name: "AppFeature", targets: ["AppFeature"]),
     ],
@@ -202,6 +203,15 @@ let package = Package(
             swiftSettings: warningsAsErrors
         ),
         .target(
+            name: "PRBrowseFeature",
+            dependencies: [
+                "SharedModels",
+                "ShepherdDependencies",
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+            ],
+            swiftSettings: warningsAsErrors
+        ),
+        .target(
             name: "MarkdownRenderFeature",
             dependencies: [
                 "SharedModels",
@@ -226,6 +236,7 @@ let package = Package(
                 "IdentityFeature",
                 "MarkdownRenderFeature",
                 "OpenPatchFeature",
+                "PRBrowseFeature",
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
             swiftSettings: warningsAsErrors
@@ -255,6 +266,7 @@ let package = Package(
             dependencies: [
                 "AppFeature",
                 "OpenPatchFeature",
+                "PRBrowseFeature",
                 "ShepherdDependencies",
                 .product(name: "P256K", package: "swift-secp256k1"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
