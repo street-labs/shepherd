@@ -32,7 +32,7 @@ The existing empty state ("Review a patch") gains a secondary "Browse PRs" butto
 One surface, both modes, presented as a sheet. Content and ordering per mode are identical to macOS (`../../design/macos/pr-browse.md`); only the arrangement differs.
 
 - **Entry points**: "Browse PRs" button on the empty state.
-- **Layout — compact (iPhone)**: a single vertical stack, top to bottom: npub lookup field + Find button; watched-repos list (each row shows the coordinate's `d` tail, swipe-to-delete removes it, tap selects it); add field + Add button; active PR list (replaces the watchlist area or appears below it, per the states below). A back affordance in the sheet's navigation bar returns from the PR list to the watchlist when a lookup is active.
+- **Layout — compact (iPhone)**: a single vertical stack, top to bottom: npub lookup field + Find button; watched-repos list (each row shows the coordinate's `d` tail, swipe-to-delete removes it, tap selects it); add field + Add button. When a lookup is active, the PR list replaces the watched-repos list in the same region, and a back affordance in the sheet's navigation bar returns to the watchlist.
 - **Layout — expanded (iPad)**: the macOS two-column layout — watchlist left, npub field + PR list right — inside a form sheet.
 - **Components**:
   - **PR row**: subject (medium weight, single line, truncated), second line author `npub1…` short form (first 10 chars) or `—`, trailing relative age ("2d"). Identical to macOS. A single tap opens the PR (there is no keyboard selection on iPhone).

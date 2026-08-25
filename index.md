@@ -4481,31 +4481,31 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/pr-browse.md`
 - **Design**: `design/macos/pr-browse.md`, `design/ios/pr-browse.md`
 - **Engineering**: `engineering/macos/pr-browse.md`, `engineering/ios/pr-browse.md`
-- **QA**: `qa/macos/pr-browse.md`, `qa/ios/pr-browse.md` -> `TC-pb-watchlist-add`, `TC-pb-watchlist-invalid`, `TC-pb-watchlist-remove`, `TC-pb-watchlist-duplicate`, `TC-pb-watchlist-persist`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-watchlist-add`, `TC-pb-watchlist-invalid`, `TC-pb-watchlist-remove`, `TC-pb-watchlist-duplicate`, `TC-pb-watchlist-persist`; `qa/ios/pr-browse.md` -> `TC-pbi-watchlist-persist`, `TC-pbi-watchlist-invalid`
 
 ### `FR-pb-repo-list`
 - **Defined in**: `product/pr-browse.md`
 - **Design**: `design/macos/pr-browse.md`, `design/ios/pr-browse.md`
 - **Engineering**: `engineering/macos/pr-browse.md`, `engineering/ios/pr-browse.md`
-- **QA**: `qa/macos/pr-browse.md`, `qa/ios/pr-browse.md` -> `TC-pb-repo-list`, `TC-pb-repo-list-timeout`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-repo-list`, `TC-pb-repo-list-timeout`; `qa/ios/pr-browse.md` -> `TC-pbi-repo-list`, `TC-pbi-layout-compact`
 
 ### `FR-pb-npub-list`
 - **Defined in**: `product/pr-browse.md`
 - **Design**: `design/macos/pr-browse.md`, `design/ios/pr-browse.md`
 - **Engineering**: `engineering/macos/pr-browse.md`, `engineering/ios/pr-browse.md`
-- **QA**: `qa/macos/pr-browse.md`, `qa/ios/pr-browse.md` -> `TC-pb-npub-list`, `TC-pb-npub-invalid`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-npub-list`, `TC-pb-npub-invalid`; `qa/ios/pr-browse.md` -> `TC-pbi-npub-list`
 
 ### `FR-pb-open-pr`
 - **Defined in**: `product/pr-browse.md`
 - **Design**: `design/macos/pr-browse.md`, `design/ios/pr-browse.md`
 - **Engineering**: `engineering/macos/pr-browse.md`, `engineering/ios/pr-browse.md`
-- **QA**: `qa/macos/pr-browse.md`, `qa/ios/pr-browse.md` -> `TC-pb-open-pr`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-open-pr`; `qa/ios/pr-browse.md` -> `TC-pbi-open-pr`
 
 ### `NFR-pb-fetch-window`
 - **Defined in**: `product/pr-browse.md`
 - **Design**: `design/macos/pr-browse.md`, `design/ios/pr-browse.md`
 - **Engineering**: `engineering/macos/pr-browse.md`, `engineering/ios/pr-browse.md`
-- **QA**: `qa/macos/pr-browse.md`, `qa/ios/pr-browse.md` -> `TC-pb-repo-list-timeout`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-repo-list-timeout`; `qa/ios/pr-browse.md` -> `TC-pbi-repo-list`
 
 ### `AC-pb-default-state`
 - **Defined in**: `product/pr-browse.md`
@@ -4516,16 +4516,21 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/pr-browse.md`
 ### `AC-pb-watchlist-persists`
 - **Defined in**: `product/pr-browse.md`
+- **QA**: `qa/ios/pr-browse.md` -> `TC-pbi-watchlist-persist`
 
 ### `AC-pb-watchlist-invalid`
 - **Defined in**: `product/pr-browse.md`
+- **QA**: `qa/ios/pr-browse.md` -> `TC-pbi-watchlist-invalid`
 
 ### `AC-pb-repo-list`
 - **Defined in**: `product/pr-browse.md`
+- **QA**: `qa/ios/pr-browse.md` -> `TC-pbi-repo-list`, `TC-pbi-layout-compact`
 
 ### `AC-pb-npub-list`
 - **Defined in**: `product/pr-browse.md`
+- **QA**: `qa/ios/pr-browse.md` -> `TC-pbi-npub-list`
 
 ### `AC-pb-open-pr`
 - **Defined in**: `product/pr-browse.md`
+- **QA**: `qa/ios/pr-browse.md` -> `TC-pbi-open-pr`
 
