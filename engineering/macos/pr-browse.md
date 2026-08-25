@@ -13,7 +13,7 @@ PRBrowseFeature (new target, macOS/iOS-clean source)
          npubField, npubError, mode (idle/repo/npub), loading,
          prs [PRSummary]
   Delegate: openPR(eventID)   -> AppFeature.presentOpenPatch
-PRBrowseView (SwiftUI sheet)
+PRBrowseView (SwiftUI — inline in the app's default empty state)
 WatchlistClient (new dependency, UserDefaults-backed)
 NostrFilter: + aTag/pTag -> "#a"/"#p" REQ keys
 ```
@@ -38,18 +38,17 @@ Add optional `aTag: String?` and `pTag: String?`, serialized as `#a` / `#p` sing
 
 ### `AppFeature` wiring
 
-- `@Presents var prBrowse: PRBrowseFeature.State?`, action `prBrowse(PresentationAction<...>)`.
-- `browsePRsRequested` (new, from empty-state button) presents it.
-- `prBrowse(.presented(.delegate(.openPR(id))))` → dismiss sheet → `presentOpenPatch(id, state:)`. This reuses the deeplink's unsaved-feedback confirmation logic unchanged, because `presentOpenPatch` is called from a path that already checked `state.files`/`hasComments` — the browse action mirrors `deeplinkReceived`'s guard structure (extract that guard into a helper `openRefSafely(_:)` shared by both).
+- `var prBrowse = PRBrowseFeature.State()` — non-presented child state (`Scope(state:action:)`), shown inline in the empty state. Implements `FR-pb-default-state`.
+- `prBrowse(.delegate(.openPR(id)))` → `presentOpenPatch(id, state:)` via the shared `openRefSafely(_:)` helper (same unsaved-feedback confirmation as a deeplink). The browse state itself is kept, not dismissed.
 
 ### `AppView` / `FileDropZoneView`
 
-New sheet `.sheet(item: $store.scope(state: \.prBrowse, action: \.prBrowse))` beside the Open Patch sheet. New "Browse PRs…" button (⌘⇧B) in `FileDropZoneView`.
+The empty state (`FileDropZoneView`) hosts the button row (Open Files…, Paste from Clipboard, Open Patch or PR… ⌘⇧P) above the inline `PRBrowseView`, scoped from `AppFeature`'s `prBrowse` state. No browse sheet. Drag-and-drop onto the window is unchanged.
 
 ## Trade-offs
 
 - **All-events window, not first-event**: one subscription per lookup; we keep collecting until the 8s window closes, so a repo with many PRs gets them all without paging.
-- **No background subscriptions**: lists exist only while the sheet is open. Live updates are a roadmap item.
+- **No background subscriptions**: lists exist only while the empty state is visible. Live updates are a roadmap item.
 - **Status filtering deferred**: kind `1630`–`1633` events are not fetched in v1 (see shared spec Out of Scope).
 
 ## Tests

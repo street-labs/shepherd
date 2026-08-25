@@ -104,9 +104,11 @@ public struct AppFeature {
         /// Implements: FR-sri-relay-settings.
         @Presents public var settings: SettingsFeature.State?
 
-        /// Presented Browse PRs sheet (watched repos + npub-tagged PR lists).
-        /// Implements: FR-pb-watchlist-manage through FR-pb-open-pr.
-        @Presents public var prBrowse: PRBrowseFeature.State?
+        /// PR Browse state — the app's default empty state (shown inline when
+        /// no files are loaded), not a presented sheet.
+        /// Implements: FR-pb-default-state (and FR-pb-watchlist-manage through
+        /// FR-pb-open-pr).
+        public var prBrowse = PRBrowseFeature.State()
 
         /// A deeplink reference (`shepherd://patch|pr/<ref>`) held while the
         /// replace-in-progress confirmation alert is up. Implements
@@ -213,9 +215,9 @@ public struct AppFeature {
         case settingsRequested
         case settings(PresentationAction<SettingsFeature.Action>)
 
-        // MARK: - PR Browse (FR-pb-watchlist-manage, FR-pb-repo-list, FR-pb-npub-list, FR-pb-open-pr)
-        case browsePRsRequested
-        case prBrowse(PresentationAction<PRBrowseFeature.Action>)
+        // MARK: - PR Browse (FR-pb-default-state, FR-pb-watchlist-manage,
+        // FR-pb-repo-list, FR-pb-npub-list, FR-pb-open-pr)
+        case prBrowse(PRBrowseFeature.Action)
 
         // Deeplink entry (shepherd://patch|pr/<ref>). Implements FR-srm-deeplink-scheme,
         // FR-srm-deeplink-patch-format, FR-srm-deeplink-pr-format, FR-srm-deeplink-route,
@@ -351,13 +353,17 @@ public struct AppFeature {
         .ifLet(\.$openPatch, action: \.openPatch) {
             OpenPatchFeature()
         }
-        .ifLet(\.$prBrowse, action: \.prBrowse) {
-            PRBrowseFeature()
-        }
         .ifLet(\.$settings, action: \.settings) {
             SettingsFeature()
         }
         .ifLet(\.$alert, action: \.alert)
+        // Non-presented browse child sits after the presented ifLets: composing
+        // it before them broke the Settings sheet's dismissal wiring (the
+        // settingsSaved presentation action arrived after destination state was
+        // cleared).
+        Scope(state: \.prBrowse, action: \.prBrowse) {
+            PRBrowseFeature()
+        }
 
     }
 
@@ -550,11 +556,6 @@ public struct AppFeature {
                     state.openPatch = OpenPatchFeature.State()
                     return .none
 
-                // Implements: FR-pb-watchlist-manage (entry) — present the Browse PRs sheet.
-                case .browsePRsRequested:
-                    state.prBrowse = PRBrowseFeature.State()
-                    return .none
-
                 // Implements: FR-sri-relay-settings — present the Settings sheet.
                 case .settingsRequested:
                     state.settings = SettingsFeature.State()
@@ -586,11 +587,11 @@ public struct AppFeature {
                     }
                     return openRefSafely(ref, state: &state)
 
-                // Implements: FR-pb-open-pr — a PR picked in the browse sheet routes
+                // Implements: FR-pb-open-pr — a PR picked in the browse state routes
                 // through the same replace-session guard as a deeplink, then the
-                // existing Open Patch load path.
-                case let .prBrowse(.presented(.delegate(.openPR(id)))):
-                    state.prBrowse = nil
+                // existing Open Patch load path. The browse state persists beneath
+                // the loaded review (FR-pb-default-state).
+                case let .prBrowse(.delegate(.openPR(id))):
                     return openRefSafely(id, state: &state)
 
                 case .prBrowse:

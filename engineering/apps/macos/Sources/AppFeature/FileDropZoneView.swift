@@ -1,27 +1,19 @@
 #if os(macOS)
 import SwiftUI
 import ComposableArchitecture
+import PRBrowseFeature
 import AppKit
 
-/// Empty state drop zone with SF Symbols, .onDrop handler
+/// Empty state: the default PR Browse surface (FR-pb-default-state) plus the
+/// entry-point button row and file drag-and-drop. Implements the layout in
+/// `design/macos/pr-browse.md` (Entry point) and `design/macos/shepherd-review.md`
+/// (FR-srm-patch-open-entry button row).
 struct FileDropZoneView: View {
     let store: StoreOf<AppFeature>
     @State private var isTargeted = false
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "doc.text.fill.viewfinder")
-                .font(.system(size: 56))
-                .foregroundStyle(.secondary)
-
-            Text("Drop Files Here")
-                .font(.title2)
-                .fontWeight(.medium)
-
-            Text("or open files to start reviewing")
-                .font(.body)
-                .foregroundStyle(.secondary)
-
+        VStack(spacing: 16) {
             HStack(spacing: 12) {
                 Button("Open Files...") {
                     openFilePicker()
@@ -40,16 +32,16 @@ struct FileDropZoneView: View {
                 .keyboardShortcut("p", modifiers: [.command, .shift])
                 .help("Open a NIP-34 patch or PR by event id (⌘⇧P)")
                 .accessibilityLabel("Open a NIP-34 patch or PR by event id")
-
-                Button("Browse PRs…") {
-                    store.send(.browsePRsRequested)
-                }
-                // Implements: FR-pb-watchlist-manage (entry)
-                .keyboardShortcut("b", modifiers: [.command, .shift])
-                .help("Browse NIP-34 pull requests for a watched repo or a tagged npub (⌘⇧B)")
-                .accessibilityLabel("Browse NIP-34 pull requests")
             }
-            .padding(.top, 8)
+
+            Text("or drop files anywhere")
+                .font(.body)
+                .foregroundStyle(.secondary)
+
+            // Implements: FR-pb-default-state — browse is the default empty state.
+            PRBrowseView(
+                store: store.scope(state: \.prBrowse, action: \.prBrowse)
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(

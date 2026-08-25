@@ -4,21 +4,29 @@
 
 ## Overview
 
-A single "Browse PRs…" sheet, opened from the empty state next to the existing "Open Patch or PR…" button, hosts the watchlist, both browse lists, and PR opening. One surface, two modes: the watched-repo list is always visible; an npub lookup field sits alongside it.
+A single Browse surface hosting the watchlist, both browse lists, and PR opening. Implements `FR-pb-default-state`: when no files are loaded, this surface is the app's default state — shown inline in the main window, not as a sheet. The empty state's existing entry points ("Open Files…", "Paste from Clipboard", "Open Patch or PR…", ⌘⇧P) live in a button row above the browse panes; dragging files onto the window still loads them.
 
 ## Entry point
 
-The empty-state drop zone (`FileDropZoneView`) gains a "Browse PRs…" button after "Open Patch or PR…", shortcut ⌘⇧B, help text "Browse NIP-34 pull requests for a watched repo or a tagged npub". It presents the Browse PRs sheet. No toolbar entry while files are loaded — like Open Patch, the affordance lives in the empty state.
+The browse surface is the empty state itself (`FR-pb-default-state`). Launching with no files loaded lands here directly. A header row of buttons sits above the panes:
 
-## Sheet layout (single window, ~600×520, not resizable smaller)
+```
+[ Open Files… ]   [ Paste from Clipboard ]   [ Open Patch or PR… ]
+┌────────────────────────────────────────────────────┐
+│ [Watchlist sidebar]      │ [PR list]               │
+```
+
+Once any file is loaded the surface is replaced by the review layout; there is no browse entry point while reviewing (v1). A one-line hint under the button row — "or drop files anywhere" — keeps the drag-and-drop affordance discoverable (it works on the whole window).
+
+## Layout (inline in the main window)
 
 ```
 ┌ Browse Pull Requests ──────────────────────────────┐
 │ [Watchlist sidebar]      │ [PR list]               │
-│ ┌─────────────────────┐  │  Search by npub: [    ] │
-│ │ repo coordinate  ✕  │  │  [Find]                 │
-│ │ 30617:abc…:shepherd │  │ ──────────────────────  │
-│ └─────────────────────┘  │  Subject            age  │
+│ ┌────────────────────┐  │  Search by npub: [    ] │
+│ │ repo coordinate ✕  │  │  [Find]                 │
+│ │ 30617:abc…:shepherd│  │ ─────────────────────  │
+│ └────────────────────┘  │  Subject            age │
 │ [+ add field   Add]      │  Author (short npub)     │
 │                          │  …                       │
 │                          │  [Refresh]               │
@@ -43,4 +51,4 @@ Each row: subject (bold, single line, truncated), second line author as `npub1�
 
 ## Opening a PR
 
-Selecting a PR dismisses the sheet and presents the existing Open Patch dialog flow with the PR's event id, auto-fetching — identical surface and errors to pasting the id by hand (`FR-pb-open-pr`). The unsaved-feedback confirmation (replace current review) behavior is identical to the deeplink path.
+Selecting a PR routes the PR's event id through the existing Open Patch dialog flow, auto-fetching — identical surface and errors to pasting the id by hand (`FR-pb-open-pr`). The browse state itself persists beneath the load (loading replaces the empty state as before). The unsaved-feedback confirmation (replace current review) behavior is identical to the deeplink path.

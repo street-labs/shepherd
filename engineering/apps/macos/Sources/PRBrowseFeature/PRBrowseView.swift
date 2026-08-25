@@ -2,10 +2,11 @@ import SwiftUI
 import ComposableArchitecture
 import ShepherdDependencies
 
-/// The Browse PRs sheet. Implements the surface in `design/macos/pr-browse.md`
-/// (FR-pb-watchlist-manage, FR-pb-repo-list, FR-pb-npub-list, FR-pb-open-pr):
-/// watchlist on the left, npub lookup + PR list on the right. Presented from the
-/// empty state; selecting a PR dismisses and routes through the Open Patch flow.
+/// The PR Browse surface — the app's default empty state (FR-pb-default-state).
+/// Implements the surface in `design/macos/pr-browse.md` (FR-pb-watchlist-manage,
+/// FR-pb-repo-list, FR-pb-npub-list, FR-pb-open-pr): watchlist on the left, npub
+/// lookup + PR list on the right, hosted inline in the empty state; selecting a
+/// PR routes through the Open Patch flow.
 public struct PRBrowseView: View {
     @Bindable public var store: StoreOf<PRBrowseFeature>
     @State private var selectedPRID: String?

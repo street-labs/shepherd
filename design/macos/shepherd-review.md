@@ -371,7 +371,7 @@ The empty start screen gains a third way to begin a review: open a NIP-34 ("ngit
 
 ### Entry point
 
-The `FileDropZone` (owned by `./code-review-prompt.md`) shows its existing row of buttons — "Open Files…" and "Paste from Clipboard" — and gains an "Open Patch or PR…" button to their right. The button uses the same borderless-prominent style as its siblings so the three read as one row of equivalent starting points.
+The empty state's row of buttons — "Open Files…", "Paste from Clipboard", and "Open Patch or PR…" — lives in the header of the default Browse surface (see `./pr-browse.md`, `FR-pb-default-state`). The button uses the same borderless-prominent style as its siblings so the three read as one row of equivalent starting points.
 
 ```
       [ Open Files… ]   [ Paste from Clipboard ]   [ Open Patch or PR… ]
