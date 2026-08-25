@@ -31,19 +31,7 @@ public struct iOSAppView: View {
                 // empty state; without it toolbar items are silently dropped.
                 NavigationStack {
                     EmptyStateView(store: store)
-                        // Implements: FR-sri-relay-settings — Settings entry point.
-                        // Toolbar must live inside the NavigationStack; attached
-                        // outside it, iOS silently drops the item.
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button {
-                                    store.send(.settingsRequested)
-                                } label: {
-                                    Image(systemName: "gearshape")
-                                }
-                                .accessibilityLabel("Settings")
-                            }
-                        }
+                        .settingsToolbar(store: store)
                 }
             } else {
                 NavigationSplitView(
@@ -56,16 +44,9 @@ public struct iOSAppView: View {
                             activeFileID: store.activeFileID
                         )
                         .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 500)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button {
-                                    store.send(.settingsRequested)
-                                } label: {
-                                    Image(systemName: "gearshape")
-                                }
-                                .accessibilityLabel("Settings")
-                            }
-                        }
+                        .navigationTitle("Shepherd")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .settingsToolbar(store: store)
                     },
                     content: {
                         CodeViewerPanelView(store: store)
@@ -110,5 +91,23 @@ public struct iOSAppView: View {
             showPublishConfirmation: store.showPublishConfirmation,
             onReplyToPatchReply: { reply in store.send(.replyToPatchReply(reply)) }
         )
+    }
+}
+
+/// Gear toolbar item (Settings entry point). Implements: FR-sri-relay-settings.
+/// Must be applied inside a navigation container (NavigationStack/
+/// NavigationSplitView column); attached outside one, iOS drops it silently.
+private extension View {
+    func settingsToolbar(store: StoreOf<AppFeature>) -> some View {
+        toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    store.send(.settingsRequested)
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("Settings")
+            }
+        }
     }
 }
