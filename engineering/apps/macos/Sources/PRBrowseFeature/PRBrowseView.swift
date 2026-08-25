@@ -173,7 +173,7 @@ public struct PRBrowseView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 TextField("30617:<pubkey>:<d>", text: $store.addInput)
-                    .textFieldStyle(.roundedBorder)
+                    .iOSInputField()
                     .font(.system(.caption, design: .monospaced))
                     .onSubmit { store.send(.addTapped) }
                 Button("Add") { store.send(.addTapped) }
@@ -209,7 +209,7 @@ public struct PRBrowseView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 TextField("npub1… or hex pubkey", text: $store.npubInput)
-                    .textFieldStyle(.roundedBorder)
+                    .iOSInputField()
                     .font(.system(.caption, design: .monospaced))
                     .onSubmit { store.send(.npubLookupTapped) }
                 Button("Find") { store.send(.npubLookupTapped) }
@@ -291,6 +291,24 @@ public struct PRBrowseView: View {
 
     private func short(_ hex: String) -> String {
         String(hex.prefix(10)) + "…"
+    }
+}
+
+/// Text input traits for shared macOS/iOS fields: rounded border on macOS;
+/// on iOS a system-filled field with URL keyboard, no autocapitalization,
+/// and no autocorrect (design/ios/pr-browse.md → Dynamic Type/input fields).
+private extension View {
+    @ViewBuilder
+    func iOSInputField() -> some View {
+        #if os(iOS)
+        self.textFieldStyle(.plain)
+            .padding(8)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+        #else
+        self.textFieldStyle(.roundedBorder)
+        #endif
     }
 }
 

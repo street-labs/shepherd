@@ -27,7 +27,11 @@ public struct iOSAppView: View {
             if store.files.isEmpty {
                 // Patch-only entry: no local file loading on iOS.
                 // Implements: FR-crp-ios-patch-only-entry, FR-sri-patch-open-entry
-                EmptyStateView(store: store)
+                // NavigationStack hosts the toolbar (gear → Settings) in the
+                // empty state; without it toolbar items are silently dropped.
+                NavigationStack {
+                    EmptyStateView(store: store)
+                }
             } else {
                 NavigationSplitView(
                     columnVisibility: $columnVisibility,
