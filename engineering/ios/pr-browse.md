@@ -63,13 +63,13 @@ None new. Watchlist persists a list of public repo coordinates in UserDefaults; 
 
 | Slug | Planned location | Status |
 |---|---|---|
-| FR-pb-watchlist-manage | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | planned |
-| FR-pb-repo-list | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | planned |
-| FR-pb-npub-list | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | planned |
-| FR-pb-open-pr | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/ios/ShepherdiOSApp/iOSAppView.swift | planned |
-| NFR-pb-fetch-window | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | planned |
+| FR-pb-watchlist-manage | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
+| FR-pb-repo-list | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
+| FR-pb-npub-list | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
+| FR-pb-open-pr | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/ios/ShepherdiOSApp/EmptyStateView.swift | implemented |
+| NFR-pb-fetch-window | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
 
-(All five slugs are already `implemented` for the shared/macOS surface; the iOS rows go `implemented` when the markers land in the adapted view and the iOS entry point.)
+(All five slugs are `implemented`: the shared surface plus the iOS entry point (`EmptyStateView`) and the adaptive `PRBrowseView` layout.)
 
 ## Tests
 

@@ -70,6 +70,7 @@ public struct PRBrowseFeature {
         case repoSelected(String)
         case npubLookupTapped
         case refreshTapped
+        case backTapped
         case prTapped(String)
         case lookupFinished([NostrEvent])
         case noRelaysReached
@@ -158,6 +159,15 @@ public struct PRBrowseFeature {
                 if let mode = state.mode {
                     return lookup(state: &state, mode: mode)
                 }
+                return .none
+
+            // Implements: FR-pb-repo-list — compact back affordance clears the
+            // active lookup and returns to the watchlist screen.
+            case .backTapped:
+                state.mode = nil
+                state.prs = []
+                state.loading = false
+                state.noRelays = false
                 return .none
 
             // Implements: FR-pb-open-pr
