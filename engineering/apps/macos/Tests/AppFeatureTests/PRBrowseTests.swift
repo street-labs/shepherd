@@ -5,6 +5,7 @@ import Foundation
 @testable import SharedModels
 @testable import ShepherdDependencies
 @testable import PRBrowseFeature
+@testable import OpenPatchFeature
 
 @Suite("RepoCoordinate")
 struct RepoCoordinateTests {
@@ -245,4 +246,26 @@ struct DecodeNPubTests {
 final class ActorBox<T>: @unchecked Sendable {
     var value: T
     init(_ value: T) { self.value = value }
+}
+
+// Implements: FR-pb-default-state — browse is the default empty state, and a
+// PR picked there routes through the existing Open Patch flow (FR-pb-open-pr).
+@Suite("PR Browse default state")
+@MainActor
+struct PRBrowseDefaultStateTests {
+    @Test("browse state present at launch; PR selection routes through Open Patch")
+    func browseIsDefault() async {
+        #expect(AppFeature.State().prBrowse == PRBrowseFeature.State())
+
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.exhaustivity = .off
+
+        // Invalid ref: Open Patch is presented, prefilled, and shows its
+        // existing invalid-input state — same surface as pasting by hand.
+        await store.send(.prBrowse(.delegate(.openPR("not-a-valid-ref"))))
+        #expect(store.state.openPatch?.input == "not-a-valid-ref")
+                #expect(store.state.prBrowse == PRBrowseFeature.State())
+    }
 }

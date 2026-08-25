@@ -4471,6 +4471,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/ios/identity.md`
 - **Engineering**: `engineering/ios/identity.md`
 - **QA**: `qa/ios/identity.md` -> `TC-id-ios-screen-only-path`
+### `FR-pb-default-state`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md` (macOS only in v1)
+- **Engineering**: `engineering/macos/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-default-state`
+
 ### `FR-pb-watchlist-manage`
 - **Defined in**: `product/pr-browse.md`
 - **Design**: `design/macos/pr-browse.md`
@@ -4500,6 +4506,11 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/pr-browse.md`
 - **Engineering**: `engineering/macos/pr-browse.md`
 - **QA**: `qa/macos/pr-browse.md` -> `TC-pb-repo-list-timeout`
+
+### `AC-pb-default-state`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-default-state`
 
 ### `AC-pb-watchlist-persists`, `AC-pb-watchlist-invalid`, `AC-pb-repo-list`, `AC-pb-npub-list`, `AC-pb-open-pr`
 - **Defined in**: `product/pr-browse.md`

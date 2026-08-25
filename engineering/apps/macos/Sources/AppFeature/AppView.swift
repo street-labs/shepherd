@@ -91,9 +91,6 @@ public struct AppView: View {
             }
             .frame(minWidth: 440, minHeight: 320)
         }
-        .sheet(item: $store.scope(state: \.prBrowse, action: \.prBrowse)) { prBrowseStore in
-            PRBrowseView(store: prBrowseStore)
-        }
         .onAppear {
             store.send(.windowAppeared)
         }
