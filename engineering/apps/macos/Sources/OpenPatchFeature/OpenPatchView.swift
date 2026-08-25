@@ -37,14 +37,9 @@ public struct OpenPatchView: View {
                     "Paste an event id, nevent1…, or link (patch or PR)",
                     text: $store.input
                 )
-                #if os(iOS)
                 .iOSInputField()
-                #else
-                .textFieldStyle(.roundedBorder)
-                #endif
                 .autocorrectionDisabled()
                 .font(.system(.body, design: .monospaced))
-                .disableAutocorrection(true)
                 .disabled(isFetching)
                 .onSubmit { store.send(.fetchButtonTapped) }
 
