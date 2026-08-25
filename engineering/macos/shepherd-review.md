@@ -821,14 +821,14 @@ Only macOS-specific functional requirements appear here. Shared `FR-sr-*` slugs 
 | `FR-srm-patch-open-fetch` | engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
 | `FR-srm-patch-open-load` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/SharedModels/PatchDiffSplitter.swift | implemented |
 | `FR-srm-deeplink-scheme` | engineering/apps/macos/ShepherdApp/Resources/Info.plist; engineering/apps/macos/ShepherdApp/ShepherdApp.swift | implemented |
-| `FR-srm-deeplink-patch-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift (`PatchRef.parse`) | implemented |
-| `FR-srm-deeplink-route` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
+| `FR-srm-deeplink-patch-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-srm-deeplink-route` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/ShepherdApp/ShepherdApp.swift | implemented |
 | `FR-srm-deeplink-cold-launch` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-srm-deeplink-warm-empty` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-srm-deeplink-warm-in-progress` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-srm-deeplink-malformed` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
-| `FR-srm-deeplink-errors` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/OpenPatchFeature/OpenPatchFeature.swift | implemented |
-| `FR-srm-deeplink-pr-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift (`PatchRef.parse`) | implemented |
+| `FR-srm-deeplink-errors` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/ShepherdApp/ShepherdApp.swift | implemented |
+| `FR-srm-deeplink-pr-format` | engineering/apps/macos/ShepherdApp/ShepherdApp.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `NFR-srm-deeplink-latency` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 | `FR-sr-pr-source` | .claude/commands/shepherd-review.md | implemented |
 | `FR-sr-pr-fetch` | .claude/commands/shepherd-review.md | implemented |

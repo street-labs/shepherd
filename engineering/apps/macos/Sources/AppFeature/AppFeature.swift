@@ -223,6 +223,7 @@ public struct AppFeature {
         // FR-srm-deeplink-patch-format, FR-srm-deeplink-pr-format, FR-srm-deeplink-route,
         // FR-srm-deeplink-cold-launch, FR-srm-deeplink-warm-empty,
         // FR-srm-deeplink-warm-in-progress, FR-srm-deeplink-malformed, FR-srm-deeplink-errors.
+        // Implements: FR-srm-deeplink-scheme, FR-srm-deeplink-patch-format, FR-srm-deeplink-pr-format, FR-srm-deeplink-route, FR-srm-deeplink-cold-launch, FR-srm-deeplink-warm-empty, FR-srm-deeplink-warm-in-progress, FR-srm-deeplink-malformed, FR-srm-deeplink-errors
         case deeplinkReceived(URL)
 
         // Patch-thread reply live subscription (FR-sr-patch-replies-live via
@@ -956,6 +957,7 @@ public struct AppFeature {
         }
     }
 
+    // Implements: FR-srm-deeplink-route, NFR-srm-deeplink-latency
     private func openRefSafely(_ ref: String, state: inout State) -> Effect<Action> {
         if !state.files.isEmpty {
             guard state.hasComments else {
@@ -984,6 +986,7 @@ public struct AppFeature {
 
     /// Present the Open Patch dialog with a prefilled reference and start the
     /// fetch immediately. Implements FR-srm-deeplink-route.
+    // Implements: FR-srm-deeplink-route
     private func presentOpenPatch(_ input: String, state: inout State) -> Effect<Action> {
         state.openPatch = OpenPatchFeature.State(input: input)
         return .send(.openPatch(.presented(.fetchButtonTapped)))

@@ -103,7 +103,7 @@ public struct PRBrowseFeature {
             case .binding:
                 return .none
 
-            // Implements: FR-pb-watchlist-manage (load half)
+            // Implements: FR-pb-watchlist-manage
             case .onAppear:
                 state.watchlist = watchlistClient.load()
                 return .none
@@ -137,7 +137,7 @@ public struct PRBrowseFeature {
             case let .repoSelected(raw):
                 return lookup(state: &state, mode: .repo(raw))
 
-            // Implements: FR-pb-npub-list (input half)
+            // Implements: FR-pb-npub-list
             case .npubLookupTapped:
                 let trimmed = state.npubInput.trimmingCharacters(in: .whitespacesAndNewlines)
                 let pubkey: String?
@@ -200,6 +200,7 @@ public struct PRBrowseFeature {
     /// mode's tag filter, collect every event within the 8s window
     /// (`NFR-pb-fetch-window`).
     private func lookup(state: inout State, mode: State.Mode) -> Effect<Action> {
+        // Implements: NFR-pb-fetch-window
         state.mode = mode
         state.loading = true
         state.noRelays = false
