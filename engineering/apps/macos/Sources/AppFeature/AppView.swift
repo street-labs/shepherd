@@ -85,6 +85,12 @@ public struct AppView: View {
         .sheet(item: $store.scope(state: \.openPatch, action: \.openPatch)) { openPatchStore in
             OpenPatchView(store: openPatchStore)
         }
+        .sheet(item: $store.scope(state: \.settings, action: \.settings)) { settingsStore in
+            SettingsView(store: settingsStore) {
+                store.send(.openIdentityScreen)
+            }
+            .frame(minWidth: 440, minHeight: 320)
+        }
         .sheet(item: $store.scope(state: \.prBrowse, action: \.prBrowse)) { prBrowseStore in
             PRBrowseView(store: prBrowseStore)
         }

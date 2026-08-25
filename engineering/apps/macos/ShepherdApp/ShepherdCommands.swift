@@ -74,6 +74,12 @@ struct ShepherdCommands: Commands {
             }
             .keyboardShortcut("i", modifiers: [.command, .shift])
 
+            // Implements: FR-srm-relay-settings — same in-app Settings surface as iOS.
+            Button("Settings…") {
+                store.send(.settingsRequested)
+            }
+            .keyboardShortcut(",", modifiers: .command)
+
             Divider()
 
             Button("Clear Session") {

@@ -1,6 +1,6 @@
 ---
 product-hash: 3690acf162292d9c87169800429f77532c40192326fcf3225ba44915e0f24463
-product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
+product-slugs: [AC-sr-all-filtered, AC-sr-auto-open, AC-sr-batch-open, AC-sr-bunker-signing, AC-sr-completion-summary, AC-sr-context-in-crpg, AC-sr-excludes-deleted, AC-sr-filters-binary, AC-sr-filters-generated, AC-sr-filters-lockfiles, AC-sr-happy-path, AC-sr-includes-config, AC-sr-install-global, AC-sr-interactive-prompt, AC-sr-invokes-shepherd, AC-sr-list-command, AC-sr-no-changes, AC-sr-not-git-repo, AC-sr-patch-application-conflicts, AC-sr-patch-conflicting-args, AC-sr-patch-event-not-found, AC-sr-patch-happy-path, AC-sr-patch-invalid-diff, AC-sr-patch-invalid-event-id, AC-sr-patch-metadata-displayed, AC-sr-patch-reply-publish, AC-sr-patch-reply-respond, AC-sr-pr-conflicting-args, AC-sr-pr-event-not-found, AC-sr-pr-fetch-fails, AC-sr-pr-happy-path, AC-sr-pr-metadata-displayed, AC-sr-pr-missing-tags, AC-sr-pr-wrong-kind, AC-sr-quit-early, AC-sr-reviewer-identity, AC-sr-skip-file, AC-sr-sorted-file-list, AC-sr-unified-prompt, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-bunker-signing, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-install, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-patch-application, FR-sr-patch-fetch, FR-sr-patch-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-patch-source, FR-sr-patch-validation, FR-sr-per-file-context, FR-sr-pr-diff-acquisition, FR-sr-pr-fetch, FR-sr-pr-metadata-display, FR-sr-pr-source, FR-sr-priority-ordering, FR-sr-relay-client, FR-sr-reviewer-identity, FR-sr-scope-argument, FR-srm-relay-settings, AC-srm-relay-settings, NFR-sr-agent-native, NFR-sr-cross-platform, NFR-sr-no-dependencies, NFR-sr-startup-speed]
 ---
 # Shepherd Review -- macOS Test Plan
 
@@ -32,6 +32,7 @@ Coexistence of `/shepherd` and `/shepherd-review` is verified by checking both c
 | Requirement | Test Cases | Status |
 |---|---|---|
 | `AC-srm-coexists` | `TC-srm-coexistence` | Not started |
+| `AC-srm-relay-settings` | `TC-srm-relay-settings` | Covered (shared `SettingsFeatureTests`, `TC-sri-relay-*`) |
 | `AC-srm-batch-open-native` | `TC-srm-happy-path`, `TC-srm-priority-tab-order` | Not started |
 | `AC-srm-no-server` | `TC-srm-no-server` | Not started |
 | `AC-srm-context-in-app` | `TC-srm-happy-path`, `TC-srm-context-in-app`, `TC-srm-context-tab-switch`, `TC-srm-context-graceful-missing` | Not started |
@@ -861,6 +862,15 @@ These cases verify the reviewer can publish replies to the patch thread from the
   4. Confirm the response renders alongside the replied-to reply with the `YOU` badge.
   5. From a separate client, fetch the published event and confirm it carries a root `e` tag on the patch event, a reply `e` tag `["e", "<replied-to-id>", "", "reply"]`, and a `p` tag naming the replied-to reply's author.
 - **Expected**: The published response is threaded correctly (root + reply `e` + `p` tags) and renders alongside the replied-to reply.
+
+#### Relays configured in-app `TC-srm-relay-settings`
+- **Type**: Automated (shared `SettingsFeatureTests`) + Manual
+- **Covers**: `AC-srm-relay-settings`, `FR-srm-relay-settings`
+- **Preconditions**: None.
+- **Steps**:
+  1. Open Settings (⌘,), add a valid `wss://` relay, save; open a patch fetched from that relay only.
+  2. Re-enable "use defaults"; confirm the default set is used and the state survives relaunch.
+- **Expected**: The saved list persists and takes precedence over `NOSTR_RELAYS` / `~/.config/nostr/relays.txt`; invalid URLs are rejected inline. The reducer-level behavior is the shared automated suite (`TC-sri-relay-*`).
 
 #### Identity loaded from config `TC-srm-identity-load`
 - **Type**: Manual

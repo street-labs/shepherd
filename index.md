@@ -2856,6 +2856,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`, `TC-srm-bunker-uri-malformed`
 
+### `FR-srm-relay-settings`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-relay-settings`
+
 ### `FR-srm-event-sign`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
@@ -2891,6 +2897,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/shepherd-review.md`
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-identity-load`, `TC-srm-identity-no-key`
+
+### `AC-srm-relay-settings`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-relay-settings`
 
 ### `AC-srm-comment-publish`
 - **Defined in**: `product/macos/shepherd-review.md`

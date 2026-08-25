@@ -106,7 +106,7 @@ There is no agent-generated neutral/review context for an in-app-opened PR (no L
 #### `FR-sri-relay-settings` — Configure Nostr relays in-app
 The reviewer configures the Nostr relays the app subscribes and publishes to from a Settings surface inside the app — the iOS counterpart to macOS's `NOSTR_RELAYS` env var and `~/.config/nostr/relays.txt` (`FR-sr-relay-client`), since iOS exposes neither to the user. The reviewer can add and remove relay URLs and toggle a "use defaults" mode that resets to the default public relay set (the same defaults the macOS client falls back to). A saved custom list is persisted across launches and takes effect for every subsequent subscription and publish (relay hints encoded in a `nevent1` reference still take preference for that fetch, per `FR-sri-patch-open-fetch`). A relay URL that is not a valid `wss://`/`ws://` URL is rejected with an inline validation message and is not saved. When no custom list is saved, the default public relay set is used.
 
-Identity is configured in the Identity sheet (`./identity.md`), not in Settings; Settings links out to it. Settings is an iOS-only surface; on macOS the out-of-band env/file sources continue to apply.
+Identity is configured in the Identity sheet (`./identity.md`), not in Settings; Settings links out to it. On macOS the same Settings surface is offered for parity (`FR-srm-relay-settings`), reachable from the app menu (⌘,); the out-of-band env/file sources continue to apply when no in-app list is saved.
 
 ### Patch-thread reply publishing (bidirectional)
 
