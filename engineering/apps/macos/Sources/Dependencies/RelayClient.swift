@@ -154,12 +154,15 @@ public struct NostrFilter: Sendable, Equatable {
 extension RelayClient: DependencyKey {
     public static let liveValue: RelayClient = {
         // NIP-42 AUTH: resolve the identity + signer at call time (not capture
-        // time) so `withDependencies` overrides reach the auth closure.
-        let auth: @Sendable (String, String) -> String? = { challenge, relayURL in
+        // time) so `withDependencies` overrides reach the auth closure. Signs
+        // through `identityClient.sign`, which covers BOTH local-key identities
+        // and bunker (NIP-46) identities — a bunker user has no local secret, so
+        // the old `currentSecret()`-only path silently failed AUTH-required
+        // relays for them (empty lookups on private relays).
+        let auth: @Sendable (String, String) async -> String? = { challenge, relayURL in
             let deps = DependencyValues._current
-            return RelayAuth.authFrame(
-                challenge: challenge, relayURL: relayURL,
-                secret: deps.identityClient.currentSecret(), signer: deps.nostrSigner
+            return await RelayAuth.authFrame(
+                challenge: challenge, relayURL: relayURL, sign: deps.identityClient.sign
             )
         }
         return RelayClient(
@@ -251,15 +254,16 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
     let subID: String
     let onEvent: @Sendable (NostrEvent) -> Void
     /// NIP-42 AUTH frame builder: (challenge, relayURL) -> `["AUTH", {event}]` JSON,
-    /// or nil when no reviewer key is configured. Implements NIP-42 relay auth.
-    let auth: @Sendable (String, String) -> String?
+    /// or nil when no reviewer identity is available. Async because a bunker
+    /// identity signs remotely over NIP-46. Implements NIP-42 relay auth.
+    let auth: @Sendable (String, String) async -> String?
     private let session = URLSession(configuration: .ephemeral)
     private var tasks: [URLSessionWebSocketTask] = []
     private let lock = NSLock()
     private var seen = Set<String>()
     private var reqString: String = ""
 
-    init(relays: [String], filter: NostrFilter, subID: String, auth: @escaping @Sendable (String, String) -> String?, onEvent: @escaping @Sendable (NostrEvent) -> Void) {
+    init(relays: [String], filter: NostrFilter, subID: String, auth: @escaping @Sendable (String, String) async -> String?, onEvent: @escaping @Sendable (NostrEvent) -> Void) {
         self.relays = relays
         self.filter = filter
         self.subID = subID
@@ -328,7 +332,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
         case "AUTH":
             // NIP-42: sign challenge, re-send REQ.
             guard let challenge = array[1] as? String,
-                  let frame = auth(challenge, relayURL) else { return }
+                  let frame = await auth(challenge, relayURL) else { return }
             try? await task.send(.string(frame))
             if !reqString.isEmpty { try? await task.send(.string(reqString)) }
         case "EVENT":
@@ -367,7 +371,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
 /// A relay is "reachable" if its socket connects and returns an `OK` frame; success
 /// is at-least-one-relay-accepted, individual relay failures tolerated.
 private enum RelayPublisher {
-    static func publish(_ event: NostrEvent, auth: @escaping @Sendable (String, String) -> String?) async -> PublishResult {
+    static func publish(_ event: NostrEvent, auth: @escaping @Sendable (String, String) async -> String?) async -> PublishResult {
         let relays = RelayClient.resolveRelays()
         guard !relays.isEmpty else { return .failed }
         // Build the EVENT frame once: ["EVENT", {event-object}].
@@ -399,7 +403,7 @@ private enum RelayPublisher {
 
     /// Publish to one relay. Returns true if the relay accepted (OK: true),
     /// false if it reached us but rejected, nil if unreachable.
-    private static func publishToOne(url: URL, frame: String, eventID: String, session: URLSession, auth: @escaping @Sendable (String, String) -> String?, relayURL: String) async -> Bool? {
+    private static func publishToOne(url: URL, frame: String, eventID: String, session: URLSession, auth: @escaping @Sendable (String, String) async -> String?, relayURL: String) async -> Bool? {
         let task = session.webSocketTask(with: url)
         task.resume()
         try? await task.send(.string(frame))
@@ -420,7 +424,7 @@ private enum RelayPublisher {
                     return outcome
                 }
                 // NIP-42: sign challenge, re-send EVENT.
-                if let authFrame = parseAuthChallenge(text, relayURL: relayURL, auth: auth) {
+                if let authFrame = await parseAuthChallenge(text, relayURL: relayURL, auth: auth) {
                     try? await task.send(.string(authFrame))
                     try? await task.send(.string(frame))
                 }
@@ -435,13 +439,13 @@ private enum RelayPublisher {
 
     /// If `text` is a `["AUTH", challenge]` frame, return the signed
     /// `["AUTH", {event}]` response for `relayURL` (or nil if no key/unparseable).
-    private static func parseAuthChallenge(_ text: String, relayURL: String, auth: @escaping @Sendable (String, String) -> String?) -> String? {
+    private static func parseAuthChallenge(_ text: String, relayURL: String, auth: @escaping @Sendable (String, String) async -> String?) async -> String? {
         guard let data = text.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
               array.count >= 2,
               array[0] as? String == "AUTH",
               let challenge = array[1] as? String else { return nil }
-        return auth(challenge, relayURL)
+        return await auth(challenge, relayURL)
     }
 
     /// Parse a `["OK", <id>, <bool>, ...]` frame for our event id. Returns the
@@ -474,22 +478,41 @@ private enum RelayPublisher {
 /// is configured or signing fails, so the caller falls back to unauthenticated
 /// behavior (public relays keep working). Implements NIP-42 relay auth.
 enum RelayAuth {
-    /// `["AUTH", {event}]` frame JSON for `challenge`+`relayURL`, signed with
-    /// `secret` via `signer`, or nil.
-    static func authFrame(challenge: String, relayURL: String, secret: Data?, signer: NostrSigner) -> String? {
-        guard let secret else { return nil }
-        let event = NostrEvent(
+    /// Unsigned kind-22242 challenge-response event for a NIP-42 `AUTH`
+    /// challenge. Shared by the local-key and bunker sign paths.
+    static func authEvent(challenge: String, relayURL: String) -> NostrEvent {
+        NostrEvent(
             id: "", pubkey: "", kind: 22242, content: "",
             tags: [["challenge", challenge], ["relay", relayURL]],
             createdAt: Int64(Date().timeIntervalSince1970)
         )
-        guard let signed = signer.sign(event, secret) else { return nil }
+    }
+
+    /// `["AUTH", {event}]` frame JSON for a signed kind-22242 event.
+    static func frame(for signed: NostrEvent) -> String? {
         let dict: [String: Any] = [
             "id": signed.id, "pubkey": signed.pubkey, "created_at": signed.createdAt,
             "kind": signed.kind, "tags": signed.tags, "content": signed.content, "sig": signed.sig,
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: ["AUTH", dict]) else { return nil }
         return String(data: data, encoding: .utf8)
+    }
+
+    /// `["AUTH", {event}]` frame for `challenge`+`relayURL`, signed via an
+    /// async signer covering both identity forms — `identityClient.sign` signs
+    /// locally for a key identity and remotely (NIP-46) for a bunker identity.
+    /// Returns nil when no identity is loaded or signing fails.
+    static func authFrame(challenge: String, relayURL: String, sign: @escaping @Sendable (NostrEvent) async -> NostrEvent?) async -> String? {
+        guard let signed = await sign(authEvent(challenge: challenge, relayURL: relayURL)) else { return nil }
+        return frame(for: signed)
+    }
+
+    /// `["AUTH", {event}]` frame for `challenge`+`relayURL`, signed locally
+    /// with `secret` via `signer`, or nil. Local-key path (BunkerClient).
+    static func authFrame(challenge: String, relayURL: String, secret: Data?, signer: NostrSigner) -> String? {
+        guard let secret else { return nil }
+        guard let signed = signer.sign(authEvent(challenge: challenge, relayURL: relayURL), secret) else { return nil }
+        return frame(for: signed)
     }
 }
 
