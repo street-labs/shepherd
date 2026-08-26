@@ -1,5 +1,5 @@
 ---
-product-hash: cc3c744fcaa6eb4ad3be7226b15f4345245e039c8f70fd6f9a42e0f11e1d67eb
+product-hash: 03fccb4b7bd677b4b7a8742717e7d39cadee5c7107fec9157948f6e33138c556
 product-slugs: [AC-gfr-ai-findings-anchored, AC-gfr-blind-no-leak, AC-gfr-confirm-before-post, AC-gfr-eligible-list, AC-gfr-explicit-status, AC-gfr-post-back-lines, AC-gfr-post-failure-reported, AC-gfr-workshop-resolutions, FR-gfr-ai-review, FR-gfr-blind-launch, FR-gfr-changeset, FR-gfr-combined-output, FR-gfr-eligibility, FR-gfr-neutral-context, FR-gfr-post-back, FR-gfr-post-confirm, FR-gfr-post-failure, FR-gfr-reveal, FR-gfr-source-selection, FR-gfr-workshop, NFR-gfr-mac-scope, NFR-gfr-no-new-deps, NFR-gfr-single-reviewer, AC-gfrm-blind-indicator, AC-gfrm-output-structure, AC-gfrm-reveal-on-done, AC-gfrm-undecided-excluded, AC-gfrm-workshop-edit, FR-gfrm-blind-mode, FR-gfrm-reveal, FR-gfrm-review-output, FR-gfrm-workshop-view, NFR-gfr-single-voice]
 ---
 
@@ -17,8 +17,8 @@ The key architectural decision: **AI findings ride the existing `ReviewContext` 
 
 ## Technical Approach
 
-1. **Command** (`.claude/commands/git-flow-review.md` + opencode skill peer): resolves the source (PR list via `gh pr list --json number,title,author,isDraft,state`, or explicit ref), computes the change set (`git diff` for branch sources; `gh pr diff` is used only to map PR→branch pair — the diff itself is computed locally after `git fetch` of the PR head so line numbers match local files), filters/prioritizes exactly as `/shepherd-review` does, performs the AI review, emits a `gitFlow` context block, and invokes `scripts/shepherd-launch.sh --review-mode blind --context <path> <files…>`.
-2. **Launcher**: `scripts/shepherd-launch.sh` gains `--review-mode <mode>` (default absent = current behavior); when `blind`, it writes `"reviewMode": "blind"` into the generated `session.json`.
+1. **Command** (`.claude/commands/git-flow-review.md` + opencode skill peer): resolves the source (PR list via `gh pr list --json number,title,author,isDraft,state`, or explicit ref), computes the change set (`git diff` for branch sources; for a PR, `gh pr view <n> --json headRefName,baseRefName` resolves the branch pair and `gh pr view --json headRefOid` the head commit — the diff itself is computed locally after `git fetch` of the PR head so line numbers match local files), filters/prioritizes exactly as `/shepherd-review` does, performs the AI review, emits a `gitFlow` context block with `reviewMode: "blind"`, and invokes `scripts/shepherd-launch.sh --context <path> <files…>` unchanged.
+2. **Launcher**: unchanged. The blind mode is carried entirely by the context payload — `reviewMode` lives in one place, the `gitFlow` block inside `ReviewContext` — so `scripts/shepherd-launch.sh` needs no new flag and `session.json` gains no new top-level field.
 3. **App**: `ReviewContext` gains an optional `gitFlow: GitFlowReview?` block; when present with `reviewMode == "blind"`, the review-feedback `ContextPair.review` content for the session is delivered via the git-flow findings (anchored, provenance-tagged) instead of free text, hidden until the Done action; a new `WorkshopFeature` renders the reconciliation list; Done in workshop writes `review-output.json` next to `prompt-output.md`.
 4. **Posting**: after the app exits, the command reads `review-output.json`, shows the final review in the conversation for confirmation, and posts via `gh` (one `gh api` call per inline comment on `repos/{owner}/{repo}/pulls/{n}/comments`, plus one `gh pr review --comment --body <summary>`), reporting per-item results.
 
@@ -28,7 +28,7 @@ The key architectural decision: **AI findings ride the existing `ReviewContext` 
 
 ```swift
 public struct GitFlowReview: Equatable, Codable, Sendable {
-    public var reviewMode: String        // "blind"
+    public var reviewMode: String        // "blind" — the sole blind-mode flag; the launcher and session.json are unchanged
     public var summary: String           // overall AI summary (editable in workshop)
     public var findings: [AIFinding]     // line-anchored AI findings
 
@@ -59,18 +59,17 @@ Workshop state (in `AppFeature`, not persisted): a list of items, each a value t
 
 ## API / Interface Design
 
-- `scripts/shepherd-launch.sh`: new optional flag `--review-mode blind` consumed before positional file args (mirrors the existing `--context` flag pattern).
+- `scripts/shepherd-launch.sh`: no change (blind mode rides the context payload).
 - `SessionClient`: new `writeReviewOutput(_:)` writing `review-output.json` to the session directory; existing `loadSession`/`prompt-output.md` path unchanged (both files are written on workshop finish — the prompt output keeps its current shape so the standard feedback-handoff flow still works).
-- `gh` calls made by the command (not the app): `gh pr list`, `gh pr view`, `gh pr diff` (head/base resolution only), `gh api repos/{owner}/{repo}/pulls/{n}/comments` (POST per inline comment), `gh pr review --comment --body <summary>`.
+- `gh` calls made by the command (not the app): `gh pr list`, `gh pr view` (`--json number,title,author,isDraft,state`, `--json headRefName,baseRefName,headRefOid`), `gh api repos/{owner}/{repo}/pulls/{n}/comments` (POST per inline comment), `gh pr review --comment --body <summary>`.
 
-GitHub inline comments anchor to a diff position, not a bare file+line. The command resolves each `file`/`line` against `gh pr diff <n>` (or `git diff base...head`) to compute the `commit_id` + `subject_type: FILE` + relative `path` + `line` payload. An item whose line is no longer in the PR diff is reported as unposted per `FR-gfr-post-failure` rather than silently dropped or mis-anchored.
+GitHub inline comments anchor to the PR diff, not a bare file+line. The command resolves each `file`/`line` against the local `git diff base...head` to compute the POST body for `pulls/{n}/comments`: `body`, `commit_id` (the PR head OID from `gh pr view --json headRefOid`), repository-relative `path`, and `line` (the line in the file's right side of the diff; `subject_type` is omitted, defaulting to a line comment — a `subject_type: FILE` comment would land on the whole file and mis-anchor, and omitting `commit_id` or using a line not present in the diff returns 422). An item whose line is no longer in the PR diff is reported as unposted per `FR-gfr-post-failure` rather than silently dropped or mis-anchored.
 
 ## Component Architecture
 
 | Component | Responsibility |
 |---|---|
 | `.claude/commands/git-flow-review.md` (+ `.config/opencode/skills/git-flow-review/SKILL.md`) | Command prompt: source selection, eligibility, AI review, context emission, launch, confirmation, posting, failure reporting |
-| `scripts/shepherd-launch.sh` | `--review-mode blind` flag → `session.json.reviewMode` |
 | `SharedModels/ReviewContext.swift` | `GitFlowReview` + `AIFinding` models |
 | `AppFeature/AppFeature.swift` | Session-mode state machine: blind → revealed/workshop → finished; maps reviewer `Comment`s + findings into workshop items; writes output via `SessionClient` |
 | `WorkshopFeature/` (new module) | Workshop list UI: rows, resolutions, inline edit, navigate-to-line, summary field, Finish & Export |
@@ -98,7 +97,7 @@ The app never gains GitHub access; all network posting happens in the agent comm
 
 ## Implementation Plan
 
-1. **Models + launcher** — `GitFlowReview`/`AIFinding` in `ReviewContext.swift` (backward-compatible, optional field), `--review-mode blind` in `shepherd-launch.sh`. Foundation for everything else; ships inert.
+1. **Models** — `GitFlowReview`/`AIFinding` in `ReviewContext.swift` (backward-compatible, optional field; carries the blind flag). Foundation for everything else; ships inert.
 2. **Blind mode in app** — `gitFlowPhase` in `AppFeature`, blind badge in `ReviewContextFeature`, suppression of review-feedback sections. Verifiable standalone.
 3. **Workshop** — reveal on Done, `WorkshopFeature` list with accept/edit/reject/navigate, summary editing, `review-output.json` write.
 4. **Command** — `/git-flow-review` prompt file + opencode skill: selection, eligibility, AI review with anchor validation, blind launch, then confirmation + posting with per-item failure reporting.
@@ -113,7 +112,7 @@ The app never gains GitHub access; all network posting happens in the agent comm
 | `FR-gfr-changeset` | .claude/commands/git-flow-review.md (reuses /shepherd-review pipeline) | planned |
 | `FR-gfr-ai-review` | .claude/commands/git-flow-review.md | planned |
 | `FR-gfr-neutral-context` | .claude/commands/git-flow-review.md (existing context generation) | planned |
-| `FR-gfr-blind-launch` | scripts/shepherd-launch.sh; .claude/commands/git-flow-review.md | planned |
+| `FR-gfr-blind-launch` | .claude/commands/git-flow-review.md (emits `gitFlow.reviewMode: "blind"` in the context; launcher unchanged) | planned |
 | `FR-gfr-reveal` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
 | `FR-gfr-workshop` | engineering/apps/macos/Sources/WorkshopFeature/; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
 | `FR-gfr-combined-output` | engineering/apps/macos/Sources/Dependencies/SessionClient.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
@@ -123,7 +122,6 @@ The app never gains GitHub access; all network posting happens in the agent comm
 | `NFR-gfr-mac-scope` | (structural: only macOS variants exist) | planned |
 | `NFR-gfr-no-new-deps` | engineering/apps/macos/Package.swift (no change) | planned |
 | `NFR-gfr-single-reviewer` | (structural) | planned |
-| `FR-gfrm-blind-mode` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/ReviewContextFeature/ | planned |
-| `FR-gfrm-reveal` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
+| `FR-gfrm-blind-mode` | engineering/apps/macos/Sources/SharedModels/ReviewContext.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/ReviewContextFeature/ | planned || `FR-gfrm-reveal` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | planned |
 | `FR-gfrm-workshop-view` | engineering/apps/macos/Sources/WorkshopFeature/ | planned |
 | `FR-gfrm-review-output` | engineering/apps/macos/Sources/Dependencies/SessionClient.swift | planned |

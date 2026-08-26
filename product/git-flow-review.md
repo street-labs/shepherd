@@ -17,7 +17,7 @@ This feature composes with Shepherd Review (`shepherd-review.md`): it reuses tha
 **As a** reviewer, **I want to** give the command a pull request reference (URL or number) or an explicit branch (with an optional base, defaulting to the main branch), **so that** I can run the same AI-plus-human loop on any change set, whether or not it has a PR yet.
 
 ### US-GFR-3: Get an AI review with line numbers and overall feedback
-**As a** reviewer, **I want to** the AI to review the change set and produce per-file findings anchored to specific line numbers plus an overall feedback summary, **so that** its feedback is precise enough to act on, not vague prose.
+**As a** reviewer, **I want** the AI to review the change set and produce per-file findings anchored to specific line numbers plus an overall feedback summary, **so that** its feedback is precise enough to act on, not vague prose.
 
 ### US-GFR-4: Form my own opinion first
 **As a** reviewer, **I want to** review the diff with the AI's feedback hidden, **so that** my first pass is my own judgment, not anchored to what the AI already said.
