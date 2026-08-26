@@ -335,6 +335,18 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
                   let frame = await auth(challenge, relayURL) else { return }
             try? await task.send(.string(frame))
             if !reqString.isEmpty { try? await task.send(.string(reqString)) }
+        case "CLOSED":
+            // ["CLOSED", subID, message] — an `auth-required` rejection means
+            // this socket is poisoned for reading: ngit-style relays ignore ALL
+            // later frames on a connection whose pre-auth REQ was rejected —
+            // even a valid AUTH frame sent afterwards gets no response, so the
+            // AUTH re-send above never recovers. Reconnect on a fresh socket and
+            // authenticate BEFORE sending the REQ (auth-first handshake).
+            guard array.count >= 3,
+                  let closedSub = array[1] as? String, closedSub == subID,
+                  let message = array[2] as? String,
+                  message.hasPrefix("auth-required") else { return }
+            await reconnectAuthFirst(relayURL: relayURL)
         case "EVENT":
             // ["EVENT", subID, eventObject]
             guard array.count >= 3, let eventObject = array[2] as? [String: Any] else { return }
@@ -345,6 +357,62 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
         default:
             break // NOTICE (incl. auth-required), OK, EOSE, etc. — ignored.
         }
+    }
+
+    /// Reconnect to `relayURL` on a fresh socket and run the NIP-42 handshake
+    /// BEFORE sending the REQ. Used after an `auth-required` CLOSED: relays that
+    /// reject a pre-auth REQ (e.g. ngit's relay) ignore every subsequent frame on
+    /// that connection — including the AUTH response — so the only recovery is a
+    /// fresh connection where the first client frame after the challenge is the
+    /// signed AUTH. If the new connection presents no challenge within a short
+    /// budget (relay policy changed), falls back to an optimistic REQ.
+    private func reconnectAuthFirst(relayURL: String) async {
+        guard let url = URL(string: relayURL), !reqString.isEmpty else { return }
+        let task = session.webSocketTask(with: url)
+        addTask(task)
+        task.resume()
+        guard let challenge = await firstAuthChallenge(task) else {
+            try? await task.send(.string(reqString))
+            await receiveLoop(task: task, relayURL: relayURL)
+            return
+        }
+        guard let frame = await auth(challenge, relayURL) else { return }
+        try? await task.send(.string(frame))
+        try? await task.send(.string(reqString))
+        await receiveLoop(task: task, relayURL: relayURL)
+    }
+
+    /// Wait for the relay's initial `["AUTH", challenge]` frame (NIP-42 relays
+    /// send it on connect), up to a 3s budget. Returns nil on timeout or when
+    /// the first frame is anything else. Consumes the first frame either way.
+    private func firstAuthChallenge(_ task: URLSessionWebSocketTask) async -> String? {
+        await withTaskGroup(of: String?.self) { group in
+            group.addTask {
+                guard let message = try? await task.receive(),
+                      case .string(let text) = message,
+                      let data = text.data(using: .utf8),
+                      let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
+                      array.count >= 2,
+                      array[0] as? String == "AUTH",
+                      let challenge = array[1] as? String else { return nil }
+                return challenge
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                return nil
+            }
+            let result = await group.next() ?? nil
+            group.cancelAll()
+            return result ?? nil
+        }
+    }
+
+    /// Register a socket for later cancellation. Synchronous so the NSLock
+    /// stays out of async context.
+    private func addTask(_ task: URLSessionWebSocketTask) {
+        lock.lock()
+        defer { lock.unlock() }
+        tasks.append(task)
     }
 
     /// Dedup-by-id gate. Synchronous so the NSLock stays out of async context.

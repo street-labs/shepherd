@@ -269,3 +269,29 @@ struct PRBrowseDefaultStateTests {
         #expect(store.state.prBrowse == PRBrowseFeature.State())
     }
 }
+
+// Regression: collectEvents must return the events gathered before the window
+// closes. The accumulator used to be the group task's return value, but the
+// subscription stream never terminates — the timeout always won the race and
+// the accumulated events were discarded, so every PR lookup came back empty.
+@Suite("PRBrowseFeature.collectEvents")
+struct CollectEventsTests {
+    @Test("events streamed within the window are returned")
+    func collectsWithinWindow() async {
+        let stream = AsyncStream<NostrEvent> { continuation in
+            continuation.yield(NostrEvent(id: "a", pubkey: "p", kind: 1618, content: "", tags: [], createdAt: 1, sig: ""))
+            continuation.yield(NostrEvent(id: "b", pubkey: "p", kind: 1618, content: "", tags: [], createdAt: 2, sig: ""))
+        }
+        // Use the real implementation via a short window: replicate the call
+        // shape (stream, seconds) — 1s window, events arrive immediately.
+        let events = await PRBrowseFeature.collectEvents(stream, seconds: 1)
+        #expect(events.map(\.id) == ["a", "b"])
+    }
+
+    @Test("never-emitting stream yields an empty list after the window")
+    func emptyStream() async {
+        let stream = AsyncStream<NostrEvent> { _ in }
+        let events = await PRBrowseFeature.collectEvents(stream, seconds: 1)
+        #expect(events.isEmpty)
+    }
+}

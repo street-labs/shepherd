@@ -30,7 +30,7 @@ Add optional `aTag: String?` and `pTag: String?`, serialized as `#a` / `#p` sing
 
 ### `PRBrowseFeature`
 
-- **Repo lookup** (`FR-pb-repo-list`): subscribe `NostrFilter(kinds: [1618], aTag: coordinate)`, collect events for 8s (reuse the wait-window race pattern from `OpenPatchFeature.firstEventOrTimeout`, generalized to *all* events in the window), map to `PRSummary` (id, subject = `subject` tag or first content line, pubkey, createdAt), sort newest first, dedupe by id.
+- **Repo lookup** (`FR-pb-repo-list`): subscribe `NostrFilter(kinds: [1618], aTag: coordinate)`, collect events for 8s, map to `PRSummary` (id, subject = `subject` tag or first content line, pubkey, createdAt), sort newest first, dedupe by id. Unlike `OpenPatchFeature.firstEventOrTimeout` (whose collecting task returns after the *first* event), the all-events collector accumulates into a shared buffer: the subscription stream never terminates on its own, so the timeout always wins the task-group race and the collecting task's return value would be discarded — the buffer is read after the race instead.
 - **Npub lookup** (`FR-pb-npub-list`): accept `npub1…` (Bech32 decode — reuse `NIP19Decode`'s bech32 helpers; if no npub decoder exists, add `decodeNPub` returning the hex pubkey) or 64-char hex; subscribe `NostrFilter(kinds: [1618], pTag: pubkey)`, same collection.
 - **Relay guard**: probe `reachableRelays` first, exactly like Open Patch; empty → `.noRelays` message state.
 - **Watchlist**: `addTapped` validates via `RepoCoordinate.parse`, rejects duplicates and malformed input with inline error; `remove(coordinate)` deletes. Persist through `WatchlistClient` on every mutation, load on `onAppear`/init effect.
