@@ -68,6 +68,12 @@ Getting the final review onto the pull request.
 - **No new app dependencies** `NFR-gfr-no-new-deps`: The feature adds no new dependencies to the review tool; it reuses the existing session, context, and commenting machinery.
 - **Single reviewer** `NFR-gfr-single-reviewer`: The loop assumes one human reviewer per invocation; multi-reviewer reconciliation is out of scope.
 
+### Audience Separation
+
+The review has two audiences with different expectations.
+
+- **Single authorial voice** `NFR-gfr-single-voice`: Everything posted to the GitHub pull request reads as one coherent review authored by the reviewer alone. No AI attribution, no provenance labels, no visible back-and-forth or drafting history — external readers see a single, synthesized review, not a transcript of the internal loop. The internal conversation between the reviewer and the agent (however it is conducted — agent session, chat, or future in-tool thread) is never posted.
+
 ## Acceptance Criteria
 
 - [ ] **Eligible list only** `AC-gfr-eligible-list`: Given the repository has open, draft, and merged PRs, when the command is invoked with no argument, then only the open non-draft PRs are offered for selection, each showing number, title, and author.
@@ -84,6 +90,7 @@ Getting the final review onto the pull request.
 1. **Duplicate anchors.** When the reviewer's comment and an AI finding land on the same line, should the workshop offer a one-action merge into a single comment? Currently they remain separate items the reviewer can edit to converge. (Deferred; the edit path covers it.)
 2. **Posting as a PR review vs. standalone comments.** GitHub supports both a single review (with a verdict) and standalone inline comments. The spec requires the summary as one review comment and inline items as line comments; whether to also set a review verdict (approve/request changes) is left to the reviewer at confirmation time in v1 and is not required.
 3. **Non-PR branch results.** When the source is a bare branch with no PR, the loop runs through the workshop and the combined output is delivered in the conversation (as today's Shepherd Review feedback handoff) — there is nothing to post to. This is acceptable behavior, not an error.
+4. **Where the internal back-and-forth lives.** In v1 the reviewer-agent discussion happens in the agent conversation, and the in-tool workshop is the reconciliation surface. An alternative — mirroring the pull request as a local NIP-34 patch/PR event so the back-and-forth runs in Shepherd's existing multi-identity patch-thread conversation surface (the same machinery used for ngit patches), with the recipe synthesizing the thread into the single-voice review at post time — is captured on the roadmap. It reuses existing thread, reply, and identity infrastructure, but adds local event minting and a repo mirror; deferred until the core loop has proven value in use.
 
 ## Dependencies
 

@@ -4685,3 +4685,9 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/macos/git-flow-review.md`
 - **Engineering**: `engineering/macos/git-flow-review.md`
 - **QA**: `qa/macos/git-flow-review.md`
+
+### `NFR-gfr-single-voice`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`

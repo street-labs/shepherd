@@ -1,6 +1,6 @@
 ---
-product-hash: 06c62257c709f69b05f1b8b75c2e47b4d769ce86d7236f06383895fef6bbadd8
-product-slugs: [AC-gfr-ai-findings-anchored, AC-gfr-blind-no-leak, AC-gfr-confirm-before-post, AC-gfr-eligible-list, AC-gfr-explicit-status, AC-gfr-post-back-lines, AC-gfr-post-failure-reported, AC-gfr-workshop-resolutions, FR-gfr-ai-review, FR-gfr-blind-launch, FR-gfr-changeset, FR-gfr-combined-output, FR-gfr-eligibility, FR-gfr-neutral-context, FR-gfr-post-back, FR-gfr-post-confirm, FR-gfr-post-failure, FR-gfr-reveal, FR-gfr-source-selection, FR-gfr-workshop, NFR-gfr-mac-scope, NFR-gfr-no-new-deps, NFR-gfr-single-reviewer, AC-gfrm-blind-indicator, AC-gfrm-output-structure, AC-gfrm-reveal-on-done, AC-gfrm-undecided-excluded, AC-gfrm-workshop-edit, FR-gfrm-blind-mode, FR-gfrm-reveal, FR-gfrm-review-output, FR-gfrm-workshop-view]
+product-hash: cc3c744fcaa6eb4ad3be7226b15f4345245e039c8f70fd6f9a42e0f11e1d67eb
+product-slugs: [AC-gfr-ai-findings-anchored, AC-gfr-blind-no-leak, AC-gfr-confirm-before-post, AC-gfr-eligible-list, AC-gfr-explicit-status, AC-gfr-post-back-lines, AC-gfr-post-failure-reported, AC-gfr-workshop-resolutions, FR-gfr-ai-review, FR-gfr-blind-launch, FR-gfr-changeset, FR-gfr-combined-output, FR-gfr-eligibility, FR-gfr-neutral-context, FR-gfr-post-back, FR-gfr-post-confirm, FR-gfr-post-failure, FR-gfr-reveal, FR-gfr-source-selection, FR-gfr-workshop, NFR-gfr-mac-scope, NFR-gfr-no-new-deps, NFR-gfr-single-reviewer, AC-gfrm-blind-indicator, AC-gfrm-output-structure, AC-gfrm-reveal-on-done, AC-gfrm-undecided-excluded, AC-gfrm-workshop-edit, FR-gfrm-blind-mode, FR-gfrm-reveal, FR-gfrm-review-output, FR-gfrm-workshop-view, NFR-gfr-single-voice]
 ---
 
 # Git Flow Review — macOS Design Spec
