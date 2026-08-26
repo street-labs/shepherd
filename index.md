@@ -4493,3 +4493,195 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `AC-pa-approval-tip`, `AC-pa-capabilities`, `AC-pa-comment-publishes`, `AC-pa-line-comment`, `AC-pa-live-replies`, `AC-pa-merge-gate`, `AC-pa-merge-publishes`, `AC-pa-stale`
 - **Defined in**: `product/pr-actions.md` (covered via the FR/NFR entries above)
 
+
+### `FR-gfr-source-selection`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-eligibility`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-changeset`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-ai-review`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-neutral-context`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-blind-launch`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-reveal`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-workshop`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-combined-output`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-post-confirm`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-post-back`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfr-post-failure`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `NFR-gfr-mac-scope`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `NFR-gfr-no-new-deps`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `NFR-gfr-single-reviewer`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfrm-blind-mode`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfrm-reveal`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfrm-workshop-view`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `FR-gfrm-review-output`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfr-eligible-list`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfr-explicit-status`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfr-ai-findings-anchored`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfr-blind-no-leak`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfr-workshop-resolutions`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfr-confirm-before-post`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfr-post-back-lines`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfr-post-failure-reported`
+- **Defined in**: `product/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfrm-blind-indicator`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfrm-reveal-on-done`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfrm-workshop-edit`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfrm-undecided-excluded`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
+
+### `AC-gfrm-output-structure`
+- **Defined in**: `product/macos/git-flow-review.md`
+- **Design**: `design/macos/git-flow-review.md`
+- **Engineering**: `engineering/macos/git-flow-review.md`
+- **QA**: `qa/macos/git-flow-review.md`
