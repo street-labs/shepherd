@@ -225,17 +225,20 @@ public struct PRBrowseFeature {
             filter = NostrFilter(pTag: pubkey, kinds: [1618])
         }
         return .run { [relayClient] send in
-            let reachable = await relayClient.reachableRelays(RelayClient.resolveRelays())
+            let resolved = RelayClient.resolveRelays()
+            let reachable = await relayClient.reachableRelays(resolved)
+            RelayLog.debug("pr-browse lookup: resolved=\(resolved) reachable=\(reachable)")
             guard !reachable.isEmpty else {
                 await send(.noRelaysReached)
                 return
             }
-        var f = filter
-        f.relays = reachable
-        let events = await Self.collectEvents(
-            relayClient.subscribe(f),
-            seconds: 8
-        )
+            var f = filter
+            f.relays = reachable
+            let events = await Self.collectEvents(
+                relayClient.subscribe(f),
+                seconds: 8
+            )
+            RelayLog.debug("pr-browse lookup finished: \(events.count) event(s)")
             await send(.lookupFinished(events))
         }
         .cancellable(id: CancelID.lookup, cancelInFlight: true)

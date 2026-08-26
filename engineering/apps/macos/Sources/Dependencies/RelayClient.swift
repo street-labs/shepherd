@@ -161,14 +161,18 @@ extension RelayClient: DependencyKey {
         // relays for them (empty lookups on private relays).
         let auth: @Sendable (String, String) async -> String? = { challenge, relayURL in
             let deps = DependencyValues._current
-            return await RelayAuth.authFrame(
+            let identityLoaded = deps.identityClient.loadIdentity() != nil
+            let frame = await RelayAuth.authFrame(
                 challenge: challenge, relayURL: relayURL, sign: deps.identityClient.sign
             )
+            RelayLog.debug("auth requested by \(relayURL): identityLoaded=\(identityLoaded) frameBuilt=\(frame != nil)")
+            return frame
         }
         return RelayClient(
             subscribe: { filter in
                 AsyncStream { continuation in
                     let relays = filter.relays ?? Self.resolveRelays()
+                    RelayLog.debug("subscribe: relays=\(relays) filter=\(filter.jsonObject)")
                     let subID = "shep-" + UUID().uuidString.lowercased().prefix(8)
                     let task = RelaySubscriptionTask(
                         relays: relays, filter: filter, subID: String(subID), auth: auth
@@ -283,6 +287,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
             task.resume()
             Task { [weak self] in
                 // Send the REQ frame; tolerate send failure (relay may reject).
+                RelayLog.debug("\(url) -> \(reqString)")
                 try? await task.send(.string(reqString))
                 await self?.receiveLoop(task: task, relayURL: url)
             }
@@ -324,6 +329,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
     }
 
     private func handleFrame(_ text: String, task: URLSessionWebSocketTask, relayURL: String) async {
+        RelayLog.debug("\(relayURL) <- \(text.prefix(200))")
         guard let data = text.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
               array.count >= 2,
@@ -346,6 +352,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
                   let closedSub = array[1] as? String, closedSub == subID,
                   let message = array[2] as? String,
                   message.hasPrefix("auth-required") else { return }
+            RelayLog.debug("auth-required rejection from \(relayURL); reconnecting auth-first")
             await reconnectAuthFirst(relayURL: relayURL)
         case "EVENT":
             // ["EVENT", subID, eventObject]
@@ -372,13 +379,18 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
         addTask(task)
         task.resume()
         guard let challenge = await firstAuthChallenge(task) else {
+            RelayLog.debug("reconnect: no AUTH challenge within budget; sending optimistic REQ")
             try? await task.send(.string(reqString))
             await receiveLoop(task: task, relayURL: relayURL)
             return
         }
-        guard let frame = await auth(challenge, relayURL) else { return }
+        guard let frame = await auth(challenge, relayURL) else {
+            RelayLog.debug("reconnect: AUTH frame build failed (no identity?) — giving up on \(relayURL)")
+            return
+        }
         try? await task.send(.string(frame))
         try? await task.send(.string(reqString))
+        RelayLog.debug("reconnect: sent AUTH + REQ on fresh socket to \(relayURL)")
         await receiveLoop(task: task, relayURL: relayURL)
     }
 
@@ -581,6 +593,18 @@ enum RelayAuth {
         guard let secret else { return nil }
         guard let signed = signer.sign(authEvent(challenge: challenge, relayURL: relayURL), secret) else { return nil }
         return frame(for: signed)
+    }
+}
+
+/// Opt-in debug logging for the relay client. Silent by default (the app ships
+/// with no console spam); set `SHEPHERD_RELAY_DEBUG=1` in the environment to
+/// trace relay frames, NIP-42 auth, and subscription events to stdout. Intended
+/// for diagnosing auth-required relay issues in the field.
+public enum RelayLog {
+    public static let enabled = ProcessInfo.processInfo.environment["SHEPHERD_RELAY_DEBUG"] == "1"
+    public static func debug(_ message: @autoclosure () -> String) {
+        guard enabled else { return }
+        print("[relay] \(message())")
     }
 }
 
