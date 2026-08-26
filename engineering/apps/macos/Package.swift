@@ -253,6 +253,11 @@ let package = Package(
 
         // MARK: - Tests
         .testTarget(
+            name: "ShepherdDependenciesTests",
+            dependencies: ["ShepherdDependencies"],
+            swiftSettings: warningsAsErrors
+        ),
+        .testTarget(
             name: "SharedModelsTests",
             dependencies: [
                 "SharedModels",

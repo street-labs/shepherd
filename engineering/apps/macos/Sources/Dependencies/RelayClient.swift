@@ -493,16 +493,15 @@ enum RelayAuth {
     }
 }
 
-/// Reachability probe for the Open Patch dialog. Implements: FR-srm-patch-open-fetch
-/// (the no-relays-reachable guard). A relay is reachable if its WebSocket
-/// completes the handshake quickly enough to answer a ping. ponytail: fixed 3s
-/// budget per relay; an adaptive RTT estimate is not worth it for a one-shot gate.
-/// NIP-42: the probe only checks the handshake. Auth-required relays pass the
-/// ping, then `RelaySubscriptionTask`/`RelayPublisher` authenticate on their own
-/// sockets before the REQ/EVENT, so the fetch unblocks without probe changes.
-/// Adding an auth-aware verdict here would penalize public relays with extra
-/// latency; revisit only if no-key auth-required relays need a precise
-/// noRelaysReached error instead of the not-found fallback.
+/// Reachability probe for the Open Patch dialog and PR Browse. Implements:
+/// FR-srm-patch-open-fetch (the no-relays-reachable guard). A relay is
+/// reachable if it answers a minimal REQ with any NIP-01 frame within a 5s
+/// budget. ponytail: fixed budget per relay; an adaptive RTT estimate is not
+/// worth it for a one-shot gate.
+/// NIP-42: the probe deliberately does NOT authenticate — AUTH-required relays
+/// answer the probe with an AUTH challenge (proof of reachability), then
+/// `RelaySubscriptionTask`/`RelayPublisher` authenticate on their own sockets
+/// before the real REQ/EVENT.
 private enum RelayReachability {
     static func probe(_ candidates: [String]) async -> [String] {
         let session = URLSession(configuration: .ephemeral)
@@ -519,40 +518,36 @@ private enum RelayReachability {
         }
     }
 
-    /// Probe one relay. Returns its URL string if the WebSocket handshake
-    /// completes (a ping succeeds within the budget), else nil.
+    /// Probe one relay. Returns its URL string if the relay proves it speaks
+    /// NIP-01 within the budget: the probe opens a socket, sends a minimal REQ,
+    /// and treats ANY frame back (AUTH, NOTICE, EOSE, EVENT, CLOSED) as
+    /// reachable. This is deliberately not a `sendPing`: AUTH-required relays
+    /// abort pings from unauthenticated sockets (NIP-42), which both broke the
+    /// probe and, before the ping bridge was once-guarded, crashed the app
+    /// (`SWIFT TASK CONTINUATION MISUSE`) when the abort raced the timeout.
+    /// The subscription task does the real AUTH on its own socket afterwards.
     private static func probeOne(url: URL, session: URLSession) async -> String? {
         let task = session.webSocketTask(with: url)
         task.resume()
-        // Race the ping against a 3s timeout. sendPing completes once the socket
-        // is connected; if it errors or times out, the relay is unreachable.
-        return await withTaskGroup(of: String?.self) { group in
+        return await withTaskGroup(of: Bool.self) { group in
             group.addTask {
                 do {
-                    try await ping(task)
-                    return url.absoluteString
+                    try await task.send(.string(#"["REQ","probe",{"kinds":[1],"limit":1}]"#))
+                    _ = try await task.receive() // first frame = reachable
+                    return true
                 } catch {
-                    return nil
+                    return false
                 }
             }
             group.addTask {
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
-                return nil
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                return false
             }
-            let result = await group.next() ?? nil
+            let reachable = (await group.next()) ?? false
             group.cancelAll()
             task.cancel(with: .goingAway, reason: nil)
-            return result
+            return reachable ? url.absoluteString : nil
         }
     }
 
-    /// `URLSessionWebSocketTask.sendPing` is callback-based; bridge to async.
-    private static func ping(_ task: URLSessionWebSocketTask) async throws {
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            task.sendPing { error in
-                if let error { cont.resume(throwing: error) }
-                else { cont.resume() }
-            }
-        }
-    }
 }
