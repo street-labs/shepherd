@@ -9,7 +9,7 @@ The macOS variant adds the review-tool surfaces of the git flow review loop: a b
 ## Shared Requirements — Applicability on macOS
 
 - `FR-gfr-source-selection`, `FR-gfr-eligibility`, `FR-gfr-changeset`, `FR-gfr-ai-review`, `FR-gfr-neutral-context` — realized by the command file and existing `/shepherd-review` changeset machinery; no app changes.
-- `FR-gfr-blind-launch` — realized by `FR-gfrm-blind-mode` plus a launcher extension (see the macOS engineering spec).
+- `FR-gfr-blind-launch` — realized by `FR-gfrm-blind-mode`; the blind flag rides the context payload, so the launcher is unchanged (see the macOS engineering spec).
 - `FR-gfr-reveal` — realized by `FR-gfrm-reveal`.
 - `FR-gfr-workshop` — realized by `FR-gfrm-workshop-view`.
 - `FR-gfr-combined-output` — realized by `FR-gfrm-review-output`.

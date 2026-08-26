@@ -13,7 +13,7 @@ product-slugs: [AC-gfr-ai-findings-anchored, AC-gfr-blind-no-leak, AC-gfr-confir
 
 A new agent command, `/git-flow-review`, plus three review-tool additions: blind session mode, the reveal-into-workshop transition, and a structured combined-review output. The command side is a prompt file that shells out to `git` and `gh` (GitHub CLI), reusing the existing `scripts/shepherd-launch.sh` machinery with one new flag; the app side is a session-mode extension of the existing `session.json` → `ReviewContext` → `AppFeature` path and one new SwiftUI/TCA feature module for the workshop. No new package dependencies; `gh` is an external tool dependency of the command, not the app (the app never talks to GitHub).
 
-The key architectural decision: **AI findings ride the existing `ReviewContext` handoff, not a new channel.** The command already embeds a `reviewContext` JSON in `session.json`; we extend that payload with a `gitFlow` block carrying the anchored findings and the blind flag. This keeps the single-session-file contract (`engineering/macos/shepherd-review.md` §"Why session.json instead of a separate context file") intact and means the launcher change is one flag.
+The key architectural decision: **AI findings ride the existing `ReviewContext` handoff, not a new channel.** The command already embeds a `reviewContext` JSON in `session.json`; we extend that payload with a `gitFlow` block carrying the anchored findings and the blind flag. This keeps the single-session-file contract (`engineering/macos/shepherd-review.md` §"Why session.json instead of a separate context file") intact and requires zero launcher changes — blind mode rides the context payload.
 
 ## Technical Approach
 
