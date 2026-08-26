@@ -10,14 +10,18 @@ final class RelayAuthLiveProbe: XCTestCase {
         guard env["RELAY_PROBE"] == "1" else {
             throw XCTSkip("set RELAY_PROBE=1 to run")
         }
-        let relay = env["RELAY_PROBE_URL"]!
-        let nsec = env["RELAY_PROBE_NSEC"]!
+        guard let relay = env["RELAY_PROBE_URL"], let nsec = env["RELAY_PROBE_NSEC"] else {
+            throw XCTSkip("RELAY_PROBE_URL / RELAY_PROBE_NSEC not set")
+        }
         guard let (_, data) = Bech32.decode(nsec), data.count == 32 else {
             XCTFail("bad nsec"); return
         }
         let secret = data
 
-        let task = URLSession.shared.webSocketTask(with: URL(string: relay)!)
+        guard let url = URL(string: relay) else {
+            XCTFail("invalid relay URL: \(relay)"); return
+        }
+        let task = URLSession.shared.webSocketTask(with: url)
         task.resume()
         // 1. Receive AUTH challenge
         var challenge: String?
@@ -30,14 +34,17 @@ final class RelayAuthLiveProbe: XCTestCase {
                 challenge = ch; break
             }
         }
-        XCTAssertNotNil(challenge, "no AUTH challenge received")
+        guard let challenge else {
+            XCTFail("no AUTH challenge received"); return
+        }
         // 2. Sign + send AUTH frame using the app's own RelayAuth
-        let frame = RelayAuth.authFrame(
-            challenge: challenge!, relayURL: relay,
+        guard let frame = RelayAuth.authFrame(
+            challenge: challenge, relayURL: relay,
             secret: secret, signer: NostrSigner.liveValue
-        )
-        XCTAssertNotNil(frame, "auth frame build failed")
-        try await task.send(.string(frame!))
+        ) else {
+            XCTFail("auth frame build failed"); return
+        }
+        try await task.send(.string(frame))
         // 3. Send REQ and watch what comes back
         let req = ##"[ "REQ", "probe", {"kinds":[1618],"#a":["30617:b6390bde3c6378e40278bb35ee3a3cb54d8806b63aaa77d7a441158a44109153:coffee-shop"],"limit":5}]"##
         try await task.send(.string(req))
