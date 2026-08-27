@@ -538,6 +538,20 @@ public struct AppFeature {
                     // Only gate when no identity is available from any source.
                     if identity == nil {
                         state.identity = IdentityFeature.State()
+                        return .none
+                    }
+                    // A bunker identity must run the NIP-46 connect handshake at
+                    // launch, not only when a review session loads: relay AUTH
+                    // (NIP-42) signs through the bunker, and Browse PRs / Open
+                    // Patch hit AUTH-required relays before any session exists.
+                    // Without this the bunker session has no config, signing
+                    // fails, and private-relay lookups silently return nothing.
+                    if identity?.source == .bunker, identity?.bunkerState == .connecting {
+                        return .run { [identityClient] send in
+                            let pubkey = await identityClient.connectBunker()
+                            await send(.bunkerConnectCompleted(pubkey))
+                        }
+                        .cancellable(id: CancelID.bunkerConnect, cancelInFlight: true)
                     }
                     return .none
 

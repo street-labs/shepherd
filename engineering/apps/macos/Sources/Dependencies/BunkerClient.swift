@@ -192,16 +192,20 @@ private final class BunkerSession: @unchecked Sendable {
         // Send connect request
         let clientMetadata = "{\"name\":\"Shepherd\"}"
         let connectParams: [String] = [config.bunkerPubkeyHex, config.secret ?? "", "", clientMetadata]
+        RelayLog.debug("bunker connect: sent connect request to \(config.relayURL)")
         guard let _ = await sendRequest(method: "connect", params: connectParams) else {
+            RelayLog.debug("bunker connect: no response to connect request")
             setState(.failed("bunker didn't respond to connect"))
             return nil
         }
 
         // Send get_public_key request
         guard let pubkeyResp = await sendRequest(method: "get_public_key", params: []) else {
+            RelayLog.debug("bunker connect: no response to get_public_key")
             setState(.failed("bunker didn't respond to get_public_key"))
             return nil
         }
+        RelayLog.debug("bunker connect: handshake complete, reviewer pubkey=\(pubkeyResp.prefix(16))…")
 
         withLock { self.reviewerPubkeyHex = pubkeyResp }
         setState(.connected)
@@ -236,12 +240,17 @@ private final class BunkerSession: @unchecked Sendable {
     /// handshake) before signing, so the spec'd retry flow succeeds. A single
     /// reconnect attempt per sign call — if it also fails, returns nil.
     func signEvent(event: NostrEvent) async -> NostrEvent? {
-        // If the session dropped, reconnect first (spec: "reattempts the bunker
-        // sign, reconnecting the control channel first if it was dropped").
+        // If the session dropped (or was never connected — e.g. an auth frame is
+        // requested before any review window ran the connect handshake),
+        // reconnect first (spec: "reattempts the bunker sign, reconnecting the
+        // control channel first if it was dropped").
         if getState() != .connected {
+            RelayLog.debug("bunker signEvent: not connected (state=\(String(describing: getState()))); reconnecting")
             guard let config = getConfig(), await reconnect(config: config) else {
+                RelayLog.debug("bunker signEvent: reconnect failed (config present: \(getConfig() != nil))")
                 return nil
             }
+            RelayLog.debug("bunker signEvent: reconnected")
         }
         let eventDict: [String: Any] = [
             "content": event.content,
@@ -253,6 +262,7 @@ private final class BunkerSession: @unchecked Sendable {
               let eventString = String(data: eventJSON, encoding: .utf8) else { return nil }
 
         guard let resp = await sendRequest(method: "sign_event", params: [eventString]) else {
+            RelayLog.debug("bunker signEvent: no response to sign_event (kind \(event.kind))")
             setState(.failed("bunker didn't respond to sign_event"))
             return nil
         }

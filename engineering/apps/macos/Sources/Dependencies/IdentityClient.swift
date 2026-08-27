@@ -97,6 +97,14 @@ extension IdentityClient: DependencyKey {
             bunkerClient: bunkerClient,
             keychainClient: keychainClient
         )
+        if RelayLog.enabled {
+            if let loaded = holder.loaded {
+                let id = loaded.identity
+                print("[identity] loaded: source=\(id.source) npub=\(id.npub.prefix(16))… bunkerState=\(String(describing: id.bunkerState)) bunkerRelay=\(loaded.bunkerConfig?.relayURL ?? "n/a")")
+            } else {
+                print("[identity] NO identity loaded — AUTH-required relays will return nothing")
+            }
+        }
         return IdentityClient(
             loadIdentity: { holder.loaded?.identity },
             currentSecret: { holder.loaded?.secret },
@@ -397,12 +405,15 @@ final class LoadedIdentity: @unchecked Sendable {
     // Implements: FR-srm-event-sign, FR-sr-bunker-signing
     func sign(_ event: NostrEvent) async -> NostrEvent? {
         if let secret {
-            return event.sign(secretKey: secret)
+            let signed = event.sign(secretKey: secret)
+            RelayLog.debug("identity sign: local-key path, \(signed == nil ? "FAILED (P256K rejected the secret)" : "ok")")
+            return signed
         }
         if bunkerConfig != nil {
             // Route through the injected bunkerClient (DI), not .liveValue.
             return await bunkerClient.signEvent(event)
         }
+        RelayLog.debug("identity sign: no secret AND no bunkerConfig (parse-error identity?) — cannot sign")
         return nil
     }
 

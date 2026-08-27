@@ -161,14 +161,18 @@ extension RelayClient: DependencyKey {
         // relays for them (empty lookups on private relays).
         let auth: @Sendable (String, String) async -> String? = { challenge, relayURL in
             let deps = DependencyValues._current
-            return await RelayAuth.authFrame(
+            let identityLoaded = deps.identityClient.loadIdentity() != nil
+            let frame = await RelayAuth.authFrame(
                 challenge: challenge, relayURL: relayURL, sign: deps.identityClient.sign
             )
+            RelayLog.debug("auth requested by \(relayURL): identityLoaded=\(identityLoaded) frameBuilt=\(frame != nil)")
+            return frame
         }
         return RelayClient(
             subscribe: { filter in
                 AsyncStream { continuation in
                     let relays = filter.relays ?? Self.resolveRelays()
+                    RelayLog.debug("subscribe: relays=\(relays) filter=\(filter.jsonObject)")
                     let subID = "shep-" + UUID().uuidString.lowercased().prefix(8)
                     let task = RelaySubscriptionTask(
                         relays: relays, filter: filter, subID: String(subID), auth: auth
@@ -283,6 +287,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
             task.resume()
             Task { [weak self] in
                 // Send the REQ frame; tolerate send failure (relay may reject).
+                RelayLog.debug("\(url) -> \(reqString)")
                 try? await task.send(.string(reqString))
                 await self?.receiveLoop(task: task, relayURL: url)
             }
@@ -324,6 +329,7 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
     }
 
     private func handleFrame(_ text: String, task: URLSessionWebSocketTask, relayURL: String) async {
+        RelayLog.debug("\(relayURL) <- \(text.prefix(200))")
         guard let data = text.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
               array.count >= 2,
@@ -335,6 +341,19 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
                   let frame = await auth(challenge, relayURL) else { return }
             try? await task.send(.string(frame))
             if !reqString.isEmpty { try? await task.send(.string(reqString)) }
+        case "CLOSED":
+            // ["CLOSED", subID, message] — an `auth-required` rejection means
+            // this socket is poisoned for reading: ngit-style relays ignore ALL
+            // later frames on a connection whose pre-auth REQ was rejected —
+            // even a valid AUTH frame sent afterwards gets no response, so the
+            // AUTH re-send above never recovers. Reconnect on a fresh socket and
+            // authenticate BEFORE sending the REQ (auth-first handshake).
+            guard array.count >= 3,
+                  let closedSub = array[1] as? String, closedSub == subID,
+                  let message = array[2] as? String,
+                  message.hasPrefix("auth-required") else { return }
+            RelayLog.debug("auth-required rejection from \(relayURL); reconnecting auth-first")
+            await reconnectAuthFirst(relayURL: relayURL)
         case "EVENT":
             // ["EVENT", subID, eventObject]
             guard array.count >= 3, let eventObject = array[2] as? [String: Any] else { return }
@@ -345,6 +364,67 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
         default:
             break // NOTICE (incl. auth-required), OK, EOSE, etc. — ignored.
         }
+    }
+
+    /// Reconnect to `relayURL` on a fresh socket and run the NIP-42 handshake
+    /// BEFORE sending the REQ. Used after an `auth-required` CLOSED: relays that
+    /// reject a pre-auth REQ (e.g. ngit's relay) ignore every subsequent frame on
+    /// that connection — including the AUTH response — so the only recovery is a
+    /// fresh connection where the first client frame after the challenge is the
+    /// signed AUTH. If the new connection presents no challenge within a short
+    /// budget (relay policy changed), falls back to an optimistic REQ.
+    private func reconnectAuthFirst(relayURL: String) async {
+        guard let url = URL(string: relayURL), !reqString.isEmpty else { return }
+        let task = session.webSocketTask(with: url)
+        addTask(task)
+        task.resume()
+        guard let challenge = await firstAuthChallenge(task) else {
+            RelayLog.debug("reconnect: no AUTH challenge within budget; sending optimistic REQ")
+            try? await task.send(.string(reqString))
+            await receiveLoop(task: task, relayURL: relayURL)
+            return
+        }
+        guard let frame = await auth(challenge, relayURL) else {
+            RelayLog.debug("reconnect: AUTH frame build failed (no identity?) — giving up on \(relayURL)")
+            return
+        }
+        try? await task.send(.string(frame))
+        try? await task.send(.string(reqString))
+        RelayLog.debug("reconnect: sent AUTH + REQ on fresh socket to \(relayURL)")
+        await receiveLoop(task: task, relayURL: relayURL)
+    }
+
+    /// Wait for the relay's initial `["AUTH", challenge]` frame (NIP-42 relays
+    /// send it on connect), up to a 3s budget. Returns nil on timeout or when
+    /// the first frame is anything else. Consumes the first frame either way.
+    private func firstAuthChallenge(_ task: URLSessionWebSocketTask) async -> String? {
+        await withTaskGroup(of: String?.self) { group in
+            group.addTask {
+                guard let message = try? await task.receive(),
+                      case .string(let text) = message,
+                      let data = text.data(using: .utf8),
+                      let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
+                      array.count >= 2,
+                      array[0] as? String == "AUTH",
+                      let challenge = array[1] as? String else { return nil }
+                return challenge
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                return nil
+            }
+            let result = await group.next() ?? nil
+            group.cancelAll()
+            return result ?? nil
+        }
+    }
+
+    /// Register a socket for later cancellation. Synchronous so the NSLock
+    /// stays out of async context.
+    private func addTask(_ task: URLSessionWebSocketTask) {
+        lock.lock()
+        defer { lock.unlock() }
+        tasks.append(task)
     }
 
     /// Dedup-by-id gate. Synchronous so the NSLock stays out of async context.
@@ -513,6 +593,25 @@ enum RelayAuth {
         guard let secret else { return nil }
         guard let signed = signer.sign(authEvent(challenge: challenge, relayURL: relayURL), secret) else { return nil }
         return frame(for: signed)
+    }
+}
+
+/// Opt-in debug logging for the relay client. Silent by default (the app ships
+/// with no console spam); set `SHEPHERD_RELAY_DEBUG=1` in the environment to
+/// trace relay frames, NIP-42 auth, and subscription events to stdout. Intended
+/// for diagnosing auth-required relay issues in the field.
+public enum RelayLog {
+    /// Env var (`SHEPHERD_RELAY_DEBUG=1`) or persisted default
+    /// (`defaults write com.shepherd.app shepherd.relayDebug -bool true`) — the
+    /// UserDefaults path survives launches from Finder/Xcode where env vars
+    /// don't propagate.
+    public static let enabled: Bool = {
+        if let s = ProcessInfo.processInfo.environment["SHEPHERD_RELAY_DEBUG"], ["1", "true", "yes"].contains(s.lowercased()) { return true }
+        return UserDefaults.standard.bool(forKey: "shepherd.relayDebug")
+    }()
+    public static func debug(_ message: @autoclosure () -> String) {
+        guard enabled else { return }
+        print("[relay] \(message())")
     }
 }
 

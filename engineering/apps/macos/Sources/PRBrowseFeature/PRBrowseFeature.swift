@@ -225,17 +225,20 @@ public struct PRBrowseFeature {
             filter = NostrFilter(pTag: pubkey, kinds: [1618])
         }
         return .run { [relayClient] send in
-            let reachable = await relayClient.reachableRelays(RelayClient.resolveRelays())
+            let resolved = RelayClient.resolveRelays()
+            let reachable = await relayClient.reachableRelays(resolved)
+            RelayLog.debug("pr-browse lookup: resolved=\(resolved) reachable=\(reachable)")
             guard !reachable.isEmpty else {
                 await send(.noRelaysReached)
                 return
             }
-        var f = filter
-        f.relays = reachable
-        let events = await Self.collectEvents(
-            relayClient.subscribe(f),
-            seconds: 8
-        )
+            var f = filter
+            f.relays = reachable
+            let events = await Self.collectEvents(
+                relayClient.subscribe(f),
+                seconds: 8
+            )
+            RelayLog.debug("pr-browse lookup finished: \(events.count) event(s)")
             await send(.lookupFinished(events))
         }
         .cancellable(id: CancelID.lookup, cancelInFlight: true)
@@ -244,22 +247,33 @@ public struct PRBrowseFeature {
     /// Collect every event from a subscription within a time window, then stop.
     /// Generalizes `OpenPatchFeature.firstEventOrTimeout` to all events — a repo
     /// with many PRs gets them all in one subscription, no paging.
+    ///
+    /// The accumulator lives in a shared buffer (not as the group task's return
+    /// value): the subscription stream never terminates on its own, so the
+    /// accumulating task never completes and its return value would be discarded
+    /// when the timeout wins the race — returning the buffer instead keeps every
+    /// event collected before the window closes.
     static func collectEvents(
         _ stream: AsyncStream<NostrEvent>, seconds: UInt64
     ) async -> [NostrEvent] {
-        await withTaskGroup(of: [NostrEvent]?.self) { group in
+        let buffer = EventBuffer()
+        await withTaskGroup(of: Void.self) { group in
             group.addTask {
-                var out: [NostrEvent] = []
-                for await event in stream { out.append(event) }
-                return out
+                for await event in stream { await buffer.append(event) }
             }
             group.addTask {
                 try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
-                return nil
             }
-            let first = await group.next() ?? nil
+            await group.next()
             group.cancelAll()
-            return first ?? []
         }
+        return await buffer.events
+    }
+
+    /// Shared accumulator for `collectEvents` — the collecting task outlives the
+    /// timeout race, so results are read from here after cancellation.
+    private actor EventBuffer {
+        private(set) var events: [NostrEvent] = []
+        func append(_ event: NostrEvent) { events.append(event) }
     }
 }
