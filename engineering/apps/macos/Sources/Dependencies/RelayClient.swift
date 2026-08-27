@@ -601,7 +601,14 @@ enum RelayAuth {
 /// trace relay frames, NIP-42 auth, and subscription events to stdout. Intended
 /// for diagnosing auth-required relay issues in the field.
 public enum RelayLog {
-    public static let enabled = ProcessInfo.processInfo.environment["SHEPHERD_RELAY_DEBUG"] == "1"
+    /// Env var (`SHEPHERD_RELAY_DEBUG=1`) or persisted default
+    /// (`defaults write com.shepherd.app shepherd.relayDebug -bool true`) — the
+    /// UserDefaults path survives launches from Finder/Xcode where env vars
+    /// don't propagate.
+    public static let enabled: Bool = {
+        if let s = ProcessInfo.processInfo.environment["SHEPHERD_RELAY_DEBUG"], ["1", "true", "yes"].contains(s.lowercased()) { return true }
+        return UserDefaults.standard.bool(forKey: "shepherd.relayDebug")
+    }()
     public static func debug(_ message: @autoclosure () -> String) {
         guard enabled else { return }
         print("[relay] \(message())")

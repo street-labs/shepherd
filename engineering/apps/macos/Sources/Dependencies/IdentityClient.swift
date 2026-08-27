@@ -405,12 +405,15 @@ final class LoadedIdentity: @unchecked Sendable {
     // Implements: FR-srm-event-sign, FR-sr-bunker-signing
     func sign(_ event: NostrEvent) async -> NostrEvent? {
         if let secret {
-            return event.sign(secretKey: secret)
+            let signed = event.sign(secretKey: secret)
+            RelayLog.debug("identity sign: local-key path, \(signed == nil ? "FAILED (P256K rejected the secret)" : "ok")")
+            return signed
         }
         if bunkerConfig != nil {
             // Route through the injected bunkerClient (DI), not .liveValue.
             return await bunkerClient.signEvent(event)
         }
+        RelayLog.debug("identity sign: no secret AND no bunkerConfig (parse-error identity?) — cannot sign")
         return nil
     }
 
