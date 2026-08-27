@@ -104,7 +104,7 @@ The existing `loadIdentity` is extended so its precedence list begins with the K
   - `IdentityView.swift` — the SwiftUI card described in the design spec.
 - **`KeychainClient`** (`Sources/Dependencies/KeychainClient.swift` — new): Keychain read/write/delete with `@DependencyClient` + `liveValue` using `Security.framework` (`SecItemAdd`/`SecItemCopyMatching`/`SecItemDelete`).
 - **`IdentityClient`** (`Sources/Dependencies/IdentityClient.swift` — extended): add `loginWithKey`, `createNewIdentity`, `logout`, and the Keychain source to `LoadedIdentity.load`. The cached `LoadedIdentity` is refreshed when a login/create/logout mutates the Keychain.
-- **`AppFeature`** (`Sources/AppFeature/AppFeature.swift` — extended): at launch, after `sessionDataLoaded`, resolve identity; if `nil` and no in-app/ out-of-band identity exists, present the Identity window. Add an action/command to reopen the Identity window on demand (`FR-id-optional-reentry`).
+- **`AppFeature`** (`Sources/AppFeature/AppFeature.swift` — extended): at launch, after `sessionDataLoaded`, resolve identity; if `nil` and no in-app/ out-of-band identity exists, present the Identity window. Add an action/command to reopen the Identity window on demand (`FR-id-optional-reentry`). When the launch-resolved identity is a bunker in `.connecting` state, `loadIdentityAtLaunch` starts the NIP-46 connect handshake immediately (same effect as `reviewerIdentityLoaded`): relay AUTH (NIP-42) signs through the bunker, and surfaces that run before any review session (Browse PRs, Open Patch) hit AUTH-required relays — connecting only at session load left the bunker session unconfigured, so signing silently failed and private-relay lookups returned nothing.
 
 ## State Management
 
