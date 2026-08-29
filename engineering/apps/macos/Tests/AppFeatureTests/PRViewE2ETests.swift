@@ -81,7 +81,6 @@ struct PRViewE2ETests {
                 self.wfile.write(payload)
             do_GET = do_POST = _handle
             def log_message(self, *a): pass
-        from http.server import BaseHTTPRequestHandler, HTTPServer
         srv = HTTPServer(("127.0.0.1", 0), H)
         print(srv.server_address[1], flush=True)
         srv.serve_forever()
