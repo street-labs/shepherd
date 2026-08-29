@@ -49,7 +49,7 @@ struct PRViewE2ETests {
     private static let serverScript = #"""
         import os, subprocess, sys
         from http.server import BaseHTTPRequestHandler, HTTPServer
-        root, port = sys.argv[1], int(sys.argv[2])
+        root = sys.argv[1]
         class H(BaseHTTPRequestHandler):
             def _handle(self):
                 env = dict(os.environ)
@@ -67,19 +67,24 @@ struct PRViewE2ETests {
                 body = self.rfile.read(n) if n else b""
                 p = subprocess.run(["git", "http-backend"], input=body, env=env, capture_output=True)
                 out, _, payload = p.stdout.partition(b"\r\n\r\n")
+                headers = []
                 status = 200
-                self.send_response(status)
                 for line in out.decode("latin-1").splitlines():
                     if ":" not in line: continue
                     k, v = line.split(":", 1)
                     if k.lower() == "status": status = int(v.split()[0])
-                    else: self.send_header(k, v.strip())
+                    else: headers.append((k, v.strip()))
+                self.send_response(status)
+                for k, v in headers: self.send_header(k, v)
                 self.send_header("Content-Length", str(len(payload)))
                 self.end_headers()
                 self.wfile.write(payload)
             do_GET = do_POST = _handle
             def log_message(self, *a): pass
-        HTTPServer(("127.0.0.1", port), H).serve_forever()
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        srv = HTTPServer(("127.0.0.1", 0), H)
+        print(srv.server_address[1], flush=True)
+        srv.serve_forever()
         """#
 
     private func run(_ path: String, _ args: [String], cwd: URL? = nil) -> (Int32, String) {
@@ -130,22 +135,29 @@ struct PRViewE2ETests {
         return (dir, base, tip)
     }
 
-    /// Serve `dir/repo.git` over local smart-HTTP. Polls `git ls-remote`
-    /// until the server answers (max ~5s), else fails the test.
-    private func startServer(root: URL) throws -> SampleServer {
+    /// Serve `dir/repo.git` over local smart-HTTP. The server binds port 0
+    /// (OS-assigned, no collision under parallel runs) and prints the chosen
+    /// port; polls `git ls-remote` until it answers (max ~5s).
+    private func startServer(root: URL) async throws -> SampleServer {
         let script = root.appendingPathComponent("server.py")
         try Self.serverScript.write(to: script, atomically: true, encoding: .utf8)
-        let port = 20000 + Int.random(in: 0...20000)
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        p.arguments = [script.path, root.path, String(port)]
-        p.standardOutput = FileHandle.nullDevice
+        p.arguments = [script.path, root.path]
+        let outPipe = Pipe()
+        p.standardOutput = outPipe
         p.standardError = FileHandle.nullDevice
         try p.run()
+        let line = String(data: outPipe.fileHandleForReading.availableData, encoding: .utf8) ?? ""
+        guard let port = Int(line.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            p.terminate()
+            Issue.record("server did not report a port")
+            throw CocoaError(.userActivityConnectionUnavailable)
+        }
         let url = "http://127.0.0.1:\(port)/repo.git"
         for _ in 0..<50 {
             if git(["ls-remote", url], cwd: root).0 == 0 { return SampleServer(url: url, process: p, root: root) }
-            usleep(100_000)
+            try await Task.sleep(nanoseconds: 100_000_000)
         }
         p.terminate()
         throw CocoaError(.userActivityConnectionUnavailable)
@@ -201,7 +213,7 @@ struct PRViewE2ETests {
     @Test("full PR view: event -> smart-HTTP fetch -> diff split -> patchLoaded")
     func prLoadsEndToEnd() async throws {
         let (dir, base, tip) = try makeSampleRepo(allowSHAInWant: true)
-        let server = try startServer(root: dir)
+        let server = try await startServer(root: dir)
         defer { server.shutdown() }
 
         let (store, files, metadata) = try makeStore(event: prEvent(clone: server.url, tip: tip, base: base, branch: "pr/feature"))
@@ -234,7 +246,7 @@ struct PRViewE2ETests {
         git(["commit", "--quiet", "-m", "later push"], cwd: work)
         git(["push", "--quiet", "-f", "origin", "pr/feature"], cwd: work)
 
-        let server = try startServer(root: dir)
+        let server = try await startServer(root: dir)
         defer { server.shutdown() }
 
         let (store, files, _) = try makeStore(event: prEvent(clone: server.url, tip: tip, base: base, branch: "pr/feature"))
@@ -254,7 +266,7 @@ struct PRViewE2ETests {
     @Test("PR without merge-base diffs the tip against its parent (depth-2 fetch)")
     func tipVsParentWhenNoMergeBase() async throws {
         let (dir, _, tip) = try makeSampleRepo(allowSHAInWant: true)
-        let server = try startServer(root: dir)
+        let server = try await startServer(root: dir)
         defer { server.shutdown() }
 
         let (store, files, metadata) = try makeStore(event: prEvent(clone: server.url, tip: tip, base: nil, branch: nil))
