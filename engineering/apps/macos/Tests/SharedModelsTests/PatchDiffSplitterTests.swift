@@ -182,3 +182,35 @@ struct PatchDiffSplitterTests {
         #expect(PatchDiffSplitter.splitUnifiedDiff("diff --git a/x b/x\n(no hunk)") == nil)
     }
 }
+
+// NIP-34 patch series: cover-letter roots (ngit send --force-patch). The root
+// kind-1617 carries only a commit message; diffs live in kind-1617 replies
+// tagged with `t: cover-letter` referencing it via `e`.
+@Suite("PatchDiffSplitter cover letter")
+struct PatchCoverLetterTests {
+    private func event(content: String, tags: [[String]]) -> NostrEvent {
+        NostrEvent(id: String(repeating: "a", count: 64), pubkey: String(repeating: "b", count: 64), kind: 1617, content: content, tags: tags, createdAt: 1)
+    }
+
+    @Test("Cover-letter tag is detected; plain patch and non-1617 are not")
+    func detectCoverLetter() {
+        let letter = event(content: "Subject line\n\nbody", tags: [["t", "cover-letter"], ["t", "root"]])
+        #expect(PatchDiffSplitter.isCoverLetter(letter))
+        #expect(!PatchDiffSplitter.isCoverLetter(event(content: "x", tags: [["t", "root"]])))
+        #expect(!PatchDiffSplitter.isCoverLetter(event(content: "x", tags: [["t", "cover-letter"]]).withKind(1618)))
+    }
+
+    @Test("Cover letter validates as badDiff (dispatches to series fetch)")
+    func coverLetterHasNoDiff() {
+        let letter = event(content: "Persist shepherd deep link format", tags: [["t", "cover-letter"]])
+        guard case .badDiff = PatchDiffSplitter.validate(letter) else {
+            Issue.record("expected .badDiff"); return
+        }
+    }
+}
+
+extension NostrEvent {
+    func withKind(_ kind: Int) -> NostrEvent {
+        NostrEvent(id: id, pubkey: pubkey, kind: kind, content: content, tags: tags, createdAt: createdAt)
+    }
+}
