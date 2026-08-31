@@ -414,17 +414,28 @@ private final class BunkerSession: @unchecked Sendable {
 
     private func handleEvent(_ array: [Any]) {
         let convKey = withLock { conversationKey }
-        guard let convKey else { return }
+        guard let convKey else { RelayLog.debug("bunker handleEvent: no conversation key"); return }
         guard array.count >= 3,
-              let eventObj = array[2] as? [String: Any],
-              let kind = eventObj["kind"] as? Int, kind == 24133,
-              let content = eventObj["content"] as? String,
-              let decrypted = NIP44Crypto.decrypt(content, conversationKey: convKey),
-              let respData = decrypted.data(using: .utf8),
+              let eventObj = array[2] as? [String: Any] else { return }
+        guard let kind = eventObj["kind"] as? Int, kind == 24133 else {
+            RelayLog.debug("bunker handleEvent: skipping kind \(eventObj["kind"] ?? "?") (want 24133)")
+            return
+        }
+        guard let content = eventObj["content"] as? String,
+              let decrypted = NIP44Crypto.decrypt(content, conversationKey: convKey) else {
+            RelayLog.debug("bunker handleEvent: NIP-44 decrypt FAILED (content len \(String(describing: eventObj["content"]).count))")
+            return
+        }
+        RelayLog.debug("bunker handleEvent: decrypted -> \(decrypted.prefix(160))")
+        guard let respData = decrypted.data(using: .utf8),
               let resp = try? JSONSerialization.jsonObject(with: respData) as? [String: Any],
-              let respID = resp["id"] as? String else { return }
+              let respID = resp["id"] as? String else {
+            RelayLog.debug("bunker handleEvent: decrypted payload has no string id: \(decrypted.prefix(120))")
+            return
+        }
 
         if let error = resp["error"] as? String, !error.isEmpty {
+            RelayLog.debug("bunker handleEvent: response error: \(error)")
             resolveRequest(respID, with: nil)
             return
         }
