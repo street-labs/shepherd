@@ -436,6 +436,11 @@ private final class BunkerSession: @unchecked Sendable {
 
         if let error = resp["error"] as? String, !error.isEmpty {
             RelayLog.debug("bunker handleEvent: response error: \(error)")
+            // Surface the bunker's refusal on the identity indicator instead of
+            // letting the request time out into a generic "didn't respond" — a
+            // real error (e.g. clave's "Invalid or missing bunker secret") tells
+            // the reviewer exactly what to fix.
+            setState(.failed(error))
             resolveRequest(respID, with: nil)
             return
         }
