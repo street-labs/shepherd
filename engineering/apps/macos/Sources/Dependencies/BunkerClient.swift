@@ -66,7 +66,23 @@ public struct BunkerConfig: Sendable, Equatable {
 extension BunkerClient: DependencyKey {
     public static let liveValue = BunkerClient(
         connect: { config in
-            await BunkerSession.shared.connect(config: config)
+            // Persisted session key = stable NIP-46 client identity. Reuse it
+            // so a paired bunker (clave rotates the bunker secret on pair and
+            // re-admits only known session pubkeys) recognizes us across
+            // launches; generate + persist on first connect.
+            let keychain = DependencyValues._current.keychainClient
+            let persisted = keychain.readBunkerSessionKey()
+            let sessionKey: Data?
+            if let persisted, persisted.count == 32 {
+                sessionKey = persisted
+            } else {
+                sessionKey = BunkerSession.generateSessionKeyMaterial()
+                if let sessionKey {
+                    RelayLog.debug("bunker: generated + persisted new NIP-46 session key (paired client identity)")
+                    _ = keychain.writeBunkerSessionKey(sessionKey)
+                }
+            }
+            return await BunkerSession.shared.connect(config: config, sessionKeyOverride: sessionKey)
         },
         signEvent: { event in
             await BunkerSession.shared.signEvent(event: event)
@@ -103,7 +119,7 @@ extension DependencyValues {
 // Uses NSLock wrapped in sync helpers to satisfy Swift 6.2's async-context
 // lock restriction.
 
-private final class BunkerSession: @unchecked Sendable {
+final class BunkerSession: @unchecked Sendable {
     static let shared = BunkerSession()
 
     private let lock = NSLock()
@@ -146,10 +162,19 @@ private final class BunkerSession: @unchecked Sendable {
     }
 
     /// Connect to the bunker and run the NIP-46 handshake. Returns the reviewer's
-    /// pubkey hex on success, nil on failure.
+    /// pubkey hex on success, nil on failure. `sessionKeyOverride` supplies the
+    /// persisted NIP-46 client identity when present (stable pairing identity);
+    /// nil falls back to a fresh ephemeral key.
     // Implements: FR-srm-bunker-connect
-    func connect(config: BunkerConfig) async -> String? {
-        guard let (secKey, pubHex) = generateSessionKey() else {
+    func connect(config: BunkerConfig, sessionKeyOverride: Data? = nil) async -> String? {
+        let keyMaterial: (Data, String)?
+        if let override = sessionKeyOverride,
+           let pubHex = NostrSigner.derivePublicKey(override) {
+            keyMaterial = (override, pubHex)
+        } else {
+            keyMaterial = generateSessionKey()
+        }
+        guard let (secKey, pubHex) = keyMaterial else {
             setState(.failed("couldn't generate session key"))
             return nil
         }
@@ -291,16 +316,24 @@ private final class BunkerSession: @unchecked Sendable {
 
     // MARK: - Private
 
-    private func generateSessionKey() -> (Data, String)? {
+    /// 32 random bytes suitable for a session key (persistence happens in
+    /// `BunkerClient.liveValue`, which owns the Keychain dependency).
+    static func generateSessionKeyMaterial() -> Data? {
         var key = Data(count: 32)
         let result = key.withUnsafeMutableBytes { buf -> Int32 in
             guard let base = buf.baseAddress else { return -1 }
             return SecRandomCopyBytes(kSecRandomDefault, 32, base)
         }
-        guard result == errSecSuccess else { return nil }
+        return result == errSecSuccess ? key : nil
+    }
+
+    private func generateSessionKey() -> (Data, String)? {
+        guard let key = Self.generateSessionKeyMaterial() else { return nil }
         guard let pubHex = NostrSigner.derivePublicKey(key) else { return nil }
         return (key, pubHex)
     }
+
+
 
     private func sendRequest(method: String, params: [String]) async -> String? {
         let secKey = withLock { sessionKey }

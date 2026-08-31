@@ -232,6 +232,9 @@ final class IdentityHolder: @unchecked Sendable {
     func logout() {
         loaded?.closeBunker()
         keychainClient.deleteIdentity()
+        // Drop the NIP-46 session key too: the next bunker login must pair as a
+        // fresh client (the old pairing identity belongs to the logged-out URI).
+        keychainClient.deleteBunkerSessionKey()
         loaded = nil
     }
 }
