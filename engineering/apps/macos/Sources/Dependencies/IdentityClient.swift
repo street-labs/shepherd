@@ -99,7 +99,7 @@ extension IdentityClient: DependencyKey {
         )
         if let loaded = holder.loaded {
             let id = loaded.identity
-            RelayLog.debug("[identity] loaded: source=\(id.source) npub=\(id.npub.prefix(16))… bunkerState=\(String(describing: id.bunkerState)) bunkerRelay=\(loaded.bunkerConfig?.relayURL ?? "n/a")")
+            RelayLog.debug("[identity] loaded: source=\(id.source) npub=\(id.npub.prefix(16))… bunkerState=\(String(describing: id.bunkerState)) bunkerRelay=\(loaded.bunkerConfig?.relayURL ?? "n/a") hasSecret=\(loaded.bunkerConfig?.secret != nil)")
         } else {
             RelayLog.debug("[identity] NO identity loaded — AUTH-required relays will return nothing")
         }
