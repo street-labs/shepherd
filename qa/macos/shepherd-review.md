@@ -1484,3 +1484,6 @@ The following edge cases are noted but covered by the test cases above rather th
 - **Install symlinks**: The review command's install path must not disturb the `/shepherd` symlink. `TC-srm-coexistence` verifies both commands coexist; install-script changes should re-run the full install matrix.
 - **Native multi-file UI**: Changes to the file browser, ReviewContextSection, or ReviewContextPanel are owned by `qa/macos/code-review-prompt.md`. Changes there must not break the assumptions in `TC-srm-happy-path` (priority tab order, neutral/review subsection labels, Done auto-close).
 - **Session-scoping primitives**: Changes to `~/.shepherd/sessions/<id>/` layout (e.g., renaming `session.json` or `prompt-output.md`) cascade through `TC-srm-session-isolation`, `TC-srm-happy-path`, and the launcher tests.
+
+#### `TC-srm-pr-approve` — PR approval
+Approve publishes a signed kind:1 approval note (e/a/c/t=approval tags); outcome renders in the metadata section (approved seal / retryable failure). Automated: `PRApprovalTests`.

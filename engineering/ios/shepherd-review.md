@@ -16,6 +16,10 @@ The iOS in-app patch open and the bidirectional patch-thread review loop — the
 
 The patch-open and publishing paths reuse the macOS `RelayClient`/`NostrSigner`/`PatchReplyMapper`/`PatchDiffSplitter`/`OpenPatchFeature`/`ReviewContextFeature` machinery verbatim, compiled for iOS via the multiplatform package (see `./code-review-prompt.md`). No iOS copies are maintained. The in-process relay client uses `URLSessionWebSocketTask`; signing is a single async `NostrSigner.sign(event:)` that dispatches to in-process secp256k1 Schnorr (local key) or a NIP-46 `sign_event` round-trip (bunker). The shared `AppFeature` reducer already orchestrates the open-patch sheet, live-thread subscription, reply publishing, and identity load — the iOS app reuses it unchanged and only supplies the root view that surfaces these.
 
+### PR approval (FR-sri-pr-approve)
+
+Shared with macOS: the same `AppFeature.approvePRTapped` reducer path and `PatchMetadataSectionView` Approve row run unchanged on iOS (no platform fork) — the approval note is signed via the loaded identity (bunker on-device) and published to the configured relays.
+
 ### Key Technical Decisions
 
 | Decision | Choice | Rationale |

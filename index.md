@@ -2886,6 +2886,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Engineering**: `engineering/macos/shepherd-review.md`
 - **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-reply-to-reply`, `TC-sr-patch-reply-respond`
 
+### `FR-srm-pr-approve`
+- **Defined in**: `product/macos/shepherd-review.md`
+- **Design**: `design/macos/shepherd-review.md`
+- **Engineering**: `engineering/macos/shepherd-review.md`
+- **QA**: `qa/macos/shepherd-review.md` -> `TC-srm-pr-approve`
+
 ### `FR-srm-identity-indicator`
 - **Defined in**: `product/macos/shepherd-review.md`
 - **Design**: `design/macos/shepherd-review.md`
@@ -4241,6 +4247,12 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Design**: `design/ios/shepherd-review.md`
 - **Engineering**: `engineering/ios/shepherd-review.md`
 - **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-relay-defaults`, `TC-sri-relay-custom`, `TC-sri-relay-invalid`, `TC-sri-relay-persist`
+
+### `FR-sri-pr-approve`
+- **Defined in**: `product/ios/shepherd-review.md`
+- **Design**: `design/ios/shepherd-review.md`
+- **Engineering**: `engineering/ios/shepherd-review.md`
+- **QA**: `qa/ios/shepherd-review.md` -> `TC-sri-pr-approve`
 
 ### `FR-sri-comment-publish-on-submit`
 - **Defined in**: `product/ios/shepherd-review.md`

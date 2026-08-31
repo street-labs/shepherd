@@ -91,7 +91,8 @@ public struct CodeViewerView: View {
                                 hasComment: hasComment,
                                 isSelected: isInSelection,
                                 isFocused: store.focusedLine == lineNumber,
-                                lineWrapEnabled: lineWrapEnabled
+                                lineWrapEnabled: lineWrapEnabled,
+                                isDiff: file.isDiffContent
                             )
                             .id(lineNumber)
                             .onTapGesture {

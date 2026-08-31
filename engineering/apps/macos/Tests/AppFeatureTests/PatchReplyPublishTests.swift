@@ -180,3 +180,82 @@ struct PatchReplyPublishTests {
         #expect(store.state.comment.replyTarget?.id == anchoredReply.id)
     }
 }
+
+// Implements: FR-srm-pr-approve / FR-sri-pr-approve — the Approve action signs
+// and publishes a kind-1 approval event referencing the PR.
+@Suite("PR approval")
+@MainActor
+struct PRApprovalTests {
+    private let patchID = String(repeating: "a", count: 64)
+
+    private func makeState() -> AppFeature.State {
+        AppFeature.State(
+            reviewContextData: ReviewContext(
+                patchMetadata: ReviewContext.PatchMetadata(
+                    eventID: patchID,
+                    shortEventID: String(repeating: "a", count: 8),
+                    author: "author",
+                    commitMessage: "msg",
+                    parentCommit: nil,
+                    status: "open",
+                    repoCoordinate: "30617:owner:repo",
+                    tipCommit: "0cab647b"
+                )
+            ),
+            reviewerIdentity: ReviewerIdentity(
+                pubkeyHex: String(repeating: "b", count: 64), npub: "npub1x", displayName: "me"
+            )
+        )
+    }
+
+    @Test("Approve publishes signed approval event with e/a/c/t tags")
+    func approvePublishes() async {
+        let signedBox = ActorBox<NostrEvent?>(nil)
+        let store = TestStore(initialState: makeState()) {
+            AppFeature()
+        } withDependencies: {
+            $0.identityClient.sign = { event in
+                var e = event
+                e.id = String(repeating: "c", count: 64)
+                e.sig = String(repeating: "d", count: 128)
+                signedBox.value = e
+                return e
+            }
+            $0.relayClient.publish = { _ in .accepted }
+        }
+        store.exhaustivity = .off
+        await store.send(.approvePRTapped) { $0.approvalState = .publishing }
+        await store.receive(\.prApprovalResult) { $0.approvalState = .approved }
+        let signed = signedBox.value
+        #expect(signed?.kind == 1)
+        #expect(signed?.tags.contains(["e", patchID]) == true)
+        #expect(signed?.tags.contains(["t", "approval"]) == true)
+        #expect(signed?.tags.contains(["a", "30617:owner:repo"]) == true)
+        #expect(signed?.tags.contains(["c", "0cab647b"]) == true)
+    }
+
+    @Test("Approve without identity does nothing")
+    func approveNoIdentity() async {
+        var state = makeState()
+        state.reviewerIdentity = nil
+        let store = TestStore(initialState: state) { AppFeature() }
+        store.exhaustivity = .off
+        await store.send(.approvePRTapped)
+        #expect(store.state.approvalState == nil)
+    }
+
+    @Test("Failed publish sets failed state")
+    func approveFailed() async {
+        let store = TestStore(initialState: makeState()) {
+            AppFeature()
+        } withDependencies: {
+            $0.identityClient.sign = { $0 }
+            $0.relayClient.publish = { _ in .failed }
+        }
+        store.exhaustivity = .off
+        await store.send(.approvePRTapped) { $0.approvalState = .publishing }
+        await store.receive(\.prApprovalResult) {
+            $0.approvalState = .failed("Could not sign or reach a relay")
+        }
+    }
+}

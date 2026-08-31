@@ -11,6 +11,10 @@ public struct LineView: View {
     let isSelected: Bool
     let isFocused: Bool
     let lineWrapEnabled: Bool
+    /// True when the containing file is a unified diff: lines are colored by
+    /// prefix (green additions, red deletions, blue hunk markers, cyan file
+    /// headers) instead of syntax highlighting.
+    let isDiff: Bool
 
     public init(
         lineNumber: Int,
@@ -19,7 +23,8 @@ public struct LineView: View {
         hasComment: Bool = false,
         isSelected: Bool = false,
         isFocused: Bool = false,
-        lineWrapEnabled: Bool = true
+        lineWrapEnabled: Bool = true,
+        isDiff: Bool = false
     ) {
         self.lineNumber = lineNumber
         self.content = content
@@ -28,9 +33,24 @@ public struct LineView: View {
         self.isSelected = isSelected
         self.isFocused = isFocused
         self.lineWrapEnabled = lineWrapEnabled
+        self.isDiff = isDiff
+    }
+
+    /// Foreground color for a diff line by its prefix.
+    private var diffColor: Color? {
+        guard isDiff else { return nil }
+        if content.hasPrefix("+") && !content.hasPrefix("+++") { return .green }
+        if content.hasPrefix("-") && !content.hasPrefix("---") { return .red }
+        if content.hasPrefix("@@") { return .blue }
+        if content.hasPrefix("diff --git") || content.hasPrefix("index ")
+            || content.hasPrefix("--- ") || content.hasPrefix("+++ ") { return .cyan }
+        return nil
     }
 
     private var codeText: Text {
+        if let diffColor {
+            return Text(content).foregroundStyle(diffColor)
+        }
         if let attributed, !attributed.characters.isEmpty {
             return Text(attributed)
         }

@@ -359,6 +359,7 @@ Inherited from `./code-review-prompt.md` for the editor (`NFR-crp-accessibility-
 - `FR-srm-identity-load`: identity resolved from config (local key or bunker URI); no-identity / malformed-URI state
 - `FR-srm-identity-indicator`: identity indicator with local-key / bunker (connected / connecting / failed) / no-identity states
 - `FR-srm-comment-publish-on-submit`: editor submit doubles as publish for patch reviews
+- `FR-srm-pr-approve`: the patch/PR metadata section gains an Approve affordance — one tap publishes a signed kind:1 approval note to the thread; the row shows progress/outcome (approved seal, retryable failure) inline
 - `FR-srm-reply-to-reply`: Reply button opens editor pre-targeted at a reply
 - `FR-srm-event-sign` / `FR-srm-event-publish`: publish states (publishing / published / failed — bunker or relay)
 - `FR-srm-bunker-connect`: NIP-46 connect handshake; bunker connection states

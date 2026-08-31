@@ -321,6 +321,10 @@ The native app renders replies in two places (see design spec "NIP-34 Patch Thre
 
 `ReviewContext.PatchMetadata` carries `replies: [PatchReply]`. A custom `Codable` init decodes `replies` with `decodeIfPresent ?? []` so pre-`FR-sr-patch-replies-display` payloads (which omit the key) still decode without error.
 
+### PR approval (FR-srm-pr-approve)
+
+The patch/PR metadata section (`PatchMetadataSectionView`, shared) gains an Approve row. `AppFeature.approvePRTapped` builds a kind `1` approval note — `e` tag on the PR/patch event, `a` tag when a repo coordinate is known, `c` tag with the tip commit when known, `t` = `approval`, content `shepherd: approved` — signs it via `identityClient.sign` (local key or bunker), and publishes through `relayClient.publish`. Outcome lands in `State.approvalState` (publishing / approved / failed) and renders inline in the metadata section. No new transport or dependency.
+
 ### Patch-thread replies live subscription (FR-sr-patch-replies-live, FR-sr-relay-client)
 
 The initial snapshot is baked into `session.json` at launch by the command prompt via `scripts/shepherd-patch-poll.sh --once` (reusing `nak` on the shell side). For live updates, the app subscribes to Nostr relays in-process -- no external poller, no sidecar, no timer.
