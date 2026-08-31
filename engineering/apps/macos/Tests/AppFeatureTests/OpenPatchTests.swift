@@ -367,3 +367,64 @@ struct OpenPatchFeatureTests {
         }
     }
 }
+
+@Suite("OpenPatchFeature cover-letter series")
+@MainActor
+struct CoverLetterTests {
+    private let rootID = String(repeating: "8", count: 64)
+    private let author = String(repeating: "b", count: 64)
+
+    /// A NIP-34 cover-letter root: kind 1617, t=cover-letter, commit message only.
+    private func coverLetter() -> NostrEvent {
+        NostrEvent(id: rootID, pubkey: author, kind: 1617,
+                   content: "Series: docs update\n\nNo diff here.",
+                   tags: [["t", "cover-letter"], ["t", "root"]], createdAt: 1)
+    }
+
+    @Test("isCoverLetter detects t=cover-letter on kind 1617")
+    func detection() {
+        #expect(PatchDiffSplitter.isCoverLetter(coverLetter()))
+        #expect(!PatchDiffSplitter.isCoverLetter(
+            NostrEvent(id: rootID, pubkey: author, kind: 1617, content: "x", tags: [["t", "root"]], createdAt: 1)))
+        #expect(!PatchDiffSplitter.isCoverLetter(
+            NostrEvent(id: rootID, pubkey: author, kind: 1618, content: "x", tags: [["t", "cover-letter"]], createdAt: 1)))
+    }
+
+    @Test("Cover-letter root fetches series patches instead of badDiff")
+    func coverLetterFetchesSeries() async {
+        let seriesPatch = NostrEvent(
+            id: String(repeating: "0", count: 64), pubkey: author, kind: 1617,
+            content: "commit msg\n\ndiff --git a/AGENTS.md b/AGENTS.md\n@@ -1 +1 @@\n+new",
+            tags: [["e", rootID, "", "root"]], createdAt: 2)
+        let store = TestStore(initialState: OpenPatchFeature.State()) {
+            OpenPatchFeature()
+        } withDependencies: {
+            $0.relayClient.reachableRelays = { _ in ["wss://x"] }
+            $0.relayClient.subscribe = { _ in AsyncStream { c in c.yield(seriesPatch); c.finish() } }
+        }
+        store.exhaustivity = .off
+        await store.send(.eventFetched(coverLetter())) {
+            $0.status = .fetching
+        }
+        // prPatchesFetched with the series patch -> unioned diff -> patchLoaded.
+        await store.receive(\.prPatchesFetched)
+        await store.receive(\.delegate.patchLoaded)
+    }
+
+    @Test("Cover-letter root with no series replies sets prError, not badDiff")
+    func coverLetterEmpty() async {
+        let store = TestStore(initialState: OpenPatchFeature.State()) {
+            OpenPatchFeature()
+        } withDependencies: {
+            $0.relayClient.reachableRelays = { _ in ["wss://x"] }
+            $0.relayClient.subscribe = { _ in AsyncStream { $0.finish() } }
+        }
+        store.exhaustivity = .off
+        await store.send(.eventFetched(coverLetter())) {
+            $0.status = .fetching
+        }
+        await store.receive(\.prPatchesFetched) {
+            $0.status = .prError("Patch 88888888 has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS.")
+        }
+    }
+}

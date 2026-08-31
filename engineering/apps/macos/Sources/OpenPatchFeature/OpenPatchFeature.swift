@@ -131,6 +131,25 @@ public struct OpenPatchFeature {
             case let .eventFetched(event):
                 switch event.kind {
                 case PatchDiffSplitter.patchKind:
+                    // NIP-34 patch series: a root cover letter carries no diff
+                    // (series description only); the diffs live in the series'
+                    // kind-1617 replies that reference the cover letter via
+                    // `e` tags. Fetch them rather than rejecting the cover
+                    // letter as a bad diff. Implements FR-srm-patch-open-load's
+                    // cover-letter half.
+                    if PatchDiffSplitter.isCoverLetter(event) {
+                        state.status = .fetching
+                        let candidates = state.currentRef?.relays.isEmpty ?? true
+                            ? RelayClient.resolveRelays()
+                            : (state.currentRef?.relays ?? RelayClient.resolveRelays())
+                        return .run { [relayClient] send in
+                            let reachable = await relayClient.reachableRelays(candidates)
+                            let relays = reachable.isEmpty ? candidates : reachable
+                            let events = await Self.fetchSeriesPatches(rootID: event.id, relays: relays, relayClient: relayClient)
+                            await send(.prPatchesFetched(events, event))
+                        }
+                        .cancellable(id: CancelID.fetch, cancelInFlight: true)
+                    }
                     switch PatchDiffSplitter.validate(event) {
                     case let .wrongKind(kind):
                         state.status = .wrongKind(shortHex(event.id), kind)
@@ -230,13 +249,31 @@ public struct OpenPatchFeature {
                 }
                 let short = shortHex(prEvent.id)
                 guard !union.isEmpty else {
-                    state.status = .prError("PR \(short) has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS.")
+                    // Cover-letter root with no parseable series replies, or a PR
+                    // with no usable referenced patches.
+                    let label = prEvent.kind == PatchDiffSplitter.prKind ? "PR \(short)" : "Patch \(short)"
+                    state.status = .prError("\(label) has no reviewable patch events. Its changes may be available only via git clone — open this PR on macOS.")
                     return .none
                 }
                 let files = order.map { filePath in
                     PatchDiffSplitter.DiffFile(filePath: filePath, diffBlock: union[filePath]!.joined(separator: "\n"))
                 }
-                return .send(.delegate(.patchLoaded(files, PatchDiffSplitter.prMetadata(from: prEvent))))
+                // Metadata: PR events use prMetadata; a cover-letter root is a
+                // kind-1617 patch event, so reuse the patch metadata shape (its
+                // preamble is the series description / commit message).
+                let metadata = prEvent.kind == PatchDiffSplitter.prKind
+                    ? PatchDiffSplitter.prMetadata(from: prEvent)
+                    : ReviewContext.PatchMetadata(
+                        eventID: prEvent.id,
+                        shortEventID: short,
+                        author: PatchDiffSplitter.truncatedPubkey(prEvent.pubkey),
+                        commitMessage: PatchDiffSplitter.subject(from: prEvent),
+                        parentCommit: PatchDiffSplitter.parentCommit(from: prEvent.tags),
+                        status: "open",
+                        repoCoordinate: PatchDiffSplitter.repoCoordinate(from: prEvent.tags),
+                        replies: []
+                    )
+                return .send(.delegate(.patchLoaded(files, metadata)))
 
             case let .fetchTimedOut(eventID):
                 state.status = .notFound(shortHex(eventID))
@@ -274,6 +311,34 @@ public struct OpenPatchFeature {
             group.cancelAll()
             return first
         }
+    }
+
+    /// Fetch the kind-1617 patches of a NIP-34 series: subscribe `#e = rootID`
+    /// (every event referencing the cover letter) within the wait window and
+    /// keep the valid 1617 replies. The cover letter itself is excluded.
+    /// Implements the fetch half of the cover-letter path of
+    /// `FR-srm-patch-open-load` / `FR-sri-patch-open-load`.
+    static func fetchSeriesPatches(
+        rootID: String, relays: [String], relayClient: RelayClient
+    ) async -> [NostrEvent] {
+        let stream = relayClient.subscribe(NostrFilter(eTag: rootID, kinds: [patchKindInt], relays: relays))
+        return await collectEvents(stream, seconds: 8).filter { $0.kind == patchKindInt && $0.id != rootID }
+    }
+
+    private static var patchKindInt: Int { PatchDiffSplitter.patchKind }
+
+    /// Collect every event from a subscription within a window (shared buffer;
+    /// the stream never terminates on its own — see PRBrowseFeature.collectEvents).
+    static func collectEvents(_ stream: AsyncStream<NostrEvent>, seconds: UInt64) async -> [NostrEvent] {
+        final class Box: @unchecked Sendable { var events: [NostrEvent] = [] }
+        let box = Box()
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { for await event in stream { box.events.append(event) } }
+            group.addTask { try? await Task.sleep(nanoseconds: seconds * 1_000_000_000) }
+            await group.next()
+            group.cancelAll()
+        }
+        return box.events
     }
 
     /// Fetch each referenced patch event by id in parallel, taking the first
