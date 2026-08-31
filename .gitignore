@@ -20,3 +20,4 @@ engineering/apps/ios/ShepherdiOS.xcodeproj/
 engineering/apps/ios/build/
 engineering/apps/ios/**/xcuserdata/
 engineering/apps/ios/*.xcworkspace/xcuserdata/
+.DS_Store
