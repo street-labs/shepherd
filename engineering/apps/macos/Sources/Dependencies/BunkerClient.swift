@@ -359,8 +359,10 @@ private final class BunkerSession: @unchecked Sendable {
                 @unknown default: nil
                 }
                 guard let text else { continue }
+                RelayLog.debug("bunker ws <- \(text.prefix(160))")
                 await handleResponse(text)
             } catch {
+                RelayLog.debug("bunker ws closed/errored: \(error.localizedDescription) (closeCode=\(task.closeCode.rawValue))")
                 return
             }
         }
