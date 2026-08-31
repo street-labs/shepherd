@@ -251,7 +251,9 @@ public struct OpenPatchFeature {
                 let files = order.map { filePath in
                     PatchDiffSplitter.DiffFile(filePath: filePath, diffBlock: union[filePath]!.joined(separator: "\n"))
                 }
-                return .send(.delegate(.patchLoaded(files, PatchDiffSplitter.prMetadata(from: prEvent))))
+                var metadata = PatchDiffSplitter.prMetadata(from: prEvent)
+                metadata.seriesPatchCount = events.count
+                return .send(.delegate(.patchLoaded(files, metadata)))
 
             case let .fetchTimedOut(eventID):
                 state.status = .notFound(shortHex(eventID))
@@ -317,8 +319,13 @@ public struct OpenPatchFeature {
     /// Fetch the kind-1617 patch replies that reference a patch-series cover
     /// letter via `e` tag (NIP-34 series published by `ngit send --force-patch`).
     /// Collects every distinct event that arrives within an 8s window, oldest
-    /// first, so the union preserves commit order.
+    /// first, so the union preserves commit order. The fetched count is surfaced
+    /// via `PatchMetadata.seriesPatchCount` so a truncated series (slow relay,
+    /// window expired) is visible rather than presented as complete.
     private final class EventBox: @unchecked Sendable {
+        // Sendability invariant: exactly one task appends; reads happen only
+        // after the task group below completes. Confine or actor-ify if that
+        // ever stops holding.
         var events: [NostrEvent] = []
     }
 
@@ -339,6 +346,10 @@ public struct OpenPatchFeature {
         }
         var byID: [String: NostrEvent] = [:]
         for event in box.events { byID[event.id] = event }
+        // ponytail: createdAt ordering is a heuristic — same-second ngit sends
+        // have no guaranteed commit order, and a re-published patch sorts by its
+        // original timestamp. Walk the `e`-tag reply chain from the root if
+        // exact ordering ever matters.
         return byID.values.sorted { $0.createdAt < $1.createdAt }
     }
 }

@@ -64,6 +64,10 @@ public struct ReviewContext: Equatable, Codable, Sendable {
         /// kind `1620` verdict events and merge-gate staleness checks.
         /// Implements: FR-pa-review. nil for a kind `1617` patch.
         public var tipCommitFull: String?
+        /// Number of patch events fetched for a patch-series/PR union load.
+        /// Surfaced so a partial fetch (relay collect window expired) is visible
+        /// rather than presented as a complete diff. nil for single-patch loads.
+        public var seriesPatchCount: Int?
         /// Replies on the patch review thread from other agents/humans (NIP-34 live
         /// review loop). Implements: FR-sr-patch-replies-display. Read-only
         /// conversation context, not user-editable comments. Empty when no replies.
@@ -80,6 +84,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             tipCommit: String? = nil,
             branchName: String? = nil,
             tipCommitFull: String? = nil,
+            seriesPatchCount: Int? = nil,
             replies: [PatchReply] = []
         ) {
             self.eventID = eventID
@@ -92,6 +97,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             self.tipCommit = tipCommit
             self.branchName = branchName
             self.tipCommitFull = tipCommitFull
+            self.seriesPatchCount = seriesPatchCount
             self.replies = replies
         }
 
@@ -101,8 +107,8 @@ public struct ReviewContext: Equatable, Codable, Sendable {
         // and absent on pre-PR payloads.
         private enum CodingKeys: String, CodingKey {
             case eventID, shortEventID, author, commitMessage
-            case parentCommit, status, repoCoordinate, tipCommit, branchName, replies
-            case tipCommitFull
+            case parentCommit, status, repoCoordinate, tipCommit, branchName
+            case tipCommitFull, seriesPatchCount, replies
         }
 
         public init(from decoder: Decoder) throws {
@@ -117,6 +123,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             self.tipCommit = try c.decodeIfPresent(String.self, forKey: .tipCommit)
             self.branchName = try c.decodeIfPresent(String.self, forKey: .branchName)
             self.tipCommitFull = try c.decodeIfPresent(String.self, forKey: .tipCommitFull)
+            self.seriesPatchCount = try c.decodeIfPresent(Int.self, forKey: .seriesPatchCount)
             self.replies = try c.decodeIfPresent([PatchReply].self, forKey: .replies) ?? []
         }
 
@@ -132,6 +139,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             try c.encodeIfPresent(tipCommit, forKey: .tipCommit)
             try c.encodeIfPresent(branchName, forKey: .branchName)
             try c.encodeIfPresent(tipCommitFull, forKey: .tipCommitFull)
+            try c.encodeIfPresent(seriesPatchCount, forKey: .seriesPatchCount)
             try c.encode(replies, forKey: .replies)
         }
     }
