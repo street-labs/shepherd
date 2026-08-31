@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import ComposableArchitecture
 import SharedModels
 
@@ -596,22 +597,29 @@ enum RelayAuth {
     }
 }
 
-/// Opt-in debug logging for the relay client. Silent by default (the app ships
-/// with no console spam); set `SHEPHERD_RELAY_DEBUG=1` in the environment to
-/// trace relay frames, NIP-42 auth, and subscription events to stdout. Intended
-/// for diagnosing auth-required relay issues in the field.
+/// Debug logging for the relay client, emitted via OSLog (subsystem
+/// `com.shepherd.app`, category `relay`) at `.info` level — persisted on
+/// device and visible in Console.app / `log stream`, which is the only way to
+/// see them from a physical iPhone. To surface them (info level is disabled
+/// by default):
+///   log stream --device <iphone> --predicate 'subsystem == "com.shepherd.app"' --info
+/// or install a debug-logging profile. The `SHEPHERD_RELAY_DEBUG` env var /
+/// `shepherd.relayDebug` default additionally gates stdout mirroring for
+/// desktop diagnosis.
 public enum RelayLog {
+    private static let logger = OSLog(subsystem: "com.shepherd.app", category: "relay")
     /// Env var (`SHEPHERD_RELAY_DEBUG=1`) or persisted default
-    /// (`defaults write com.shepherd.app shepherd.relayDebug -bool true`) — the
-    /// UserDefaults path survives launches from Finder/Xcode where env vars
-    /// don't propagate.
+    /// (`defaults write com.shepherd.app shepherd.relayDebug -bool true`) — gates
+    /// the stdout mirror; OSLog emission is unconditional so on-device logs are
+    /// always retrievable.
     public static let enabled: Bool = {
         if let s = ProcessInfo.processInfo.environment["SHEPHERD_RELAY_DEBUG"], ["1", "true", "yes"].contains(s.lowercased()) { return true }
         return UserDefaults.standard.bool(forKey: "shepherd.relayDebug")
     }()
     public static func debug(_ message: @autoclosure () -> String) {
-        guard enabled else { return }
-        print("[relay] \(message())")
+        let text = message()
+        os_log(.info, log: logger, "[relay] %{public}@", text)
+        if enabled { print("[relay] \(text)") }
     }
 }
 

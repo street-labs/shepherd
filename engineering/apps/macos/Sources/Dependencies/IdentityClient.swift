@@ -97,13 +97,11 @@ extension IdentityClient: DependencyKey {
             bunkerClient: bunkerClient,
             keychainClient: keychainClient
         )
-        if RelayLog.enabled {
-            if let loaded = holder.loaded {
-                let id = loaded.identity
-                print("[identity] loaded: source=\(id.source) npub=\(id.npub.prefix(16))… bunkerState=\(String(describing: id.bunkerState)) bunkerRelay=\(loaded.bunkerConfig?.relayURL ?? "n/a")")
-            } else {
-                print("[identity] NO identity loaded — AUTH-required relays will return nothing")
-            }
+        if let loaded = holder.loaded {
+            let id = loaded.identity
+            RelayLog.debug("[identity] loaded: source=\(id.source) npub=\(id.npub.prefix(16))… bunkerState=\(String(describing: id.bunkerState)) bunkerRelay=\(loaded.bunkerConfig?.relayURL ?? "n/a")")
+        } else {
+            RelayLog.debug("[identity] NO identity loaded — AUTH-required relays will return nothing")
         }
         return IdentityClient(
             loadIdentity: { holder.loaded?.identity },
