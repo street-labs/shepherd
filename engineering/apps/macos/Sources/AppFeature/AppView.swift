@@ -108,7 +108,15 @@ public struct AppView: View {
             reviewContextStore: store.scope(state: \.reviewContext, action: \.reviewContext),
             reviewerIdentity: store.reviewerIdentity,
             showPublishConfirmation: store.showPublishConfirmation,
-            onReplyToPatchReply: { reply in store.send(.replyToPatchReply(reply)) }
+            onReplyToPatchReply: { reply in store.send(.replyToPatchReply(reply)) },
+            approvalState: store.approvalState.map { state in
+                switch state {
+                case .publishing: return .publishing
+                case .approved: return .approved
+                case .failed(let msg): return .failed(msg)
+                }
+            },
+            onApprove: { store.send(.approvePRTapped) }
         )
     }
 

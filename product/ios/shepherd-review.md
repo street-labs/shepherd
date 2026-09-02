@@ -48,6 +48,9 @@ None of the CLI/agent-orchestration requirements apply — there is no slash com
 
 These requirements are the iOS port of the macOS in-app patch open (`../macos/shepherd-review.md`, In-app patch open). The reviewer is in the app's empty state and initiates the patch review themselves; the app fetches the NIP-34 patch event in-process and loads it using only what the event contains. No local git repository is required and no shell process is invoked.
 
+#### `FR-sri-pr-approve` -- Approve a PR/patch from the iOS review surface
+Same approval capability as macOS (`FR-srm-pr-approve`): during a patch/PR review with an identity loaded, the reviewer can approve with one action, publishing the signed kind:1 approval note (`e`/`a`/`c`/`t=approval` tags). The control shows progress and outcome and is disabled without an identity.
+
 #### `FR-sri-patch-open-entry` — Empty state exposes an "Open Patch or PR" affordance
 The app's empty state exposes an "Open Patch or PR" affordance as the primary entry point. Activating it opens a lightweight entry sheet in which the reviewer enters or pastes a NIP-34 patch or PR reference. The same entry serves both kinds: the app fetches the event by id and dispatches on its kind — kind `1617` loads as a patch (`FR-sri-patch-open-load`), kind `1618` loads as a PR (`FR-sri-pr-open-patches`). This affordance is present only in the empty state; it is not shown once a review is loaded. It does not invoke any slash command or shell process.
 

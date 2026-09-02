@@ -205,3 +205,6 @@ The iOS in-app patch open and the bidirectional patch-thread review loop: openin
 - All CLI/agent-orchestration criteria (`AC-sr-*` for changeset detection, filtering, ordering, context generation, launcher, install, interactive prompt, completion summary, feedback handoff): no CLI on iOS.
 - `AC-sr-patch-application-*`: no git apply on iOS (in-app load from the event only).
 - macOS in-app patch open (`AC-srm-patch-open-*`): covered by `qa/macos/shepherd-review.md`; the iOS cases here are the iOS ports.
+
+#### `TC-sri-pr-approve` — PR approval
+Same as macOS (`TC-srm-pr-approve`) on device: Approve in the PR metadata section publishes the signed approval via the on-device identity (bunker). Automated: shared `PRApprovalTests`.

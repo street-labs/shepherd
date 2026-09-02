@@ -154,3 +154,8 @@ The Open Patch sheet and Settings are modal and present identically on both form
 1. **Relay configuration UI shape**: a plain editable list vs. a curated set of presets + custom. v1 uses an editable list with a "use defaults" toggle; exact affordance deferred.
 2. **Identity persistence**: resolved — the identity persists across launches via the iOS Keychain (`FR-id-ios-keychain-storage`, see `./identity.md`). Whether to use a keychain-access-group for future iCloud Keychain sharing with the macOS app is an engineering decision (see `../../engineering/ios/identity.md` Open Question 2); v1 uses the app's default Keychain.
 3. **Roster / display-name resolution**: v1 falls back to truncated npub. Whether to bundle a roster or fetch NIP-05 is a follow-up (product Open Question 3); design will render whatever display name the app resolves, npub as fallback.
+
+
+## PR approval (FR-sri-pr-approve)
+
+The patch/PR metadata section (shared view) shows an Approve affordance on iOS identical to macOS (`FR-srm-pr-approve`): one tap publishes a signed kind:1 approval note to the thread; progress/outcome render inline.

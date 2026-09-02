@@ -111,6 +111,12 @@ public struct FileBrowserView: View {
         // Indent past the directory chevron so files align under their folder's name.
         .padding(.leading, CGFloat(depth) * 14 + 16)
         .tag("file:\(leaf.fileID)")
+        // Compact (iPhone): List(selection:) does not re-fire when tapping the
+        // already-selected row, so after backing out to the file list the
+        // active file cannot be re-entered. Send the selection explicitly;
+        // redundant sends are harmless (activeFileID set is idempotent).
+        .contentShape(Rectangle())
+        .onTapGesture { store.send(.fileSelected(leaf.fileID)) }
         .help(fileTooltip(for: leaf))
         .contextMenu {
             Button("Toggle Reviewed") {

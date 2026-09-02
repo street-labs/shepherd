@@ -25,7 +25,7 @@ No new data. `PRBrowseFeature.State` (watchlist, inputs, errors, mode, loading, 
 
 ## API / Interface Design
 
-No new contracts. The existing delegate `PRBrowseFeature.Action.delegate(.openPR(id))` → `AppFeature.presentOpenPatch` path is reused unchanged; iOS has no unsaved-feedback guard to satisfy (no local files loaded when the sheet is reachable — the entry point only exists on the empty state).
+No new contracts. The existing delegate `PRBrowseFeature.Action.delegate(.openPR(id))` → `AppFeature.presentOpenPatch` path is reused unchanged; iOS has no unsaved-feedback guard to satisfy (no local files loaded when the sheet is reachable — the entry point only exists on the empty state). Because the browse sheet is a local `@State` presentation on `EmptyStateView` and Open Patch is an app-level sheet, selecting a PR must dismiss the browse sheet when `state.openPatch` becomes non-nil — SwiftUI silently drops a second sheet presentation while one is already up, which previously swallowed the open action entirely (tapping a row appeared to do nothing).
 
 ## Component Architecture
 

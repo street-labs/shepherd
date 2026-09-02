@@ -78,6 +78,16 @@ public struct AppFeature {
         /// Transient: true for ~2s after a successful patch-thread reply publish; drives
         /// the "Reply published to patch thread" confirmation near the identity
         /// indicator. Implements: FR-srm-comment-publish-on-submit.
+        /// Approval publish state for the PR/patch under review. nil until the
+        /// reviewer taps Approve. Implements FR-srm-pr-approve / FR-sri-pr-approve.
+        public var approvalState: ApprovalState?
+        /// Approval lifecycle. Distinct from the comment publish state so the
+        /// Approve button renders its own progress/result independently.
+        public enum ApprovalState: Equatable, Sendable {
+            case publishing
+            case approved
+            case failed(String)
+        }
         public var showPublishConfirmation: Bool = false
 
         /// Markdown rendering mode (raw or rendered)
@@ -242,6 +252,12 @@ public struct AppFeature {
         case replyToPatchReply(ReviewContext.PatchReply)
         case patchReplyPublishResult(Comment.ID, PublishResult, NostrEvent?)
         case dismissPublishConfirmation
+        /// Approve the open PR/patch: publishes a signed kind-1 approval event
+        /// (`t=approval`, `e`/`a`/`c` tags referencing the PR) — the convention
+        /// the ngit merge pipeline watches for. Implements FR-srm-pr-approve,
+        /// FR-sri-pr-approve.
+        case approvePRTapped
+        case prApprovalResult(PublishResult)
 
         // Alerts
         case alert(PresentationAction<Alert>)
@@ -736,6 +752,43 @@ public struct AppFeature {
 
                 case .dismissPublishConfirmation:
                     state.showPublishConfirmation = false
+                    return .none
+
+                // MARK: - PR approval (FR-srm-pr-approve, FR-sri-pr-approve)
+
+                case .approvePRTapped:
+                    guard let meta = state.reviewContextData?.patchMetadata,
+                          state.reviewerIdentity != nil,
+                          state.approvalState != .publishing else { return .none }
+                    state.approvalState = .publishing
+                    return .run { [identityClient, relayClient] send in
+                        var tags: [[String]] = [
+                            ["e", meta.eventID],
+                            ["t", "approval"],
+                        ]
+                        if let coord = meta.repoCoordinate { tags.append(["a", coord]) }
+                        if let tip = meta.tipCommit { tags.append(["c", tip]) }
+                        let unsigned = NostrEvent(
+                            id: "", pubkey: "", kind: 1,
+                            content: "shepherd: approved",
+                            tags: tags, createdAt: Int64(Date().timeIntervalSince1970)
+                        )
+                        guard let signed = await identityClient.sign(unsigned) else {
+                            await send(.prApprovalResult(.failed))
+                            return
+                        }
+                        await send(.prApprovalResult(await relayClient.publish(signed)))
+                    }
+
+                case let .prApprovalResult(result):
+                    switch result {
+                    case .accepted:
+                        state.approvalState = .approved
+                    case .rejected:
+                        state.approvalState = .failed("Every relay rejected the approval")
+                    case .failed:
+                        state.approvalState = .failed("Could not sign or reach a relay")
+                    }
                     return .none
 
                 // MARK: - Child Feature Forwarding

@@ -66,7 +66,23 @@ public struct BunkerConfig: Sendable, Equatable {
 extension BunkerClient: DependencyKey {
     public static let liveValue = BunkerClient(
         connect: { config in
-            await BunkerSession.shared.connect(config: config)
+            // Persisted session key = stable NIP-46 client identity. Reuse it
+            // so a paired bunker (clave rotates the bunker secret on pair and
+            // re-admits only known session pubkeys) recognizes us across
+            // launches; generate + persist on first connect.
+            let keychain = DependencyValues._current.keychainClient
+            let persisted = keychain.readBunkerSessionKey()
+            let sessionKey: Data?
+            if let persisted, persisted.count == 32 {
+                sessionKey = persisted
+            } else {
+                sessionKey = BunkerSession.generateSessionKeyMaterial()
+                if let sessionKey {
+                    RelayLog.debug("bunker: generated + persisted new NIP-46 session key (paired client identity)")
+                    _ = keychain.writeBunkerSessionKey(sessionKey)
+                }
+            }
+            return await BunkerSession.shared.connect(config: config, sessionKeyOverride: sessionKey)
         },
         signEvent: { event in
             await BunkerSession.shared.signEvent(event: event)
@@ -103,7 +119,7 @@ extension DependencyValues {
 // Uses NSLock wrapped in sync helpers to satisfy Swift 6.2's async-context
 // lock restriction.
 
-private final class BunkerSession: @unchecked Sendable {
+final class BunkerSession: @unchecked Sendable {
     static let shared = BunkerSession()
 
     private let lock = NSLock()
@@ -146,10 +162,19 @@ private final class BunkerSession: @unchecked Sendable {
     }
 
     /// Connect to the bunker and run the NIP-46 handshake. Returns the reviewer's
-    /// pubkey hex on success, nil on failure.
+    /// pubkey hex on success, nil on failure. `sessionKeyOverride` supplies the
+    /// persisted NIP-46 client identity when present (stable pairing identity);
+    /// nil falls back to a fresh ephemeral key.
     // Implements: FR-srm-bunker-connect
-    func connect(config: BunkerConfig) async -> String? {
-        guard let (secKey, pubHex) = generateSessionKey() else {
+    func connect(config: BunkerConfig, sessionKeyOverride: Data? = nil) async -> String? {
+        let keyMaterial: (Data, String)?
+        if let override = sessionKeyOverride,
+           let pubHex = NostrSigner.derivePublicKey(override) {
+            keyMaterial = (override, pubHex)
+        } else {
+            keyMaterial = generateSessionKey()
+        }
+        guard let (secKey, pubHex) = keyMaterial else {
             setState(.failed("couldn't generate session key"))
             return nil
         }
@@ -193,10 +218,18 @@ private final class BunkerSession: @unchecked Sendable {
         let clientMetadata = "{\"name\":\"Shepherd\"}"
         let connectParams: [String] = [config.bunkerPubkeyHex, config.secret ?? "", "", clientMetadata]
         RelayLog.debug("bunker connect: sent connect request to \(config.relayURL)")
-        guard let _ = await sendRequest(method: "connect", params: connectParams) else {
+        let connectAck = await sendRequest(method: "connect", params: connectParams)
+        guard connectAck != nil else {
             RelayLog.debug("bunker connect: no response to connect request")
             setState(.failed("bunker didn't respond to connect"))
             return nil
+        }
+        // Clave pairs + reveals the reviewer pubkey in the connect ack (rather
+        // than NIP-46's "ack"). Capture it when it's a pubkey so the
+        // get_public_key response (which clave uses to return the rotated
+        // secret) can fall back to it.
+        if let ack = connectAck, ack.count == 64, ack.allSatisfy(\.isHexDigit) {
+            withLock { self.reviewerPubkeyHex = ack }
         }
 
         // Send get_public_key request
@@ -205,11 +238,27 @@ private final class BunkerSession: @unchecked Sendable {
             setState(.failed("bunker didn't respond to get_public_key"))
             return nil
         }
-        RelayLog.debug("bunker connect: handshake complete, reviewer pubkey=\(pubkeyResp.prefix(16))…")
+        // Clave quirk: its get_public_key response carries the freshly rotated
+        // bunker secret (a 32-char token), not the 64-char reviewer pubkey —
+        // clave pairs + reveals the reviewer pubkey in the connect ack. When
+        // the response isn't a pubkey, fall back to the connect ack's pubkey.
+        let reviewerPubkey: String
+        if pubkeyResp.count == 64, pubkeyResp.allSatisfy(\.isHexDigit) {
+            reviewerPubkey = pubkeyResp
+        } else if let connectAck = withLock({ self.reviewerPubkeyHex }),
+                  connectAck.count == 64, connectAck.allSatisfy(\.isHexDigit) {
+            RelayLog.debug("bunker connect: get_public_key returned a non-pubkey (clave rotated-secret quirk); using connect ack pubkey")
+            reviewerPubkey = connectAck
+        } else {
+            RelayLog.debug("bunker connect: get_public_key returned neither pubkey nor usable ack: \(pubkeyResp.prefix(24))")
+            setState(.failed("bunker returned no reviewer pubkey"))
+            return nil
+        }
+        RelayLog.debug("bunker connect: handshake complete, reviewer pubkey=\(reviewerPubkey.prefix(16))…")
 
-        withLock { self.reviewerPubkeyHex = pubkeyResp }
+        withLock { self.reviewerPubkeyHex = reviewerPubkey }
         setState(.connected)
-        return pubkeyResp
+        return reviewerPubkey
     }
 
     /// Reconnect: close the old channel and re-run the handshake with the
@@ -240,17 +289,29 @@ private final class BunkerSession: @unchecked Sendable {
     /// handshake) before signing, so the spec'd retry flow succeeds. A single
     /// reconnect attempt per sign call — if it also fails, returns nil.
     func signEvent(event: NostrEvent) async -> NostrEvent? {
-        // If the session dropped (or was never connected — e.g. an auth frame is
-        // requested before any review window ran the connect handshake),
-        // reconnect first (spec: "reattempts the bunker sign, reconnecting the
-        // control channel first if it was dropped").
+        // If the session dropped, reconnect first (spec: "reattempts the
+        // bunker sign, reconnecting the control channel first if it was
+        // dropped"). Reconnect only from `.failed`/nil — a `.connecting`
+        // handshake in flight (e.g. launch connect still running when an AUTH
+        // frame arrives) must not be torn down: clave rotates the bunker
+        // secret on pair, so discarding an in-flight pair and re-pairing with
+        // the stale secret is rejected as 'Invalid or missing bunker secret'.
         if getState() != .connected {
-            RelayLog.debug("bunker signEvent: not connected (state=\(String(describing: getState()))); reconnecting")
-            guard let config = getConfig(), await reconnect(config: config) else {
-                RelayLog.debug("bunker signEvent: reconnect failed (config present: \(getConfig() != nil))")
-                return nil
+            if getState() == .connecting {
+                RelayLog.debug("bunker signEvent: handshake in flight; waiting for it to finish")
+                let deadline = ContinuousClock.now.advanced(by: .seconds(12))
+                while getState() != .connected, ContinuousClock.now < deadline {
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                }
             }
-            RelayLog.debug("bunker signEvent: reconnected")
+            if getState() != .connected {
+                RelayLog.debug("bunker signEvent: not connected (state=\(String(describing: getState()))); reconnecting")
+                guard let config = getConfig(), await reconnect(config: config) else {
+                    RelayLog.debug("bunker signEvent: reconnect failed (config present: \(getConfig() != nil))")
+                    return nil
+                }
+                RelayLog.debug("bunker signEvent: reconnected")
+            }
         }
         let eventDict: [String: Any] = [
             "content": event.content,
@@ -291,16 +352,24 @@ private final class BunkerSession: @unchecked Sendable {
 
     // MARK: - Private
 
-    private func generateSessionKey() -> (Data, String)? {
+    /// 32 random bytes suitable for a session key (persistence happens in
+    /// `BunkerClient.liveValue`, which owns the Keychain dependency).
+    static func generateSessionKeyMaterial() -> Data? {
         var key = Data(count: 32)
         let result = key.withUnsafeMutableBytes { buf -> Int32 in
             guard let base = buf.baseAddress else { return -1 }
             return SecRandomCopyBytes(kSecRandomDefault, 32, base)
         }
-        guard result == errSecSuccess else { return nil }
+        return result == errSecSuccess ? key : nil
+    }
+
+    private func generateSessionKey() -> (Data, String)? {
+        guard let key = Self.generateSessionKeyMaterial() else { return nil }
         guard let pubHex = NostrSigner.derivePublicKey(key) else { return nil }
         return (key, pubHex)
     }
+
+
 
     private func sendRequest(method: String, params: [String]) async -> String? {
         let secKey = withLock { sessionKey }
@@ -359,8 +428,10 @@ private final class BunkerSession: @unchecked Sendable {
                 @unknown default: nil
                 }
                 guard let text else { continue }
+                RelayLog.debug("bunker ws <- \(text.prefix(160))")
                 await handleResponse(text)
             } catch {
+                RelayLog.debug("bunker ws closed/errored: \(error.localizedDescription) (closeCode=\(task.closeCode.rawValue))")
                 return
             }
         }
@@ -412,17 +483,33 @@ private final class BunkerSession: @unchecked Sendable {
 
     private func handleEvent(_ array: [Any]) {
         let convKey = withLock { conversationKey }
-        guard let convKey else { return }
+        guard let convKey else { RelayLog.debug("bunker handleEvent: no conversation key"); return }
         guard array.count >= 3,
-              let eventObj = array[2] as? [String: Any],
-              let kind = eventObj["kind"] as? Int, kind == 24133,
-              let content = eventObj["content"] as? String,
-              let decrypted = NIP44Crypto.decrypt(content, conversationKey: convKey),
-              let respData = decrypted.data(using: .utf8),
+              let eventObj = array[2] as? [String: Any] else { return }
+        guard let kind = eventObj["kind"] as? Int, kind == 24133 else {
+            RelayLog.debug("bunker handleEvent: skipping kind \(eventObj["kind"] ?? "?") (want 24133)")
+            return
+        }
+        guard let content = eventObj["content"] as? String,
+              let decrypted = NIP44Crypto.decrypt(content, conversationKey: convKey) else {
+            RelayLog.debug("bunker handleEvent: NIP-44 decrypt FAILED (content len \(String(describing: eventObj["content"]).count))")
+            return
+        }
+        RelayLog.debug("bunker handleEvent: decrypted -> \(decrypted.prefix(160))")
+        guard let respData = decrypted.data(using: .utf8),
               let resp = try? JSONSerialization.jsonObject(with: respData) as? [String: Any],
-              let respID = resp["id"] as? String else { return }
+              let respID = resp["id"] as? String else {
+            RelayLog.debug("bunker handleEvent: decrypted payload has no string id: \(decrypted.prefix(120))")
+            return
+        }
 
         if let error = resp["error"] as? String, !error.isEmpty {
+            RelayLog.debug("bunker handleEvent: response error: \(error)")
+            // Surface the bunker's refusal on the identity indicator instead of
+            // letting the request time out into a generic "didn't respond" — a
+            // real error (e.g. clave's "Invalid or missing bunker secret") tells
+            // the reviewer exactly what to fix.
+            setState(.failed(error))
             resolveRequest(respID, with: nil)
             return
         }

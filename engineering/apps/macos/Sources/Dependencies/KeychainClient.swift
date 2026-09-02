@@ -20,16 +20,31 @@ public struct KeychainClient: Sendable {
     public var writeIdentity: @Sendable (Data) -> Bool = { _ in false }
     /// Delete the stored identity (logout). No-op if none stored.
     public var deleteIdentity: @Sendable () -> Void
+    /// The persisted NIP-46 session key (32 bytes) for the bunker form — the
+    /// client identity the bunker pairs with. Persisted because signers like
+    /// clave rotate the bunker secret after each successful pair and only
+    /// reconnect secret-less clients whose session pubkey they already know;
+    /// a fresh session key per launch is rejected as 'Invalid or missing
+    /// bunker secret' on every run after the first.
+    public var readBunkerSessionKey: @Sendable () -> Data? = { nil }
+    /// Persist (or overwrite) the NIP-46 session key. Returns success.
+    public var writeBunkerSessionKey: @Sendable (Data) -> Bool = { _ in false }
+    /// Delete the persisted session key (bunker logout / re-pair).
+    public var deleteBunkerSessionKey: @Sendable () -> Void = {}
 }
 
 extension KeychainClient: DependencyKey {
     public static let liveValue: KeychainClient = {
         let service = "com.street-labs.shepherd"
         let account = "shepherd-nostr-identity"
+        let sessionAccount = "shepherd-nostr-bunker-session"
         return KeychainClient(
             readIdentity: { Self.read(service: service, account: account) },
             writeIdentity: { Self.write(data: $0, service: service, account: account) },
-            deleteIdentity: { Self.delete(service: service, account: account) }
+            deleteIdentity: { Self.delete(service: service, account: account) },
+            readBunkerSessionKey: { Self.read(service: service, account: sessionAccount) },
+            writeBunkerSessionKey: { Self.write(data: $0, service: service, account: sessionAccount) },
+            deleteBunkerSessionKey: { Self.delete(service: service, account: sessionAccount) }
         )
     }()
 

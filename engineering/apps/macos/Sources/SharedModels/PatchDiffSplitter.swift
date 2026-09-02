@@ -135,13 +135,23 @@ public enum PatchDiffSplitter {
     /// truncated hex pubkey. A truncated npub would be friendlier but npub
     /// encoding lives in `Dependencies/Bech32.swift` and SharedModels stays
     /// dependency-free; upgrade to npub when a roster resolver lands.
-    static func truncatedPubkey(_ pubkey: String) -> String {
+    public static func truncatedPubkey(_ pubkey: String) -> String {
         guard pubkey.count > 16 else { return pubkey }
         return String(pubkey.prefix(12)) + "…"
     }
 
+    /// Whether the event is a NIP-34 patch-series cover letter: a kind `1617`
+    /// whose `t` tags include `cover-letter`. A cover letter describes the
+    /// series (commit message only, no diff); the diffs live in the series'
+    /// reply patches that reference the cover letter via `e` tags (marker
+    /// `root`/`reply`). This is the structure `ngit`/`borg --force-patch`
+    /// publishes for multi-patch PRs.
+    public static func isCoverLetter(_ event: NostrEvent) -> Bool {
+        event.kind == patchKind && event.tags.contains { $0.count >= 2 && $0[0] == "t" && $0[1] == "cover-letter" }
+    }
+
     /// First `parent-commit` tag value (full hash), shortened to 8 chars.
-    static func parentCommit(from tags: [[String]]) -> String? {
+    public static func parentCommit(from tags: [[String]]) -> String? {
         for tag in tags where tag.count >= 2 && tag[0] == "parent-commit" {
             return shortID(tag[1])
         }
@@ -149,7 +159,7 @@ public enum PatchDiffSplitter {
     }
 
     /// First `a` tag value (NIP-34 repo coordinate `30617:<owner>:<repo>`).
-    static func repoCoordinate(from tags: [[String]]) -> String? {
+    public static func repoCoordinate(from tags: [[String]]) -> String? {
         for tag in tags where tag.count >= 2 && tag[0] == "a" {
             return tag[1]
         }

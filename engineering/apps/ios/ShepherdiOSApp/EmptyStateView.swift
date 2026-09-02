@@ -62,5 +62,12 @@ struct EmptyStateView: View {
         }) {
             PRBrowseView(store: store.scope(state: \.prBrowse, action: \.prBrowse))
         }
+        // Selecting a PR asks AppFeature to present the Open Patch sheet — but
+        // SwiftUI cannot present a second sheet while this one is up, so the
+        // openPatch presentation is silently dropped. Dismiss the browse sheet
+        // as soon as openPatch becomes non-nil so the app-level sheet wins.
+        .onChange(of: store.openPatch != nil) { _, opening in
+            if opening { isBrowsePresented = false }
+        }
     }
 }

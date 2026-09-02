@@ -22,6 +22,16 @@ public struct InspectorView: View {
     /// Invoked when the reviewer taps Reply on a patch-thread inspector row.
     /// Implements: FR-srm-reply-to-reply.
     let onReplyToPatchReply: (ReviewContext.PatchReply) -> Void
+    /// Approval state for the Approve row in the patch metadata section.
+    let approvalState: ApprovalState?
+    /// Mirror of AppFeature.State.ApprovalState (InspectorFeature must not
+    /// depend on AppFeature).
+    public enum ApprovalState: Equatable, Sendable {
+        case publishing, approved, failed(String)
+    }
+    /// Invoked when the reviewer taps Approve. Implements FR-srm-pr-approve /
+    /// FR-sri-pr-approve.
+    let onApprove: () -> Void
 
     public init(
         store: StoreOf<InspectorFeature>,
@@ -33,7 +43,9 @@ public struct InspectorView: View {
         reviewContextStore: StoreOf<ReviewContextFeature>,
         reviewerIdentity: ReviewerIdentity? = nil,
         showPublishConfirmation: Bool = false,
-        onReplyToPatchReply: @escaping (ReviewContext.PatchReply) -> Void = { _ in }
+        onReplyToPatchReply: @escaping (ReviewContext.PatchReply) -> Void = { _ in },
+        approvalState: ApprovalState? = nil,
+        onApprove: @escaping () -> Void = {}
     ) {
         self.store = store
         self._overallComment = overallComment
@@ -45,13 +57,26 @@ public struct InspectorView: View {
         self.reviewerIdentity = reviewerIdentity
         self.showPublishConfirmation = showPublishConfirmation
         self.onReplyToPatchReply = onReplyToPatchReply
+        self.approvalState = approvalState
+        self.onApprove = onApprove
     }
 
     public var body: some View {
         VStack(spacing: 0) {
             // NIP-34 patch metadata (when reviewing a Nostr patch)
             if let patchMetadata = reviewContext?.patchMetadata {
-                PatchMetadataSectionView(metadata: patchMetadata)
+                PatchMetadataSectionView(
+                    metadata: patchMetadata,
+                    approvalState: approvalState.map { state in
+                        switch state {
+                        case .publishing: return .publishing
+                        case .approved: return .approved
+                        case .failed(let msg): return .failed(msg)
+                        }
+                    },
+                    canApprove: reviewerIdentity != nil,
+                    onApprove: onApprove
+                )
             }
 
             // Reviewer identity indicator (patch reviews only). Implements:

@@ -97,13 +97,11 @@ extension IdentityClient: DependencyKey {
             bunkerClient: bunkerClient,
             keychainClient: keychainClient
         )
-        if RelayLog.enabled {
-            if let loaded = holder.loaded {
-                let id = loaded.identity
-                print("[identity] loaded: source=\(id.source) npub=\(id.npub.prefix(16))… bunkerState=\(String(describing: id.bunkerState)) bunkerRelay=\(loaded.bunkerConfig?.relayURL ?? "n/a")")
-            } else {
-                print("[identity] NO identity loaded — AUTH-required relays will return nothing")
-            }
+        if let loaded = holder.loaded {
+            let id = loaded.identity
+            RelayLog.debug("[identity] loaded: source=\(id.source) npub=\(id.npub.prefix(16))… bunkerState=\(String(describing: id.bunkerState)) bunkerRelay=\(loaded.bunkerConfig?.relayURL ?? "n/a") hasSecret=\(loaded.bunkerConfig?.secret != nil)")
+        } else {
+            RelayLog.debug("[identity] NO identity loaded — AUTH-required relays will return nothing")
         }
         return IdentityClient(
             loadIdentity: { holder.loaded?.identity },
@@ -234,6 +232,9 @@ final class IdentityHolder: @unchecked Sendable {
     func logout() {
         loaded?.closeBunker()
         keychainClient.deleteIdentity()
+        // Drop the NIP-46 session key too: the next bunker login must pair as a
+        // fresh client (the old pairing identity belongs to the logged-out URI).
+        keychainClient.deleteBunkerSessionKey()
         loaded = nil
     }
 }

@@ -41,6 +41,15 @@ public struct FileNode: Identifiable, Equatable, Sendable {
         self.scrollOffset = scrollOffset
     }
 
+    /// Whether this tab's content is a unified diff (patch/PR review tabs).
+    /// Content sniff: the first non-empty line is a `diff --git` header or hunk
+    /// context. Drives diff coloring in the code viewer. Implements the diff
+    /// rendering half of FR-srm-patch-open-load / FR-sri-patch-open-load.
+    public var isDiffContent: Bool {
+        let first = content.split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init) ?? ""
+        return first.hasPrefix("diff --git ") || first.hasPrefix("@@") || first.hasPrefix("--- ")
+    }
+
     /// Implements: FR-mdr-detect-markdown
     /// Returns true if this file is a markdown file based on its extension.
     public var isMarkdownFile: Bool {
