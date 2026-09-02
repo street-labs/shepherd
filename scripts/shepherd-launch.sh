@@ -162,7 +162,12 @@ json_escape() {
 # Implements: FR-sc-mac-launch, FR-sc-mac-session-handoff
 APP_BUNDLE="$MAC_APP_DIR/.build/Shepherd.app"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
-cp -f "$BINARY" "$APP_BUNDLE/Contents/MacOS/ShepherdApp"
+# Unlink before copying: SwiftPM emits an ad-hoc linker-signed binary and macOS caches
+# a code-signature blob per vnode. Overwriting the executable in place (cp -f truncates
+# the same inode) leaves that blob stale, and the next `open` is SIGKILLed by AMFI with
+# "Code Signature Invalid". A fresh inode per refresh avoids it.
+rm -f "$APP_BUNDLE/Contents/MacOS/ShepherdApp"
+cp "$BINARY" "$APP_BUNDLE/Contents/MacOS/ShepherdApp"
 cat > "$APP_BUNDLE/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

@@ -67,7 +67,6 @@ public enum PatchRef {
     ///
     /// Beyond a bare hex id / `nevent1…`, any URL carrying a valid reference in
     /// a path segment is accepted (a `shepherd://patch|pr/<ref>` deeplink pasted
-    /// valid reference is accepted (a `shepherd://patch|pr/<ref>` deeplink pasted
     /// as text, an `https://gitworkshop.dev/.../e/<nevent>` share link, any other
     /// Nostr web viewer) — the reference is extracted and re-parsed. Implements
     /// FR-srm-patch-open-input.
@@ -78,9 +77,8 @@ public enum PatchRef {
         if trimmed.hasPrefix("nevent1"), let ev = NIP19Decode.decodeNEvent(trimmed) {
             return .nevent(trimmed, ev)
         }
-        // ponytail: URL forms are handled by scanning path segments
-        // (right-to-left) for a hex id or nevent and re-parsing; no per-site link
-        // (a hex id or nevent) and re-parsing; no per-site link grammar. Add
+        // ponytail: URL forms are handled by scanning path segments (right-to-left)
+        // for a hex id or nevent and re-parsing; no per-site link grammar. Add
         // per-site handling (e.g. relay hints from the URL's host) only if a real
         // site needs more than the embedded ref.
         guard trimmed.contains("://"), let url = URL(string: trimmed) else { return nil }

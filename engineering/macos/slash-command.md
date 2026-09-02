@@ -46,7 +46,9 @@ Responsibilities:
      "reviewContext": null
    }
    ```
-7. Launch the binary detached: `"$BINARY" --session "$SESSION_ID" >/dev/null 2>&1 &`. The `&` lets the script return immediately so the agent does not block on the GUI process.
+7. Refresh a minimal `.app` bundle at `engineering/apps/macos/.build/Shepherd.app` from the prebuilt binary, then launch it detached with `open -n "$APP_BUNDLE" --args --session "$SESSION_ID"`. A bare Mach-O SwiftUI executable does not reliably render its body; the bundle gives it full app treatment. `open` returns immediately, so the agent does not block on the GUI process.
+
+   **The bundled executable must be *replaced*, never overwritten in place.** SwiftPM emits an ad-hoc *linker-signed* binary, and macOS caches a code-signature blob per vnode. Copying onto the existing `Contents/MacOS/ShepherdApp` (`cp -f`, which truncates and rewrites the same inode) leaves that cached blob stale, and the next launch is `SIGKILL`ed by AMFI with `EXC_CRASH (SIGKILL (Code Signature Invalid))` / `CODESIGNING: Taskgated Invalid Signature` — `open` reports only "Launch failed". Unlink the destination first (`rm -f` then `cp`) so each refresh lands on a fresh inode.
 8. Print `Session: <id>` and a one-line summary on stdout so the slash command can parse session info.
 
 Exit codes: `0` success, `1` validation error, `2` launch failure (binary missing, etc.).
