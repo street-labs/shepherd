@@ -4,7 +4,18 @@
 # Validates each file, writes a session.json staging file, then opens the
 # prebuilt ShepherdApp binary with --session <id>.
 #
-# Usage: shepherd-launch.sh <filepath> [filepath...]
+# Usage: shepherd-launch.sh [--diff <git-diff-args>] [--context <file>] <filepath> [filepath...]
+#
+# With --diff, each file is staged as a unified diff instead of its whole content,
+# so the reviewer sees what changed. The argument is whatever goes between
+# `git diff` and `-- <path>` for the review's scope, and may be empty:
+#   --diff HEAD          working tree vs the last commit
+#   --diff ""            unstaged changes only
+#   --diff --cached      staged changes only
+#   --diff "main...HEAD" the current branch's commits
+#   --diff "abc123^ abc123"  a single commit
+# Untracked files render as all-added; a file with no change against the base falls
+# back to its full content.
 # Exit codes: 0 success, 1 validation error, 2 launch failure (binary missing, etc.)
 
 set -euo pipefail
@@ -22,8 +33,19 @@ PROJECT_NAME=$(basename "$PROJECT_DIR")
 
 # --- Parse options ---
 CONTEXT_FILE=""
+DIFF_BASE=""
+DIFF_MODE=0
 while [ $# -gt 0 ]; do
   case "$1" in
+    --diff)
+      if [ $# -lt 2 ]; then
+        echo "Error: --diff requires an argument (may be empty)" >&2
+        exit 1
+      fi
+      DIFF_BASE="$2"
+      DIFF_MODE=1
+      shift 2
+      ;;
     --context)
       if [ $# -lt 2 ]; then
         echo "Error: --context requires a file path argument" >&2
@@ -42,7 +64,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ $# -eq 0 ] || [ -z "${1:-}" ]; then
-  echo "Usage: shepherd-launch.sh [--context <file>] <filepath> [filepath...]" >&2
+  echo "Usage: shepherd-launch.sh [--diff <git-diff-args>] [--context <file>] <filepath> [filepath...]" >&2
   exit 1
 fi
 
@@ -98,6 +120,40 @@ if [ ${#VALID_PATHS[@]} -eq 0 ]; then
   exit 1
 fi
 
+# --- Diff staging ---
+
+# Emit the review content for one file: the unified diff for the review's scope
+# when --diff is set, otherwise the file's whole content. $DIFF_BASE is expanded
+# unquoted on purpose -- it carries the scope's `git diff` arguments, which may be
+# a rev, a rev pair, a flag, or nothing at all. An untracked file has no base to
+# diff against, so it is rendered all-added via `--no-index` against /dev/null. A
+# tracked file that is unchanged against the base has an empty diff, which would
+# open a blank tab -- fall back to its full content instead.
+# Implements: FR-diff-baseline-ref, FR-diff-compute, FR-diff-empty-state
+review_content() {
+  local filepath="$1"
+  if [ "$DIFF_MODE" -eq 0 ]; then
+    cat "$filepath"
+    return 0
+  fi
+  local out rel
+  # Repo-relative so the diff headers read `a/src/foo.swift`, not an absolute path.
+  rel="${filepath#$PROJECT_DIR/}"
+  if git -C "$PROJECT_DIR" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    out=$(git -C "$PROJECT_DIR" diff --no-color $DIFF_BASE -- "$rel" 2>/dev/null || true)
+  else
+    # --no-index exits 1 when the inputs differ, which is the normal case here.
+    out=$(git -C "$PROJECT_DIR" diff --no-color --no-index -- /dev/null "$rel" 2>/dev/null || true)
+  fi
+  if [ -z "$out" ]; then
+    echo "Note: no changes in scope — showing full file: $(basename "$filepath")" >&2
+    cat "$filepath"
+    return 0
+  fi
+  printf '%s\n' "$out"
+}
+
 # --- Verify prebuilt binary ---
 
 if [ ! -x "$BINARY" ]; then
@@ -133,7 +189,7 @@ json_escape() {
     first=0
     printf '\n    {\n'
     printf '      "path": %s,\n' "$(printf '%s' "$vpath" | json_escape)"
-    printf '      "content": %s\n' "$(cat "$vpath" | json_escape)"
+    printf '      "content": %s\n' "$(review_content "$vpath" | json_escape)"
     printf '    }'
   done
   printf '\n  ],\n'
