@@ -1,6 +1,6 @@
 # PR Actions
 
-> Cross-platform shared spec. macOS presentation is specified in `design/macos/pr-actions.md`; iOS in `design/ios/pr-actions.md`.
+> Cross-platform shared spec. Per-platform presentation is specified in `design/<platform>/pr-actions.md`.
 
 ## Overview
 
