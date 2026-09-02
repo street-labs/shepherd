@@ -11,6 +11,9 @@ public enum SyntaxLanguage: String, CaseIterable, Equatable, Codable, Sendable {
     case java
     case c
     case cpp
+    case swift
+    case kotlin
+    case shell
     case html
     case css
     case json
@@ -30,12 +33,14 @@ public enum SyntaxLanguage: String, CaseIterable, Equatable, Codable, Sendable {
         case "java": return .java
         case "c", "h": return .c
         case "cpp", "cc", "cxx", "hpp": return .cpp
+        case "swift": return .swift
+        case "kt", "kts": return .kotlin
+        case "sh", "bash", "zsh": return .shell
         case "html", "htm": return .html
         case "css": return .css
         case "json": return .json
         case "yaml", "yml": return .yaml
         case "md", "markdown": return .markdown
-        case "swift": return .plaintext
         default: return .plaintext
         }
     }

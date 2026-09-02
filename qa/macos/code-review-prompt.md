@@ -375,7 +375,7 @@ This test plan covers the macOS native (SwiftUI + TCA) implementation of the Cod
 - **Traces**: `FR-crp-syntax-highlight`
 - **Preconditions**: Sample files for each of the 13 languages are available as test fixtures.
 - **Steps**:
-  1. For each language (JavaScript, TypeScript, Python, Go, Rust, Java, C, C++, HTML, CSS, JSON, YAML, Markdown), load a sample file with the correct extension.
+  1. For each language (JavaScript, TypeScript, Python, Go, Rust, Java, C, C++, Swift, Kotlin, Shell, HTML, CSS, JSON, YAML, Markdown), load a sample file with the correct extension.
   2. Assert the language is correctly detected.
 - **Expected**: All 13 languages are detected and highlighted. Extension mappings work (`.js`, `.jsx`, `.mjs`, `.cjs` all map to JavaScript; `.ts`, `.tsx` map to TypeScript; etc.).
 - **Status**: Not started

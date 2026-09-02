@@ -43,6 +43,21 @@ struct SyntaxLanguageTests {
         #expect(SyntaxLanguage.detect(from: fileName) == .cpp)
     }
 
+    @Test("Swift extension")
+    func swift() {
+        #expect(SyntaxLanguage.detect(from: "App.swift") == .swift)
+    }
+
+    @Test("Kotlin extensions", arguments: ["Main.kt", "build.gradle.kts"])
+    func kotlin(fileName: String) {
+        #expect(SyntaxLanguage.detect(from: fileName) == .kotlin)
+    }
+
+    @Test("Shell extensions", arguments: ["deploy.sh", "profile.bash", "rc.zsh"])
+    func shell(fileName: String) {
+        #expect(SyntaxLanguage.detect(from: fileName) == .shell)
+    }
+
     @Test("HTML extensions", arguments: ["page.html", "page.htm"])
     func html(fileName: String) {
         #expect(SyntaxLanguage.detect(from: fileName) == .html)
