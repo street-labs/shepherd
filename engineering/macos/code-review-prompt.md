@@ -1523,7 +1523,7 @@ enum SyntaxHighlighter {
 
 ### Language Support
 
-All 13 required languages (`FR-crp-syntax-highlight`) are supported via TreeSitter grammar packages:
+All 16 required languages (`FR-crp-syntax-highlight`) are supported via TreeSitter grammar packages:
 
 | Language | Grammar Package | Extensions |
 |---|---|---|
@@ -1535,6 +1535,9 @@ All 13 required languages (`FR-crp-syntax-highlight`) are supported via TreeSitt
 | Java | tree-sitter-java | `.java` |
 | C | tree-sitter-c | `.c`, `.h` |
 | C++ | tree-sitter-cpp | `.cpp`, `.cc`, `.cxx`, `.hpp` |
+| Swift | tree-sitter-swift (alex-pinkus) | `.swift` |
+| Kotlin | tree-sitter-kotlin (fwcd) | `.kt`, `.kts` |
+| Shell | tree-sitter-bash | `.sh`, `.bash`, `.zsh` |
 | HTML | tree-sitter-html | `.html`, `.htm` |
 | CSS | tree-sitter-css | `.css` |
 | JSON | tree-sitter-json | `.json` |
@@ -1544,7 +1547,9 @@ All 13 required languages (`FR-crp-syntax-highlight`) are supported via TreeSitt
 **Build notes (two non-obvious details):**
 
 - **Query inheritance.** Some grammars' `highlights.scm` inherit from a base language and only add deltas. The vendored query for such a language is the base concatenated with the delta: `typescript.scm` = JavaScript + TypeScript, `cpp.scm` = C + C++. Without this, common constructs (numbers, keywords, primitive types) go uncolored.
-- **Vendored external scanners.** `css`, `javascript`, `python`, and `yaml` ship an external `scanner.c`, but their SwiftPM manifest only compiles it when `FileManager.fileExists("src/scanner.c")` is true — which it is not when the grammar is consumed as a dependency (the manifest runs with the consumer's working directory), so the scanner is dropped and `tree_sitter_<lang>_external_scanner_*` is undefined at link time. Those four scanners are vendored into the local `CTreeSitterScanners` C target (`Sources/CTreeSitterScanners/`) to supply the symbols. Grammars that list `scanner.c` unconditionally (rust, cpp, html, typescript, markdown) need no workaround.
+- **Vendored external scanners.** `css`, `javascript`, `python`, and `yaml` ship an external `scanner.c`, but their SwiftPM manifest only compiles it when `FileManager.fileExists("src/scanner.c")` is true — which it is not when the grammar is consumed as a dependency (the manifest runs with the consumer's working directory), so the scanner is dropped and `tree_sitter_<lang>_external_scanner_*` is undefined at link time. Those four scanners are vendored into the local `CTreeSitterScanners` C target (`Sources/CTreeSitterScanners/`) to supply the symbols. Grammars that list `scanner.c` unconditionally (rust, cpp, html, typescript, markdown, swift, kotlin, bash) need no workaround.
+- **Swift grammar tag.** `alex-pinkus/tree-sitter-swift` does not commit `src/parser.c` on its release tags; the generated parser lives on the parallel `<version>-with-generated-files` tags, so the pin is `exact: "0.7.3-with-generated-files"`.
+- **Kotlin grammar fork.** `tree-sitter-grammars/tree-sitter-kotlin` v1.x dropped the top-level `queries/` directory its own `Package.swift` still declares as a resource, so it fails to resolve as a SwiftPM dependency. The pin is the original `fwcd/tree-sitter-kotlin` at `0.3.8`.
 
 ---
 

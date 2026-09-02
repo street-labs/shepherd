@@ -11,6 +11,9 @@ import TreeSitterRust
 import TreeSitterJava
 import TreeSitterC
 import TreeSitterCPP
+import TreeSitterSwift
+import TreeSitterKotlin
+import TreeSitterBash
 import TreeSitterHTML
 import TreeSitterCSS
 import TreeSitterYAML
@@ -39,6 +42,9 @@ enum SyntaxHighlighter {
         case .java: return Grammar(language: tree_sitter_java(), query: "java")
         case .c: return Grammar(language: tree_sitter_c(), query: "c")
         case .cpp: return Grammar(language: tree_sitter_cpp(), query: "cpp")
+        case .swift: return Grammar(language: tree_sitter_swift(), query: "swift")
+        case .kotlin: return Grammar(language: tree_sitter_kotlin(), query: "kotlin")
+        case .shell: return Grammar(language: tree_sitter_bash(), query: "shell")
         case .html: return Grammar(language: tree_sitter_html(), query: "html")
         case .css: return Grammar(language: tree_sitter_css(), query: "css")
         case .json: return Grammar(language: tree_sitter_json(), query: "json")

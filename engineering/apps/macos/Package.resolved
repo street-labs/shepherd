@@ -1,5 +1,5 @@
 {
-  "originHash" : "eee8f0589236050d07372bac1c6e57b4f04bc9a1bfb4487358da4b270fb04de7",
+  "originHash" : "0c350aa1191f3a4258307292e16848e338518aa6135bb38fad60d54437e4af2f",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -173,6 +173,15 @@
       }
     },
     {
+      "identity" : "tree-sitter-bash",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tree-sitter/tree-sitter-bash",
+      "state" : {
+        "revision" : "a06c2e4415e9bc0346c6b86d401879ffb44058f7",
+        "version" : "0.25.1"
+      }
+    },
+    {
       "identity" : "tree-sitter-c",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tree-sitter/tree-sitter-c",
@@ -245,6 +254,15 @@
       }
     },
     {
+      "identity" : "tree-sitter-kotlin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/fwcd/tree-sitter-kotlin",
+      "state" : {
+        "revision" : "e1a2d5ad1f61f5740677183cd4125bb071cd2f30",
+        "version" : "0.3.8"
+      }
+    },
+    {
       "identity" : "tree-sitter-markdown",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tree-sitter-grammars/tree-sitter-markdown",
@@ -269,6 +287,15 @@
       "state" : {
         "revision" : "77a3747266f4d621d0757825e6b11edcbf991ca5",
         "version" : "0.24.2"
+      }
+    },
+    {
+      "identity" : "tree-sitter-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/alex-pinkus/tree-sitter-swift",
+      "state" : {
+        "revision" : "31d17fe7e818a2048c808b5c6fdc2dc792f4f5b5",
+        "version" : "0.7.3-with-generated-files"
       }
     },
     {
