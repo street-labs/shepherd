@@ -1,6 +1,6 @@
 ---
-product-hash: 63dd74d1198483ed4727495a3fa24821f6daf12ccd9ef3aff043e02d33b25d18
-product-slugs: [AC-pb-npub-list, AC-pb-open-pr, AC-pb-repo-list, AC-pb-watchlist-invalid, AC-pb-watchlist-persists, FR-pb-npub-list, FR-pb-open-pr, FR-pb-repo-list, FR-pb-watchlist-manage, NFR-pb-fetch-window]
+product-hash: ec7848c9428c28f1a2281961f54d73ff305683387b2f74d32573ac4c6ef8309b
+product-slugs: [AC-pb-default-state, AC-pb-npub-list, AC-pb-open-pr, AC-pb-private-relays, AC-pb-repo-list, AC-pb-status-badge, AC-pb-watchlist-invalid, AC-pb-watchlist-persists, FR-pb-default-state, FR-pb-npub-list, FR-pb-open-pr, FR-pb-repo-list, FR-pb-status, FR-pb-watchlist-manage, FR-srm-patch-open-entry, NFR-pb-fetch-window]
 ---
 # PR Browse — iOS Engineering
 
@@ -65,11 +65,12 @@ None new. Watchlist persists a list of public repo coordinates in UserDefaults; 
 |---|---|---|
 | FR-pb-watchlist-manage | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
 | FR-pb-repo-list | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
+| FR-pb-status | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift | planned (shared surface; badge + Show all render on iOS unchanged) |
 | FR-pb-npub-list | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
 | FR-pb-open-pr | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/ios/ShepherdiOSApp/EmptyStateView.swift | implemented |
 | NFR-pb-fetch-window | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
 
-(All five slugs are `implemented`: the shared surface plus the iOS entry point (`EmptyStateView`) and the adaptive `PRBrowseView` layout.)
+(Shared-surface slugs ride the macOS implementation: status badges (`FR-pb-status`) and repo-relay targeting with NIP-42 auth (`AC-pb-private-relays`) land in `PRBrowseFeature`/`RelayClient` and are inherited here unchanged.)
 
 ## Tests
 

@@ -38,7 +38,8 @@ struct FileDropZoneView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            // Implements: FR-pb-default-state — browse is the default empty state.
+            // Implements: FR-pb-default-state
+            // (browse is the default empty state)
             PRBrowseView(
                 store: store.scope(state: \.prBrowse, action: \.prBrowse)
             )

@@ -1,3 +1,8 @@
+---
+product-hash: ec7848c9428c28f1a2281961f54d73ff305683387b2f74d32573ac4c6ef8309b
+product-slugs: [AC-pb-default-state, AC-pb-npub-list, AC-pb-open-pr, AC-pb-private-relays, AC-pb-repo-list, AC-pb-status-badge, AC-pb-watchlist-invalid, AC-pb-watchlist-persists, FR-pb-default-state, FR-pb-npub-list, FR-pb-open-pr, FR-pb-repo-list, FR-pb-status, FR-pb-watchlist-manage, FR-srm-patch-open-entry, NFR-pb-fetch-window]
+---
+
 # PR Browse — macOS Design
 
 > Based on requirements in `../../product/pr-browse.md`
@@ -38,7 +43,9 @@ Once any file is loaded the surface is replaced by the review layout; there is n
 
 ## PR rows
 
-Each row: subject (bold, single line, truncated), second line author as `npub1…` short form (first 10 chars) or `—` when unknown, trailing relative age ("2d"). Newest first. Row height 44. Double-click (or Enter on keyboard selection) opens the PR.
+Each row: subject (bold, single line, truncated), second line author as `npub1…` short form (first 10 chars) or `—` when unknown, trailing relative age ("2d"), and a status badge between subject and age (`open` default, or `merged` / `closed` / `draft` from the newest NIP-34 status event — `FR-pb-status`). Badge is small caps, tinted: open gray, merged green, closed red, draft orange. Newest first. Row height 44. Double-click (or Enter on keyboard selection) opens the PR.
+
+The list shows open PRs by default; a `Show all` toggle under the list header includes merged/closed/draft rows (`FR-pb-status`).
 
 ## States
 
@@ -48,6 +55,7 @@ Each row: subject (bold, single line, truncated), second line author as `npub1�
 - **empty** — "No pull requests found." after the wait window.
 - **no relays** — if no relay is reachable, the same style of message the Open Patch dialog uses: "No relays reachable."
 - **invalid npub** — inline red message under the npub field.
+- **authenticating** — while a repo relay requires NIP-42 AUTH before answering, the loading spinner's caption reads "Authenticating to <relay host>…" (`AC-pb-private-relays`); a relay that rejects after auth is skipped silently and the fetch continues with the rest.
 
 ## Opening a PR
 

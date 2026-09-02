@@ -12,7 +12,8 @@ The Browse PRs surface (the app's default empty state): watchlist management and
 |---|---|
 | `FR-pb-default-state` | `TC-pb-default-state` |
 | `FR-pb-watchlist-manage` | `TC-pb-watchlist-add`, `TC-pb-watchlist-invalid`, `TC-pb-watchlist-remove`, `TC-pb-watchlist-duplicate`, `TC-pb-watchlist-persist` |
-| `FR-pb-repo-list` | `TC-pb-repo-list`, `TC-pb-repo-list-timeout` |
+| `FR-pb-repo-list` | `TC-pb-repo-list`, `TC-pb-repo-list-timeout`, `TC-pb-repo-relays`, `TC-pb-private-relay-auth` |
+| `FR-pb-status` | `TC-pb-status-badge`, `TC-pb-status-open-filter` |
 | `FR-pb-npub-list` | `TC-pb-npub-list`, `TC-pb-npub-invalid` |
 | `FR-pb-open-pr` | `TC-pb-open-pr` |
 | `NFR-pb-fetch-window` | `TC-pb-repo-list-timeout` |
@@ -48,6 +49,18 @@ Given the relay client yields three kind `1618` events with the repo's `a` tag (
 
 #### `TC-pb-repo-list-timeout` — Empty after wait window
 Given a relay client whose stream yields nothing, when a lookup runs, then after the 8s window the state is "No pull requests found." and no spinner remains.
+
+#### `TC-pb-repo-relays` — PR fetch targets repo announcement relays
+Given a `30617` repo event whose `relays` tag lists a relay not in the configured set, when the repo is selected, then the kind `1618` REQ is sent to that relay (assert on the subscription's relay set). Given a repo event missing the tag, the fetch falls back to configured relays.
+
+#### `TC-pb-private-relay-auth` — NIP-42 challenge answered on private relay
+Given a stub relay that sends an AUTH challenge before answering the REQ, when the repo lookup runs, then a signed kind `22242` is returned and the events arrive; a relay that rejects after auth is skipped without failing the lookup. (`AC-pb-private-relays`)
+
+#### `TC-pb-status-badge` — Status badge from newest status event
+Given PR events plus kinds `1630`–`1633` status events (mixed `created_at`, multiple per PR), when the list renders, then each row shows the badge of the newest status event matching its id, and rows with none show open. (`AC-pb-status-badge`)
+
+#### `TC-pb-status-open-filter` — Open-only default with Show all
+Given a list containing open and merged PRs, when rendered, then merged rows are hidden until `Show all` is toggled. (`AC-pb-status-badge`)
 
 ### Npub list
 

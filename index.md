@@ -4365,8 +4365,8 @@ Each entry lists a requirement slug and every artifact that references it:
 - **QA**: `qa/ios/identity.md` -> `TC-id-ios-screen-only-path`
 ### `FR-pb-default-state`
 - **Defined in**: `product/pr-browse.md`
-- **Design**: `design/macos/pr-browse.md` (macOS only in v1)
-- **Engineering**: `engineering/macos/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md` (macOS inline empty state; iOS realizes browse as root view, see `FR-pbi-browse-root`)
+- **Engineering**: `engineering/macos/pr-browse.md`, `engineering/ios/pr-browse.md`
 - **QA**: `qa/macos/pr-browse.md` -> `TC-pb-default-state`
 
 ### `FR-pb-watchlist-manage`
@@ -4379,7 +4379,7 @@ Each entry lists a requirement slug and every artifact that references it:
 - **Defined in**: `product/pr-browse.md`
 - **Design**: `design/macos/pr-browse.md`, `design/ios/pr-browse.md`
 - **Engineering**: `engineering/macos/pr-browse.md`, `engineering/ios/pr-browse.md`
-- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-repo-list`, `TC-pb-repo-list-timeout`; `qa/ios/pr-browse.md` -> `TC-pbi-repo-list`, `TC-pbi-layout-compact`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-repo-list`, `TC-pb-repo-list-timeout`, `TC-pb-repo-relays`, `TC-pb-private-relay-auth`; `qa/ios/pr-browse.md` -> `TC-pbi-repo-list`, `TC-pbi-layout-compact`
 
 ### `FR-pb-npub-list`
 - **Defined in**: `product/pr-browse.md`
@@ -4425,4 +4425,71 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `AC-pb-open-pr`
 - **Defined in**: `product/pr-browse.md`
 - **QA**: `qa/ios/pr-browse.md` -> `TC-pbi-open-pr`
+
+### `FR-pb-status`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md`, `design/ios/pr-browse.md`
+- **Engineering**: `engineering/macos/pr-browse.md`, `engineering/ios/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-status-badge`, `TC-pb-status-open-filter`
+
+### `AC-pb-status-badge`
+- **Defined in**: `product/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-status-badge`, `TC-pb-status-open-filter`
+
+### `AC-pb-private-relays`
+- **Defined in**: `product/pr-browse.md`
+- **Design**: `design/macos/pr-browse.md`, `design/ios/pr-browse.md`
+- **QA**: `qa/macos/pr-browse.md` -> `TC-pb-repo-relays`, `TC-pb-private-relay-auth`
+
+### `FR-pbi-browse-root`
+- **Defined in**: `product/ios/pr-browse.md`
+- **Design**: `design/ios/pr-browse.md`
+- **Engineering**: `engineering/ios/pr-browse.md`
+
+### `FR-pbi-adaptive`
+- **Defined in**: `product/ios/pr-browse.md`
+- **Design**: `design/ios/pr-browse.md`
+- **Engineering**: `engineering/ios/pr-browse.md`
+- **QA**: `qa/ios/pr-browse.md` -> `TC-pbi-layout-compact`
+
+### `FR-pa-comment`
+- **Defined in**: `product/pr-actions.md`
+- **Design**: `design/macos/pr-actions.md`, `design/ios/pr-actions.md`
+- **Engineering**: `engineering/macos/pr-actions.md`, `engineering/ios/pr-actions.md`
+- **QA**: `qa/macos/pr-actions.md` -> `TC-pa-comment-publish`, `TC-pa-line-ref`, `TC-pa-comment-retry`; `qa/ios/pr-actions.md` -> `TC-pai-comment-sheet`
+
+### `FR-pa-review`
+- **Defined in**: `product/pr-actions.md`
+- **Design**: `design/macos/pr-actions.md`, `design/ios/pr-actions.md`
+- **Engineering**: `engineering/macos/pr-actions.md`, `engineering/ios/pr-actions.md`
+- **QA**: `qa/macos/pr-actions.md` -> `TC-pa-approval-bind`, `TC-pa-rejection`; `qa/ios/pr-actions.md` -> `TC-pai-verdict-merge`
+
+### `FR-pa-threads`
+- **Defined in**: `product/pr-actions.md`
+- **Design**: `design/macos/pr-actions.md`, `design/ios/pr-actions.md`
+- **Engineering**: `engineering/macos/pr-actions.md`, `engineering/ios/pr-actions.md`
+- **QA**: `qa/macos/pr-actions.md` -> `TC-pa-live-reply`, `TC-pa-dedupe`; `qa/ios/pr-actions.md` -> `TC-pai-live-reply`
+
+### `FR-pa-merge`
+- **Defined in**: `product/pr-actions.md`
+- **Design**: `design/macos/pr-actions.md`, `design/ios/pr-actions.md`
+- **Engineering**: `engineering/macos/pr-actions.md`, `engineering/ios/pr-actions.md`
+- **QA**: `qa/macos/pr-actions.md` -> `TC-pa-merge-gate`, `TC-pa-merge-publish`, `TC-pa-stale-approval`; `qa/ios/pr-actions.md` -> `TC-pai-verdict-merge`
+
+### `FR-pa-capabilities`
+- **Defined in**: `product/pr-actions.md`
+- **Design**: `design/macos/pr-actions.md`, `design/ios/pr-actions.md`
+- **Engineering**: `engineering/macos/pr-actions.md`, `engineering/ios/pr-actions.md`
+- **QA**: `qa/macos/pr-actions.md` -> `TC-pa-capabilities`; `qa/ios/pr-actions.md` -> `TC-pai-capabilities`
+
+### `NFR-pa-publish-window`
+- **Defined in**: `product/pr-actions.md`
+- **QA**: `qa/macos/pr-actions.md` -> `TC-pa-comment-retry`
+
+### `NFR-pa-nostr-only`
+- **Defined in**: `product/pr-actions.md`
+- **QA**: `qa/macos/pr-actions.md` -> `TC-pa-merge-gate`
+
+### `AC-pa-approval-tip`, `AC-pa-capabilities`, `AC-pa-comment-publishes`, `AC-pa-line-comment`, `AC-pa-live-replies`, `AC-pa-merge-gate`, `AC-pa-merge-publishes`, `AC-pa-stale`
+- **Defined in**: `product/pr-actions.md` (covered via the FR/NFR entries above)
 

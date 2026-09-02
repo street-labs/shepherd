@@ -17,7 +17,6 @@ See `../product/macos/shepherd-review.md` for the current in-app patch-open beha
 ## V2
 
 - **Patches in the browse lists.** The PR Browse feature (`product/pr-browse.md`) lists pull requests (kind `1618`) for watched repos and tagged npubs; extending the repo lookup to patches (kind `1617`) is a follow-on once PR browsing has landed.
-- **Open-PR-only filtering and status badges.** PR Browse v1 lists every PR for a repo because NIP-34 status is conveyed by separate kind `1630`–`1633` status events (see the shared spec's Out of Scope). Fetch the most recent status event per PR and both filter to open PRs and show a real status badge. Rationale: the "open" in "browse open PRs" is currently approximated by recency, not truth.
 - **Live updates for browse lists.** Keep the browse subscription open while the sheet is shown so new PRs stream in, mirroring the live patch-thread subscription. Depends on: measured relay load with multi-repo watchlists.
 - **naddr / git-URL repo input.** Accept `naddr1…` and `git clone` URLs as watchlist input, resolving to `30617:<pubkey>:<d>` coordinates. Rationale: paste-anything ergonomics match the Open Patch reference input.
 
