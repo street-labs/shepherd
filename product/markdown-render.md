@@ -46,7 +46,7 @@ Non-markdown files continue to show only raw views (the rendered/raw toggle is h
 ### Functional Requirements
 
 #### `FR-mdr-detect-markdown` -- Detect markdown files for rendered view availability
-When a file is loaded, the application detects whether it is a markdown file by checking the file extension (case-insensitive). Recognized extensions are: `.md`, `.mdx`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`. This detection uses the same mechanism as the existing language detection in `FR-crp-syntax-highlight`, which already identifies Markdown as a supported language. When a markdown file is detected, the rendered/raw toggle becomes available. For non-markdown files, the toggle is not present at all (hidden, not disabled — unlike the diff toggle which shows as disabled for paste/upload files per `FR-diff-mode-availability`).
+When a file is loaded, the application detects whether it is a markdown file by checking the file extension (case-insensitive). Recognized extensions are: `.md`, `.mdx`, `.markdown`, `.mdown`, `.mkdn`, `.mkd`. This detection uses the same mechanism as the existing language detection in `FR-crp-syntax-highlight`, which already identifies Markdown as a supported language. When a markdown file is detected, the rendered/raw toggle becomes available. For non-markdown files, the toggle is not present at all — hidden, not disabled.
 
 #### `FR-mdr-render-toggle` -- Toggle between rendered and raw views
 The application provides a toggle control (e.g., a segmented button or icon toggle) that switches between "Raw" view (the existing syntax-highlighted code viewer) and "Rendered" view (the formatted HTML output). The toggle is located in the toolbar, adjacent to the existing File/Diff toggle. The default view for markdown files is **Raw** (consistent with the existing behavior — rendering is opt-in, not a surprise). The toggle state persists within the session but resets when a new file is loaded.
@@ -104,12 +104,12 @@ Each comment in the prompt references the element type and the source lines. For
 The prompt format follows the same overall structure as `FR-crp-prompt-format` (instructions section, file heading, requested changes section).
 
 #### `FR-mdr-switch-comments` -- Comment behavior when switching between rendered and raw views
-Switching between rendered and raw views **clears comments with confirmation**, consistent with the mode-switching behavior established in `FR-diff-mode-toggle`. The confirmation dialog warns the user that comments will be lost. If no comments exist, switching is immediate with no dialog.
+Switching between rendered and raw views **clears comments with confirmation**. The confirmation dialog warns the user that comments will be lost. If no comments exist, switching is immediate with no dialog.
 
 This is a deliberate v1 scoping decision. Mapping rendered-element comments to raw-line comments (and vice versa) is technically possible via the AST-to-line mapping but introduces edge cases (e.g., a comment on a rendered paragraph that spans 5 raw lines — which line does it map to?). Deferring this to v2 keeps the feature simpler and avoids surprising behavior.
 
 #### `FR-mdr-raw-diff-unchanged` -- Raw diff view is unchanged for markdown
-When viewing a markdown file in Raw + Diff mode, the existing diff view behavior (`FR-diff-display`, `FR-diff-collapse`, etc.) applies without modification. The rendered/raw toggle does not affect diff functionality in raw mode.
+When a markdown file is under review as a diff, the diff's own line treatment (`FR-diff-display`) applies without modification. The rendered/raw toggle does not affect it.
 
 #### `FR-mdr-rendered-diff-display` -- Display rendered diff with change annotations
 When the rendered/raw toggle is set to "Rendered" and the File/Diff toggle is set to "Diff", the application shows a **rendered diff view**. This view renders the new (working copy) version of the markdown as HTML, with visual annotations indicating what changed relative to the baseline (HEAD) version:
@@ -227,7 +227,7 @@ The rendered view must be navigable via keyboard. Commentable elements must be r
 
 7. **Table of contents / document outline**: Should the rendered view provide a mini table of contents or document outline derived from headings? This would be useful for navigating long documents. Deferred — not part of the core feature.
 
-8. **Rendered diff for non-server files**: The rendered diff requires both HEAD and working copy versions (via `FR-diff-baseline-fetch`). Should rendered diff be available for paste/upload files that have no baseline? No — consistent with `FR-diff-mode-availability`, diff view (in any rendering mode) requires server-loaded files.
+8. **Rendered diff**: A rendered diff needs both sides of the change, which only a review launched from a changeset has (`FR-diff-baseline-ref`). A file opened on its own has no baseline, so it is reviewed rendered or raw, never as a diff.
 
 9. **Performance of AST-level diff**: The AST diffing approach (parse both versions, diff the trees) is more expensive than line-level diff. Should there be a lower file-size threshold for rendered diff compared to raw diff? Engineering should evaluate whether the 10,000-line limit from `NFR-diff-compute-perf` needs to be lowered for rendered diff.
 
@@ -237,8 +237,8 @@ The rendered view must be navigable via keyboard. Commentable elements must be r
 - **`FR-crp-file-display`**: The rendered view occupies the same code viewer area and shares the surrounding application layout.
 - **`FR-crp-line-comment-create`**: The rendered view's comment creation interaction is modeled after the existing line-comment interaction, adapted for element-based anchoring.
 - **`FR-crp-prompt-format`**: The rendered view's prompt generation follows the same structural format, with element-type annotations instead of line numbers.
-- **`FR-diff-mode-toggle`**: The rendered/raw toggle is independent of but adjacent to the File/Diff toggle. Both toggles coexist in the toolbar.
-- **`FR-diff-baseline-fetch`**: The rendered diff view requires the HEAD version, fetched through the same baseline-retrieval mechanism as the raw diff.
+- **`FR-diff-display`**: A markdown file opened as a diff is rendered as a diff; the rendered/raw toggle applies to whole-file review only.
+- **`FR-diff-baseline-ref`**: The rendered diff view needs the same baseline the raw diff is computed against.
 - **`FR-diff-compute`**: The raw diff computation is unchanged. The rendered diff uses a higher-level AST diff but still relies on the baseline/working-copy data model.
 - **`NFR-crp-client-only`**: All rendering and diffing is client-side.
 - **`NFR-crp-large-file-perf`**: The rendered view must meet comparable scrolling performance targets.

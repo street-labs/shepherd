@@ -1,6 +1,6 @@
 Orchestrate a guided, multi-file code review of uncommitted changes using the macOS CRPG.
 
-<!-- Implements: FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-pr-source, FR-sr-pr-fetch, FR-sr-pr-diff-acquisition, FR-sr-pr-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument -->
+<!-- Implements: FR-diff-baseline-ref, FR-diff-compute, FR-diff-empty-state, FR-srm-command-file, FR-srm-multi-file-launch, FR-srm-context-handoff, FR-srm-scope-modes, FR-srm-branch-scope, FR-srm-commit-scope, FR-srm-range-scope, FR-srm-commit-mode-no-untracked, FR-srm-no-blank-window, FR-sr-patch-source, FR-sr-patch-fetch, FR-sr-patch-validation, FR-sr-patch-application, FR-sr-pr-source, FR-sr-pr-fetch, FR-sr-pr-diff-acquisition, FR-sr-pr-metadata-display, FR-sr-patch-replies-display, FR-sr-patch-replies-live, FR-sc-session-id, FR-sc-session-scoped-output, FR-sr-changeset-detection, FR-sr-changeset-overview, FR-sr-command-file, FR-sr-completion-summary, FR-sr-context-handoff, FR-sr-feedback-collection, FR-sr-file-filtering, FR-sr-file-list-display, FR-sr-git-required, FR-sr-iteration-loop, FR-sr-multi-file-launch, FR-sr-per-file-context, FR-sr-priority-ordering, FR-sr-scope-argument -->
 
 Allowed tools: Bash, Read, Write
 
@@ -614,11 +614,27 @@ rm -f ~/.shepherd/sessions/$SESSION_ID/prompt-output.md
 
 **5b. Launch all files in the macOS CRPG.**
 
-Build the command with `--context "$CTX"` and all absolute file paths, then invoke the launch script:
+Files open as **diffs**, not as whole files, so the reviewer sees what changed. Pass `--diff "$DIFF_SPEC"` — the scope's `git diff` arguments from the table below — alongside `--context "$CTX"` and all absolute file paths:
+
+| SCOPE | `DIFF_SPEC` |
+|---|---|
+| `working` | `HEAD` |
+| `staged` | `--cached` |
+| `unstaged` | (empty string) |
+| `ref` | `$DIFF_REF` |
+| `branch` | `$BASE...HEAD` |
+| `commit` | `$COMMIT_BASE $REF` |
+| `range` | `$RANGE` |
+| `patch` | `$BASE_COMMIT HEAD` |
+| `pr` | `$PR_MERGE_BASE HEAD` |
+
+These are the same bases used to read the diffs in Step 4 — the launcher recomputes them per file so the reviewer sees exactly the changeset you summarized.
 
 ```bash
-bash "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" --context "$CTX" "<absolute-path-1>" "<absolute-path-2>" ... "<absolute-path-N>"
+bash "$SHEPHERD_ROOT/scripts/shepherd-launch.sh" --diff "$DIFF_SPEC" --context "$CTX" "<absolute-path-1>" "<absolute-path-2>" ... "<absolute-path-N>"
 ```
+
+Pass `--diff ""` for `unstaged` — the empty argument is meaningful and must still be supplied. Untracked files have no base and are staged as all-added diffs automatically; a file with no change in scope falls back to its full content.
 
 Use the absolute paths (`REPO_ROOT/<relative-path>`) for each file in the prioritized list. Quote each path properly. After the launcher returns, delete the temp context file:
 

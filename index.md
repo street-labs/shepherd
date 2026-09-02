@@ -712,209 +712,101 @@ Each entry lists a requirement slug and every artifact that references it:
 - **QA**: TBD
 
 
-### `FR-diff-mode-toggle`
+### `FR-diff-baseline-ref`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `FR-diff-mode-availability`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `FR-diff-baseline-fetch`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-working-scope`, `TC-diff-commit-scope`
 
 ### `FR-diff-compute`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-tracked-file`, `TC-diff-untracked-file`
 
 ### `FR-diff-display`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `FR-diff-collapse`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `FR-diff-expand`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-line-kinds`, `TC-diff-is-diff-detection`, `TC-diff-tint`
 
 ### `FR-diff-comment-create`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `FR-diff-comment-on-range`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-comment-added-line`
 
 ### `FR-diff-prompt-format`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-prompt-notation`
 
 ### `FR-diff-empty-state`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `FR-diff-refresh`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-unchanged-file`
 
 ### `NFR-diff-compute-perf`
 - **Defined in**: `product/diff-view.md`
 - **Design**: —
-- **Engineering**: —
+- **Engineering**: `engineering/macos/diff-view.md`
 - **QA**: —
 
 ### `NFR-diff-render-perf`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `NFR-diff-client-compute`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `NFR-diff-baseline-fetch-speed`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
 - **QA**: —
 
 ### `NFR-diff-accessibility`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-prefix-present`
 
-### `AC-diff-toggle-to-diff`
+### `AC-diff-launch-shows-diff`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-working-scope`
 
-### `AC-diff-toggle-to-file`
+### `AC-diff-added-removed-tint`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-tint`
 
-### `AC-diff-collapse-default`
+### `AC-diff-untracked-all-added`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-untracked-file`
 
-### `AC-diff-expand-section`
+### `AC-diff-commit-scope-baseline`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-commit-scope`
 
-### `AC-diff-comment-added-line`
+### `AC-diff-comment-on-added-line`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-comment-removed-line`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-comment-context-line`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-comment-added-line`
 
 ### `AC-diff-prompt-includes-diff`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-prompt-notation`
 
-### `AC-diff-no-git-history`
+### `AC-diff-unchanged-file-full-content`
 - **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-no-changes`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-paste-upload-disabled`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-line-numbers`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-syntax-highlight`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-refresh-updates`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-switch-clears-comments`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-comment-range`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
-
-### `AC-diff-expand-then-comment`
-- **Defined in**: `product/diff-view.md`
-- **Design**: —
-- **Engineering**: —
-- **QA**: —
+- **Design**: `design/macos/diff-view.md`
+- **Engineering**: `engineering/macos/diff-view.md`
+- **QA**: `qa/macos/diff-view.md` -> `TC-diff-unchanged-file`
 
 ### `FR-sr-changeset-detection`
 - **Defined in**: `product/shepherd-review.md`

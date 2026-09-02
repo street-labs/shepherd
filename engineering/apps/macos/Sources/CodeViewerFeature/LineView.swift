@@ -1,4 +1,5 @@
 import SwiftUI
+import SharedModels
 
 /// Single line: line number + gutter + code content
 public struct LineView: View {
@@ -11,6 +12,9 @@ public struct LineView: View {
     let isSelected: Bool
     let isFocused: Bool
     let lineWrapEnabled: Bool
+    /// Set when the file under review is a unified diff, so the line can be tinted
+    /// by kind. Nil for whole-file review. Implements: FR-diff-display
+    let diffKind: DiffLineKind?
 
     public init(
         lineNumber: Int,
@@ -19,7 +23,8 @@ public struct LineView: View {
         hasComment: Bool = false,
         isSelected: Bool = false,
         isFocused: Bool = false,
-        lineWrapEnabled: Bool = true
+        lineWrapEnabled: Bool = true,
+        diffKind: DiffLineKind? = nil
     ) {
         self.lineNumber = lineNumber
         self.content = content
@@ -28,6 +33,7 @@ public struct LineView: View {
         self.isSelected = isSelected
         self.isFocused = isFocused
         self.lineWrapEnabled = lineWrapEnabled
+        self.diffKind = diffKind
     }
 
     private var codeText: Text {
@@ -72,6 +78,7 @@ public struct LineView: View {
                 }
             }
             .font(.system(.body, design: .monospaced))
+            .foregroundStyle(codeForegroundStyle)
         }
         .padding(.vertical, 1)
         .background(backgroundColor)
@@ -88,6 +95,19 @@ public struct LineView: View {
         if hasComment {
             return Color.yellow.opacity(0.05)
         }
-        return Color.clear
+        // Diff tinting sits below every interaction state above, so selection and
+        // comment highlighting stay legible on a tinted line.
+        // Implements: FR-diff-display
+        switch diffKind {
+        case .added: return Color.green.opacity(0.14)
+        case .removed: return Color.red.opacity(0.14)
+        case .header, .context, .none: return Color.clear
+        }
+    }
+
+    /// Header lines (`diff --git`, `@@`, mode lines) are structural noise — dimmed
+    /// so the changed lines carry the eye. Implements: FR-diff-display
+    private var codeForegroundStyle: HierarchicalShapeStyle {
+        diffKind == .header ? .secondary : .primary
     }
 }

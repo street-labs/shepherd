@@ -51,3 +51,39 @@ public struct FileNode: Identifiable, Equatable, Sendable {
         return markdownExtensions.contains(ext)
     }
 }
+
+extension FileNode {
+    /// True when this node's content is a unified diff rather than a whole file —
+    /// a changeset review launched with `--diff`, a NIP-34 patch, or a PR.
+    /// Implements: FR-diff-display
+    public var isDiff: Bool { content.hasPrefix("diff --git ") }
+}
+
+/// The kind of a single line within a unified diff, used to tint the line.
+/// Implements: FR-diff-display, NFR-diff-accessibility
+public enum DiffLineKind: Equatable, Sendable {
+    case added
+    case removed
+    /// File header, `index`/mode line, or `@@` hunk boundary.
+    case header
+    case context
+
+    public init(line: String) {
+        // Header prefixes are checked first: `+++`/`---` would otherwise read as
+        // an added/removed line.
+        let headerPrefixes = [
+            "+++", "---", "@@", "diff --git ", "index ", "new file mode",
+            "deleted file mode", "similarity index", "rename ", "old mode", "new mode",
+            "Binary files ", "\\ No newline",
+        ]
+        if headerPrefixes.contains(where: line.hasPrefix) {
+            self = .header
+        } else if line.hasPrefix("+") {
+            self = .added
+        } else if line.hasPrefix("-") {
+            self = .removed
+        } else {
+            self = .context
+        }
+    }
+}
