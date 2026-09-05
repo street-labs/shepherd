@@ -345,15 +345,24 @@ private struct PRRow: View {
             Spacer()
             if pr.status != "open" {
                 // Status badge from NIP-34 status events; text label included
-                // (not color-only). Implements: FR-pb-status.
+                // (not color-only). Tints per design/macos/pr-browse.md:
+                // merged green, closed red, draft orange.
+                // Implements: FR-pb-status.
+                let tint: Color = {
+                    switch pr.status.lowercased() {
+                    case "merged": return .green
+                    case "closed": return .red
+                    default: return .orange
+                    }
+                }()
                 Text(pr.status.uppercased())
                     .font(.caption2.weight(.medium))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
-                        Capsule().fill(Color.green.opacity(0.15))
+                        Capsule().fill(tint.opacity(0.15))
                     )
-                    .foregroundStyle(.green)
+                    .foregroundStyle(tint)
             }
             Text(age(pr.createdAt))
                 .font(.caption)

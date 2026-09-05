@@ -12,12 +12,14 @@ public enum EventBuilder {
 
     /// Unsigned kind `1` threaded reply on a PR (or patch) root event.
     /// `replyTarget` adds the reply `e` tag and target-author `p` tag;
-    /// `range` attaches an optional file/line reference.
+    /// `range` attaches an optional file/line reference (AC-pa-line-comment).
     public static func threadedReply(
-        rootID: String, replyTarget: ReviewContext.PatchReply?, content: String,
+        rootID: String, repoCoordinate: String? = nil,
+        replyTarget: ReviewContext.PatchReply?, content: String,
         range: (path: String, start: Int, end: Int)? = nil
     ) -> NostrEvent {
         var tags: [[String]] = [["e", rootID, "", "root"]]
+        if let repoCoordinate { tags.append(["a", repoCoordinate]) }
         if let replyTarget {
             tags.append(["e", replyTarget.id, "", "reply"])
             tags.append(["p", replyTarget.authorPubkey])
@@ -52,7 +54,9 @@ public enum EventBuilder {
 
     /// Unsigned NIP-34 kind `1631` Applied/Merged status event. Shepherd
     /// publishes the status only; landing commits is the merge service's job
-    /// (`FR-pa-merge`).
+    /// (`FR-pa-merge`). V1 ceiling per the product spec: `mergeCommit` is the
+    /// PR's tip commit — fast-forward-style publication only; non-FF landing
+    /// is out of scope until Shepherd lands commits itself.
     public static func mergeStatus(
         prEventID: String, repoCoordinate: String?, mergeCommit: String
     ) -> NostrEvent {

@@ -774,31 +774,36 @@ public struct AppFeature {
                         }
                     }
                     .cancellable(id: CancelID.prEventFetch, cancelInFlight: true)
-                    // Live kind `1620` verdict stream: stored first, then live.
-                    // Implements: FR-pa-merge, FR-pa-threads.
+                    // Repo announcement first: its `relay` tags scope the verdict
+                    // fetch/subscription so verdicts on a private grasp relay are
+                    // seen (falling back to configured relays when the repo event
+                    // or tag is missing). Maintainers gate Merge.
+                    // Implements: FR-pa-merge, FR-pa-capabilities, FR-pb-repo-list.
                     let verdictStream: Effect<Action> = .run { [relayClient] send in
-                        let filter = NostrFilter(eTag: prID, kinds: [1620])
+                        var relays = RelayClient.resolveRelays()
+                        if let repoCoordinate {
+                            let repoFilter = NostrFilter(aTag: repoCoordinate, kinds: [30617])
+                            if let repo = await Self.firstEventOrTimeout(
+                                relayClient.subscribe(repoFilter), seconds: 5
+                            ) {
+                                let repoRelays = repo.tags
+                                    .filter { $0.count >= 2 && $0[0] == "relay" }
+                                    .map { $0[1] }
+                                await send(.repoInfoLoaded(
+                                    maintainers: MergeGate.maintainers(from: repo),
+                                    relays: repoRelays
+                                ))
+                                if !repoRelays.isEmpty { relays = repoRelays }
+                            }
+                        }
+                        var filter = NostrFilter(eTag: prID, kinds: [1620])
+                        filter.relays = relays
                         for await event in relayClient.subscribe(filter) {
                             await send(.prVerdictReceived(event))
                         }
                     }
                     .cancellable(id: CancelID.prVerdictSubscription, cancelInFlight: true)
-                    // Repo announcement: maintainers (`p` tags) gate Merge; its
-                    // `relay` tags are the publish target for PR actions.
-                    // Implements: FR-pa-merge, FR-pa-capabilities.
-                    let repoFetch: Effect<Action> = .run { [relayClient] send in
-                        guard let coord = repoCoordinate else { return }
-                        let filter = NostrFilter(aTag: coord, kinds: [30617])
-                        for await event in relayClient.subscribe(filter) {
-                            let relays = event.tags.filter { $0.count >= 2 && $0[0] == "relay" }.map { $0[1] }
-                            await send(.repoInfoLoaded(
-                                maintainers: MergeGate.maintainers(from: event),
-                                relays: relays
-                            ))
-                            break
-                        }
-                    }
-                    return .merge(eventFetch, verdictStream, repoFetch)
+                    return .merge(eventFetch, verdictStream)
 
                 case let .prEventLoaded(event):
                     state.prAuthorPubkey = event.pubkey
@@ -883,7 +888,7 @@ public struct AppFeature {
                           let gate = state.mergeGate, gate.passes,
                           !state.mergeInFlight else { return .none }
                     state.mergeInFlight = true
-                    let mergeCommit = meta.tipCommitFull ?? ""
+                    let mergeCommit = meta.tipCommitFull ?? "" // V1 ceiling: tip as merge-commit (FF-style only) — see product/pr-actions.md.
                     return .run { [identityClient, relayClient, repoRelays = state.repoRelays] send in
                         let unsigned = EventBuilder.mergeStatus(
                             prEventID: meta.eventID,
@@ -1331,6 +1336,27 @@ public struct AppFeature {
         }
     }
 
+    /// First event from a subscription within a window, or nil.
+    /// ponytail: duplicated with PRBrowseFeature.firstEventOrTimeout; hoist to a
+    /// shared client helper when a third caller appears.
+    private static func firstEventOrTimeout(
+        _ stream: AsyncStream<NostrEvent>, seconds: UInt64
+    ) async -> NostrEvent? {
+        await withTaskGroup(of: NostrEvent?.self) { group in
+            group.addTask {
+                for await event in stream { return event }
+                return nil
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+    }
+
     // MARK: - Patch-thread reply publishing helpers
 
     /// Kick off the sign + publish flow for a patch-review comment submit.
@@ -1369,28 +1395,31 @@ public struct AppFeature {
         )
     }
 
-    /// Build, sign, and publish a patch-thread reply.
-    // Implements: FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-bunker-signing
+    /// Build, sign, and publish a patch-thread reply (and PR comments/line
+    /// comments, FR-pa-comment): kind `1` threaded reply rooted at the open
+    /// patch/PR event, carrying the repo `a` coordinate and, for line-attached
+    /// comments, the file/line `range` tag (AC-pa-line-comment).
+    // Implements: FR-sr-patch-reply-publish, FR-sr-patch-reply-respond, FR-sr-bunker-signing, FR-pa-comment
     ///
     private static func publishPatchReply(
         comment: Comment, filePath: String?,
         patchMeta: ReviewContext.PatchMetadata, replyTarget: ReviewContext.PatchReply?,
         identityClient: IdentityClient, relayClient: RelayClient
     ) async -> (result: PublishResult, signed: NostrEvent?) {
-        var tags: [[String]] = [["e", patchMeta.eventID, "", "root"]]
-        if let coord = patchMeta.repoCoordinate { tags.append(["a", coord]) }
-        if let replyTarget {
-            tags.append(["e", replyTarget.id, "", "reply"])
-            tags.append(["p", replyTarget.authorPubkey])
-            if let anchorPath = replyTarget.lineAnchor?.filePath {
-                tags.append(["range", anchorPath, String(comment.startLine), String(comment.endLine)])
-            }
+        let range: (path: String, start: Int, end: Int)?
+        if let replyTarget, let anchorPath = replyTarget.lineAnchor?.filePath {
+            range = (anchorPath, comment.startLine, comment.endLine)
         } else if let filePath {
-            tags.append(["range", filePath, String(comment.startLine), String(comment.endLine)])
+            range = (filePath, comment.startLine, comment.endLine)
+        } else {
+            range = nil
         }
-        let unsigned = NostrEvent(
-            id: "", pubkey: "", kind: 1, content: comment.text,
-            tags: tags, createdAt: Int64(Date().timeIntervalSince1970)
+        let unsigned = EventBuilder.threadedReply(
+            rootID: patchMeta.eventID,
+            repoCoordinate: patchMeta.repoCoordinate,
+            replyTarget: replyTarget,
+            content: comment.text,
+            range: range
         )
         // Sign under the loaded identity: in-process Schnorr for a local key,
         // NIP-46 sign_event for a bunker. nil = bunker sign failure.
