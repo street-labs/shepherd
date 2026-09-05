@@ -1,5 +1,5 @@
 ---
-product-hash: d1c45aac4e1aba8cb578246592772e7aeac5df05d05690d601513b44d17a7b34
+product-hash: eb5def0ee51a224812b9cafbb444a578042b2152cfa5d2f0d71c2cce5fcc23f0
 product-slugs: [AC-pa-approval-tip, AC-pa-capabilities, AC-pa-comment-publishes, AC-pa-line-comment, AC-pa-live-replies, AC-pa-merge-gate, AC-pa-merge-publishes, AC-pa-stale, FR-pa-capabilities, FR-pa-comment, FR-pa-review, FR-pa-threads, NFR-pa-nostr-only, NFR-pa-publish-window]
 ---
 
