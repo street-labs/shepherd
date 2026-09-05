@@ -19,6 +19,8 @@ public struct InspectorView: View {
     let reviewerIdentity: ReviewerIdentity?
     /// Transient publish confirmation shown near the identity indicator.
     let showPublishConfirmation: Bool
+    /// Merge-control info (maintainers on an open PR). nil hides the control.
+    let mergeSection: MergeSection?
     /// Invoked when the reviewer taps Reply on a patch-thread inspector row.
     /// Implements: FR-srm-reply-to-reply.
     let onReplyToPatchReply: (ReviewContext.PatchReply) -> Void
@@ -33,6 +35,7 @@ public struct InspectorView: View {
         reviewContextStore: StoreOf<ReviewContextFeature>,
         reviewerIdentity: ReviewerIdentity? = nil,
         showPublishConfirmation: Bool = false,
+        mergeSection: MergeSection? = nil,
         onReplyToPatchReply: @escaping (ReviewContext.PatchReply) -> Void = { _ in }
     ) {
         self.store = store
@@ -44,6 +47,7 @@ public struct InspectorView: View {
         self.reviewContextStore = reviewContextStore
         self.reviewerIdentity = reviewerIdentity
         self.showPublishConfirmation = showPublishConfirmation
+        self.mergeSection = mergeSection
         self.onReplyToPatchReply = onReplyToPatchReply
     }
 
@@ -51,7 +55,7 @@ public struct InspectorView: View {
         VStack(spacing: 0) {
             // NIP-34 patch metadata (when reviewing a Nostr patch)
             if let patchMetadata = reviewContext?.patchMetadata {
-                PatchMetadataSectionView(metadata: patchMetadata)
+                PatchMetadataSectionView(metadata: patchMetadata, mergeSection: mergeSection)
             }
 
             // Reviewer identity indicator (patch reviews only). Implements:

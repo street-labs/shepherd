@@ -57,6 +57,29 @@ struct ToolbarView: ToolbarContent {
             .disabled(!store.hasComments)
         }
 
+        // PR review verdict controls, capability-gated (FR-pa-review,
+        // FR-pa-capabilities): disabled without an identity, hidden off-PR.
+        if store.isPRReview {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    store.send(.openVerdictSheet("approval"))
+                } label: {
+                    Label("Approve", systemImage: "checkmark.seal")
+                }
+                .disabled(!store.canReview)
+                .help(store.canReview ? "Approve this PR (kind 1620)" : "Unlock identity to review")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    store.send(.openVerdictSheet("rejection"))
+                } label: {
+                    Label("Request Changes", systemImage: "xmark.seal")
+                }
+                .disabled(!store.canReview)
+                .help(store.canReview ? "Request changes (rejection, kind 1620)" : "Unlock identity to review")
+            }
+        }
+
         if store.session.isSlashCommandMode {
             ToolbarItem(placement: .primaryAction) {
                 Button {

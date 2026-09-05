@@ -218,6 +218,7 @@ public enum PatchDiffSplitter {
             repoCoordinate: repoCoordinate(from: event.tags),
             tipCommit: tipCommit(from: event.tags).map { shortID($0) },
             branchName: branchName(from: event.tags),
+            tipCommitFull: tipCommit(from: event.tags),
             replies: []
         )
     }

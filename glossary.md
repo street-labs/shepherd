@@ -481,3 +481,7 @@ Entry template:
 **Also known as**: [Any synonyms that should redirect here]
 **Not to be confused with**: [Similar terms that mean something different]
 -->
+
+## Verdict event
+
+**Definition**: A kind `1620` Nostr event (custom kind in the NIP-34 family, per `docs/approval-events.md`) in which a reviewer records an approval (`t: approval`) or rejection (`t: rejection`) of a pull request, bound via the `c` tag to the exact PR tip commit the review was performed against. See `product/pr-actions.md` (`FR-pa-review`). Only current (newest-per-reviewer, tip-matching) verdicts count toward the merge gate.

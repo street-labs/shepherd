@@ -246,7 +246,7 @@ public struct PRBrowseView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(selection: $selectedPRID) {
-                    ForEach(store.prs) { pr in
+                    ForEach(store.prs.filter { store.showAll || $0.status == "open" }) { pr in
                         PRRow(pr: pr)
                             .tag(pr.id)
                             .contentShape(Rectangle())
@@ -257,6 +257,21 @@ public struct PRBrowseView: View {
                 }
                 .listStyle(.plain)
                 .onSubmit { openSelected() }
+                // Open-only by default; Show all reveals merged/closed/draft
+                // rows. Implements: FR-pb-status.
+                HStack {
+                    Toggle("Show all", isOn: Binding(
+                        get: { store.showAll },
+                        set: { _ in store.send(.toggleShowAll) }
+                    ))
+                    #if os(macOS)
+                    .toggleStyle(.checkbox)
+                    #endif
+                    Spacer()
+                }
+                .font(.callout)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 6)
             }
         }
     }
@@ -328,6 +343,27 @@ private struct PRRow: View {
                     .monospaced()
             }
             Spacer()
+            if pr.status != "open" {
+                // Status badge from NIP-34 status events; text label included
+                // (not color-only). Tints per design/macos/pr-browse.md:
+                // merged green, closed red, draft orange.
+                // Implements: FR-pb-status.
+                let tint: Color = {
+                    switch pr.status.lowercased() {
+                    case "merged": return .green
+                    case "closed": return .red
+                    default: return .orange
+                    }
+                }()
+                Text(pr.status.uppercased())
+                    .font(.caption2.weight(.medium))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule().fill(tint.opacity(0.15))
+                    )
+                    .foregroundStyle(tint)
+            }
             Text(age(pr.createdAt))
                 .font(.caption)
                 .foregroundStyle(.tertiary)

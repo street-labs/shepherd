@@ -5,7 +5,8 @@ import Foundation
 // Implements: FR-crp-line-comment-delete
 
 /// Implements: FR-crp-line-comment-create, FR-crp-line-comment-edit,
-/// FR-crp-line-comment-delete, FR-crp-comment-navigation
+/// FR-crp-line-comment-delete, FR-crp-comment-navigation, FR-pa-comment (PR
+/// comment publish rides the patch-thread reply machinery in AppFeature)
 @Reducer
 public struct CommentFeature {
     @ObservableState
