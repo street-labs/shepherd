@@ -135,6 +135,21 @@ public struct PatchMetadataSectionView: View {
                 }
             }
 
+            // Series patch count (patch-series / PR union loads) — makes a
+            // partial fetch visible instead of presenting it as complete.
+            if let count = metadata.seriesPatchCount {
+                HStack(alignment: .top, spacing: 8) {
+                    Text("Patches")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 100, alignment: .leading)
+
+                    Text("\(count) fetched")
+                        .font(.system(size: 11, design: .monospaced))
+                        .textSelection(.enabled)
+                }
+            }
+
             // Status
             HStack(alignment: .top, spacing: 8) {
                 Text("Status")

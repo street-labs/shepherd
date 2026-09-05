@@ -616,6 +616,8 @@ A second, CLI-free path into a patch review. The reviewer is in the native app's
 
 The fetch uses an **`ids`-only filter with no `kinds` constraint**. This is deliberate: a `kinds:[1617]` filter would make the wrong-kind validation state unreachable (a non-1617 id would be filtered out by the relay and return as "not found" instead of being fetched and rejected as wrong kind). Fetching by `ids` alone returns the event whatever its kind, so `OpenPatchFeature` can produce the precise wrong-kind message (`AC-srm-patch-open-wrong-kind`). The kind check happens in `PatchDiffSplitter.validate` after the event arrives.
 
+**Patch-series roots.** A kind-1617 cover letter (no diff of its own, NIP-34 series from `ngit send --force-patch`) is not a bad-diff dead end: `OpenPatchFeature` fetches the kind-1617 replies that reference it via `#e` and unions their diffs through the same load path. The fetched-patch count is surfaced in the metadata section (`PatchMetadata.seriesPatchCount`) so a partial fetch from a slow relay is visible.
+
 The subscription is opened, the first matching event is taken as the patch, and the subscription is cancelled immediately (we want one event, not a stream). A wait window (a few seconds, configurable) bounds the fetch; if no event arrives, the dialog reports not-found.
 
 ### Why diff-as-tabs, not full files
