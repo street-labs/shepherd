@@ -20,7 +20,7 @@ NostrFilter: + aTag/pTag -> "#a"/"#p" REQ keys
 
 ## Components
 
-### `NostrFilter` extension (`ShepherdDependencies/RelayClient.swift`)
+### `NostrFilter` extension (`ShepherdDependencies/RelayClient.swift)
 
 Add optional `aTag: String?` and `pTag: String?`, serialized as `#a` / `#p` single-element arrays in `jsonObject` — the same shape as the existing `#e`. No new client code; `RelaySubscriptionTask` already serializes whatever the filter emits.
 
@@ -58,11 +58,11 @@ The empty state (`FileDropZoneView`) hosts the button row (Open Files…, Paste 
 | Slug | Planned location | Status |
 |---|---|---|
 | `FR-pb-watchlist-manage` | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift; engineering/apps/macos/Sources/Dependencies/WatchlistClient.swift | implemented |
-| `FR-pb-repo-list` | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift` | planned (repo-relay targeting) |
+| `FR-pb-repo-list` | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift; engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
 | `FR-pb-npub-list` | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
 | `FR-pb-default-state` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/AppFeature/FileDropZoneView.swift | implemented |
 | `FR-pb-open-pr` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
-| `FR-pb-status` | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift` | planned |
+| `FR-pb-status` | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift | implemented |
 | `NFR-pb-fetch-window` | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
 
 ## Tests

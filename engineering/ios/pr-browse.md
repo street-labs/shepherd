@@ -33,7 +33,7 @@ No new contracts. The existing delegate `PRBrowseFeature.Action.delegate(.openPR
 |---|---|
 | `engineering/apps/ios/ShepherdiOSApp/EmptyStateView.swift` | Add Browse PRs button (entry point). |
 | `engineering/apps/ios/ShepherdiOSApp/iOSAppView.swift` | Present the `prBrowse` sheet. |
-| `engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift` | Adaptive layout: size-class split, compact navigation, single-tap open, remove fixed min frames. |
+| `engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift | Adaptive layout: size-class split, compact navigation, single-tap open, remove fixed min frames. |
 
 `PRBrowseFeature.swift`, `WatchlistClient`, the `NostrFilter` `#a`/`#p` extension, and all `AppFeature` wiring are untouched — they are platform-clean and already compiled into the iOS target via the shared package.
 
@@ -65,7 +65,7 @@ None new. Watchlist persists a list of public repo coordinates in UserDefaults; 
 |---|---|---|
 | FR-pb-watchlist-manage | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
 | FR-pb-repo-list | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
-| FR-pb-status | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift | planned (shared surface; badge + Show all render on iOS unchanged) |
+| FR-pb-status | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift; engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseView.swift | implemented (shared surface; badge + Show all render on iOS unchanged) |
 | FR-pb-npub-list | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |
 | FR-pb-open-pr | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/ios/ShepherdiOSApp/EmptyStateView.swift | implemented |
 | NFR-pb-fetch-window | engineering/apps/macos/Sources/PRBrowseFeature/PRBrowseFeature.swift | implemented |

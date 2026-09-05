@@ -60,6 +60,10 @@ public struct ReviewContext: Equatable, Codable, Sendable {
         /// nil for a patch or when the PR carried no `branch-name` tag.
         /// Implements: FR-sr-pr-metadata-display.
         public var branchName: String?
+        /// PR-only: full tip commit hash from the kind `1618` `c` tag. Bound into
+        /// kind `1620` verdict events and merge-gate staleness checks.
+        /// Implements: FR-pa-review. nil for a kind `1617` patch.
+        public var tipCommitFull: String?
         /// Replies on the patch review thread from other agents/humans (NIP-34 live
         /// review loop). Implements: FR-sr-patch-replies-display. Read-only
         /// conversation context, not user-editable comments. Empty when no replies.
@@ -75,6 +79,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             repoCoordinate: String? = nil,
             tipCommit: String? = nil,
             branchName: String? = nil,
+            tipCommitFull: String? = nil,
             replies: [PatchReply] = []
         ) {
             self.eventID = eventID
@@ -86,6 +91,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             self.repoCoordinate = repoCoordinate
             self.tipCommit = tipCommit
             self.branchName = branchName
+            self.tipCommitFull = tipCommitFull
             self.replies = replies
         }
 
@@ -96,6 +102,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
         private enum CodingKeys: String, CodingKey {
             case eventID, shortEventID, author, commitMessage
             case parentCommit, status, repoCoordinate, tipCommit, branchName, replies
+            case tipCommitFull
         }
 
         public init(from decoder: Decoder) throws {
@@ -109,6 +116,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             self.repoCoordinate = try c.decodeIfPresent(String.self, forKey: .repoCoordinate)
             self.tipCommit = try c.decodeIfPresent(String.self, forKey: .tipCommit)
             self.branchName = try c.decodeIfPresent(String.self, forKey: .branchName)
+            self.tipCommitFull = try c.decodeIfPresent(String.self, forKey: .tipCommitFull)
             self.replies = try c.decodeIfPresent([PatchReply].self, forKey: .replies) ?? []
         }
 
@@ -123,6 +131,7 @@ public struct ReviewContext: Equatable, Codable, Sendable {
             try c.encodeIfPresent(repoCoordinate, forKey: .repoCoordinate)
             try c.encodeIfPresent(tipCommit, forKey: .tipCommit)
             try c.encodeIfPresent(branchName, forKey: .branchName)
+            try c.encodeIfPresent(tipCommitFull, forKey: .tipCommitFull)
             try c.encode(replies, forKey: .replies)
         }
     }

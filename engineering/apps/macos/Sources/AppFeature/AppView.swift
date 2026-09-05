@@ -62,6 +62,13 @@ public struct AppView: View {
             ToolbarView(store: store)
         }
         .navigationTitle(store.session.windowTitle)
+        // Verdict sheet (approve / request changes). Implements: FR-pa-review.
+        .sheet(item: Binding(
+            get: { store.verdictSheet },
+            set: { if $0 == nil { store.send(.dismissVerdictSheet) } }
+        )) { _ in
+            VerdictSheetView(store: store)
+        }
         // Highlight the window as a valid drop target while files are dragged over
         // it (loaded state; the empty state has its own zone). Implements: FR-crp-macos-drag-drop-finder
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
@@ -108,8 +115,25 @@ public struct AppView: View {
             reviewContextStore: store.scope(state: \.reviewContext, action: \.reviewContext),
             reviewerIdentity: store.reviewerIdentity,
             showPublishConfirmation: store.showPublishConfirmation,
+            // Merge control for maintainers on an open PR. Implements:
+            // FR-pa-merge, FR-pa-capabilities.
+            mergeSection: mergeSection,
             onReplyToPatchReply: { reply in store.send(.replyToPatchReply(reply)) }
         )
+    }
+
+    /// Merge control info for the metadata section, only for maintainers
+    /// reviewing an open PR. Implements: FR-pa-capabilities, AC-pa-capabilities.
+    private var mergeSection: MergeSection? {
+        guard store.isPRReview, store.canMerge else { return nil }
+        let gate = store.mergeGate
+        return MergeSection(
+            gatePasses: gate?.passes ?? false,
+            gateReason: gate?.passes == false ? gate?.failureReason : nil,
+            inFlight: store.mergeInFlight
+        ) {
+            store.send(.mergePR)
+        }
     }
 
     private func handleDrop(providers: [NSItemProvider]) {

@@ -47,6 +47,9 @@ public struct iOSAppView: View {
                         .navigationTitle(store.activeFile?.filePath ?? "Shepherd")
                         .navigationBarTitleDisplayMode(.inline)
                         .settingsToolbar(store: store)
+                        // Verdict menu (approve / request changes), PR reviews
+                        // only. Implements: FR-pa-review, FR-pa-capabilities.
+                        .verdictToolbar(store: store)
                     },
                     content: {
                         CodeViewerPanelView(store: store)
@@ -58,6 +61,14 @@ public struct iOSAppView: View {
             }
         }
         .alert($store.scope(state: \.alert, action: \.alert))
+        // Verdict sheet (approve / request changes). Implements: FR-pa-review,
+        // FR-pa-capabilities (shared AppFeature actions; iOS presentation).
+        .sheet(item: Binding(
+            get: { store.verdictSheet },
+            set: { if $0 == nil { store.send(.dismissVerdictSheet) } }
+        )) { _ in
+            NavigationStack { VerdictSheetView(store: store) }
+        }
         .sheet(item: $store.scope(state: \.identity, action: \.identity)) { identityStore in
             IdentityView(store: identityStore)
         }
@@ -107,6 +118,27 @@ private extension View {
                     Image(systemName: "gearshape")
                 }
                 .accessibilityLabel("Settings")
+            }
+        }
+    }
+}
+
+/// Verdict menu (approve / request changes) for PR reviews, capability-gated.
+/// Must live inside a navigation container, like `settingsToolbar`.
+/// Implements: FR-pa-review, FR-pa-capabilities.
+private extension View {
+    func verdictToolbar(store: StoreOf<AppFeature>) -> some View {
+        toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Approve") { store.send(.openVerdictSheet("approval")) }
+                        .disabled(!store.canReview)
+                    Button("Request Changes") { store.send(.openVerdictSheet("rejection")) }
+                        .disabled(!store.canReview)
+                } label: {
+                    Image(systemName: "checkmark.seal")
+                }
+                .disabled(!store.isPRReview || !store.canReview)
             }
         }
     }

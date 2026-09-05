@@ -16,13 +16,13 @@ PR actions are implemented in the shared SwiftPM package (`engineering/apps/maco
 
 | Slug | Planned location | Status |
 |---|---|---|
-| FR-pa-comment | engineering/apps/macos/Sources/CommentFeature/CommentFeature.swift (shared); engineering/apps/ios/ShepherdiOSApp (composer view) | planned |
-| FR-pa-review | engineering/apps/macos/Sources/AppFeature/AppFeature.swift (shared) | planned |
-| FR-pa-threads | engineering/apps/macos/Sources/AppFeature/AppFeature.swift (shared) | planned |
-| FR-pa-merge | engineering/apps/macos/Sources/AppFeature/AppFeature.swift (shared) | planned |
-| FR-pa-capabilities | engineering/apps/macos/Sources/AppFeature/AppFeature.swift (shared) | planned |
-| NFR-pa-publish-window | engineering/apps/macos/Sources/Dependencies/RelayClient.swift | planned |
-| NFR-pa-nostr-only | shared, as macOS | planned |
+| FR-pa-comment | engineering/apps/macos/Sources/CommentFeature/CommentFeature.swift; engineering/apps/ios/ShepherdiOSApp/iOSAppView.swift | implemented |
+| FR-pa-review | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/ios/ShepherdiOSApp/iOSAppView.swift | implemented |
+| FR-pa-threads | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| FR-pa-merge | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| FR-pa-capabilities | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/ios/ShepherdiOSApp/iOSAppView.swift | implemented |
+| NFR-pa-publish-window | engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
+| NFR-pa-nostr-only | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 
 (Shared-surface slugs ride the macOS implementation listed in `../../engineering/macos/pr-actions.md`; no iOS-only logic.)
 

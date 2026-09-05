@@ -1,13 +1,35 @@
 import SwiftUI
 import SharedModels
 
+/// Merge-control info handed to the metadata section by the app layer.
+/// nil hides the Merge control entirely (non-maintainers, non-PRs).
+/// Implements: FR-pa-merge, FR-pa-capabilities, AC-pa-capabilities.
+public struct MergeSection {
+    public var gatePasses: Bool
+    public var gateReason: String?
+    public var inFlight: Bool
+    public let onMerge: () -> Void
+
+    public init(gatePasses: Bool, gateReason: String?, inFlight: Bool, onMerge: @escaping () -> Void) {
+        self.gatePasses = gatePasses
+        self.gateReason = gateReason
+        self.inFlight = inFlight
+        self.onMerge = onMerge
+    }
+}
+
 /// NIP-34 patch metadata display for Nostr patch reviews.
 /// Implements: FR-sr-patch-metadata-display
 public struct PatchMetadataSectionView: View {
     let metadata: ReviewContext.PatchMetadata
+    /// Present (maintainers on an open PR) → shows the Merge control next to
+    /// status, enabled only when the gate passes; disabled hover shows the
+    /// gate reason. Implements: FR-pa-merge.
+    var mergeSection: MergeSection? = nil
 
-    public init(metadata: ReviewContext.PatchMetadata) {
+    public init(metadata: ReviewContext.PatchMetadata, mergeSection: MergeSection? = nil) {
         self.metadata = metadata
+        self.mergeSection = mergeSection
     }
 
     public var body: some View {
@@ -121,6 +143,23 @@ public struct PatchMetadataSectionView: View {
                     .frame(width: 100, alignment: .leading)
 
                 StatusBadge(status: metadata.status)
+
+                if let merge = mergeSection {
+                    Button {
+                        merge.onMerge()
+                    } label: {
+                        if merge.inFlight {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Text("Merge")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(!merge.gatePasses || merge.inFlight)
+                    .help(merge.gatePasses ? "Publish merged status" : (merge.gateReason ?? "Merge unavailable"))
+                }
             }
         }
         .padding(12)

@@ -25,6 +25,11 @@ public struct RelayClient: Sendable {
     /// dialog calls this before fetching so it can report a precise no-relays
     /// error rather than timing out as "not found".
     public var reachableRelays: @Sendable ([String]) async -> [String]
+    /// Publish a signed event to the given relay set, falling back to the
+    /// configured relays when the set is empty. Used for PR actions, whose
+    /// publish target is the repo announcement's relay set (FR-pa-comment,
+    /// FR-pa-review, FR-pa-merge). Same outcome semantics as `publish`.
+    public var publishTo: @Sendable (NostrEvent, [String]) async -> PublishResult
     /// Publish a signed event to the configured relays. Implements: FR-srm-event-publish, FR-sri-event-publish.
     /// Sends an `EVENT` frame to each reachable relay and resolves to `accepted`
     /// when at least one relay returns `OK`, `rejected` when every reachable
@@ -186,6 +191,9 @@ extension RelayClient: DependencyKey {
             reachableRelays: { candidates in
                 await RelayReachability.probe(candidates)
             },
+            publishTo: { event, relays in
+                await RelayPublisher.publish(event, auth: auth, relays: relays)
+            },
             publish: { event in
                 await RelayPublisher.publish(event, auth: auth)
             }
@@ -195,6 +203,7 @@ extension RelayClient: DependencyKey {
     public static let testValue = RelayClient(
         subscribe: { _ in AsyncStream { _ in } },
         reachableRelays: { _ in [] },
+        publishTo: { _, _ in .failed },
         publish: { _ in .failed }
     )
 
@@ -449,8 +458,8 @@ private final class RelaySubscriptionTask: @unchecked Sendable {
 /// A relay is "reachable" if its socket connects and returns an `OK` frame; success
 /// is at-least-one-relay-accepted, individual relay failures tolerated.
 private enum RelayPublisher {
-    static func publish(_ event: NostrEvent, auth: @escaping @Sendable (String, String) async -> String?) async -> PublishResult {
-        let relays = RelayClient.resolveRelays()
+    static func publish(_ event: NostrEvent, auth: @escaping @Sendable (String, String) async -> String?, relays: [String]? = nil) async -> PublishResult {
+        let relays = relays?.isEmpty == false ? relays! : RelayClient.resolveRelays()
         guard !relays.isEmpty else { return .failed }
         // Build the EVENT frame once: ["EVENT", {event-object}].
         let eventDict = eventJSONObject(event)
@@ -481,6 +490,8 @@ private enum RelayPublisher {
 
     /// Publish to one relay. Returns true if the relay accepted (OK: true),
     /// false if it reached us but rejected, nil if unreachable.
+    /// Bounded publish: completes or fails visibly within the fixed per-relay
+    /// Implements: NFR-pa-publish-window
     private static func publishToOne(url: URL, frame: String, eventID: String, session: URLSession, auth: @escaping @Sendable (String, String) async -> String?, relayURL: String) async -> Bool? {
         let task = session.webSocketTask(with: url)
         task.resume()

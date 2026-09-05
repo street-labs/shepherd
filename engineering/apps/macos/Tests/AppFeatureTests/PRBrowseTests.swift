@@ -154,7 +154,7 @@ struct PRBrowseFeatureTests {
             $0.mode = .repo(coord)
             $0.loading = true
         }
-        await store.receive(\.noRelaysReached) {
+        await store.receive(\.noRelaysReached, timeout: .seconds(6)) {
             $0.loading = false
             $0.noRelays = true
         }
@@ -293,5 +293,70 @@ struct CollectEventsTests {
         let stream = AsyncStream<NostrEvent> { _ in }
         let events = await PRBrowseFeature.collectEvents(stream, seconds: 1)
         #expect(events.isEmpty)
+    }
+}
+
+// MARK: - Status resolution + repo-relay targeting (FR-pb-status, FR-pb-repo-list)
+
+@Suite("PRBrowseFeature.status + repo-relay targeting")
+struct PRBrowseStatusTests {
+    let pubkey = String(repeating: "ab", count: 32)
+
+    @MainActor
+    @Test("newest status event per PR wins; unmapped PRs stay open")
+    func statusResolution() {
+        let pr1 = NostrEvent(id: "pr1", pubkey: pubkey, kind: 1618, content: "one",
+                             tags: [], createdAt: 10, sig: "")
+        let pr2 = NostrEvent(id: "pr2", pubkey: pubkey, kind: 1618, content: "two",
+                             tags: [], createdAt: 11, sig: "")
+        let merged = NostrEvent(id: "m", pubkey: "m", kind: 1631, content: "",
+                                tags: [["e", "pr1", "", "root"]], createdAt: 5, sig: "")
+        let olderMerged = NostrEvent(id: "m0", pubkey: "m", kind: 1631, content: "",
+                                     tags: [["e", "pr1", "", "root"]], createdAt: 2, sig: "")
+        let closed = NostrEvent(id: "c", pubkey: "m", kind: 1632, content: "",
+                                tags: [["e", "pr2", "", "root"]], createdAt: 6, sig: "")
+        let prs = PRBrowseFeature.resolvePRs([pr1, pr2, merged, olderMerged, closed])
+        #expect(prs.first { $0.id == "pr1" }?.status == "merged")   // newest wins
+        #expect(prs.first { $0.id == "pr2" }?.status == "closed")
+        #expect(prs.map { $0.id } == ["pr2", "pr1"])                // newest first
+    }
+
+    @MainActor
+    @Test("repo-relay targeting: PR fetch targets the 30617 relay set")
+    func repoRelayTargeting() async {
+        let repoRelay = "wss://private.grasp.example"
+        let pr = NostrEvent(id: "pr1", pubkey: pubkey, kind: 1618, content: "a PR",
+                            tags: [], createdAt: 10, sig: "")
+        let store = TestStore(initialState: PRBrowseFeature.State()) {
+            PRBrowseFeature()
+        } withDependencies: {
+            $0.watchlistClient.load = { [] }
+            $0.watchlistClient.save = { _ in }
+            // The probe receives the candidate set; assert the repo relays won.
+            $0.relayClient.reachableRelays = { candidates in
+                #expect(candidates == [repoRelay])
+                return [repoRelay]
+            }
+            $0.relayClient.subscribe = { filter in
+                // Repo fetch (kinds 30617) returns the announcement with relay
+                // tags; the PR lookup returns the PR.
+                if filter.jsonObject["kinds"] as? [Int] == [30617] {
+                    let repo = NostrEvent(id: "r", pubkey: pubkey, kind: 30617, content: "",
+                                          tags: [["d", "shepherd"], ["relay", repoRelay]],
+                                          createdAt: 0, sig: "")
+                    return AsyncStream { $0.yield(repo); $0.finish() }
+                }
+                return AsyncStream { $0.yield(pr); $0.finish() }
+            }
+        }
+        store.exhaustivity = .off
+        await store.send(.repoSelected("30617:\(pubkey):shepherd")) {
+            $0.mode = .repo("30617:\(pubkey):shepherd")
+            $0.loading = true
+        }
+        await store.receive(\.lookupFinished, timeout: .seconds(12)) {
+            $0.loading = false
+            $0.prs = [PRBrowseFeature.PRSummary(id: "pr1", subject: "a PR", author: pubkey, createdAt: 10)]
+        }
     }
 }

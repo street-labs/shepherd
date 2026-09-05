@@ -25,6 +25,9 @@ public struct PRBrowseFeature {
         public var loading = false
         public var noRelays = false
         public var prs: [PRSummary] = []
+        /// When false (default) the list shows open PRs only; toggled by the
+        /// `Show all` control. Implements: FR-pb-status.
+        public var showAll = false
 
         @CasePathable
         public enum Mode: Equatable, Sendable {
@@ -37,16 +40,20 @@ public struct PRBrowseFeature {
 
     /// A listed PR row. Implements the list fields of `FR-pb-repo-list` /
     /// `FR-pb-npub-list`: subject, author, age (computed at render), newest first.
+    /// `status` resolves from NIP-34 kind `1630`–`1633` status events (newest
+    /// per PR wins), defaulting to `open`. Implements: FR-pb-status.
     public struct PRSummary: Equatable, Identifiable, Sendable {
         public let id: String
         public let subject: String
         public let author: String
         public let createdAt: Int64
-        public init(id: String, subject: String, author: String, createdAt: Int64) {
+        public var status: String
+        public init(id: String, subject: String, author: String, createdAt: Int64, status: String = "open") {
             self.id = id
             self.subject = subject
             self.author = author
             self.createdAt = createdAt
+            self.status = status
         }
 
         /// Maps a kind `1618` event to a row. Subject resolution reuses
@@ -58,6 +65,17 @@ public struct PRBrowseFeature {
                 author: event.pubkey,
                 createdAt: event.createdAt
             )
+        }
+
+        /// NIP-34 status kind → display label. Implements: FR-pb-status.
+        public static func statusLabel(_ kind: Int) -> String {
+            switch kind {
+            case 1630: return "open"
+            case 1631: return "merged"
+            case 1632: return "closed"
+            case 1633: return "draft"
+            default: return "open"
+            }
         }
     }
 
@@ -74,6 +92,7 @@ public struct PRBrowseFeature {
         case dismissed
         case prTapped(String)
         case lookupFinished([NostrEvent])
+        case toggleShowAll
         case noRelaysReached
         case delegate(Delegate)
 
@@ -187,14 +206,17 @@ public struct PRBrowseFeature {
                 return .send(.delegate(.openPR(id)))
 
             // Implements: FR-pb-repo-list / FR-pb-npub-list (collection half):
-            // dedupe by id, newest first.
+            // dedupe by id, newest first; resolve status from the collected
+            // NIP-34 status events. Implements: FR-pb-status.
             case let .lookupFinished(events):
                 state.loading = false
-                var seen = Set<String>()
-                state.prs = events
-                    .filter { seen.insert($0.id).inserted }
-                    .map(PRSummary.init(event:))
-                    .sorted { $0.createdAt > $1.createdAt }
+                state.prs = Self.resolvePRs(events)
+                return .none
+
+            // `Show all` toggle: list open PRs only by default.
+            // Implements: FR-pb-status.
+            case .toggleShowAll:
+                state.showAll.toggle()
                 return .none
 
             case .noRelaysReached:
@@ -208,26 +230,66 @@ public struct PRBrowseFeature {
         }
     }
 
+    /// PR rows from a collected event batch: dedupe kind-1618 events by id,
+    /// resolve each PR's status from the newest kind `1630`–`1633` status event
+    /// whose `e` tag matches the PR id (open default), sort newest first.
+    // Implements: FR-pb-repo-list, FR-pb-status
+    static func resolvePRs(_ events: [NostrEvent]) -> [PRSummary] {
+        var seen = Set<String>()
+        var prs = events.filter { $0.kind == 1618 }
+            .filter { seen.insert($0.id).inserted }
+            .map(PRSummary.init(event:))
+        let statuses = events.filter { (1630...1633).contains($0.kind) }
+            .sorted { $0.createdAt > $1.createdAt }
+        for i in prs.indices {
+            if let statusEvent = statuses.first(where: { event in
+                event.tags.contains { $0.count >= 2 && $0[0] == "e" && $0[1] == prs[i].id }
+            }) {
+                prs[i].status = PRSummary.statusLabel(statusEvent.kind)
+            }
+        }
+        return prs.sorted { $0.createdAt > $1.createdAt }
+    }
+
     /// Shared lookup effect for both modes: probe relays, subscribe with the
     /// mode's tag filter, collect every event within the 8s window
-    /// (`NFR-pb-fetch-window`).
+    /// (`NFR-pb-fetch-window`). Repo mode first resolves the repo `30617`
+    /// announcement: its `relay` tags become the fetch target set so PRs on
+    /// private grasp relays are queried directly; missing event/tag falls back
+    /// to configured relays. NIP-42 AUTH challenges are answered by the
+    /// existing `RelayAuth` path inside the subscription.
+    // Implements: FR-pb-repo-list (repo-relay targeting)
     private func lookup(state: inout State, mode: State.Mode) -> Effect<Action> {
         // Implements: NFR-pb-fetch-window
         state.mode = mode
         state.loading = true
         state.noRelays = false
         state.prs = []
+        state.showAll = false
         let filter: NostrFilter
         switch mode {
         case let .repo(raw):
-            filter = NostrFilter(aTag: raw, kinds: [1618])
+            filter = NostrFilter(aTag: raw, kinds: [1618, 1630, 1631, 1632, 1633])
         case let .npub(pubkey):
-            filter = NostrFilter(pTag: pubkey, kinds: [1618])
+            filter = NostrFilter(pTag: pubkey, kinds: [1618, 1630, 1631, 1632, 1633])
         }
+        let repoCoordinate: String? =
+            if case let .repo(raw) = mode { raw } else { nil }
         return .run { [relayClient] send in
-            let resolved = RelayClient.resolveRelays()
-            let reachable = await relayClient.reachableRelays(resolved)
-            RelayLog.debug("pr-browse lookup: resolved=\(resolved) reachable=\(reachable)")
+            // Repo-relay targeting: resolve the repo announcement's relay set.
+            var candidateRelays = RelayClient.resolveRelays()
+            if let repoCoordinate {
+                let repoFilter = NostrFilter(aTag: repoCoordinate, kinds: [30617])
+                let repoEvent = await Self.firstEventOrTimeout(
+                    relayClient.subscribe(repoFilter), seconds: 5
+                )
+                let repoRelays = repoEvent.map { event in
+                    event.tags.filter { $0.count >= 2 && $0[0] == "relay" }.map { $0[1] }
+                } ?? []
+                if !repoRelays.isEmpty { candidateRelays = repoRelays }
+            }
+            let reachable = await relayClient.reachableRelays(candidateRelays)
+            RelayLog.debug("pr-browse lookup: candidates=\(candidateRelays) reachable=\(reachable)")
             guard !reachable.isEmpty else {
                 await send(.noRelaysReached)
                 return
@@ -242,6 +304,25 @@ public struct PRBrowseFeature {
             await send(.lookupFinished(events))
         }
         .cancellable(id: CancelID.lookup, cancelInFlight: true)
+    }
+
+    /// First event from a subscription within a window, or nil.
+    private static func firstEventOrTimeout(
+        _ stream: AsyncStream<NostrEvent>, seconds: UInt64
+    ) async -> NostrEvent? {
+        await withTaskGroup(of: NostrEvent?.self) { group in
+            group.addTask {
+                for await event in stream { return event }
+                return nil
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
     }
 
     /// Collect every event from a subscription within a time window, then stop.

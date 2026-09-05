@@ -32,13 +32,13 @@ CommentFeature
 
 | Slug | Planned location | Status |
 |---|---|---|
-| `FR-pa-comment` | engineering/apps/macos/Sources/CommentFeature/CommentFeature.swift; engineering/apps/macos/Sources/Dependencies/EventBuilder.swift` (new) | planned |
-| `FR-pa-review` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/EventBuilder.swift` (new) | planned |
-| `FR-pa-threads` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift (live reply subscription) | planned (PR-rooted) |
-| `FR-pa-merge` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift (gate + effect); engineering/apps/macos/Sources/Dependencies/EventBuilder.swift` (new) | planned |
-| `FR-pa-capabilities` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift` | planned |
-| `NFR-pa-publish-window` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented (existing timeout) |
-| `NFR-pa-nostr-only` | engineering/apps/macos/Sources/CommentFeature/CommentFeature.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift` | planned |
+| `FR-pa-comment` | engineering/apps/macos/Sources/CommentFeature/CommentFeature.swift; engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/EventBuilder.swift | implemented |
+| `FR-pa-review` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/EventBuilder.swift | implemented |
+| `FR-pa-threads` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
+| `FR-pa-merge` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/Dependencies/EventBuilder.swift | implemented |
+| `FR-pa-capabilities` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift; engineering/apps/macos/Sources/ReviewContextFeature/PatchMetadataSectionView.swift | implemented |
+| `NFR-pa-publish-window` | engineering/apps/macos/Sources/Dependencies/RelayClient.swift | implemented |
+| `NFR-pa-nostr-only` | engineering/apps/macos/Sources/AppFeature/AppFeature.swift | implemented |
 
 ## Tests
 

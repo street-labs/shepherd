@@ -80,6 +80,29 @@ public struct AppFeature {
         /// indicator. Implements: FR-srm-comment-publish-on-submit.
         public var showPublishConfirmation: Bool = false
 
+        /// PR action state. Verdict events fetched from the PR's relays (kind
+        /// `1620`), repo maintainers + relays from the repo `30617` event, and
+        /// the presented verdict sheet. Implements: FR-pa-review, FR-pa-merge,
+        /// FR-pa-capabilities.
+        public var prVerdicts: [NostrEvent] = []
+        public var repoMaintainers: [String] = []
+        public var repoRelays: [String] = []
+        public var prAuthorPubkey: String?
+        public var verdictSheet: VerdictSheetState?
+        /// True when the last verdict publish was rejected/failed; the sheet
+        /// shows the failure and keeps the summary for retry.
+        public var verdictFailed = false
+        public var mergeInFlight = false
+
+        public struct VerdictSheetState: Equatable, Identifiable {
+            /// "approval" or "rejection".
+            public var verdict: String
+            public var summary: String = ""
+            public var isSubmitting = false
+            public var id: String { verdict }
+            public init(verdict: String) { self.verdict = verdict }
+        }
+
         /// Markdown rendering mode (raw or rendered)
         /// Implements: FR-mdr-render-toggle
         public var renderMode: MarkdownRenderMode = .raw
@@ -122,6 +145,29 @@ public struct AppFeature {
         public var commentCount: Int { allComments.count }
         public var generatedPrompt: String? { prompt.generatedPrompt }
         public var isActiveFileMarkdown: Bool { activeFile?.isMarkdownFile ?? false }
+
+        /// True when the open review is a kind `1618` PR (full tip commit present).
+        /// Implements: FR-pa-capabilities.
+        public var isPRReview: Bool {
+            reviewContextData?.patchMetadata?.tipCommitFull != nil
+        }
+
+        /// Merge gate over fetched verdicts. nil off-PR or with no tip.
+        /// Stale verdicts never count (AC-pa-stale).
+        // Implements: FR-pa-merge, FR-pa-capabilities
+        public var mergeGate: MergeGate.Outcome? {
+            guard let tip = reviewContextData?.patchMetadata?.tipCommitFull else { return nil }
+            return MergeGate.evaluate(events: prVerdicts, tipCommit: tip)
+        }
+
+        /// Merge affordance only for repo maintainers (AC-pa-capabilities).
+        public var canMerge: Bool {
+            guard let pubkey = reviewerIdentity?.pubkeyHex else { return false }
+            return repoMaintainers.contains(pubkey)
+        }
+
+        /// Approve/reject when an identity exists (AC-pa-capabilities).
+        public var canReview: Bool { reviewerIdentity != nil }
 
         public init(
             session: SessionFeature.State = SessionFeature.State(),
@@ -243,6 +289,20 @@ public struct AppFeature {
         case patchReplyPublishResult(Comment.ID, PublishResult, NostrEvent?)
         case dismissPublishConfirmation
 
+        // PR actions: verdicts, merge, capability-gated controls. Implements:
+        // FR-pa-comment, FR-pa-review, FR-pa-threads, FR-pa-merge, FR-pa-capabilities.
+        case startPRActionSubscriptions
+        case prEventLoaded(NostrEvent)
+        case prVerdictReceived(NostrEvent)
+        case repoInfoLoaded(maintainers: [String], relays: [String])
+        case openVerdictSheet(String)
+        case dismissVerdictSheet
+        case verdictSummaryChanged(String)
+        case submitVerdict
+        case verdictPublished(PublishResult)
+        case mergePR
+        case mergePublished(PublishResult)
+
         // Alerts
         case alert(PresentationAction<Alert>)
 
@@ -269,6 +329,8 @@ public struct AppFeature {
         case promptRegeneration
         case copyConfirmation
         case patchReplySubscription
+        case prVerdictSubscription
+        case prEventFetch
         case publishConfirmation
         case bunkerConnect
     }
@@ -639,7 +701,10 @@ public struct AppFeature {
                     state.reviewContextData?.patchMetadata = metadata
                     return .merge(
                         .send(.filesLoaded(loaded)),
-                        .send(.startPatchReplySubscription)
+                        .send(.startPatchReplySubscription),
+                        // PR actions (verdicts/merge) activate on PR opens.
+                        // Implements: FR-pa-review, FR-pa-merge, FR-pa-threads
+                        .send(.startPRActionSubscriptions)
                     )
 
                 case .openPatch:
@@ -659,6 +724,9 @@ public struct AppFeature {
                 // MARK: - Patch-thread reply live subscription (FR-sr-patch-replies-live)
 
                 case .startPatchReplySubscription:
+                    // Runs for patch AND PR reviews: the PR root id is the
+                    // subscription root, giving live reply streaming on PRs.
+                    // Implements: FR-sr-patch-replies-live, FR-pa-threads, AC-pa-live-replies
                     guard state.reviewContextData?.patchMetadata != nil,
                           let patchID = state.reviewContextData?.patchMetadata?.eventID else {
                         return .none
@@ -686,6 +754,158 @@ public struct AppFeature {
                     meta.replies.append(reply)
                     meta.replies.sort { $0.timestamp < $1.timestamp }
                     state.reviewContextData?.patchMetadata = meta
+                    return .none
+
+                // MARK: - PR actions (verdicts, merge, capabilities)
+
+                case .startPRActionSubscriptions:
+                    // PR-only: a full tip commit marks a kind `1618` review.
+                    guard let meta = state.reviewContextData?.patchMetadata,
+                          meta.tipCommitFull != nil else { return .none }
+                    let prID = meta.eventID
+                    let repoCoordinate = meta.repoCoordinate
+                    // Fetch the PR event itself for the author pubkey (1620 `p` tag).
+                    // Implements: FR-pa-review.
+                    let eventFetch: Effect<Action> = .run { [relayClient] send in
+                        let filter = NostrFilter(ids: [prID])
+                        for await event in relayClient.subscribe(filter) {
+                            await send(.prEventLoaded(event))
+                            break
+                        }
+                    }
+                    .cancellable(id: CancelID.prEventFetch, cancelInFlight: true)
+                    // Live kind `1620` verdict stream: stored first, then live.
+                    // Implements: FR-pa-merge, FR-pa-threads.
+                    let verdictStream: Effect<Action> = .run { [relayClient] send in
+                        let filter = NostrFilter(eTag: prID, kinds: [1620])
+                        for await event in relayClient.subscribe(filter) {
+                            await send(.prVerdictReceived(event))
+                        }
+                    }
+                    .cancellable(id: CancelID.prVerdictSubscription, cancelInFlight: true)
+                    // Repo announcement: maintainers (`p` tags) gate Merge; its
+                    // `relay` tags are the publish target for PR actions.
+                    // Implements: FR-pa-merge, FR-pa-capabilities.
+                    let repoFetch: Effect<Action> = .run { [relayClient] send in
+                        guard let coord = repoCoordinate else { return }
+                        let filter = NostrFilter(aTag: coord, kinds: [30617])
+                        for await event in relayClient.subscribe(filter) {
+                            let relays = event.tags.filter { $0.count >= 2 && $0[0] == "relay" }.map { $0[1] }
+                            await send(.repoInfoLoaded(
+                                maintainers: MergeGate.maintainers(from: event),
+                                relays: relays
+                            ))
+                            break
+                        }
+                    }
+                    return .merge(eventFetch, verdictStream, repoFetch)
+
+                case let .prEventLoaded(event):
+                    state.prAuthorPubkey = event.pubkey
+                    return .none
+
+                case let .prVerdictReceived(event):
+                    guard event.kind == 1620 else { return .none }
+                    if !state.prVerdicts.contains(where: { $0.id == event.id }) {
+                        state.prVerdicts.append(event)
+                    }
+                    return .none
+
+                case let .repoInfoLoaded(maintainers, relays):
+                    // Maintainers gate Merge; the repo relay set is the publish
+                    // target for all PR actions. Implements: FR-pa-capabilities.
+                    state.repoMaintainers = maintainers
+                    state.repoRelays = relays
+                    return .none
+
+                case let .openVerdictSheet(verdict):
+                    guard state.canReview else { return .none }
+                    state.verdictSheet = State.VerdictSheetState(verdict: verdict)
+                    state.verdictFailed = false
+                    return .none
+
+                case .dismissVerdictSheet:
+                    state.verdictSheet = nil
+                    return .none
+
+                case let .verdictSummaryChanged(summary):
+                    state.verdictSheet?.summary = summary
+                    return .none
+
+                case .submitVerdict:
+                    // Sign + publish kind `1620` bound to the current tip.
+                    // Implements: FR-pa-review, NFR-pa-nostr-only
+                    guard let verdict = state.verdictSheet?.verdict,
+                          let meta = state.reviewContextData?.patchMetadata,
+                          let tip = meta.tipCommitFull,
+                          state.reviewerIdentity != nil else { return .none }
+                    state.verdictSheet?.isSubmitting = true
+                    state.verdictFailed = false
+                    let summary = state.verdictSheet?.summary.isEmpty == false
+                        ? state.verdictSheet?.summary : nil
+                    let authorPubkey = state.prAuthorPubkey
+                    return .run { [identityClient, relayClient, repoRelays = state.repoRelays] send in
+                        let unsigned = EventBuilder.verdict(
+                            prEventID: meta.eventID,
+                            prAuthorPubkey: authorPubkey,
+                            repoCoordinate: meta.repoCoordinate,
+                            verdict: verdict,
+                            tipCommit: tip,
+                            summary: summary
+                        )
+                        guard let signed = await identityClient.sign(unsigned) else {
+                            await send(.verdictPublished(.failed))
+                            return
+                        }
+                        let result = await relayClient.publishTo(signed, repoRelays)
+                        await send(.verdictPublished(result))
+                    }
+
+                case let .verdictPublished(result):
+                    state.verdictSheet?.isSubmitting = false
+                    switch result {
+                    case .accepted:
+                        // The live verdict stream redelivers our event; also
+                        // close the sheet on success.
+                        state.verdictSheet = nil
+                    case .rejected, .failed:
+                        // Keep the sheet up with the summary retained so the
+                        // reviewer can retry; the sheet shows the failure.
+                        state.verdictFailed = true
+                    }
+                    return .none
+
+                case .mergePR:
+                    // Gate must pass at publish time.
+                    // Implements: FR-pa-merge, AC-pa-merge-gate, AC-pa-merge-publishes, NFR-pa-nostr-only
+                    guard state.canMerge,
+                          let meta = state.reviewContextData?.patchMetadata,
+                          let gate = state.mergeGate, gate.passes,
+                          !state.mergeInFlight else { return .none }
+                    state.mergeInFlight = true
+                    let mergeCommit = meta.tipCommitFull ?? ""
+                    return .run { [identityClient, relayClient, repoRelays = state.repoRelays] send in
+                        let unsigned = EventBuilder.mergeStatus(
+                            prEventID: meta.eventID,
+                            repoCoordinate: meta.repoCoordinate,
+                            mergeCommit: mergeCommit
+                        )
+                        guard let signed = await identityClient.sign(unsigned) else {
+                            await send(.mergePublished(.failed))
+                            return
+                        }
+                        let result = await relayClient.publishTo(signed, repoRelays)
+                        await send(.mergePublished(result))
+                    }
+
+                case let .mergePublished(result):
+                    state.mergeInFlight = false
+                    if case .accepted = result,
+                       var meta = state.reviewContextData?.patchMetadata {
+                        // Status flip on publish success (AC-pa-merge-publishes).
+                        meta.status = "merged"
+                        state.reviewContextData?.patchMetadata = meta
+                    }
                     return .none
 
                 // MARK: - Patch-thread reply publishing (bidirectional)
@@ -853,6 +1073,9 @@ public struct AppFeature {
                     // Implements: FR-sr-patch-replies-live (in-app RelayClient).
                     if isPatchReview {
                         effects.append(.send(.startPatchReplySubscription))
+                        // PR actions (verdicts/merge) activate on PR opens.
+                        // Implements: FR-pa-review, FR-pa-merge, FR-pa-threads.
+                        effects.append(.send(.startPRActionSubscriptions))
                         // Load the reviewer's Nostr identity for publishing replies.
                         // Implements: FR-srm-identity-load.
                         effects.append(.run { [identityClient] send in
@@ -1111,8 +1334,13 @@ public struct AppFeature {
     // MARK: - Patch-thread reply publishing helpers
 
     /// Kick off the sign + publish flow for a patch-review comment submit.
-    // Implements: FR-srm-comment-publish-on-submit, FR-srm-event-sign, FR-srm-event-publish,
+    /// Also the PR comment publish path (FR-pa-comment, AC-pa-comment-publishes,
+    /// AC-pa-line-comment): a kind `1` threaded reply rooted at the open PR event,
+    /// with the file/line `range` tag for line-attached comments. Failure keeps
+    /// the comment locally with a retry affordance; no identity keeps it local.
+    // Implements: FR-srm-comment-publish-on-submit, FR-srm-event-sign, FR-srm-event-publish
     // FR-sri-comment-publish-on-submit, FR-sri-event-sign, FR-sri-event-publish
+    // Implements: FR-pa-comment, NFR-pa-nostr-only
     ///
     private func patchReviewPublishEffect(
         state: inout State,
