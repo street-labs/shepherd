@@ -485,3 +485,22 @@ Entry template:
 ## Verdict event
 
 **Definition**: A kind `1620` Nostr event (custom kind in the NIP-34 family, per `docs/approval-events.md`) in which a reviewer records an approval (`t: approval`) or rejection (`t: rejection`) of a pull request, bound via the `c` tag to the exact PR tip commit the review was performed against. See `product/pr-actions.md` (`FR-pa-review`). Only current (newest-per-reviewer, tip-matching) verdicts count toward the merge gate.
+## Git Flow Review
+**Definition**: The AI-plus-human review loop over a git change set: the AI reviews first with line-anchored findings and an overall summary, the human reviews blind, the two feedback sets are workshopped together, and the combined review is posted back to the GitHub pull request.
+**Also known as**: git-flow review, the loop
+**Not to be confused with**: Shepherd Review (the single-party command that opens a change set for review; Git Flow Review composes with it)
+
+## Blind Pass
+**Definition**: The human reviewer's first pass over a Git Flow Review change set, during which the AI findings are present in the session but hidden, and neutral context and commenting work normally.
+**Also known as**: Blind mode
+**Not to be confused with**: An empty context — the AI feedback exists and is revealed after the pass
+
+## AI Finding
+**Definition**: A single line-anchored piece of AI review feedback (file, line, text) produced during a Git Flow Review kickoff, revealed after the blind pass and decided in the workshop.
+**Also known as**: Finding
+**Not to be confused with**: Reviewer comment (human-authored inline comment)
+
+## Workshop
+**Definition**: The reconciliation step of a Git Flow Review where every feedback item — AI findings and reviewer comments — is accepted, edited, or rejected, producing the combined review that is exported and posted.
+**Also known as**: Reconciliation
+**Not to be confused with**: The review pass itself (which precedes it)
