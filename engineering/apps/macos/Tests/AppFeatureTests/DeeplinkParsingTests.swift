@@ -30,4 +30,13 @@ struct DeeplinkParsingTests {
         #expect(AppFeature.parseDeeplinkRef(URL(string: "shepherd://patch/")!) == nil)
         #expect(AppFeature.parseDeeplinkRef(URL(string: "shepherd://pr/not-a-ref")!) == nil)
     }
+
+    // FR-sc-mac-launch: the launcher hands a session to the running app by link.
+    @Test func sessionLink() {
+        #expect(AppFeature.parseSessionDeeplink(URL(string: "shepherd://session/shep-slot-0")!) == "shep-slot-0")
+        #expect(AppFeature.parseSessionDeeplink(URL(string: "shepherd://session/")!) == nil)
+        #expect(AppFeature.parseSessionDeeplink(URL(string: "shepherd://session/..%2F..%2Fetc")!) == nil)
+        #expect(AppFeature.parseSessionDeeplink(URL(string: "shepherd://session/a/b")!) == nil)
+        #expect(AppFeature.parseSessionDeeplink(URL(string: "shepherd://patch/abc")!) == nil)
+    }
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
 # Launches the macOS Code Review Prompt Generator (CRPG) for one or more files.
-# Validates each file, writes a session.json staging file, then opens the
-# prebuilt ShepherdApp binary with --session <id>.
+# Validates each file, writes a session.json staging file, then hands the session to
+# the installed Shepherd.app as shepherd://session/<id>, which opens it in a new window
+# (or brings its existing window forward) in the one running app.
 #
 # Usage: shepherd-launch.sh [--diff <git-diff-args>] [--context <file>] <filepath> [filepath...]
 #
@@ -22,8 +23,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-MAC_APP_DIR="$REPO_ROOT/engineering/apps/macos"
-BINARY="$MAC_APP_DIR/.build/release/ShepherdApp"
 
 # --- Session ID derivation (matches shepherd-launch.sh) ---
 
@@ -154,13 +153,9 @@ review_content() {
   printf '%s\n' "$out"
 }
 
-# --- Verify prebuilt binary ---
+# --- Install (or refresh) the app ---
 
-if [ ! -x "$BINARY" ]; then
-  echo "Error: macOS app binary not found at $BINARY" >&2
-  echo "Re-run ./scripts/install-command.sh from the Shepherd repo to build it." >&2
-  exit 2
-fi
+APP_BUNDLE="$("$SCRIPT_DIR/install-app.sh")" || exit 2
 
 # --- Build session.json ---
 
@@ -208,47 +203,12 @@ json_escape() {
   printf '}\n'
 } > "$SESSION_FILE"
 
-# --- Wrap the binary in a .app bundle and launch it ---
+# --- Hand the session to the app ---
 #
-# A bare Mach-O SwiftUI executable does not reliably render its content on macOS:
-# the window chrome (toolbar/title) draws but the SwiftUI body stays blank. Wrapping
-# the binary in a minimal .app bundle and launching via `open -n` gives it full app
-# treatment (proper activation + render-server connection), which renders reliably.
-# The bundle is refreshed from the current binary on every launch.
+# Launches Shepherd if it is not running; otherwise the running app receives the link and
+# opens a window for the session. `open` returns immediately.
 # Implements: FR-sc-mac-launch, FR-sc-mac-session-handoff
-APP_BUNDLE="$MAC_APP_DIR/.build/Shepherd.app"
-mkdir -p "$APP_BUNDLE/Contents/MacOS"
-# Unlink before copying: SwiftPM emits an ad-hoc linker-signed binary and macOS caches
-# a code-signature blob per vnode. Overwriting the executable in place (cp -f truncates
-# the same inode) leaves that blob stale, and the next `open` is SIGKILLed by AMFI with
-# "Code Signature Invalid". A fresh inode per refresh avoids it.
-rm -f "$APP_BUNDLE/Contents/MacOS/ShepherdApp"
-cp "$BINARY" "$APP_BUNDLE/Contents/MacOS/ShepherdApp"
-cat > "$APP_BUNDLE/Contents/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleExecutable</key><string>ShepherdApp</string>
-  <key>CFBundleIdentifier</key><string>com.shepherd.app</string>
-  <key>CFBundleName</key><string>Shepherd</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
-  <key>CFBundleVersion</key><string>1</string>
-  <key>LSMinimumSystemVersion</key><string>14.0</string>
-  <key>NSHighResolutionCapable</key><true/>
-  <key>NSPrincipalClass</key><string>NSApplication</string>
-  <key>CFBundleURLTypes</key>
-  <array><dict>
-    <key>CFBundleURLSchemes</key><array><string>shepherd</string></array>
-    <key>CFBundleURLName</key><string>com.shepherd.app</string>
-  </dict></array>
-</dict>
-</plist>
-PLIST
-
-# -n: new instance per launch (mirrors the previous detached-process behavior).
-open -n "$APP_BUNDLE" --args --session "$SESSION_ID"
+open -a "$APP_BUNDLE" "shepherd://session/$SESSION_ID" || exit 2
 
 # --- Print summary (matches shepherd-launch.sh contract) ---
 

@@ -128,6 +128,7 @@ if [ -d "$MAC_APP_DIR" ]; then
     echo "Building macOS app (release)..."
     if (cd "$MAC_APP_DIR" && swift build -c release) >/dev/null 2>&1; then
       echo "Built: $MAC_APP_DIR/.build/release/ShepherdApp"
+      echo "Installed: $("$SCRIPT_DIR/install-app.sh")"
     else
       # Non-fatal per FR-sc-mac-prebuild — warn but do not block install.
       echo "Warning: macOS app build failed. /shepherd and /shepherd-review will not work until rebuilt." >&2

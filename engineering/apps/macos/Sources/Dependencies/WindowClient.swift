@@ -13,8 +13,6 @@ public struct WindowClient: Sendable {
     /// Returns true if an existing window was found and activated.
     /// (Non-throwing, non-Void endpoint: @DependencyClient requires an explicit default.)
     public var bringWindowToFront: @Sendable (String) async -> Bool = { _ in false }
-    /// Configure window geometry persistence for a session.
-    public var configureAutosave: @Sendable (String?) async -> Void
 }
 
 extension WindowClient: DependencyKey {
@@ -28,7 +26,8 @@ extension WindowClient: DependencyKey {
             },
             bringWindowToFront: { sessionID in
                 await MainActor.run {
-                    for window in NSApplication.shared.windows {
+                    // A closed window can linger in `windows`; only a shown (or minimized) one counts.
+                    for window in NSApplication.shared.windows where window.isVisible || window.isMiniaturized {
                         if window.frameAutosaveName == "session-\(sessionID)" {
                             window.makeKeyAndOrderFront(nil)
                             NSApplication.shared.activate(ignoringOtherApps: true)
@@ -37,29 +36,6 @@ extension WindowClient: DependencyKey {
                     }
                     return false
                 }
-            },
-            configureAutosave: { sessionID in
-                await MainActor.run {
-                    guard let window = NSApplication.shared.keyWindow else { return }
-                    let name = sessionID.map { "session-\($0)" } ?? "standalone"
-                    window.setFrameAutosaveName(name)
-                }
-                // Force an initial layout/draw pass shortly after launch. A freshly created
-                // SwiftUI window — most reliably when the root view swaps to a NavigationSplitView
-                // as session data loads asynchronously — can stay blank (empty sidebar and
-                // content) until the user first resizes it. Nudging the window width by 1pt and
-                // back triggers the same layout pass the manual resize does. The delay lets the
-                // async session load switch the root view in first.
-                try? await Task.sleep(for: .milliseconds(200))
-                await MainActor.run {
-                    guard let window = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first
-                    else { return }
-                    let frame = window.frame
-                    var nudged = frame
-                    nudged.size.width += 1
-                    window.setFrame(nudged, display: true)
-                    window.setFrame(frame, display: true)
-                }
             }
         )
         #else
@@ -67,8 +43,7 @@ extension WindowClient: DependencyKey {
         // reducer's window lifecycle actions are harmless on iOS.
         return WindowClient(
             closeWindow: {},
-            bringWindowToFront: { _ in false },
-            configureAutosave: { _ in }
+            bringWindowToFront: { _ in false }
         )
         #endif
     }()

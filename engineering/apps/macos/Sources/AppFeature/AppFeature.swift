@@ -586,12 +586,7 @@ public struct AppFeature {
 
                 // Implements: FR-id-screen-when-no-identity (launch gate)
                 case .windowAppeared:
-                    return .merge(
-                        .run { [windowClient, sessionID = state.session.sessionID] _ in
-                            await windowClient.configureAutosave(sessionID)
-                        },
-                        .send(.loadIdentityAtLaunch)
-                    )
+                    return .send(.loadIdentityAtLaunch)
 
                 // Implements: FR-id-screen-when-no-identity
                 case .loadIdentityAtLaunch:
@@ -1240,6 +1235,21 @@ public struct AppFeature {
     /// Patch input, or nil for any other host / empty / malformed reference.
     /// Implements FR-srm-deeplink-patch-format, FR-srm-deeplink-pr-format,
     /// FR-srm-deeplink-malformed.
+    /// Parse `shepherd://session/<id>` (sent by the CLI launcher) into its session ID.
+    /// The ID names a directory under `~/.shepherd/sessions/`, so anything outside the
+    /// launcher's `[a-z0-9-]` alphabet is rejected rather than trusted as a path.
+    /// Implements: FR-sc-mac-launch
+    public static func parseSessionDeeplink(_ url: URL) -> String? {
+        guard url.scheme?.lowercased() == "shepherd",
+              url.host?.lowercased() == "session"
+        else { return nil }
+        let id = String(url.path.drop { $0 == "/" })
+        guard !id.isEmpty,
+              id.allSatisfy({ ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" })
+        else { return nil }
+        return id
+    }
+
     static func parseDeeplinkRef(_ url: URL) -> String? {
         guard url.scheme?.lowercased() == "shepherd",
               let host = url.host?.lowercased(),

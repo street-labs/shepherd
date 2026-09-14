@@ -672,7 +672,7 @@ Each entry lists a requirement slug and every artifact that references it:
 ### `FR-sc-mac-prebuild`
 - **Defined in**: `product/macos/slash-command.md`
 - **Design**: N/A
-- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/install-command.sh`
+- **Engineering**: `engineering/macos/slash-command.md` -> `scripts/install-command.sh`, `scripts/install-app.sh`
 - **QA**: TBD
 
 ### `AC-sc-mac-launches-app`
