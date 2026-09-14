@@ -23,7 +23,7 @@ No web server, no port management. The native binary owns its window and lifecyc
 
 - Located at `engineering/apps/macos/.build/release/ShepherdApp` after `swift build -c release`.
 - Built once during `scripts/install-command.sh` execution.
-- Already accepts `--session <id>` (see `ShepherdApp.swift:20–24`).
+- Installed as `~/Applications/Shepherd.app` by `scripts/install-app.sh`; accepts sessions as `shepherd://session/<id>` links.
 - Already understands `~/.shepherd/sessions/<id>/session.json` (see `Sources/Dependencies/SessionClient.swift:24–30`).
 
 ### Launcher script — `scripts/shepherd-launch.sh`
@@ -35,7 +35,7 @@ Responsibilities:
 2. Resolve the path with `realpath` (with a fallback when `realpath` is unavailable).
 3. Validate: existence, readability, not-a-directory, null-byte-free.
 4. Compute `SESSION_ID` from the project root basename.
-5. Verify the prebuilt binary exists at `engineering/apps/macos/.build/release/ShepherdApp`. If missing, exit non-zero with a message instructing the user to re-run the installer.
+5. Run `scripts/install-app.sh`, which prints the installed bundle path (`~/Applications/Shepherd.app`). It copies the prebuilt binary at `engineering/apps/macos/.build/release/ShepherdApp` into the bundle when the installed copy is missing or differs, skipping the refresh while Shepherd is running (a running app keeps its build until quit). If there is neither a build nor an installed app, exit `2` with a message instructing the user to re-run the installer.
 6. Create `~/.shepherd/sessions/<id>/`, write `session.json`:
    ```json
    {
@@ -46,7 +46,9 @@ Responsibilities:
      "reviewContext": null
    }
    ```
-7. Refresh a minimal `.app` bundle at `engineering/apps/macos/.build/Shepherd.app` from the prebuilt binary, then launch it detached with `open -n "$APP_BUNDLE" --args --session "$SESSION_ID"`. A bare Mach-O SwiftUI executable does not reliably render its body; the bundle gives it full app treatment. `open` returns immediately, so the agent does not block on the GUI process.
+7. Hand the session to the app with `open -a "$APP_BUNDLE" "shepherd://session/$SESSION_ID"`. There is **one** installed app: macOS launches it if it is not running, otherwise the running app receives the link and opens the session in a new window, or brings that session's existing window forward (see `../../engineering/macos/code-review-prompt.md` §CLI Integration). `open` returns immediately, so the agent does not block on the GUI.
+
+   `install-app.sh` synthesizes a minimal `.app` bundle rather than launching the bare binary: a bare Mach-O SwiftUI executable does not reliably render its body, and the bundle registers the `shepherd://` scheme.
 
    **The bundled executable must be *replaced*, never overwritten in place.** SwiftPM emits an ad-hoc *linker-signed* binary, and macOS caches a code-signature blob per vnode. Copying onto the existing `Contents/MacOS/ShepherdApp` (`cp -f`, which truncates and rewrites the same inode) leaves that cached blob stale, and the next launch is `SIGKILL`ed by AMFI with `EXC_CRASH (SIGKILL (Code Signature Invalid))` / `CODESIGNING: Taskgated Invalid Signature` — `open` reports only "Launch failed". Unlink the destination first (`rm -f` then `cp`) so each refresh lands on a fresh inode.
 8. Print `Session: <id>` and a one-line summary on stdout so the slash command can parse session info.
@@ -94,7 +96,7 @@ The macOS app's existing `SessionClient.loadSession` reads `session.json`. Passi
 ## Implementation Plan
 
 1. Add `scripts/shepherd-launch.sh`.
-2. Update `scripts/install-command.sh` to (a) include `shepherd` in symlink loop and (b) prebuild the macOS app.
+2. Update `scripts/install-command.sh` to (a) include `shepherd` in symlink loop and (b) prebuild the macOS app and install it via `scripts/install-app.sh`.
 3. Add `.claude/commands/shepherd.md`.
 4. Add `.config/opencode/skills/shepherd/SKILL.md`.
 5. Run installer; verify binary exists and slash command resolves.

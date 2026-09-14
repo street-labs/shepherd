@@ -1185,10 +1185,6 @@ struct WindowClient {
     /// Bring a window with a given session ID to the front.
     /// Returns true if an existing window was found and activated.
     var bringWindowToFront: @Sendable (String) async -> Bool
-    /// Configure window geometry persistence for a session.
-    /// Uses NSWindow.setFrameAutosaveName keyed by session ID, so each
-    /// window independently saves/restores its position and size.
-    var configureAutosave: @Sendable (String?) async -> Void
 }
 
 extension WindowClient: DependencyKey {
@@ -1209,20 +1205,12 @@ extension WindowClient: DependencyKey {
                 }
                 return false
             }
-        },
-        configureAutosave: { sessionID in
-            await MainActor.run {
-                guard let window = NSApplication.shared.keyWindow else { return }
-                let name = sessionID.map { "session-\($0)" } ?? "standalone"
-                window.setFrameAutosaveName(name)
-            }
         }
     )
 
     static let testValue = WindowClient(
         closeWindow: unimplemented("WindowClient.closeWindow"),
-        bringWindowToFront: unimplemented("WindowClient.bringWindowToFront"),
-        configureAutosave: unimplemented("WindowClient.configureAutosave")
+        bringWindowToFront: unimplemented("WindowClient.bringWindowToFront")
     )
 }
 ```
@@ -1252,9 +1240,17 @@ minimum to the content's minimum, which reintroduces defect 1.
 
 **3. Blank-until-resize — a launch nudge.** A freshly created SwiftUI window (most reliably
 when the root view swaps to a `NavigationSplitView` as session data loads asynchronously) can
-stay blank — empty sidebar *and* content — until the user first resizes it. `WindowClient`
-nudges the window width by 1pt and back ~200ms after launch, which triggers the same layout
-pass the manual resize does.
+stay blank — empty sidebar *and* content — until the user first resizes it. `ReviewWindow`
+nudges its own window's width by 1pt and back ~200ms after the session starts loading, which
+triggers the same layout pass the manual resize does.
+
+**Per-window AppKit setup targets the real window.** Several windows share one process, so
+`NSApplication.keyWindow` is not "this window". `ReviewWindow` reads its hosting `NSWindow`
+through a background `NSViewRepresentable` and, once it has a session, sets that window's
+frame autosave name to `session-<id>` (per-session geometry, and the key
+`WindowClient.bringWindowToFront` matches on) and applies the launch nudge. Window
+restoration is disabled (`ApplePersistenceIgnoreState`): a restored window belongs to a CLI
+session that no longer exists.
 
 **Sidebar visibility.** Defensively, the multi-file `NavigationSplitView` pins
 `columnVisibility` to `.all` via `@State`, so the file-browser column is never left collapsed
@@ -1696,78 +1692,33 @@ end
 
 ### CLI Integration (`FR-crp-macos-slash-command-launch`)
 
-The CLI launches the macOS app via a custom URL scheme. This approach works regardless of whether the app is already running — macOS delivers the URL to the running instance via `onOpenURL`, or launches the app and delivers it on startup.
+Shepherd runs as **one installed app with one window per session**, never one process per session. The launcher installs the prebuilt binary once as `~/Applications/Shepherd.app` (`scripts/install-app.sh`) and hands each session over with a link. macOS launches the app if it is not running and delivers the link on startup, or delivers it to the running instance.
 
 ```bash
-# CLI launches via URL scheme (works whether app is running or not)
-open "shepherd://open?session=abc123"
+open -a ~/Applications/Shepherd.app "shepherd://session/abc123"
 ```
 
-The URL scheme `shepherd://` is registered in the app's `Info.plist`:
+The URL scheme `shepherd://` is registered in the bundle's `Info.plist` (`CFBundleURLTypes`, `CFBundleURLSchemes = [shepherd]`).
 
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-    <dict>
-        <key>CFBundleURLSchemes</key>
-        <array>
-            <string>shepherd</string>
-        </array>
-        <key>CFBundleURLName</key>
-        <string>com.shepherd.app</string>
-    </dict>
-</array>
-```
-
-The `ShepherdApp` entry point handles both initial launch (command-line args for direct invocation) and URL-based launch (for the typical CLI flow):
+The scene is a value-based `WindowGroup(for: String.self)` whose value is the session ID (nil for a standalone window). Each window's root view, `ReviewWindow`, owns its **own** `StoreOf<AppFeature>` in `@State`, so windows never share files, comments, or session state (`FR-crp-macos-window-management`). A new window sends `.session(.launched(sessionID:))` to its store once, on first appearance.
 
 ```swift
-@main
-struct ShepherdApp: App {
-    let store: StoreOf<AppFeature>
-
-    init() {
-        // Bare SwiftPM executable (no .app bundle): force regular activation
-        // policy and activate so the window becomes key and text input works.
-        // Without this, TextEditor key events beep because no first responder.
-        NSApplication.shared.setActivationPolicy(.regular)
-        NSApplication.shared.activate(ignoringOtherApps: true)
-
-        // Handle direct invocation with --session flag (fallback for dev/testing)
-        let sessionID = Self.parseSessionID()
-        self.store = Store(initialState: AppFeature.State()) {
-            AppFeature()
-        }
-        if let sessionID {
-            store.send(.session(.launched(sessionID: sessionID)))
-        }
-    }
-
-    static func parseSessionID() -> String? {
-        let args = CommandLine.arguments
-        guard let idx = args.firstIndex(of: "--session"),
-              idx + 1 < args.count else { return nil }
-        return args[idx + 1]
-    }
-
-    var body: some Scene {
-        WindowGroup {
-            AppView(store: store)
-        }
-        .commands { ShepherdCommands(store: store) }
-        .handlesExternalEvents(matching: ["shepherd"])
-        .onOpenURL { url in
-            // Parse shepherd://open?session=abc123
-            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                  let sessionID = components.queryItems?.first(where: { $0.name == "session" })?.value
-            else { return }
-            store.send(.session(.launched(sessionID: sessionID)))
-        }
-    }
+WindowGroup(for: String.self) { $sessionID in
+    ReviewWindow(sessionID: sessionID)   // owns @State store
 }
+.handlesExternalEvents(matching: ["shepherd"])
 ```
 
-Window deduplication (`AC-crp-macos-window-deduplicate`): When the app receives a URL with a session ID that already has an open window, the `.session(.launched(sessionID:))` action first checks via `WindowClient.bringWindowToFront`. If an existing window is found, it is activated and no new window is opened. If no existing window matches, a new window is created for the session. This works reliably for both first-launch and already-running scenarios because `onOpenURL` is delivered to the running app instance by macOS.
+Link routing lives in `ReviewWindow`. The view declares `.handlesExternalEvents(preferring: ["shepherd"], allowing: ["shepherd"])` so an inbound link goes to an existing window instead of SwiftUI spawning a blank one. In `.onOpenURL`:
+
+- `shepherd://session/<id>` (`AppFeature.parseSessionDeeplink`): if a window for that session is open, `WindowClient.bringWindowToFront` brings it forward instead of opening a duplicate (`AC-crp-macos-window-deduplicate`); the existing window keeps its content and comments. Otherwise a blank window (no session, no files — the default window a cold launch delivers the link to) adopts the session by setting its scene value, and any other window calls `openWindow(value: id)` to open a new one.
+- Any other link (`shepherd://patch|pr/<ref>`) goes to the receiving window's store as `.deeplinkReceived` (`FR-srm-deeplink-route`).
+
+The session ID names a directory under `~/.shepherd/sessions/`, so the parser accepts only the launcher's `[a-z0-9-]` alphabet; anything else is not treated as a session link.
+
+Menu commands act on the key window: `ShepherdCommands` reads the store through `@FocusedValue(\.reviewStore)`, which each `ReviewWindow` publishes with `.focusedSceneValue`. With no review window key, store-dependent items are disabled or no-ops.
+
+Closing a window drops its store, which cancels that window's in-flight effects (relay subscriptions). Closing the last window leaves the app running (`FR-crp-macos-auto-close`).
 
 ---
 

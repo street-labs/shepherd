@@ -525,6 +525,10 @@ Traceability: `FR-crp-macos-window-management`, `FR-crp-review-context-overall`.
 - Local-review-to-temp-ngit-server idea (Luke) deferred: direct nostr publishing to the PR's relays covers the nostr-native comment path; the temp-server bridge waits for the grasp server API shape. Source: `product/pr-actions.md` Open Questions.
 cc753f2 (Fix structural lane violation: platform name in shared product pointer line; restamp pr-actions hash; install missing pre-commit hook)
 
+## 2026-09-14 — macOS: one installed app, one window per session
+**Decision**: `/shepherd` installs the app once as `~/Applications/Shepherd.app` and hands each session to it as `shepherd://session/<id>`. The app opens a window per session, each with its own store, instead of the launcher starting a fresh process per session with `open -n`.
+**Rationale**: A process per session piled up Shepherd instances in the Dock and meant windows could never coordinate. `FR-crp-macos-slash-command-launch` already specified one app with a window per session; the launcher had drifted from it. Re-launching an open session brings its window forward rather than reloading it, so in-progress comments are never discarded.
+
 <!--
 Entry template:
 

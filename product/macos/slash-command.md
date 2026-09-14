@@ -33,13 +33,13 @@ The following shared requirements are **replaced** by macOS-specific variants be
 The user can type `/shepherd <filepath>` to launch the macOS CRPG with the specified file. Argument handling matches `/shepherd` exactly: missing arguments produce a usage message; invalid files produce the same error messages as `FR-sc-file-validation`.
 
 #### `FR-sc-mac-launch` -- Launch the prebuilt macOS application
-On invocation, the command launches the macOS CRPG application directly. The application opens its own window; no browser or local web server is involved. The application receives the session identifier via a launch argument and reads its file payload from a per-session staging location on disk.
+On invocation, the command launches the macOS CRPG application directly. The application opens its own window; no browser or local web server is involved. A single installed copy of the application serves every session: the command hands it the session identifier, launching the application if it is not running, and a running application opens the session in a new window rather than starting another copy of itself (`FR-crp-macos-slash-command-launch`). The application reads the file payload from a per-session staging location on disk.
 
 #### `FR-sc-mac-session-handoff` -- Hand off file payload via session directory
 Before launching the application, the slash command writes the validated file path and contents into the per-session staging area (the same `~/.shepherd/sessions/<id>/` directory used for prompt-output handoff). The application reads the staging file at startup, displays the file in the code viewer, and writes its prompt output back to the same directory when the user clicks **Done**, identically to the shared `FR-sc-prompt-receive` flow.
 
 #### `FR-sc-mac-prebuild` -- Prepare the macOS application during install
-The installer prepares the macOS application so the first invocation of `/shepherd` is fast. After the installer completes, invoking `/shepherd` does not require a build step or dependency download. If preparation fails (e.g., missing toolchain), the installer reports the failure but does not block the rest of the install.
+The installer builds and installs the macOS application so the first invocation of `/shepherd` is fast. After the installer completes, invoking `/shepherd` does not require a build step or dependency download. If preparation fails (e.g., missing toolchain), the installer reports the failure but does not block the rest of the install.
 
 ## macOS-Specific Acceptance Criteria
 
