@@ -135,6 +135,21 @@ public struct OpenPatchFeature {
                     case let .wrongKind(kind):
                         state.status = .wrongKind(shortHex(event.id), kind)
                         return .none
+                    case .badDiff where PatchDiffSplitter.isCoverLetter(event):
+                        // NIP-34 patch series: the root is a cover letter with no
+                        // diff of its own; the diffs live in kind-1617 replies that
+                        // reference it via `e` tags. Fetch the series and union.
+                        state.status = .fetching
+                        let candidates = state.currentRef?.relays.isEmpty ?? true
+                            ? RelayClient.resolveRelays()
+                            : (state.currentRef?.relays ?? RelayClient.resolveRelays())
+                        return .run { [relayClient] send in
+                            let reachable = await relayClient.reachableRelays(candidates)
+                            let relays = reachable.isEmpty ? candidates : reachable
+                            let events = await Self.fetchPatchReplies(rootID: event.id, relays: relays, relayClient: relayClient)
+                            await send(.prPatchesFetched(events, event))
+                        }
+                        .cancellable(id: CancelID.fetch, cancelInFlight: true)
                     case .badDiff:
                         state.status = .badDiff(shortHex(event.id))
                         return .none
@@ -236,7 +251,9 @@ public struct OpenPatchFeature {
                 let files = order.map { filePath in
                     PatchDiffSplitter.DiffFile(filePath: filePath, diffBlock: union[filePath]!.joined(separator: "\n"))
                 }
-                return .send(.delegate(.patchLoaded(files, PatchDiffSplitter.prMetadata(from: prEvent))))
+                var metadata = PatchDiffSplitter.prMetadata(from: prEvent)
+                metadata.seriesPatchCount = events.count
+                return .send(.delegate(.patchLoaded(files, metadata)))
 
             case let .fetchTimedOut(eventID):
                 state.status = .notFound(shortHex(eventID))
@@ -297,6 +314,43 @@ public struct OpenPatchFeature {
             }
             return out
         }
+    }
+
+    /// Fetch the kind-1617 patch replies that reference a patch-series cover
+    /// letter via `e` tag (NIP-34 series published by `ngit send --force-patch`).
+    /// Collects every distinct event that arrives within an 8s window, oldest
+    /// first, so the union preserves commit order. The fetched count is surfaced
+    /// via `PatchMetadata.seriesPatchCount` so a truncated series (slow relay,
+    /// window expired) is visible rather than presented as complete.
+    private final class EventBox: @unchecked Sendable {
+        // Sendability invariant: exactly one task appends; reads happen only
+        // after the task group below completes. Confine or actor-ify if that
+        // ever stops holding.
+        var events: [NostrEvent] = []
+    }
+
+    static func fetchPatchReplies(
+        rootID: String, relays: [String], relayClient: RelayClient
+    ) async -> [NostrEvent] {
+        let stream = relayClient.subscribe(NostrFilter(eTag: rootID, kinds: [PatchDiffSplitter.patchKind], relays: relays))
+        let box = EventBox()
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                for await event in stream { box.events.append(event) }
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 8_000_000_000)
+            }
+            await group.next()
+            group.cancelAll()
+        }
+        var byID: [String: NostrEvent] = [:]
+        for event in box.events { byID[event.id] = event }
+        // ponytail: createdAt ordering is a heuristic — same-second ngit sends
+        // have no guaranteed commit order, and a re-published patch sorts by its
+        // original timestamp. Walk the `e`-tag reply chain from the root if
+        // exact ordering ever matters.
+        return byID.values.sorted { $0.createdAt < $1.createdAt }
     }
 }
 

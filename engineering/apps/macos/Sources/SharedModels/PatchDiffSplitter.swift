@@ -39,6 +39,14 @@ public enum PatchDiffSplitter {
         case ok(files: [DiffFile], metadata: ReviewContext.PatchMetadata)
     }
 
+    /// True when the event is a kind-1617 cover letter of a NIP-34 patch series
+    /// (no diff of its own; the diffs live in kind-1617 replies that reference it
+    /// via `e` tags). Implements the cover-letter dispatch of `FR-srm-patch-open-fetch`.
+    public static func isCoverLetter(_ event: NostrEvent) -> Bool {
+        event.kind == patchKind
+            && event.tags.contains { $0.count >= 2 && $0[0] == "t" && $0[1] == "cover-letter" }
+    }
+
     /// Validate the event kind, then parse the unified-diff content into per-file
     /// blocks and build the patch metadata record. Pure function — no I/O.
     // Implements: FR-srm-patch-open-load, FR-srm-patch-open-fetch
